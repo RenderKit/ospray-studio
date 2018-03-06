@@ -29,6 +29,8 @@ namespace ospray {
     auto sgFB = scenegraph->child("frameBuffer").nodeAs<sg::FrameBuffer>();
 
     backgroundThread = make_unique<AsyncLoop>([&, sgFB](){
+      state = ExecState::RUNNING;
+
       if (commitDeviceOnAsyncLoopThread) {
         auto *device = ospGetCurrentDevice();
         if (!device)
@@ -110,9 +112,11 @@ namespace ospray {
       ospDeviceSet1i(device, "numThreads", numOsprayThreads);
     }
 
-    state = ExecState::RUNNING;
+    state = ExecState::STARTING;
     commitDeviceOnAsyncLoopThread = true;
-    backgroundThread->start();
+
+    while (state != ExecState::RUNNING)
+      backgroundThread->start();
   }
 
   void AsyncRenderEngine::stop()
