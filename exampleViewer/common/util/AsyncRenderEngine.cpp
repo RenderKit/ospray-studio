@@ -52,18 +52,18 @@ namespace ospray {
       }
 
       if (scenegraph->hasChild("animationcontroller"))
-        scenegraph->child("animationcontroller").traverse("animate");
+        scenegraph->child("animationcontroller").animate();
 
       if (pickPos.update())
         pickResult = scenegraph->pick(pickPos.ref());
 
       fps.start();
-      scenegraph->renderFrame(sgFB, OSP_FB_COLOR | OSP_FB_ACCUM);
+      scenegraph->renderFrame(sgFB, OSP_FB_COLOR | OSP_FB_ACCUM, true);
 
       if (scenegraphDW) {
         auto dwFB =
             scenegraphDW->child("frameBuffer").nodeAs<sg::FrameBuffer>();
-        scenegraphDW->renderFrame(dwFB, OSP_FB_COLOR | OSP_FB_ACCUM);
+        scenegraphDW->renderFrame(dwFB, OSP_FB_COLOR | OSP_FB_ACCUM, true);
       }
 
       once = true;
@@ -112,11 +112,20 @@ namespace ospray {
       ospDeviceSet1i(device, "numThreads", numOsprayThreads);
     }
 
-    state = ExecState::STARTING;
+    state = ExecState::STARTED;
     commitDeviceOnAsyncLoopThread = true;
 
-    while (state != ExecState::RUNNING)
+    // NOTE(jda) - This whole loop is because I haven't found a way to get
+    //             AsyncLoop to robustly start. A very small % of the time,
+    //             calling start() won't actually wake the thread which the
+    //             AsyncLoop is running the loop on, causing the render loop to
+    //             never actually run...I hope someone can find a better
+    //             solution!
+    while (state != ExecState::RUNNING) {
+      backgroundThread->stop();
       backgroundThread->start();
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
   }
 
   void AsyncRenderEngine::stop()
