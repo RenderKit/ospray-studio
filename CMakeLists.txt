@@ -15,11 +15,13 @@
 ## ======================================================================== ##
 
 project(OSPRay)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+set (CMAKE_CXX_STANDARD 11)
 
 ## Find dependencies ##
 
@@ -27,6 +29,8 @@ find_package(ospray REQUIRED)
 include(${OSPRAY_USE_FILE})
 
 include_directories(${OSPRAY_INCLUDE_DIRS})
+
+ospray_configure_tasking_system()
 
 ## Build application ##
 
