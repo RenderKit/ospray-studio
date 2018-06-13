@@ -17,5 +17,6 @@
 ospray_create_library(ospray_app STATIC
   OSPApp.cpp
 LINK
+  ${OSPRAY_LIBRARIES}
   ${OSPRAY_SG_LIBRARIES}
 )

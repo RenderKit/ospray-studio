@@ -17,6 +17,7 @@
 #include "ospcommon/utility/StringManip.h"
 
 #include "OSPApp.h"
+#include "sg/SceneGraph.h"
 #include "sg/geometry/TriangleMesh.h"
 #include "sg/visitor/PrintNodes.h"
 #include "sg/visitor/VerifyNodes.h"
@@ -52,34 +53,123 @@ namespace ospray {
 
     void OSPApp::printHelp()
     {
-      std::cout << "./ospApp [params] -sg:[params] [files]" << std::endl;
-      std::cout << "params..." << std::endl
-                << "\t" << "-f --fast //prioritizes performance over advanced rendering features" << std::endl
-                << "\t" << "-sg:node:...:node=value //modify a node value" << std::endl
-                << "\t" << "-sg:node:...:node+=name,type //modify a node value" << std::endl
-                << "\t" << "-r --renderer //renderer type.  scivis, pathtracer, ao1, raycast" << std::endl
-                << "\t" << "-d --debug //debug output" << std::endl
-                << "\t" << "-m --module //load custom ospray module" << std::endl
-                << "\t" << "--matrix int int int //create an array of load models of dimensions xyz" << std::endl
-                << "\t" << "--add-plane //add a ground plane (default for non-fast mode)" << std::endl
-                << "\t" << "--no-plane //remove ground plane" << std::endl
-                << "\t" << "--no-lights //no default lights" << std::endl
-                << "\t" << "--add-lights //default lights" << std::endl
-                << "\t" << "--hdri-light filename //add an hdri light" << std::endl
-                << "\t" << "--translate float float float //translate transform" << std::endl
-                << "\t" << "--scale float float float //scale transform" << std::endl
-                << "\t" << "--rotate float float float //rotate transform" << std::endl
-                << "\t" << "--animation //adds subsequent import files to a timeseries" << std::endl
-                << "\t" << "--file //adds subsequent import files without a timeseries" << std::endl
-                << "\t" << "-w int //window width" << std::endl
-                << "\t" << "-h int //window height" << std::endl
-                << "\t" << "--size int int //window width height" << std::endl
-                << "\t" << "-vp float float float //camera position xyz" << std::endl
-                << "\t" << "-vu float float float //camera up xyz" << std::endl
-                << "\t" << "-vi float float float //camera direction xyz" << std::endl
-                << "\t" << "-vf float //camera field of view" << std::endl
-                << "\t" << "-ar float //camera aperture radius" << std::endl
-                << std::endl;
+      std::cout <<
+R"text(
+./ospApp [parameters] [scene_files]
+
+general app-parameters:
+
+    -f --fast
+        prioritizes performance over advanced rendering features
+    -sg:node:...:node=value
+        modify a node value
+    -sg:node:...:node+=name,type
+        modify a node value
+    -r --renderer [renderer_type]
+        renderer type --> scivis, pathtracer, ao, raycast, etc...
+    -d --debug
+        debug output
+    -m --module [module_name]
+        load custom ospray module
+    --matrix [int] [int] [int]
+        create an array of load models of dimensions xyz
+    --add-plane
+        add a ground plane
+    --no-plane
+        remove ground plane
+    --no-lights
+        no default lights
+    --add-lights
+        default lights
+    --hdri-light [filename]
+        add an hdri light
+    --translate [float] [float] [float]
+        translate transform
+    --scale [float] [float] [float]
+        scale transform
+    --rotate [float] [float] [float]
+        rotate transform
+    --animation
+        adds subsequent import files to a timeseries
+    --static
+        adds subsequent import files without a timeseries
+    -w [int]
+        window width
+    -h [int]
+        window height
+    --size [int] [int]
+        window width height
+    -sd
+        alias for window size = 640x480
+    -hd
+        alias for window size = 1920x1080
+    -4k
+        alias for window size = 3840x2160
+    -8k
+        alias for window size = 7680x4320
+    -vp [float] [float] [float]
+        camera position xyz
+    -vu [float] [float] [float]
+        camera up xyz
+    -vi [float] [float] [float]
+        camera direction xyz
+    -vf [float]
+        camera field of view
+    -ar [float]
+        camera aperture radius
+    --aces
+        use ACES tone mapping
+    --filmic
+        use filmic tone mapping
+
+scene data generators through command line options:
+
+usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
+
+    types:
+
+      basicVolume: generate a volume with linearly increasing voxel values
+          parameters:
+              [dimensions,dims]=[intxintxint]
+                  the 3D dimensions of the volume
+
+      cylinders: generate a block of cylinders in {X,Y} grid of length Z
+          parameters:
+              [dimensions,dims]=[intxintxint]
+                  number of cylinders to generate in X,Y 2D dimensions, use Z for length
+              radius=[float]
+                  radius of cylinders
+
+      cube: generate a simple cube as a QuadMesh
+
+      gridOfSpheres: generate a block of gridded sphere centers of uniform radius
+          parameters:
+              [dimensions,dims]=[intxintxint]
+                  number of spheres to generate in each 3D dimension
+
+      spheres: generate a block of random sphere centers of uniform radius
+          parameters:
+              numSpheres=[int]
+                  number of spheres to generate
+              radius=[float]
+                  radius of spheres
+
+      unstructuredHex: generate a simple unstructured volume as hexes
+
+      unstructuredTet: generate a simple unstructured volume as tets
+
+      unstructuredWedge: generate a simple unstructured volume as wedges
+
+      vtkWavelet: generate the vtkWavelet volume (requries VTK support compiled in)
+          parameters:
+              [dimensions,dims]=[intxintxint]
+                  number of spheres to generate in each 3D dimension
+              [isovalues,isosurfaces]=[value1/value2/value3...]
+                  use vtkMarchingCubes filter to generate isosurfaces instead of the volume
+              viewSlice
+                  add a slice to the middle of the volume in the X/Y plane
+)text"
+      << std::endl;
     }
 
     int OSPApp::main(int argc, const char *argv[])
@@ -118,6 +208,7 @@ namespace ospray {
       addAnimatedImporterNodesToWorld(renderer);
 
       renderer["frameBuffer"]["size"] = vec2i(width, height);
+      setupToneMapping(renderer);
       renderer.verify();
       renderer.commit();
 
@@ -136,6 +227,9 @@ namespace ospray {
         renderer.traverse(sg::PrintNodes{});
 
       render(rendererPtr);
+
+      rendererPtr.reset();
+      ospShutdown();
 
       return 0;
     }
@@ -240,6 +334,18 @@ namespace ospray {
           height = atoi(av[i + 2]);
           removeArgs(ac, av, i, 3);
           --i;
+        } else if (arg == "-sd") {
+          width  = 640;
+          height = 480;
+        } else if (arg == "-hd") {
+          width  = 1920;
+          height = 1080;
+        } else if (arg == "-4k") {
+          width  = 3840;
+          height = 2160;
+        } else if (arg == "-8k") {
+          width  = 7680;
+          height = 4320;
         } else if (arg == "-vp") {
           vec3f posVec;
           posVec.x = atof(av[i + 1]);
@@ -272,6 +378,16 @@ namespace ospray {
           apertureRadius = atof(av[i + 1]);
           removeArgs(ac, av, i, 2);
           --i;
+        } else if (arg == "--aces") {
+          aces = true;
+          filmic = false;
+          removeArgs(ac, av, i, 1);
+          --i;
+        } else if (arg == "--filmic") {
+          filmic = true;
+          aces = false;
+          removeArgs(ac, av, i, 1);
+          --i;
         } else if (arg.compare(0, 4, "-sg:") == 0) {
           // SG parameters are validated by prefix only.
           // Later different function is used for parsing this type parameters.
@@ -284,7 +400,7 @@ namespace ospray {
           currentCLTransform = clTransform();
           removeArgs(ac, av, i, 1);
           --i;
-        } else if (arg[0] != '-' || utility::beginsWith(arg, "--generate:")) {
+        } else if (utility::beginsWith(arg, "--generate:")) {
           auto splitValues = utility::split(arg, ':');
           auto type = splitValues[1];
           std::string params = splitValues.size() > 2 ? splitValues[2] : "";
@@ -336,20 +452,20 @@ namespace ospray {
           ss << arg.substr(0, f);
           std::string child;
           std::reference_wrapper<sg::Node> node_ref = root;
-          try {
-            while (ss >> child) {
-              node_ref = node_ref.get().childRecursive(child);
-            }
+          std::vector<std::shared_ptr<sg::Node> > children;
+          while (ss >> child) {
+            if (ss.eof())
+              children = node_ref.get().childrenRecursive(child);
           }
-          catch (const std::runtime_error &) {
-            std::cerr << "Warning: unknown sg::Node '" << child
-                      << "', ignoring option '" << orgarg << "'." << std::endl;
+          if (children.empty())
+          {
+            std::cerr << "Warning: no children found in sg lookup\n";
+            continue;
           }
-          auto &node = node_ref.get();
-
           std::stringstream vals(value);
 
           if (addNode) {
+            auto &node = *children[0];
             std::string name, type;
             vals >> name >> type;
             try {
@@ -361,41 +477,55 @@ namespace ospray {
                         << std::endl;
             }
           } else { // set node value
-
-            // TODO: more generic implementation
-            if (node.valueIsType<std::string>()) {
-              node.setValue(value);
-            } else if (node.valueIsType<float>()) {
-              float x;
-              vals >> x;
-              node.setValue(x);
-            } else if (node.valueIsType<int>()) {
-              int x;
-              vals >> x;
-              node.setValue(x);
-            } else if (node.valueIsType<bool>()) {
-              bool x;
-              vals >> x;
-              node.setValue(x);
-            } else if (node.valueIsType<ospcommon::vec3f>()) {
-              float x, y, z;
-              vals >> x >> y >> z;
-              node.setValue(ospcommon::vec3f(x, y, z));
-            } else if (node.valueIsType<ospcommon::vec2i>()) {
-              int x, y;
-              vals >> x >> y;
-              node.setValue(ospcommon::vec2i(x, y));
-            } else
-              try {
-                auto &vec = dynamic_cast<sg::DataVector1f &>(node);
-                float f;
-                while (vals.good()) {
-                  vals >> f;
-                  vec.push_back(f);
+            for (auto nodePtr : children)
+            {
+              auto &node = *nodePtr;
+              // TODO: more generic implementation
+              if (node.valueIsType<std::string>()) {
+                node.setValue(value);
+              } else if (node.valueIsType<float>()) {
+                float x;
+                vals >> x;
+                node.setValue(x);
+              } else if (node.valueIsType<int>()) {
+                int x;
+                vals >> x;
+                node.setValue(x);
+              } else if (node.valueIsType<bool>()) {
+                bool x;
+                vals >> x;
+                node.setValue(x);
+              } else if (node.valueIsType<ospcommon::vec3f>()) {
+                float x, y, z;
+                vals >> x >> y >> z;
+                node.setValue(ospcommon::vec3f(x, y, z));
+              } else if (node.valueIsType<ospcommon::vec3i>()) {
+                int x, y, z;
+                vals >> x >> y >> z;
+                node.setValue(ospcommon::vec3i(x, y, z));
+              } else if (node.valueIsType<ospcommon::vec2i>()) {
+                int x, y;
+                vals >> x >> y;
+                node.setValue(ospcommon::vec2i(x, y));
+              } else if (node.valueIsType<ospcommon::vec2f>()) {
+                float x, y;
+                vals >> x >> y;
+                node.setValue(ospcommon::vec2f(x, y));
+              } else {
+                try {
+                  auto &vec = dynamic_cast<sg::DataVector1f &>(node);
+                  float f;
+                  while (vals.good()) {
+                    vals >> f;
+                    vec.push_back(f);
+                  }
+                } catch (...) {
+                  std::cerr << "Cannot set value of node '" << node.name()
+                            << "' on the command line!"
+                            << " The expected value type is not (yet) handled."
+                            << std::endl;
                 }
               }
-            catch (...) {
-              std::cerr << "Unexpected exception" << std::endl;
             }
           }
         }
@@ -573,8 +703,38 @@ namespace ospray {
         camera["apertureRadius"] = apertureRadius.getValue();
       if (camera.hasChild("focusdistance"))
         camera["focusdistance"] = length(pos.getValue() - gaze.getValue());
+
+      // orthographic camera adjustments
+      if (camera.hasChild("height"))
+        camera["height"] = (float)height;
+      if (camera.hasChild("aspect"))
+        camera["aspect"] = width / (float)height;
+
       renderer.verify();
       renderer.commit();
+    }
+
+    void OSPApp::setupToneMapping(sg::Node &renderer)
+    {
+      auto &frameBuffer = renderer["frameBuffer"];
+
+      if (aces) {
+        frameBuffer["toneMapping"] = true;
+        frameBuffer["contrast"] = 1.6773f;
+        frameBuffer["shoulder"] = 0.9714f;
+        frameBuffer["midIn"] = 0.18f;
+        frameBuffer["midOut"] = 0.18f;
+        frameBuffer["hdrMax"] = 11.0785f;
+        frameBuffer["acesColor"] = true;
+      } else if (filmic) {
+        frameBuffer["toneMapping"] = true;
+        frameBuffer["contrast"] = 1.1759f;
+        frameBuffer["shoulder"] = 0.9746f;
+        frameBuffer["midIn"] = 0.18f;
+        frameBuffer["midOut"] = 0.18f;
+        frameBuffer["hdrMax"] = 6.3704f;
+        frameBuffer["acesColor"] = false;
+      }
     }
 
     void OSPApp::addAnimatedImporterNodesToWorld(sg::Node &renderer)

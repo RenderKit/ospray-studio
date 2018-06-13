@@ -29,6 +29,7 @@ ospray_create_library(ospray_imgui3d_sg
   cameraManipulator.cpp
 LINK
   ${OSPRAY_LIBRARIES}
+  ${OSPRAY_SG_LIBRARIES}
   ospray_imgui
   ospray_imgui_util_sg
   ospray_tfn
