@@ -522,9 +522,6 @@ namespace ospray {
     ImGuiWindowFlags flags =
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
 
-    //ImGui::Begin("Viewer Controls: press 'g' to show/hide", nullptr, flags);
-    //ImGui::SetWindowFontScale(0.5f*fontScale);
-
     guiMainMenu();
 
 #if 0 // NOTE(jda) - enable to see ImGui example window
@@ -534,13 +531,7 @@ namespace ospray {
 
     if (showWindowRenderStatistics) guiRenderStats();
     if (showWindowFindNode) guiFindNode();
-
-#if 0
-    if (ImGui::CollapsingHeader("SceneGraph", "SceneGraph", true, true))
-      guiSGTree("root", scenegraph);
-#endif
-
-    //ImGui::End();
+    if (showWindowSceneGraph) guiSGWindow();
   }
 
   void ImGuiViewer::guiMainMenu()
@@ -582,6 +573,7 @@ namespace ospray {
     if (ImGui::BeginMenu("View")) {
       ImGui::Checkbox("Rendering Stats", &showWindowRenderStatistics);
       ImGui::Checkbox("Node Finder", &showWindowFindNode);
+      ImGui::Checkbox("Scene Graph Window", &showWindowSceneGraph);
 
       ImGui::EndMenu();
     }
@@ -695,6 +687,17 @@ namespace ospray {
     ImGui::NewLine();
 
     guiSearchSGNodes();
+
+    ImGui::End();
+  }
+
+  void ImGuiViewer::guiSGWindow()
+  {
+    ImGui::SetNextWindowSize(ImVec2(500,400), ImGuiCond_FirstUseEver);
+
+    ImGui::Begin("SceneGraph", nullptr, g_defaultWindowFlags);
+
+    guiSGTree("root", scenegraph);
 
     ImGui::End();
   }
