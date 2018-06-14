@@ -61,10 +61,10 @@ namespace ospray {
     void buildGui() override;
 
     void guiMainMenu();
-    void guiMainMenuApp();
+    void guiMainMenuFile();
     void guiMainMenuView();
     void guiMainMenuCamera();
-    void guiMainMenuMPI();
+    void guiMainMenuHelp();
 
     void guiRenderStats();
     void guiFindNode();
@@ -88,6 +88,7 @@ namespace ospray {
     bool showWindowRenderStatistics{false};
     bool showWindowFindNode{false};
     bool showWindowSceneGraph{false};
+    bool showWindowImGuiDemo{false};
 
     // Not-yet-categorized data //
 

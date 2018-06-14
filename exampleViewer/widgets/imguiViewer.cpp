@@ -524,31 +524,28 @@ namespace ospray {
 
     guiMainMenu();
 
-#if 0 // NOTE(jda) - enable to see ImGui example window
-    static bool demo_window = true;
-    ImGui::ShowTestWindow(&demo_window);
-#endif
-
     if (showWindowRenderStatistics) guiRenderStats();
     if (showWindowFindNode) guiFindNode();
     if (showWindowSceneGraph) guiSGWindow();
+
+    if (showWindowImGuiDemo) ImGui::ShowTestWindow(&showWindowImGuiDemo);
   }
 
   void ImGuiViewer::guiMainMenu()
   {
     if (ImGui::BeginMainMenuBar()) {
-      guiMainMenuApp();
+      guiMainMenuFile();
       guiMainMenuView();
       guiMainMenuCamera();
-      guiMainMenuMPI();
+      guiMainMenuHelp();
 
       ImGui::EndMainMenuBar();
     }
   }
 
-  void ImGuiViewer::guiMainMenuApp()
+  void ImGuiViewer::guiMainMenuFile()
   {
-    if (ImGui::BeginMenu("App")) {
+    if (ImGui::BeginMenu("File")) {
 
       ImGui::Checkbox("Auto-Rotate", &animating);
 
@@ -602,21 +599,10 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::guiMainMenuMPI()
+  void ImGuiViewer::guiMainMenuHelp()
   {
-    if (ImGui::BeginMenu("MPI Extras")) {
-      if (ImGui::Checkbox("Use Dynamic Load Balancer",
-                          &useDynamicLoadBalancer)) {
-        setCurrentDeviceParameter("dynamicLoadBalancer",
-                                  useDynamicLoadBalancer);
-        viewPort.modified = true;
-      }
-
-      if (useDynamicLoadBalancer) {
-        if (ImGui::InputInt("PreAllocated Tiles", &numPreAllocatedTiles)) {
-          setCurrentDeviceParameter("preAllocatedTiles", numPreAllocatedTiles);
-        }
-      }
+    if (ImGui::BeginMenu("Help")) {
+      ImGui::Checkbox("Show ImGui Demo", &showWindowImGuiDemo);
 
       ImGui::EndMenu();
     }
