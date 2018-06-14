@@ -559,10 +559,8 @@ namespace ospray {
       if (ImGui::MenuItem("Take Screenshot"))
         saveScreenshot("ospexampleviewer");
 
-      if (ImGui::MenuItem("Quit")) {
-        renderEngine.stop();
-        std::exit(0);
-      }
+      if (ImGui::MenuItem("Quit"))
+        exitRequestedByUser = true;
 
       ImGui::EndMenu();
     }
