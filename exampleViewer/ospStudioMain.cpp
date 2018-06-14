@@ -38,8 +38,7 @@ namespace ospray {
     {
       ospray::ImGuiViewer window(renderer);
 
-      window.create("OSPRay Example Viewer App",
-                    fullscreen, vec2i(width, height));
+      window.create("OSPRay Studio", fullscreen, vec2i(width, height));
 
       if (motionSpeed > 0.f)
         window.setMotionSpeed(motionSpeed);

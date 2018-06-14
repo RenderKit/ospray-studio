@@ -379,35 +379,6 @@ namespace ospray {
         if (ImGui3DWidget::showGui)
           currentWidget->buildGui();
 
-        ImGui::SetNextWindowPos(ImVec2(10,10));
-        auto overlayFlags = ImGuiWindowFlags_NoTitleBar |
-                            ImGuiWindowFlags_NoResize   |
-                            ImGuiWindowFlags_NoMove     |
-                            ImGuiWindowFlags_NoSavedSettings;
-        bool open;
-        if (!ImGui::Begin("Example: Fixed Overlay", &open,
-                          ImVec2(0,0), 0.f, overlayFlags)) {
-          ImGui::End();
-        } else {
-          ImGui::NewLine();
-          ImFont* font = ImGui::GetFont();
-          ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.,1.,1.,1.f));
-          ImGui::SetWindowFontScale(currentWidget->fontScale*1.0f);
-          font->Scale = 6.f;
-          ImGui::Text("%s", ("OSPRay v" + std::string(OSPRAY_VERSION)).c_str());
-          font->Scale = 1.f;
-          ImGui::SetWindowFontScale(currentWidget->fontScale*0.7f);
-          ImGui::PopStyleColor(1);
-
-          std::stringstream ss;
-          ss << 1.f/currentWidget->renderTime;
-          ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(.2f, .2f, 1.f, 1.f));
-          ImGui::Text("press \'g\' to hide/show UI");
-          ImGui::PopStyleColor(1);
-
-          ImGui::End();
-        }
-
         timer.start();
         int new_w = 0, new_h = 0;
         glfwGetFramebufferSize(window, &new_w, &new_h);
