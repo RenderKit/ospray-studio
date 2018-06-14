@@ -54,7 +54,7 @@ namespace ospray {
   namespace imgui3D {
 
     bool dumpScreensDuringAnimation = false;
-    bool ImGui3DWidget::showGui = false;
+    bool ImGui3DWidget::showGui = true;
 
     static ImGui3DWidget *currentWidget = nullptr;
 
@@ -389,6 +389,7 @@ namespace ospray {
                           ImVec2(0,0), 0.f, overlayFlags)) {
           ImGui::End();
         } else {
+          ImGui::NewLine();
           ImFont* font = ImGui::GetFont();
           ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.,1.,1.,1.f));
           ImGui::SetWindowFontScale(currentWidget->fontScale*1.0f);
@@ -401,8 +402,7 @@ namespace ospray {
           std::stringstream ss;
           ss << 1.f/currentWidget->renderTime;
           ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(.2f, .2f, 1.f, 1.f));
-          ImGui::Text("%s", ("fps: " + ss.str()).c_str());
-          ImGui::Text("press \'g\' for menu");
+          ImGui::Text("press \'g\' to hide/show UI");
           ImGui::PopStyleColor(1);
 
           ImGui::End();

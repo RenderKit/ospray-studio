@@ -60,12 +60,11 @@ namespace ospray {
 
     void buildGui() override;
 
-    void guiMenu();
-    void guiMenuApp();
-    void guiMenuView();
-    void guiMenuMPI();
-
-    void guiCarDemo();
+    void guiMainMenu();
+    void guiMainMenuApp();
+    void guiMainMenuView();
+    void guiMainMenuCamera();
+    void guiMainMenuMPI();
 
     void guiRenderStats();
     void guiFindNode();
@@ -81,7 +80,14 @@ namespace ospray {
 
     void setCurrentDeviceParameter(const std::string &param, int value);
 
-    // Data //
+    // Data ///////////////////////////////////////////////////////////////////
+
+    // Windows to be shown //
+
+    bool showWindowRenderStatistics{false};
+    bool showWindowFindNode{false};
+
+    // Not-yet-categorized data //
 
     double lastFrameFPS;
     double lastGUITime;

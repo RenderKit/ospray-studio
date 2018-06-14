@@ -27,13 +27,18 @@
 #include "sg/visitor/GatherNodesByPosition.h"
 #include "transferFunction.h"
 
-#include <imgui.h>
-#include <imguifilesystem/imguifilesystem.h>
+#include "imgui.h"
+#include "imguifilesystem/imguifilesystem.h"
 
 #include <unordered_map>
 
 using std::string;
 using namespace ospcommon;
+
+static const ImGuiWindowFlags g_defaultWindowFlags {
+  ImGuiWindowFlags_ShowBorders |
+  ImGuiWindowFlags_NoCollapse
+};
 
 namespace ospray {
 
@@ -514,39 +519,43 @@ namespace ospray {
 
   void ImGuiViewer::buildGui()
   {
-    ImGuiWindowFlags flags = ImGuiWindowFlags_MenuBar;
+    ImGuiWindowFlags flags =
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
 
-    ImGui::Begin("Viewer Controls: press 'g' to show/hide", nullptr, flags);
-    ImGui::SetWindowFontScale(0.5f*fontScale);
+    //ImGui::Begin("Viewer Controls: press 'g' to show/hide", nullptr, flags);
+    //ImGui::SetWindowFontScale(0.5f*fontScale);
 
-    guiMenu();
+    guiMainMenu();
 
 #if 0 // NOTE(jda) - enable to see ImGui example window
     static bool demo_window = true;
     ImGui::ShowTestWindow(&demo_window);
 #endif
 
-    guiRenderStats();
-    guiFindNode();
+    if (showWindowRenderStatistics) guiRenderStats();
+    if (showWindowFindNode) guiFindNode();
 
+#if 0
     if (ImGui::CollapsingHeader("SceneGraph", "SceneGraph", true, true))
       guiSGTree("root", scenegraph);
+#endif
 
-    ImGui::End();
+    //ImGui::End();
   }
 
-  void ImGuiViewer::guiMenu()
+  void ImGuiViewer::guiMainMenu()
   {
-    if (ImGui::BeginMenuBar()) {
-      guiMenuApp();
-      guiMenuView();
-      guiMenuMPI();
+    if (ImGui::BeginMainMenuBar()) {
+      guiMainMenuApp();
+      guiMainMenuView();
+      guiMainMenuCamera();
+      guiMainMenuMPI();
 
-      ImGui::EndMenuBar();
+      ImGui::EndMainMenuBar();
     }
   }
 
-  void ImGuiViewer::guiMenuApp()
+  void ImGuiViewer::guiMainMenuApp()
   {
     if (ImGui::BeginMenu("App")) {
 
@@ -557,7 +566,7 @@ namespace ospray {
         toggleRenderingPaused();
 
       if (ImGui::MenuItem("Take Screenshot"))
-          saveScreenshot("ospexampleviewer");
+        saveScreenshot("ospexampleviewer");
 
       if (ImGui::MenuItem("Quit")) {
         renderEngine.stop();
@@ -568,9 +577,19 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::guiMenuView()
+  void ImGuiViewer::guiMainMenuView()
   {
     if (ImGui::BeginMenu("View")) {
+      ImGui::Checkbox("Rendering Stats", &showWindowRenderStatistics);
+      ImGui::Checkbox("Node Finder", &showWindowFindNode);
+
+      ImGui::EndMenu();
+    }
+  }
+
+  void ImGuiViewer::guiMainMenuCamera()
+  {
+    if (ImGui::BeginMenu("Camera")) {
       bool orbitMode = (manipulator == inspectCenterManipulator.get());
       bool flyMode   = (manipulator == moveModeManipulator.get());
 
@@ -593,7 +612,7 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::guiMenuMPI()
+  void ImGuiViewer::guiMainMenuMPI()
   {
     if (ImGui::BeginMenu("MPI Extras")) {
       if (ImGui::Checkbox("Use Dynamic Load Balancer",
@@ -605,8 +624,7 @@ namespace ospray {
 
       if (useDynamicLoadBalancer) {
         if (ImGui::InputInt("PreAllocated Tiles", &numPreAllocatedTiles)) {
-          setCurrentDeviceParameter("preAllocatedTiles",
-                                    numPreAllocatedTiles);
+          setCurrentDeviceParameter("preAllocatedTiles", numPreAllocatedTiles);
         }
       }
 
@@ -616,65 +634,69 @@ namespace ospray {
 
   void ImGuiViewer::guiRenderStats()
   {
-    if (ImGui::CollapsingHeader("Rendering Statistics", "Rendering Statistics",
-                                true, false)) {
-      ImGui::NewLine();
-      ImGui::Text("OSPRay render rate: %.1f fps", lastFrameFPS);
-      ImGui::Text("  Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
-      ImGui::Text("  Total 3dwidget time: %.1f ms", lastTotalTime*1000.f);
-      ImGui::Text("  GUI time: %.1f ms", lastGUITime*1000.f);
-      ImGui::Text("  display pixel time: %.1f ms", lastDisplayTime*1000.f);
-      ImGui::Text("Variance: %.3f", renderEngine.getLastVariance());
-      ImGui::NewLine();
-    }
+    ImGui::Begin("Rendering Statistics", nullptr, g_defaultWindowFlags);
+
+    ImGui::NewLine();
+    ImGui::Text("OSPRay render rate: %.1f fps", lastFrameFPS);
+    ImGui::Text("  Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
+    ImGui::Text("  Total 3dwidget time: %.1f ms", lastTotalTime*1000.f);
+    ImGui::Text("  GUI time: %.1f ms", lastGUITime*1000.f);
+    ImGui::Text("  display pixel time: %.1f ms", lastDisplayTime*1000.f);
+    ImGui::Text("Variance: %.3f", renderEngine.getLastVariance());
+    ImGui::NewLine();
+
+    ImGui::End();
   }
 
   void ImGuiViewer::guiFindNode()
   {
-    if (ImGui::CollapsingHeader("Find Node", "Find Node", true, false)) {
-      ImGui::NewLine();
+    ImGui::SetNextWindowSize(ImVec2(400,300), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Node Finder", nullptr, g_defaultWindowFlags);
 
-      std::array<char, 512> buf;
-      strcpy(buf.data(), nodeNameForSearch.c_str());
+    ImGui::NewLine();
 
-      ImGui::Text("Search for node:");
-      ImGui::SameLine();
+    std::array<char, 512> buf;
+    strcpy(buf.data(), nodeNameForSearch.c_str());
 
-      ImGui::InputText("", buf.data(), buf.size(),
-                       ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::Text("Search for node:");
+    ImGui::SameLine();
 
-      std::string textBoxValue = buf.data();
+    ImGui::InputText("", buf.data(), buf.size(),
+                     ImGuiInputTextFlags_EnterReturnsTrue);
 
-      bool updateSearchResults = (nodeNameForSearch != textBoxValue);
-      if (updateSearchResults) {
-        nodeNameForSearch = textBoxValue;
-        bool doSearch = !nodeNameForSearch.empty();
-        if (doSearch) {
-          sg::GatherNodesByName visitor(nodeNameForSearch);
-          scenegraph->traverse(visitor);
-          collectedNodesFromSearch = visitor.results();
-        } else {
-          collectedNodesFromSearch.clear();
-        }
-      }
+    std::string textBoxValue = buf.data();
 
-      if (nodeNameForSearch.empty()) {
-        ImGui::Text("search for: N/A");
+    bool updateSearchResults = (nodeNameForSearch != textBoxValue);
+    if (updateSearchResults) {
+      nodeNameForSearch = textBoxValue;
+      bool doSearch = !nodeNameForSearch.empty();
+      if (doSearch) {
+        sg::GatherNodesByName visitor(nodeNameForSearch);
+        scenegraph->traverse(visitor);
+        collectedNodesFromSearch = visitor.results();
       } else {
-        const auto verifyTextLabel = std::string("search for: ")
-                                     + nodeNameForSearch;
-        ImGui::Text(verifyTextLabel.c_str());
-      }
-
-      if (ImGui::Button("Clear")) {
         collectedNodesFromSearch.clear();
-        nodeNameForSearch.clear();
       }
-
-      ImGui::NewLine();
-
-      guiSearchSGNodes();
     }
+
+    if (nodeNameForSearch.empty()) {
+      ImGui::Text("search for: N/A");
+    } else {
+      const auto verifyTextLabel = std::string("search for: ")
+                                   + nodeNameForSearch;
+      ImGui::Text(verifyTextLabel.c_str());
+    }
+
+    if (ImGui::Button("Clear")) {
+      collectedNodesFromSearch.clear();
+      nodeNameForSearch.clear();
+    }
+
+    ImGui::NewLine();
+
+    guiSearchSGNodes();
+
+    ImGui::End();
   }
 
   void ImGuiViewer::guiSearchSGNodes()
