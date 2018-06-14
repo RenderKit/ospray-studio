@@ -603,7 +603,9 @@ namespace ospray {
   void ImGuiViewer::guiMainMenuHelp()
   {
     if (ImGui::BeginMenu("Help")) {
-      ImGui::Checkbox("About", &showWindowAbout);
+      if (ImGui::MenuItem("About"))
+        showWindowAbout = true;
+      ImGui::Separator();
       ImGui::Checkbox("Show ImGui Demo", &showWindowImGuiDemo);
 
       ImGui::EndMenu();
