@@ -69,6 +69,7 @@ namespace ospray {
     void guiRenderStats();
     void guiFindNode();
     void guiSGWindow();
+    void guiAbout();
 
     void guiSingleNode(const std::string &baseText,
                        std::shared_ptr<sg::Node> node);
@@ -85,10 +86,11 @@ namespace ospray {
 
     // Windows to be shown //
 
-    bool showWindowRenderStatistics{false};
+    bool showWindowAbout{false};
     bool showWindowFindNode{false};
-    bool showWindowSceneGraph{false};
     bool showWindowImGuiDemo{false};
+    bool showWindowRenderStatistics{false};
+    bool showWindowSceneGraph{false};
 
     // Not-yet-categorized data //
 
