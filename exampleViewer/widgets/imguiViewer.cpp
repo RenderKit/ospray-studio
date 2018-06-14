@@ -626,7 +626,10 @@ namespace ospray {
 
   void ImGuiViewer::guiRenderStats()
   {
-    ImGui::Begin("Rendering Statistics", nullptr, g_defaultWindowFlags);
+    ImGui::SetNextWindowSize(ImVec2(255,165), ImGuiCond_Always);
+
+    auto flags = g_defaultWindowFlags | ImGuiWindowFlags_NoResize;
+    ImGui::Begin("Rendering Statistics", nullptr, flags);
 
     ImGui::NewLine();
     ImGui::Text("OSPRay render rate: %.1f fps", lastFrameFPS);
