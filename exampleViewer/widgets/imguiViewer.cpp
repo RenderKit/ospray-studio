@@ -629,16 +629,19 @@ namespace ospray {
     ImGui::SetNextWindowSize(ImVec2(255,165), ImGuiCond_Always);
 
     auto flags = g_defaultWindowFlags | ImGuiWindowFlags_NoResize;
-    ImGui::Begin("Rendering Statistics", nullptr, flags);
 
-    ImGui::NewLine();
-    ImGui::Text("OSPRay render rate: %.1f fps", lastFrameFPS);
-    ImGui::Text("  Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
-    ImGui::Text("  Total 3dwidget time: %.1f ms", lastTotalTime*1000.f);
-    ImGui::Text("  GUI time: %.1f ms", lastGUITime*1000.f);
-    ImGui::Text("  display pixel time: %.1f ms", lastDisplayTime*1000.f);
-    ImGui::Text("Variance: %.3f", renderEngine.getLastVariance());
-    ImGui::NewLine();
+    if (ImGui::Begin("Rendering Statistics",
+                     &showWindowRenderStatistics,
+                     flags)) {
+      ImGui::Text("OSPRay render rate: %.1f fps", lastFrameFPS);
+      ImGui::NewLine();
+      ImGui::Text("Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
+      ImGui::Text("Total 3dwidget time: %.1f ms", lastTotalTime*1000.f);
+      ImGui::Text("GUI time: %.1f ms", lastGUITime*1000.f);
+      ImGui::Text("display pixel time: %.1f ms", lastDisplayTime*1000.f);
+      ImGui::NewLine();
+      ImGui::Text("Variance: %.3f", renderEngine.getLastVariance());
+    }
 
     ImGui::End();
   }
@@ -646,7 +649,12 @@ namespace ospray {
   void ImGuiViewer::guiFindNode()
   {
     ImGui::SetNextWindowSize(ImVec2(400,300), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Node Finder", nullptr, g_defaultWindowFlags);
+    if (!ImGui::Begin("Node Finder",
+                      &showWindowFindNode,
+                      g_defaultWindowFlags)) {
+      ImGui::End();
+      return;
+    }
 
     ImGui::NewLine();
 
@@ -698,9 +706,8 @@ namespace ospray {
   {
     ImGui::SetNextWindowSize(ImVec2(500,400), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin("SceneGraph", nullptr, g_defaultWindowFlags);
-
-    guiSGTree("root", scenegraph);
+    if (ImGui::Begin("SceneGraph", &showWindowSceneGraph, g_defaultWindowFlags))
+      guiSGTree("root", scenegraph);
 
     ImGui::End();
   }
