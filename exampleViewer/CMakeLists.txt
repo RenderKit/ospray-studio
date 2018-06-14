@@ -29,8 +29,8 @@ add_subdirectory(widgets)
 # Build app
 ##############################################################
 
-ospray_create_application(ospExampleViewer
-  ospExampleViewer.cpp
+ospray_create_application(ospStudio
+  ospStudioMain.cpp
 LINK
   ospray_app
   ospray_imgui3d_sg
