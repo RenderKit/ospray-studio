@@ -630,9 +630,9 @@ namespace ospray {
 
   void ImGuiViewer::guiRenderStats()
   {
-    ImGui::SetNextWindowSize(ImVec2(255,165), ImGuiCond_Always);
-
-    auto flags = g_defaultWindowFlags | ImGuiWindowFlags_NoResize;
+    auto flags = g_defaultWindowFlags |
+                 ImGuiWindowFlags_NoResize |
+                 ImGuiWindowFlags_AlwaysAutoResize;
 
     if (ImGui::Begin("Rendering Statistics",
                      &showWindowRenderStatistics,
