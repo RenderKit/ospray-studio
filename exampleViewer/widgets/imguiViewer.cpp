@@ -40,6 +40,8 @@ static const ImGuiWindowFlags g_defaultWindowFlags {
   ImGuiWindowFlags_NoCollapse
 };
 
+static ImGuiFs::Dialog openFileDialog;
+
 namespace ospray {
 
   // Functions to make ImGui widgets for SG nodes /////////////////////////////
@@ -528,6 +530,7 @@ namespace ospray {
     if (showWindowFindNode) guiFindNode();
     if (showWindowSceneGraph) guiSGWindow();
     if (showWindowAbout) guiAbout();
+    if (showWindowOpenFile) guiImportFile();
 
     if (showWindowImGuiDemo) ImGui::ShowTestWindow(&showWindowImGuiDemo);
   }
@@ -548,17 +551,20 @@ namespace ospray {
   {
     if (ImGui::BeginMenu("File")) {
 
-      ImGui::Checkbox("Auto-Rotate", &animating);
+      if (ImGui::MenuItem("Open..."))
+        showWindowOpenFile = true;
+
+      ImGui::Separator();
+      ImGui::Separator();
 
       bool paused = renderingPaused;
       if (ImGui::Checkbox("Pause Rendering", &paused))
         toggleRenderingPaused();
 
-      if (ImGui::MenuItem("Take Screenshot"))
-        saveScreenshot("ospexampleviewer");
+      ImGui::Separator();
+      ImGui::Separator();
 
-      if (ImGui::MenuItem("Quit"))
-        exitRequestedByUser = true;
+      if (ImGui::MenuItem("Quit")) exitRequestedByUser = true;
 
       ImGui::EndMenu();
     }
@@ -578,6 +584,11 @@ namespace ospray {
   void ImGuiViewer::guiMainMenuCamera()
   {
     if (ImGui::BeginMenu("Camera")) {
+
+      ImGui::Checkbox("Auto-Rotate", &animating);
+
+      ImGui::Separator();
+
       bool orbitMode = (manipulator == inspectCenterManipulator.get());
       bool flyMode   = (manipulator == moveModeManipulator.get());
 
@@ -596,6 +607,8 @@ namespace ospray {
 
       ImGui::InputFloat("Motion Speed", &motionSpeed);
 
+      if (ImGui::MenuItem("Take Screenshot")) saveScreenshot("ospray_studio");
+
       ImGui::EndMenu();
     }
   }
@@ -605,7 +618,10 @@ namespace ospray {
     if (ImGui::BeginMenu("Help")) {
       if (ImGui::MenuItem("About"))
         showWindowAbout = true;
+
       ImGui::Separator();
+      ImGui::Separator();
+
       ImGui::Checkbox("Show ImGui Demo", &showWindowImGuiDemo);
 
       ImGui::EndMenu();
@@ -745,6 +761,45 @@ future updates!
         guiSGTree("", node);
         ImGui::Separator();
       }
+    }
+  }
+
+  void ImGuiViewer::guiImportFile()
+  {
+    ImGui::OpenPopup("Import File");
+    if (ImGui::BeginPopupModal("Import File",
+                               &showWindowOpenFile,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+
+      const bool pressed = ImGui::Button("Choose File...");
+      const char *fileName = openFileDialog.chooseFileDialog(pressed);
+
+      static std::string fileToOpen;
+
+      if (strlen(fileName) > 0)
+        fileToOpen = fileName;
+
+      ImGui::Text(("File: " + fileToOpen).c_str());
+
+      ImGui::Separator();
+
+      if (ImGui::Button("OK", ImVec2(120,0))) {
+        std::cout << "TODO: import file '" << fileToOpen << "'!" << std::endl;
+
+        fileToOpen.clear();
+
+        showWindowOpenFile = false;
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::SameLine();
+
+      if (ImGui::Button("Cancel", ImVec2(120,0))) {
+        showWindowOpenFile = false;
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndPopup();
     }
   }
 
