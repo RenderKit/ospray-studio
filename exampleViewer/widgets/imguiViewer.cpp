@@ -23,6 +23,7 @@
 #include "imguiViewer.h"
 
 #include "sg/common/FrameBuffer.h"
+#include "sg/generator/Generator.h"
 #include "sg/visitor/GatherNodesByName.h"
 #include "sg/visitor/GatherNodesByPosition.h"
 #include "sg/visitor/MarkAllAsModified.h"
@@ -843,21 +844,18 @@ future updates!
       ImGui::SameLine();
 
       static int which = 0;
-      ImGui::Combo("", &which, "vtkWavelet\0cube\0spheres\0cylinders\0\0", 4);
+      ImGui::Combo("##1", &which, "vtkWavelet\0cube\0spheres\0cylinders\0\0", 4);
 
       static std::string parameters;
-      #if 0
       ImGui::Text("Generator Params: ");
       ImGui::SameLine();
-      std::vector<char> buf(parameters.size() + 1 + 256);
+      static std::array<char, 512> buf;
       strcpy(buf.data(), parameters.c_str());
       buf[parameters.size()] = '\0';
-      if (ImGui::InputText("", buf.data(),
-                           parameters.size()+256,
-                           ImGuiInputTextFlags_EnterReturnsTrue)) {
+      if (ImGui::InputText("##2", buf.data(),
+                           511)) {
         parameters = std::string(buf.data());
       }
-      #endif
 
       ImGui::Separator();
 
@@ -889,13 +887,16 @@ future updates!
               sg::createNode("Transform_" + type, "Transform");
 
           auto generatorNode_ptr =
-            sg::createNode("Generator_" + type, "Generator");
+            sg::createNode("Generator_" + type,
+                           "Generator")->nodeAs<sg::Generator>();
           transformNode_ptr->add(generatorNode_ptr);
           auto &generatorNode = *generatorNode_ptr;
 
           generatorNode["generatorType"] = type;
           generatorNode["parameters"] = parameters;
-          generatorNode.setChildrenModified(sg::TimeStamp());// trigger load
+
+          generatorNode.generateData();
+
           generatorNode.verify();
 
           retval.push_back(transformNode_ptr);
