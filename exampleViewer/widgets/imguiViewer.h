@@ -79,7 +79,8 @@ namespace ospray {
     void guiSGWindow();
     void guiAbout();
 
-    void guiImportFile();
+    void guiImportData();
+    void guiGenerateData();
 
     void guiSingleNode(const std::string &baseText,
                        std::shared_ptr<sg::Node> node);
@@ -98,9 +99,10 @@ namespace ospray {
 
     bool showWindowAbout{false};
     bool showWindowFindNode{false};
+    bool showWindowGenerateData{false};
     bool showWindowImGuiDemo{false};
     bool showWindowJobStatusControlPanel{false};
-    bool showWindowOpenFile{false};
+    bool showWindowImportData{false};
     bool showWindowRenderStatistics{false};
     bool showWindowSceneGraph{false};
 

@@ -556,8 +556,9 @@ namespace ospray {
     if (showWindowFindNode) guiFindNode();
     if (showWindowSceneGraph) guiSGWindow();
     if (showWindowAbout) guiAbout();
-    if (showWindowOpenFile) guiImportFile();
+    if (showWindowImportData) guiImportData();
     if (showWindowJobStatusControlPanel) guiJobStatusControlPanel();
+    if (showWindowGenerateData) guiGenerateData();
 
     if (showWindowImGuiDemo) ImGui::ShowTestWindow(&showWindowImGuiDemo);
   }
@@ -578,8 +579,11 @@ namespace ospray {
   {
     if (ImGui::BeginMenu("File")) {
 
-      if (ImGui::MenuItem("Open..."))
-        showWindowOpenFile = true;
+      if (ImGui::MenuItem("Import Data..."))
+        showWindowImportData = true;
+
+      if (ImGui::MenuItem("Generate Data..."))
+        showWindowGenerateData = true;
 
       ImGui::Separator();
       ImGui::Separator();
@@ -591,7 +595,7 @@ namespace ospray {
       ImGui::Separator();
       ImGui::Separator();
 
-      if (ImGui::MenuItem("Quit")) exitRequestedByUser = true;
+      if (ImGui::MenuItem("(q) Quit")) exitRequestedByUser = true;
 
       ImGui::EndMenu();
     }
@@ -828,11 +832,99 @@ future updates!
     }
   }
 
-  void ImGuiViewer::guiImportFile()
+  void ImGuiViewer::guiGenerateData()
   {
-    ImGui::OpenPopup("Import File");
-    if (ImGui::BeginPopupModal("Import File",
-                               &showWindowOpenFile,
+    ImGui::OpenPopup("Generate Data");
+    if (ImGui::BeginPopupModal("Generate Data",
+                               &showWindowGenerateData,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+
+      ImGui::Text("Generator Type:   ");
+      ImGui::SameLine();
+
+      static int which = 0;
+      ImGui::Combo("", &which, "vtkWavelet\0cube\0spheres\0cylinders\0\0", 4);
+
+      static std::string parameters;
+      #if 0
+      ImGui::Text("Generator Params: ");
+      ImGui::SameLine();
+      std::vector<char> buf(parameters.size() + 1 + 256);
+      strcpy(buf.data(), parameters.c_str());
+      buf[parameters.size()] = '\0';
+      if (ImGui::InputText("", buf.data(),
+                           parameters.size()+256,
+                           ImGuiInputTextFlags_EnterReturnsTrue)) {
+        parameters = std::string(buf.data());
+      }
+      #endif
+
+      ImGui::Separator();
+
+      if (ImGui::Button("OK", ImVec2(120,0))) {
+        // TODO: move this inline-lambda to a named functor instead
+        auto job = job_scheduler::schedule_job([=](){
+          job_scheduler::Nodes retval;
+
+          std::string type;
+
+          switch (which) {
+          case 0:
+            type = "vtkWavelet";
+            break;
+          case 1:
+            type = "cube";
+            break;
+          case 2:
+            type = "spheres";
+            break;
+          case 3:
+            type = "cylinders";
+            break;
+          default:
+            std::cerr << "WAAAAT" << std::endl;
+          }
+
+          auto transformNode_ptr =
+              sg::createNode("Transform_" + type, "Transform");
+
+          auto generatorNode_ptr =
+            sg::createNode("Generator_" + type, "Generator");
+          transformNode_ptr->add(generatorNode_ptr);
+          auto &generatorNode = *generatorNode_ptr;
+
+          generatorNode["generatorType"] = type;
+          generatorNode["parameters"] = parameters;
+          generatorNode.setChildrenModified(sg::TimeStamp());// trigger load
+          generatorNode.verify();
+
+          retval.push_back(transformNode_ptr);
+
+          return retval;
+        });
+
+        jobsInProgress.emplace_back(std::move(job));
+
+        showWindowGenerateData = false;
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::SameLine();
+
+      if (ImGui::Button("Cancel", ImVec2(120,0))) {
+        showWindowGenerateData = false;
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndPopup();
+    }
+  }
+
+  void ImGuiViewer::guiImportData()
+  {
+    ImGui::OpenPopup("Import Data");
+    if (ImGui::BeginPopupModal("Import Data",
+                               &showWindowImportData,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
 
       const bool pressed = ImGui::Button("Choose File...");
@@ -878,14 +970,14 @@ future updates!
 
         jobsInProgress.emplace_back(std::move(job));
 
-        showWindowOpenFile = false;
+        showWindowImportData = false;
         ImGui::CloseCurrentPopup();
       }
 
       ImGui::SameLine();
 
       if (ImGui::Button("Cancel", ImVec2(120,0))) {
-        showWindowOpenFile = false;
+        showWindowImportData = false;
         ImGui::CloseCurrentPopup();
       }
 
