@@ -19,6 +19,7 @@
 // std
 #include <chrono>
 #include <future>
+#include <functional>
 #include <vector>
 #include <thread> // temporary - see below
 // ospcommon
@@ -64,22 +65,47 @@ namespace ospray {
 
     ///////////////////////////////////////////////////////////////////////////
 
+    // Helper types //
+
     using Nodes = std::vector<std::shared_ptr<sg::Node>>;
 
-    template <typename T>
-    inline bool is_ready(const std::future<T> & f)
+    struct Job
     {
-      return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
-    }
+      template <typename TASK_T>
+      Job(TASK_T &&task)
+      {
+        stashedTask = task;
+        jobFinished = false;
+        auto *thisJob = this;
+
+        //runningJob = ospcommon::tasking::async([std::move(task), &jobFinished](){
+        runningJob = detail::async([=](){
+          Nodes retval = thisJob->stashedTask();
+          thisJob->jobFinished = true;
+          return retval;
+        });
+      }
+
+      ~Job() { if (isValid()) runningJob.wait(); }
+
+      bool isFinished() const { return jobFinished; }
+      bool isValid() const { return runningJob.valid(); }
+
+      Nodes get() { return runningJob.valid() ? runningJob.get() : Nodes{}; }
+
+    private:
+
+      std::function<Nodes()> stashedTask;
+      std::future<Nodes> runningJob;
+      std::atomic<bool> jobFinished;
+    };
+
+    // Main Job Scheduler API /////////////////////////////////////////////////
 
     template <typename JOB_T>
-    inline std::future<Nodes> schedule_job(JOB_T &&job)
+    inline std::unique_ptr<Job> schedule_job(JOB_T &&job)
     {
-#if 0
-      return ospcommon::tasking::async(job);
-#else
-      return detail::async(job);
-#endif
+      return ospcommon::make_unique<Job>(std::forward<JOB_T>(job));
     }
 
   } // namespace job_scheduler

@@ -63,6 +63,7 @@ namespace ospray {
     void display() override;
 
     void processFinishedJobs();
+    void clearFinishedJobs();
 
     void buildGui() override;
 
@@ -105,7 +106,7 @@ namespace ospray {
 
     // Experimental items //
 
-    std::list<std::future<job_scheduler::Nodes>> jobsInProgress;
+    std::list<std::unique_ptr<job_scheduler::Job>> jobsInProgress;
     job_scheduler::Nodes loadedNodes;
 
     // Not-yet-categorized data //

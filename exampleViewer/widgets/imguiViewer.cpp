@@ -25,6 +25,7 @@
 #include "sg/common/FrameBuffer.h"
 #include "sg/visitor/GatherNodesByName.h"
 #include "sg/visitor/GatherNodesByPosition.h"
+#include "sg/visitor/MarkAllAsModified.h"
 #include "transferFunction.h"
 
 #include "imgui.h"
@@ -521,10 +522,11 @@ namespace ospray {
   void ImGuiViewer::processFinishedJobs()
   {
     for (auto it = jobsInProgress.begin(); it != jobsInProgress.end(); ++it) {
-      if (job_scheduler::is_ready(*it)) {
-        auto nodes = it->get();
+      auto &job = *it;
+      if (job.get() && job->isFinished()) {
+        auto nodes = job->get();
         std::copy(nodes.begin(), nodes.end(), std::back_inserter(loadedNodes));
-        jobsInProgress.erase(it);
+        jobsInProgress.erase(it++);
       }
     }
   }
@@ -770,8 +772,28 @@ future updates!
     if (ImGui::Begin("Job Scheduler Control Panel",
                      &showWindowJobStatusControlPanel,
                      flags)) {
-      ImGui::Text("%i jobs currently running", jobsInProgress.size());
+      ImGui::Text("%i jobs running", jobsInProgress.size());
+      ImGui::Text("%i nodes ready", loadedNodes.size());
       ImGui::NewLine();
+      if (ImGui::Button("Add Loaded Nodes to SceneGraph")) {
+        bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
+        renderEngine.stop();
+
+        for (auto &node : loadedNodes)
+          scenegraph->child("world").add(node);
+
+        loadedNodes.clear();
+
+        scenegraph->verify();
+        scenegraph->commit();
+
+        scenegraph->traverse(sg::MarkAllAsModified{});
+
+        if (wasRunning)
+          renderEngine.start();
+
+        resetDefaultView();
+      }
     }
 
     ImGui::End();
@@ -818,8 +840,13 @@ future updates!
         auto job = job_scheduler::schedule_job([=](){
           job_scheduler::Nodes retval;
 
+          auto transformNode_ptr =
+              sg::createNode("Transform_" + fileToOpen, "Transform");
+
           auto importerNode_ptr =
-              sg::createNode(fileToOpen, "Importer")->nodeAs<sg::Importer>();
+              sg::createNode("Importer_" + fileToOpen,
+                             "Importer")->nodeAs<sg::Importer>();
+          transformNode_ptr->add(importerNode_ptr);
           auto &importerNode = *importerNode_ptr;
 
           try {
@@ -830,7 +857,9 @@ future updates!
             std::cerr << "Failed to open file '" << fileToOpen << "'!\n";
           }
 
-          retval.push_back(importerNode_ptr);
+          importerNode.computeBounds();
+
+          retval.push_back(transformNode_ptr);
 
           return retval;
         });
