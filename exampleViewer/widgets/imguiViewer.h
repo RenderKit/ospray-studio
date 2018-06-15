@@ -23,6 +23,10 @@
 #include "sg/SceneGraph.h"
 #include "sg/Renderer.h"
 
+#include "../jobs/JobScheduler.h"
+
+#include <list>
+
 namespace ospray {
 
   /*! mini scene graph viewer widget. \internal Note that all handling
@@ -58,6 +62,8 @@ namespace ospray {
 
     void display() override;
 
+    void processFinishedJobs();
+
     void buildGui() override;
 
     void guiMainMenu();
@@ -66,6 +72,7 @@ namespace ospray {
     void guiMainMenuCamera();
     void guiMainMenuHelp();
 
+    void guiJobStatusControlPanel();
     void guiRenderStats();
     void guiFindNode();
     void guiSGWindow();
@@ -86,14 +93,20 @@ namespace ospray {
 
     // Data ///////////////////////////////////////////////////////////////////
 
-    // Windows to be shown //
+    // Windows to be shown/hidden //
 
     bool showWindowAbout{false};
     bool showWindowFindNode{false};
     bool showWindowImGuiDemo{false};
+    bool showWindowJobStatusControlPanel{false};
     bool showWindowOpenFile{false};
     bool showWindowRenderStatistics{false};
     bool showWindowSceneGraph{false};
+
+    // Experimental items //
+
+    std::list<std::future<job_scheduler::Nodes>> jobsInProgress;
+    job_scheduler::Nodes loadedNodes;
 
     // Not-yet-categorized data //
 

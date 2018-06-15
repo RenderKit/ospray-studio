@@ -32,7 +32,6 @@
 
 #include <unordered_map>
 
-using std::string;
 using namespace ospcommon;
 
 static const ImGuiWindowFlags g_defaultWindowFlags {
@@ -519,10 +518,23 @@ namespace ospray {
     ucharFB = nullptr;
   }
 
+  void ImGuiViewer::processFinishedJobs()
+  {
+    for (auto it = jobsInProgress.begin(); it != jobsInProgress.end(); ++it) {
+      if (job_scheduler::is_ready(*it)) {
+        auto nodes = it->get();
+        std::copy(nodes.begin(), nodes.end(), std::back_inserter(loadedNodes));
+        jobsInProgress.erase(it);
+      }
+    }
+  }
+
   void ImGuiViewer::buildGui()
   {
     ImGuiWindowFlags flags =
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+
+    processFinishedJobs();
 
     guiMainMenu();
 
@@ -531,6 +543,7 @@ namespace ospray {
     if (showWindowSceneGraph) guiSGWindow();
     if (showWindowAbout) guiAbout();
     if (showWindowOpenFile) guiImportFile();
+    if (showWindowJobStatusControlPanel) guiJobStatusControlPanel();
 
     if (showWindowImGuiDemo) ImGui::ShowTestWindow(&showWindowImGuiDemo);
   }
@@ -574,6 +587,7 @@ namespace ospray {
   {
     if (ImGui::BeginMenu("View")) {
       ImGui::Checkbox("Rendering Stats", &showWindowRenderStatistics);
+      ImGui::Checkbox("Job Scheduler", &showWindowJobStatusControlPanel);
       ImGui::Checkbox("Node Finder", &showWindowFindNode);
       ImGui::Checkbox("Scene Graph Window", &showWindowSceneGraph);
 
@@ -747,6 +761,22 @@ future updates!
     }
   }
 
+  void ImGuiViewer::guiJobStatusControlPanel()
+  {
+    auto flags = g_defaultWindowFlags |
+                 ImGuiWindowFlags_NoResize |
+                 ImGuiWindowFlags_AlwaysAutoResize;
+
+    if (ImGui::Begin("Job Scheduler Control Panel",
+                     &showWindowJobStatusControlPanel,
+                     flags)) {
+      ImGui::Text("%i jobs currently running", jobsInProgress.size());
+      ImGui::NewLine();
+    }
+
+    ImGui::End();
+  }
+
   void ImGuiViewer::guiSearchSGNodes()
   {
     if (collectedNodesFromSearch.empty()) {
@@ -784,9 +814,28 @@ future updates!
       ImGui::Separator();
 
       if (ImGui::Button("OK", ImVec2(120,0))) {
-        std::cout << "TODO: import file '" << fileToOpen << "'!" << std::endl;
+        // TODO: move this inline-lambda to a named functor instead
+        auto job = job_scheduler::schedule_job([=](){
+          job_scheduler::Nodes retval;
 
-        fileToOpen.clear();
+          auto importerNode_ptr =
+              sg::createNode(fileToOpen, "Importer")->nodeAs<sg::Importer>();
+          auto &importerNode = *importerNode_ptr;
+
+          try {
+            importerNode["fileName"] = fileToOpen;
+            importerNode.setChildrenModified(sg::TimeStamp());// trigger load
+            importerNode.verify();
+          } catch (...) {
+            std::cerr << "Failed to open file '" << fileToOpen << "'!\n";
+          }
+
+          retval.push_back(importerNode_ptr);
+
+          return retval;
+        });
+
+        jobsInProgress.emplace_back(std::move(job));
 
         showWindowOpenFile = false;
         ImGui::CloseCurrentPopup();
