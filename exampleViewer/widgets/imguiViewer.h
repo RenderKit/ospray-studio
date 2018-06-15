@@ -101,7 +101,7 @@ namespace ospray {
     bool showWindowFindNode{false};
     bool showWindowGenerateData{false};
     bool showWindowImGuiDemo{false};
-    bool showWindowJobStatusControlPanel{false};
+    bool showWindowJobStatusControlPanel{true};
     bool showWindowImportData{false};
     bool showWindowRenderStatistics{false};
     bool showWindowSceneGraph{false};
