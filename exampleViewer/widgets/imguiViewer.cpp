@@ -395,6 +395,18 @@ namespace ospray {
     case 'p':
       printViewport();
       break;
+    case '1':
+      showWindowRenderStatistics = !showWindowRenderStatistics;
+      break;
+    case '2':
+      showWindowJobStatusControlPanel = !showWindowJobStatusControlPanel;
+      break;
+    case '3':
+      showWindowFindNode = !showWindowFindNode;
+      break;
+    case '4':
+      showWindowSceneGraph = !showWindowSceneGraph;
+      break;
     default:
       ImGui3DWidget::keypress(key);
     }
@@ -588,10 +600,10 @@ namespace ospray {
   void ImGuiViewer::guiMainMenuView()
   {
     if (ImGui::BeginMenu("View")) {
-      ImGui::Checkbox("Rendering Stats", &showWindowRenderStatistics);
-      ImGui::Checkbox("Job Scheduler", &showWindowJobStatusControlPanel);
-      ImGui::Checkbox("Node Finder", &showWindowFindNode);
-      ImGui::Checkbox("Scene Graph Window", &showWindowSceneGraph);
+      ImGui::Checkbox("(1) Rendering Stats", &showWindowRenderStatistics);
+      ImGui::Checkbox("(2) Job Scheduler", &showWindowJobStatusControlPanel);
+      ImGui::Checkbox("(3) Node Finder", &showWindowFindNode);
+      ImGui::Checkbox("(4) Scene Graph Window", &showWindowSceneGraph);
 
       ImGui::EndMenu();
     }
