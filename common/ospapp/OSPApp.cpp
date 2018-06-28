@@ -81,6 +81,10 @@ general app-parameters:
         no default lights
     --add-lights
         default lights
+    -tf --transferFunction [string]
+        default transferFunction
+    -ltf --loadTransferFunction [file]
+        load transfer function preset from file
     --hdri-light [filename]
         add an hdri light
     --translate [float] [float] [float]
@@ -183,13 +187,91 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
 
       parseGeneralCommandLine(argc, argv);
 
-      auto rendererPtr = sg::createNode("renderer", "Renderer");
-      auto &renderer = *rendererPtr;
+      auto rootPtr = sg::createNode("renderer", "Root")->nodeAs<sg::Root>();
+
+      auto &root     = *rootPtr;
+      auto &renderer = root["renderer"];
 
       if (!initialRendererType.empty())
         renderer["rendererType"] = initialRendererType;
 
       renderer.createChild("animationcontroller", "AnimationController");
+      renderer.createChild("transferFunctions", "Node");
+
+      //transfer function presets
+      auto& tfPresets = renderer.createChild("transferFunctionPresets", "Node");
+
+      auto addPreset = [&](std::string name,
+                           std::vector<vec3f> colors,
+                           std::shared_ptr<sg::Node>presets) {
+        auto& preset = *presets->createChild(name, "TransferFunction").nodeAs<sg::TransferFunction>();
+        auto& colors4f = *preset["colorControlPoints"].nodeAs<sg::DataVector4f>();
+        colors4f.clear();
+        for(size_t i = 0; i < colors.size(); i++) {
+          colors4f.push_back(vec4f(i/float(colors.size()-1), colors[i].x,
+              colors[i].y, colors[i].z));
+        }
+        preset.updateChildDataValues();
+      };
+
+      std::vector<vec3f> colors;
+      // The presets have no existing opacity value
+      const std::vector<vec2f> opacities;
+      // From the old volume viewer, these are based on ParaView
+      // Jet transfer function
+      colors.push_back(vec3f(0       , 0, 0.562493));
+      colors.push_back(vec3f(0       , 0, 1       ));
+      colors.push_back(vec3f(0       , 1, 1       ));
+      colors.push_back(vec3f(0.500008, 1, 0.500008));
+      colors.push_back(vec3f(1       , 1, 0       ));
+      colors.push_back(vec3f(1       , 0, 0       ));
+      colors.push_back(vec3f(0.500008, 0, 0       ));
+      addPreset("Jet", colors, tfPresets.shared_from_this());
+      colors.clear();
+
+      colors.push_back(vec3f(0        , 0          , 0          ));
+      colors.push_back(vec3f(0        , 0.120394   , 0.302678   ));
+      colors.push_back(vec3f(0        , 0.216587   , 0.524575   ));
+      colors.push_back(vec3f(0.0552529, 0.345022   , 0.659495   ));
+      colors.push_back(vec3f(0.128054 , 0.492592   , 0.720287   ));
+      colors.push_back(vec3f(0.188952 , 0.641306   , 0.792096   ));
+      colors.push_back(vec3f(0.327672 , 0.784939   , 0.873426   ));
+      colors.push_back(vec3f(0.60824  , 0.892164   , 0.935546   ));
+      colors.push_back(vec3f(0.881376 , 0.912184   , 0.818097   ));
+      colors.push_back(vec3f(0.9514   , 0.835615   , 0.449271   ));
+      colors.push_back(vec3f(0.904479 , 0.690486   , 0          ));
+      colors.push_back(vec3f(0.854063 , 0.510857   , 0          ));
+      colors.push_back(vec3f(0.777096 , 0.330175   , 0.000885023));
+      colors.push_back(vec3f(0.672862 , 0.139086   , 0.00270085 ));
+      colors.push_back(vec3f(0.508812 , 0          , 0          ));
+      colors.push_back(vec3f(0.299413 , 0.000366217, 0.000549325));
+      colors.push_back(vec3f(0.0157473, 0.00332647 , 0          ));
+      addPreset("Ice Fire", colors, tfPresets.shared_from_this());
+      colors.clear();
+
+      colors.push_back(vec3f(0.231373, 0.298039 , 0.752941));
+      colors.push_back(vec3f(0.865003, 0.865003 , 0.865003));
+      colors.push_back(vec3f(0.705882, 0.0156863, 0.14902));
+      addPreset("Cool Warm", colors, tfPresets.shared_from_this());
+      colors.clear();
+
+      colors.push_back(vec3f(0, 0, 1));
+      colors.push_back(vec3f(1, 0, 0));
+      addPreset("Blue Red", colors, tfPresets.shared_from_this());
+      colors.clear();
+
+      colors.push_back(vec3f(0));
+      colors.push_back(vec3f(1));
+      addPreset("Grayscale", colors, tfPresets.shared_from_this());
+      colors.clear();
+
+      for (const auto& tfFile : tfFiles) {
+        auto& tf = *renderer["transferFunctionPresets"].createChild("loadedTF",
+          "TransferFunction").nodeAs<sg::TransferFunction>();
+        tf.loadParaViewTF(tfFile);
+      }
+
+      auto &framebuffer = root["frameBuffer"];
 
       if (fast) {
         renderer["spp"] = -1;
@@ -197,8 +279,9 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
         renderer["aoTransparencyEnabled"] = false;
         renderer["minContribution"] = 0.1f;
         renderer["maxDepth"] = 3;
-        renderer["frameBuffer"]["toneMapping"] = false;
-        renderer["frameBuffer"]["useVarianceBuffer"] = false;
+
+        framebuffer["toneMapping"] = false;
+        framebuffer["useVarianceBuffer"] = false;
         addPlane = false;
       }
 
@@ -207,28 +290,24 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
       addGeneratorNodesToWorld(renderer);
       addAnimatedImporterNodesToWorld(renderer);
 
-      renderer["frameBuffer"]["size"] = vec2i(width, height);
-      setupToneMapping(renderer);
-      renderer.verify();
-      renderer.commit();
+      framebuffer["size"] = vec2i(width, height);
+      setupToneMapping(framebuffer);
+      root.traverse(sg::VerifyNodes(true));
+      root.commit();
 
       // last, to be able to modify all created SG nodes
-      parseCommandLineSG(argc, argv, renderer);
-
-      // recommit in case any command line options modified the scene graph
-      renderer.verify();
-      renderer.commit();
+      parseCommandLineSG(argc, argv, root);
 
       // after parseCommandLineSG (may have changed world bounding box)
       addPlaneToScene(renderer);
-      setupCamera(renderer);
+      setupCamera(root);
 
       if (debug)
-        renderer.traverse(sg::PrintNodes{});
+        root.traverse(sg::PrintNodes{});
 
-      render(rendererPtr);
+      render(rootPtr);
 
-      rendererPtr.reset();
+      rootPtr.reset();
       ospShutdown();
 
       return 0;
@@ -286,6 +365,16 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
           addDefaultLights = true;
           removeArgs(ac, av, i, 1);
           --i;
+        } else if (arg == "--transferFunction" ||
+          arg == "-tf") {
+          defaultTransferFunction = std::string(av[i+1]);
+          removeArgs(ac, av, i, 2);
+          --i;
+        } else if (arg == "--loadTransferFunction" ||
+          arg == "-ltf") {
+          tfFiles.push_back(av[i+1]);
+          removeArgs(ac, av, i, 2);
+          --i;
         } else if (arg == "--hdri-light") {
           hdriLightFile = av[i + 1];
           removeArgs(ac, av, i, 2);
@@ -317,7 +406,7 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
           fast = true;
         } else if (arg == "--no-fast" || arg == "-nf") {
           fast = false;
-        } else if (arg == "--file") {
+        } else if (arg == "--static" || arg == "--file") {
           inAnimation = false;
           removeArgs(ac, av, i, 1);
           --i;
@@ -415,7 +504,7 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
       }
     }
 
-    void OSPApp::parseCommandLineSG(int ac, const char **&av, sg::Node &root)
+    void OSPApp::parseCommandLineSG(int ac, const char **&av, sg::Root &root)
     {
       for (int i = 1; i < ac; i++) {
         std::string arg(av[i]);
@@ -452,16 +541,17 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
           ss << arg.substr(0, f);
           std::string child;
           std::reference_wrapper<sg::Node> node_ref = root;
-          std::vector<std::shared_ptr<sg::Node> > children;
+          std::vector<std::shared_ptr<sg::Node>> children;
           while (ss >> child) {
             if (ss.eof())
               children = node_ref.get().childrenRecursive(child);
           }
-          if (children.empty())
-          {
+
+          if (children.empty()) {
             std::cerr << "Warning: no children found in sg lookup\n";
             continue;
           }
+
           std::stringstream vals(value);
 
           if (addNode) {
@@ -534,8 +624,6 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
 
     void OSPApp::addLightsToScene(sg::Node &renderer)
     {
-      renderer.verify();
-      renderer.commit();
       auto &lights = renderer["lights"];
 
       if (noDefaultLights == false &&
@@ -566,12 +654,9 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
         auto tex = sg::Texture2D::load(hdriLightFile, false);
         tex->setName("map");
         auto &hdri = lights.createChild("hdri", "HDRILight");
-        tex->verify();
-        tex->commit();
         hdri.add(tex);
+        renderer.verify(); //TODO: this should not be necessary
       }
-      renderer.verify();
-      renderer.commit();
     }
 
     void OSPApp::addImporterNodesToWorld(sg::Node &renderer)
@@ -618,22 +703,23 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
                     importerNode.childRecursive("adaptiveMaxSamplingRate") = 0.2f;
                 }
 
+                auto transferFunctions = importerNode.childrenRecursive("transferFunction");
+                for (auto tf : transferFunctions)
+                  renderer["transferFunctions"].add(tf);
+
                 transform["scale"] = file.transform.scale;
                 transform["rotation"] = file.transform.rotation;
                 if (files.size() < 2 && animatedFiles.empty()) {
                   auto &rotation =
                       transform["rotation"].createChild("animator", "Animator");
 
-                  rotation.verify();
-                  rotation.commit();
-                  rotation.child("value1") = vec3f(0.f, 0.f, 0.f);
-                  rotation.child("value2") = vec3f(0.f, 2.f * 3.14f, 0.f);
+                  rotation.createChild("value1", "vec3f", vec3f(0.f, 0.f, 0.f));
+                  rotation.createChild("value2", "vec3f", vec3f(0.f, 2.f * 3.14f, 0.f));
+                  rotation.setValue(vec3f(0.0f, 0.0f, 0.0f));
 
                   animation.setChild("rotation", rotation.shared_from_this());
                 }
 
-                renderer.verify();
-                renderer.commit();
                 auto bounds = importerNode_ptr->computeBounds();
                 auto size = bounds.upper - bounds.lower;
                 float maxSize = max(max(size.x, size.y), size.z);
@@ -671,8 +757,9 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
       }
     }
 
-    void OSPApp::setupCamera(sg::Node &renderer)
+    void OSPApp::setupCamera(sg::Node &root)
     {
+      auto &renderer = root["renderer"];
       auto &world = renderer["world"];
       auto bbox = bboxWithoutPlane;
       if (bbox.empty())
@@ -688,7 +775,7 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
       if (!up.isOverridden())
         up = vec3f(0.f, 1.f, 0.f);
 
-      auto &camera = renderer["camera"];
+      auto &camera = root["camera"];
       camera["pos"] = pos.getValue();
       camera["dir"] = normalize(gaze.getValue() - pos.getValue());
       camera["up"] = up.getValue();
@@ -697,9 +784,9 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
       //       camera moves unless also updated by the app!
       camera.createChild("gaze", "vec3f", gaze.getValue());
 
-      if (camera.hasChild("fovy"))
+      if (camera.hasChild("fovy") && fovy.isOverridden())
         camera["fovy"] = fovy.getValue();
-      if (camera.hasChild("apertureRadius"))
+      if (camera.hasChild("apertureRadius") && apertureRadius.isOverridden())
         camera["apertureRadius"] = apertureRadius.getValue();
       if (camera.hasChild("focusdistance"))
         camera["focusdistance"] = length(pos.getValue() - gaze.getValue());
@@ -709,15 +796,10 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
         camera["height"] = (float)height;
       if (camera.hasChild("aspect"))
         camera["aspect"] = width / (float)height;
-
-      renderer.verify();
-      renderer.commit();
     }
 
-    void OSPApp::setupToneMapping(sg::Node &renderer)
+    void OSPApp::setupToneMapping(sg::Node &frameBuffer)
     {
-      auto &frameBuffer = renderer["frameBuffer"];
-
       if (aces) {
         frameBuffer["toneMapping"] = true;
         frameBuffer["contrast"] = 1.6773f;
@@ -752,28 +834,39 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
         transform["scale"] = animatedFile[0].transform.scale;
         transform["position"] = animatedFile[0].transform.translate;
         transform["rotation"] = animatedFile[0].transform.rotation;
-        auto &selector =
-            transform.createChild("selector_" + animatedFile[0].file,
-                                  "Selector");
 
+        std::string importString;
         for (auto file : animatedFile) {
           FileName fn = file.file;
           if (fn.ext() == "ospsg")
             sg::loadOSPSG(renderer.shared_from_this(), fn.str());
           else {
-            auto importerNode_ptr = sg::createNode(fn.name(), "Importer");
-            auto &importerNode = *importerNode_ptr;
-            importerNode["fileName"] = fn.str();
-            selector.add(importerNode_ptr);
+            importString += file.file + ",";
           }
         }
-        auto &anim_selector = selector["index"].createChild(
-            "anim_" + animatedFile[0].file, "Animator");
+        importString.erase(importString.end()-1);
+        if (importString != "")
+        {
+          auto importerNode_ptr = sg::createNode(animatedFile[0].file, "Importer");
+          auto &importerNode = *importerNode_ptr;
+          importerNode["fileName"] = importString;
+          transform.add(importerNode_ptr);
+          transform.markAsModified();
 
-        anim_selector.verify();
-        anim_selector.commit();
-        anim_selector["value2"] = int(animatedFile.size());
-        animation.setChild("anim_selector", anim_selector.shared_from_this());
+          auto transferFunctions = importerNode.childrenRecursive("transferFunction");
+          for (auto tf : transferFunctions)
+            renderer["transferFunctions"].add(tf);
+
+          if (animatedFile.size() > 1)
+          {
+            auto &anim_selector = importerNode.child("selector")["index"].createChild(
+                "anim_" + animatedFile[0].file, "Animator");
+
+            anim_selector.createChild("value2", "int");
+            anim_selector["value2"] = int(animatedFile.size());
+            animation.setChild("anim_selector", anim_selector.shared_from_this());
+          }
+        }
       }
     }
 
@@ -815,9 +908,6 @@ usage --> "--generate:type[:parameter1=value,parameter2=value,...]"
       planeMaterial["Kd"] = vec3f(0.3f);
       planeMaterial["Ks"] = vec3f(0.0f);
       planeMaterial["Ns"] = 10.f;
-
-      renderer.verify();
-      renderer.commit();
     }
 
   } // ::ospray::app
