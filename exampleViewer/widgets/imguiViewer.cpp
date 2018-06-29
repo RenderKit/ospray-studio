@@ -32,6 +32,8 @@
 #include "imgui.h"
 #include "imguifilesystem/imguifilesystem.h"
 
+#include "../common/util/ComputeAllBounds.h"
+
 #include <unordered_map>
 
 using namespace ospcommon;
@@ -896,8 +898,6 @@ future updates!
 
           generatorNode.generateData();
 
-          generatorNode.verify();
-
           retval.push_back(transformNode_ptr);
 
           return retval;
@@ -960,8 +960,6 @@ future updates!
           } catch (...) {
             std::cerr << "Failed to open file '" << fileToOpen << "'!\n";
           }
-
-          importerNode.computeBounds();
 
           retval.push_back(transformNode_ptr);
 
