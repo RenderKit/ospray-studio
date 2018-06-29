@@ -787,16 +787,25 @@ future updates!
 
         loadedNodes.clear();
 
-        scenegraph->verify();
-        scenegraph->commit();
-
-        scenegraph->traverse(sg::MarkAllAsModified{});
+        renderer->computeBounds();
 
         if (wasRunning)
           renderEngine.start();
 
         resetDefaultView();
       }
+
+      if (ImGui::Button("Mark as Modified"))
+        scenegraph->traverse(sg::MarkAllAsModified{});
+
+      if (ImGui::Button("Verify"))
+        scenegraph->verify();
+
+      if (ImGui::Button("Commit"))
+        scenegraph->commit();
+
+      if (ImGui::Button("Compute Bounds"))
+        renderer->computeBounds();
     }
 
     ImGui::End();
