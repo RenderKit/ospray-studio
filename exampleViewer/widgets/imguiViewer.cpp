@@ -789,10 +789,14 @@ future updates!
 
         renderer->computeBounds();
 
+        resetDefaultView();
+        resetView();
+
+        setMotionSpeed(-1.f);
+        setWorldBounds(renderer->child("bounds").valueAs<box3f>());
+
         if (wasRunning)
           renderEngine.start();
-
-        resetDefaultView();
       }
 
       if (ImGui::Button("Mark as Modified"))

@@ -249,7 +249,7 @@ namespace ospray {
 
     void ImGui3DWidget::setWorldBounds(const box3f &worldBounds)
     {
-      vec3f diag   = max(worldBounds.size(),vec3f(0.3f*length(worldBounds.size())));
+      vec3f diag = max(worldBounds.size(),vec3f(0.3f*length(worldBounds.size())));
       if (motionSpeed < 0.f)
         motionSpeed = length(diag) * .001f;
     }
