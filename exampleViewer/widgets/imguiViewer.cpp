@@ -32,8 +32,6 @@
 #include "imgui.h"
 #include "imguifilesystem/imguifilesystem.h"
 
-#include "../common/util/ComputeAllBounds.h"
-
 #include <unordered_map>
 
 using namespace ospcommon;
@@ -780,6 +778,7 @@ future updates!
       ImGui::Text("%i jobs running", jobsInProgress.size());
       ImGui::Text("%i nodes ready", loadedNodes.size());
       ImGui::NewLine();
+
       if (ImGui::Button("Add Loaded Nodes to SceneGraph")) {
         bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
         renderEngine.stop();
@@ -791,6 +790,8 @@ future updates!
 
         renderer->computeBounds();
 
+        scenegraph->verify();
+
         resetDefaultView();
         resetView();
 
@@ -800,19 +801,13 @@ future updates!
         if (wasRunning)
           renderEngine.start();
       }
-
-      if (ImGui::Button("Mark as Modified"))
-        scenegraph->traverse(sg::MarkAllAsModified{});
-
-      if (ImGui::Button("Verify"))
-        scenegraph->verify();
-
-      if (ImGui::Button("Commit"))
-        scenegraph->commit();
-
-      if (ImGui::Button("Compute Bounds"))
-        renderer->computeBounds();
     }
+
+    ImGui::Separator();
+    ImGui::Text("Loaded Nodes:");
+    ImGui::NewLine();
+    for (auto &n : loadedNodes)
+      ImGui::Text(n->name().c_str());
 
     ImGui::End();
   }
