@@ -28,7 +28,7 @@
 #include <GLFW/glfw3native.h>
 #endif
 
-#include "../../common/tfn_lib/tfn_lib.h"
+#include "tfn_lib/tfn_lib.h"
 #include "Imgui3dExport.h"
 #include <ospray/ospray_cpp/TransferFunction.h>
 #include "sg/transferFunction/TransferFunction.h"

@@ -18,12 +18,22 @@ ospray_disable_compiler_warnings()
 
 ## Build app
 
-add_subdirectory(widgets)
-
 ospray_create_application(ospStudio
   ospStudioMain.cpp
+
+  util/AsyncRenderEngine.cpp
+
+  widgets/Imgui3dExport.h
+  widgets/imgui_impl_glfw_gl3.cpp
+  widgets/imgui3D.cpp
+  widgets/imguiViewer.cpp
+  widgets/transferFunction.cpp
+  widgets/cameraManipulator.cpp
+
 LINK
-  ospray_imgui3d_sg
   ${OSPRAY_LIBRARIES}
   ${OSPRAY_SG_LIBRARIES}
+  ospray_imgui
+  ospray_tfn
+  glfw
 )

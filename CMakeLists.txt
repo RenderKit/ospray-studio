@@ -39,9 +39,9 @@ set(OSPRAY_DEFAULT_COMPONENT apps)
 
 include_directories(
   ${OSPRAY_INCLUDE_DIRS}
-  common/
-  common/imgui
+  external/
+  external/imgui
 )
 
-add_subdirectory(common)
+add_subdirectory(external)
 add_subdirectory(app)

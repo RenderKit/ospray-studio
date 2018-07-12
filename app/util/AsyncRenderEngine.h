@@ -29,16 +29,13 @@
 
 #include "sg/Renderer.h"
 
-// ospImGui util
-#include "ImguiUtilExport.h"
-
 namespace ospray {
 
   using namespace ospcommon;
 
   enum class ExecState {STOPPED, STARTED, RUNNING, INVALID};
 
-  class OSPRAY_IMGUI_UTIL_INTERFACE AsyncRenderEngine
+  class AsyncRenderEngine
   {
   public:
 
