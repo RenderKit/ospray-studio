@@ -32,7 +32,6 @@ add_subdirectory(widgets)
 ospray_create_application(ospStudio
   ospStudioMain.cpp
 LINK
-  ospray_app
   ospray_imgui3d_sg
   ${OSPRAY_LIBRARIES}
   ${OSPRAY_SG_LIBRARIES}

@@ -293,6 +293,7 @@ namespace ospray {
 
     renderEngine.start();
 
+#if 0
     auto &camera = scenegraph->child("camera");
     auto pos  = camera["pos"].valueAs<vec3f>();
     auto gaze = camera["gaze"].valueAs<vec3f>();
@@ -301,6 +302,7 @@ namespace ospray {
 
     // remove "gaze" as it's not an actual OSPRay parameter
     camera.remove("gaze");
+#endif
 
     originalView = viewPort;
   }

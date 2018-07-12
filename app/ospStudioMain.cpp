@@ -17,63 +17,96 @@
 #include "sg/SceneGraph.h"
 #include "sg/geometry/TriangleMesh.h"
 
-#include "../common/ospapp/OSPApp.h"
 #include "widgets/imguiViewer.h"
 
-namespace ospray {
-  namespace app {
+using namespace ospcommon;
 
-    class OSPExampleViewer : public OSPApp
-    {
-      void render(const std::shared_ptr<sg::Frame> &) override;
-      int parseCommandLine(int &ac, const char **&av) override;
-
-      bool fullscreen = false;
-      float motionSpeed = -1.f;
-      std::string initialTextForNodeSearch;
-    };
-
-    void OSPExampleViewer::render(const std::shared_ptr<sg::Frame> &root)
-    {
-      ospray::ImGuiViewer window(root);
-
-      window.create("OSPRay Studio", fullscreen, vec2i(width, height));
-
-      if (motionSpeed > 0.f)
-        window.setMotionSpeed(motionSpeed);
-
-      if (!initialTextForNodeSearch.empty())
-        window.setInitialSearchBoxText(initialTextForNodeSearch);
-
-      imgui3D::run();
-    }
-
-    int OSPExampleViewer::parseCommandLine(int &ac, const char **&av)
-    {
-      for (int i = 1; i < ac; i++) {
-        const std::string arg = av[i];
-        if (arg == "--fullscreen") {
-          fullscreen = true;
-          removeArgs(ac, av, i, 1);
-          --i;
-        } else if (arg == "--motionSpeed") {
-          motionSpeed = atof(av[i + 1]);
-          removeArgs(ac, av, i, 2);
-          --i;
-        } else if (arg == "--searchText") {
-          initialTextForNodeSearch = av[i + 1];
-          removeArgs(ac, av, i, 2);
-          --i;
-        }
-      }
-      return 0;
-    }
-
-  } // ::ospray::app
-} // ::ospray
-
-int main(int ac, const char **av)
+static int initializeOSPRay(int *argc, const char *argv[])
 {
-  ospray::app::OSPExampleViewer ospApp;
-  return ospApp.main(ac, av);
+  int init_error = ospInit(argc, argv);
+  if (init_error != OSP_NO_ERROR) {
+    std::cerr << "FATAL ERROR DURING INITIALIZATION!" << std::endl;
+    return init_error;
+  }
+
+  auto device = ospGetCurrentDevice();
+  if (device == nullptr) {
+    std::cerr << "FATAL ERROR DURING GETTING CURRENT DEVICE!" << std::endl;
+    return 1;
+  }
+
+  ospDeviceSetStatusFunc(device, [](const char *msg) { std::cout << msg; });
+  ospDeviceSetErrorFunc(device, [](OSPError e, const char *msg) {
+    std::cout << "OSPRAY ERROR [" << e << "]: " << msg << std::endl;
+  });
+
+  ospDeviceCommit(device);
+
+  return 0;
+}
+
+static int width  = 1200;
+static int height = 800;
+static bool fullscreen = false;
+
+static void parseCommandLine(int &ac, const char **&av)
+{
+  for (int i = 1; i < ac; i++) {
+    const std::string arg = av[i];
+    if (arg == "--fullscreen") {
+      fullscreen = true;
+      removeArgs(ac, av, i, 1);
+      --i;
+    } else if (arg == "-m" || arg == "--module") {
+      ospLoadModule(av[i + 1]);
+      removeArgs(ac, av, i, 2);
+      --i;
+    } else if (arg == "-w" || arg == "--width") {
+      width = atoi(av[i + 1]);
+      removeArgs(ac, av, i, 2);
+      --i;
+    } else if (arg == "-h" || arg == "--height") {
+      height = atoi(av[i + 1]);
+      removeArgs(ac, av, i, 2);
+      --i;
+    } else if (arg == "--size") {
+      width = atoi(av[i + 1]);
+      height = atoi(av[i + 2]);
+      removeArgs(ac, av, i, 3);
+      --i;
+    } else if (arg == "-sd") {
+      width  = 640;
+      height = 480;
+    } else if (arg == "-hd") {
+      width  = 1920;
+      height = 1080;
+    }
+  }
+}
+
+int main(int argc, const char **argv)
+{
+  using namespace ospray;
+
+  int result = initializeOSPRay(&argc, argv);
+
+  if (result != 0) {
+    std::cerr << "Failed to initialize OSPRay!" << std::endl;
+    return result;
+  }
+
+  // access/load symbols/sg::Nodes dynamically
+  loadLibrary("ospray_sg");
+
+  parseCommandLine(argc, argv);
+
+  auto root = sg::createNode("renderer", "Frame")->nodeAs<sg::Frame>();
+
+  ospray::ImGuiViewer window(root);
+
+  window.create("OSPRay Studio", fullscreen, vec2i(width, height));
+
+  imgui3D::run();
+
+  return 0;
 }

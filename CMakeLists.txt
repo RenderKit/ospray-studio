@@ -36,6 +36,5 @@ ospray_configure_tasking_system()
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
-add_subdirectory(common/ospapp)
 add_subdirectory(common/tfn_lib)
 add_subdirectory(app)
