@@ -757,7 +757,7 @@ future updates!
       ImGui::Text("%i nodes ready", loadedNodes.size());
       ImGui::NewLine();
 
-      if (ImGui::Button("Add Loaded Nodes to SceneGraph")) {
+      auto doIt = [&]() {
         bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
         renderEngine.stop();
 
@@ -778,7 +778,15 @@ future updates!
 
         if (wasRunning)
           renderEngine.start();
-      }
+      };
+
+      static bool autoImport = true;
+      ImGui::Checkbox("auto add to scene", &autoImport);
+
+      if (autoImport && !loadedNodes.empty())
+        doIt();
+      else if (ImGui::Button("Add Loaded Nodes to SceneGraph"))
+        doIt();
     }
 
     ImGui::Separator();
