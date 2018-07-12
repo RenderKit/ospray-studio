@@ -14,7 +14,7 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-project(OSPRay)
+project(ospray_studio)
 cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -25,10 +25,11 @@ set (CMAKE_CXX_STANDARD 11)
 
 ## Find dependencies ##
 
+find_package(OpenGL REQUIRED)
+find_package(glfw3)
 find_package(ospray REQUIRED)
-include(${OSPRAY_USE_FILE})
 
-include_directories(${OSPRAY_INCLUDE_DIRS})
+include(${OSPRAY_USE_FILE})
 
 ospray_configure_tasking_system()
 
@@ -36,5 +37,11 @@ ospray_configure_tasking_system()
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
-add_subdirectory(common/tfn_lib)
+include_directories(
+  ${OSPRAY_INCLUDE_DIRS}
+  common/
+  common/imgui
+)
+
+add_subdirectory(common)
 add_subdirectory(app)

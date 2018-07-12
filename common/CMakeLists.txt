@@ -14,18 +14,6 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-ospray_create_library(ospray_imgui3d_sg
-  Imgui3dExport.h
-  imgui_impl_glfw_gl3.cpp
-  imgui3D.cpp
-  imguiViewer.cpp
-  transferFunction.cpp
-  cameraManipulator.cpp
-LINK
-  ${OSPRAY_LIBRARIES}
-  ${OSPRAY_SG_LIBRARIES}
-  ospray_imgui
-  ospray_imgui_util_sg
-  ospray_tfn
-  glfw
-)
+add_subdirectory(imgui)
+add_subdirectory(tfn_lib)
+add_subdirectory(util)

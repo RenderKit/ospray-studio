@@ -14,20 +14,11 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-find_package(OpenGL REQUIRED)
-
 ospray_disable_compiler_warnings()
 
-##############################################################
-# Build support libs
-##############################################################
+## Build app
 
-add_subdirectory(common)
 add_subdirectory(widgets)
-
-##############################################################
-# Build app
-##############################################################
 
 ospray_create_application(ospStudio
   ospStudioMain.cpp
