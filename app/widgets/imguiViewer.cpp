@@ -362,6 +362,12 @@ namespace ospray {
     case 'c':
       viewPort.modified = true;//Reset accumulation
       break;
+    case 'o':
+      showWindowImportData = true;
+      break;
+    case 'g':
+      showWindowGenerateData = true;
+      break;
     case 'r':
       resetView();
       break;
@@ -544,10 +550,10 @@ namespace ospray {
   {
     if (ImGui::BeginMenu("File")) {
 
-      if (ImGui::MenuItem("Import Data..."))
+      if (ImGui::MenuItem("(o) Import Data..."))
         showWindowImportData = true;
 
-      if (ImGui::MenuItem("Generate Data..."))
+      if (ImGui::MenuItem("(g) Generate Data..."))
         showWindowGenerateData = true;
 
       ImGui::Separator();

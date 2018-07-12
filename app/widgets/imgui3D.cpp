@@ -443,7 +443,7 @@ namespace ospray {
       case 'C':
         PRINT(viewPort);
         break;
-      case 'g':
+      case 'u':
         showGui = !showGui;
         break;
       case 'I':
