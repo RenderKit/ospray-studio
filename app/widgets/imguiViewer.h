@@ -41,8 +41,6 @@ namespace ospray {
 
     ~ImGuiViewer();
 
-    void setInitialSearchBoxText(const std::string &text);
-
   protected:
 
     enum PickMode { PICK_CAMERA, PICK_NODE };

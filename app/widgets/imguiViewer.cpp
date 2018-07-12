@@ -283,26 +283,7 @@ namespace ospray {
     if (useDynamicLoadBalancer)
       numPreAllocatedTiles = OSPRAY_DYNAMIC_LOADBALANCER.value();
 
-    auto bbox = renderer->child("world").bounds();
-    if (bbox.empty()) {
-      bbox.lower = vec3f(-5,0,-5);
-      bbox.upper = vec3f(5,10,5);
-    }
-    setWorldBounds(bbox);
-    renderEngine.setFbSize({1024, 768});
-
     renderEngine.start();
-
-#if 0
-    auto &camera = scenegraph->child("camera");
-    auto pos  = camera["pos"].valueAs<vec3f>();
-    auto gaze = camera["gaze"].valueAs<vec3f>();
-    auto up   = camera["up"].valueAs<vec3f>();
-    setViewPort(pos, gaze, up);
-
-    // remove "gaze" as it's not an actual OSPRay parameter
-    camera.remove("gaze");
-#endif
 
     originalView = viewPort;
   }
@@ -310,11 +291,6 @@ namespace ospray {
   ImGuiViewer::~ImGuiViewer()
   {
     renderEngine.stop();
-  }
-
-  void ImGuiViewer::setInitialSearchBoxText(const std::string &text)
-  {
-    nodeNameForSearch = text;
   }
 
   void ImGuiViewer::mouseButton(int button, int action, int mods)
