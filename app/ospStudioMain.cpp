@@ -100,7 +100,14 @@ int main(int argc, const char **argv)
 
   parseCommandLine(argc, argv);
 
-  auto root = sg::createNode("renderer", "Frame")->nodeAs<sg::Frame>();
+  auto root = sg::createNode("ROOT", "Frame")->nodeAs<sg::Frame>();
+
+  // TODO: this should be easy to add via the UI! /////////////////////////////
+  auto &lights = root->child("renderer").child("lights");
+  auto &ambient = lights.createChild("ambient", "AmbientLight");
+  ambient["intensity"] =  1.25f;
+  ambient["color"] = vec3f(1.f);
+  /////////////////////////////////////////////////////////////////////////////
 
   ospray::ImGuiViewer window(root);
 
