@@ -88,6 +88,8 @@ namespace ospray {
 
     void setCurrentDeviceParameter(const std::string &param, int value);
 
+    void clearScene();
+
     // Data ///////////////////////////////////////////////////////////////////
 
     // Windows to be shown/hidden //

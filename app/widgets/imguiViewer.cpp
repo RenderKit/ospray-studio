@@ -514,6 +514,20 @@ namespace ospray {
     }
   }
 
+  void ImGuiViewer::clearScene()
+  {
+    bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
+    renderEngine.stop();
+
+    auto newWorld = sg::createNode("world", "Model");
+    renderer->add(newWorld);
+
+    scenegraph->traverse(sg::MarkAllAsModified{});
+
+    if (wasRunning)
+      renderEngine.start();
+  }
+
   void ImGuiViewer::buildGui()
   {
     ImGuiWindowFlags flags =
@@ -555,6 +569,12 @@ namespace ospray {
 
       if (ImGui::MenuItem("(g) Generate Data..."))
         showWindowGenerateData = true;
+
+      ImGui::Separator();
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("Clear Scene"))
+        clearScene();
 
       ImGui::Separator();
       ImGui::Separator();
