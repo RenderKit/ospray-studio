@@ -942,7 +942,16 @@ future updates!
       if (strlen(fileName) > 0)
         fileToOpen = fileName;
 
-      ImGui::Text(("File: " + fileToOpen).c_str());
+      ImGui::Text("File:");
+      ImGui::SameLine();
+
+      std::array<char, 512> buf;
+      strcpy(buf.data(), fileToOpen.c_str());
+
+      ImGui::InputText("", buf.data(), buf.size(),
+                       ImGuiInputTextFlags_EnterReturnsTrue);
+
+      fileToOpen = buf.data();
 
       ImGui::Separator();
 
@@ -963,7 +972,6 @@ future updates!
           try {
             importerNode["fileName"] = fileToOpen;
             importerNode.setChildrenModified(sg::TimeStamp());// trigger load
-            importerNode.verify();
           } catch (...) {
             std::cerr << "Failed to open file '" << fileToOpen << "'!\n";
           }
