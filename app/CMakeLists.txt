@@ -26,6 +26,8 @@ ospray_create_application(ospStudio
   widgets/imgui3D.cpp
   widgets/MainWindow.cpp
 
+  widgets/panels/About.cpp
+
   widgets/sg_ui/ospray_sg_ui.cpp
   widgets/sg_ui/transferFunction.cpp
 

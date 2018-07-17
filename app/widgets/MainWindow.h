@@ -25,6 +25,8 @@
 
 #include "../jobs/JobScheduler.h"
 
+#include "Panel.h"
+
 #include <list>
 
 namespace ospray {
@@ -68,7 +70,6 @@ namespace ospray {
     void guiRenderStats();
     void guiFindNode();
     void guiSGWindow();
-    void guiAbout();
 
     void guiImportData();
     void guiGenerateData();
@@ -101,6 +102,10 @@ namespace ospray {
 
     std::list<std::unique_ptr<job_scheduler::Job>> jobsInProgress;
     job_scheduler::Nodes loadedNodes;
+
+    // Panels //
+
+    std::vector<std::unique_ptr<Panel>> panels;
 
     // Not-yet-categorized data //
 

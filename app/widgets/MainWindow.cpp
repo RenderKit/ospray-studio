@@ -15,23 +15,24 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+#include "MainWindow.h"
 // ospcommon
 #include "ospcommon/utility/getEnvVar.h"
 #include "ospcommon/utility/SaveImage.h"
 #include "ospcommon/utility/StringManip.h"
-
-#include "MainWindow.h"
-
+// ospray_sg
 #include "sg/common/FrameBuffer.h"
 #include "sg/generator/Generator.h"
 #include "sg/visitor/GatherNodesByName.h"
 #include "sg/visitor/GatherNodesByPosition.h"
 #include "sg/visitor/MarkAllAsModified.h"
-
-#include "sg_ui/ospray_sg_ui.h"
-
+// imgui
 #include "imgui.h"
 #include "imguifilesystem/imguifilesystem.h"
+// ospray_sg ui
+#include "sg_ui/ospray_sg_ui.h"
+// panels
+#include "panels/About.h"
 
 #include <GLFW/glfw3.h>
 
@@ -65,6 +66,10 @@ namespace ospray {
     renderEngine.start();
 
     originalView = viewPort;
+
+    // create panels //
+
+    panels.emplace_back(new PanelAbout());
   }
 
   MainWindow::~MainWindow()
@@ -319,10 +324,12 @@ namespace ospray {
     if (showWindowRenderStatistics) guiRenderStats();
     if (showWindowFindNode) guiFindNode();
     if (showWindowSceneGraph) guiSGWindow();
-    if (showWindowAbout) guiAbout();
     if (showWindowImportData) guiImportData();
     if (showWindowJobStatusControlPanel) guiJobStatusControlPanel();
     if (showWindowGenerateData) guiGenerateData();
+
+    for (auto &p : panels)
+      if (p->show) p->buildUI();
 
     if (showWindowImGuiDemo) ImGui::ShowTestWindow(&showWindowImGuiDemo);
   }
@@ -379,6 +386,11 @@ namespace ospray {
       ImGui::Checkbox("(3) Node Finder", &showWindowFindNode);
       ImGui::Checkbox("(4) Scene Graph Window", &showWindowSceneGraph);
 
+      ImGui::Separator();
+
+      for (auto &p : panels)
+        ImGui::Checkbox(p->name.c_str(), &p->show);
+
       ImGui::EndMenu();
     }
   }
@@ -418,12 +430,6 @@ namespace ospray {
   void MainWindow::guiMainMenuHelp()
   {
     if (ImGui::BeginMenu("Help")) {
-      if (ImGui::MenuItem("About"))
-        showWindowAbout = true;
-
-      ImGui::Separator();
-      ImGui::Separator();
-
       ImGui::Checkbox("Show ImGui Demo", &showWindowImGuiDemo);
 
       ImGui::EndMenu();
@@ -516,37 +522,6 @@ namespace ospray {
       guiSGTree("root", scenegraph);
 
     ImGui::End();
-  }
-
-  void MainWindow::guiAbout()
-  {
-    ImGui::OpenPopup("About OSPRay Studio");
-    if (ImGui::BeginPopupModal("About OSPRay Studio",
-                               &showWindowAbout,
-                               ImGuiWindowFlags_AlwaysAutoResize)) {
-      ImGui::Text(
-R"text(
-Copyright Intel Corporation 2018
-
-This application is brought to you
-by the OSPRay team.
-
-Please check out www.sdvis.org and
-www.ospray.org for more details and
-future updates!
-
-)text"
-      );
-
-      ImGui::Separator();
-
-      if (ImGui::Button("Close")) {
-        showWindowAbout = false;
-        ImGui::CloseCurrentPopup();
-      }
-
-      ImGui::EndPopup();
-    }
   }
 
   void MainWindow::guiJobStatusControlPanel()
