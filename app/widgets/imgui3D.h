@@ -57,7 +57,10 @@ namespace ospray {
     {
        typedef enum
        {
-         FRAMEBUFFER_UCHAR,FRAMEBUFFER_FLOAT,FRAMEBUFFER_DEPTH,FRAMEBUFFER_NONE
+         FRAMEBUFFER_UCHAR,
+         FRAMEBUFFER_FLOAT,
+         FRAMEBUFFER_DEPTH,
+         FRAMEBUFFER_NONE
        } FrameBufferMode;
 
        typedef enum
@@ -67,7 +70,8 @@ namespace ospray {
        } ManipulatorMode;
 
        /*! internal viewPort class */
-       struct ViewPort {
+       struct ViewPort
+       {
          bool modified; /* the viewPort will set this flag any time any of
                            its values get changed. */
 
@@ -156,7 +160,7 @@ namespace ospray {
        vec2i lastMousePos; /*! last mouse screen position of mouse before
                              current motion */
        vec2i currMousePos; /*! current screen position of mouse */
-       int lastButton[3], currButton[3];
+       std::array<int, 3> lastButton, currButton;
        ViewPort viewPort;
        box3f  worldBounds; /*!< world bounds, to automatically set viewPort
                              lookat, mouse speed, etc */
