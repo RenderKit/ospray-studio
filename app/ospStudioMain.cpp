@@ -109,7 +109,7 @@ int main(int argc, const char **argv)
   ambient["color"] = vec3f(1.f);
   /////////////////////////////////////////////////////////////////////////////
 
-  ospray::ImGuiViewer window(root);
+  ospray::MainWindow window(root);
 
   window.create("OSPRay Studio", fullscreen, vec2i(width, height));
 

@@ -265,9 +265,9 @@ namespace ospray {
       };
 
 
-// ImGuiViewer definitions ////////////////////////////////////////////////////
+// MainWindow definitions ////////////////////////////////////////////////////
 
-  ImGuiViewer::ImGuiViewer(const std::shared_ptr<sg::Frame> &scenegraph)
+  MainWindow::MainWindow(const std::shared_ptr<sg::Frame> &scenegraph)
     : ImGui3DWidget(ImGui3DWidget::FRAMEBUFFER_NONE),
       scenegraph(scenegraph),
       renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
@@ -288,12 +288,12 @@ namespace ospray {
     originalView = viewPort;
   }
 
-  ImGuiViewer::~ImGuiViewer()
+  MainWindow::~MainWindow()
   {
     renderEngine.stop();
   }
 
-  void ImGuiViewer::mouseButton(int button, int action, int mods)
+  void MainWindow::mouseButton(int button, int action, int mods)
   {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS
         && ((mods & GLFW_MOD_SHIFT) | (mods & GLFW_MOD_CONTROL))) {
@@ -304,7 +304,7 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::reshape(const vec2i &newSize)
+  void MainWindow::reshape(const vec2i &newSize)
   {
     ImGui3DWidget::reshape(newSize);
     windowSize = newSize;
@@ -317,7 +317,7 @@ namespace ospray {
     pixelBuffer.resize(newSize.x * newSize.y);
   }
 
-  void ImGuiViewer::keypress(char key)
+  void MainWindow::keypress(char key)
   {
     switch (key) {
     case ' ':
@@ -394,14 +394,14 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::resetView()
+  void MainWindow::resetView()
   {
     auto oldAspect = viewPort.aspect;
     viewPort = originalView;
     viewPort.aspect = oldAspect;
   }
 
-  void ImGuiViewer::resetDefaultView()
+  void MainWindow::resetDefaultView()
   {
     auto &world = renderer->child("world");
     auto bbox = world.bounds();
@@ -421,7 +421,7 @@ namespace ospray {
     originalView = viewPort;
   }
 
-  void ImGuiViewer::printViewport()
+  void MainWindow::printViewport()
   {
     printf("-vp %f %f %f -vu %f %f %f -vi %f %f %f\n",
            viewPort.from.x, viewPort.from.y, viewPort.from.z,
@@ -430,20 +430,20 @@ namespace ospray {
     fflush(stdout);
   }
 
-  void ImGuiViewer::saveScreenshot(const std::string &basename)
+  void MainWindow::saveScreenshot(const std::string &basename)
   {
     utility::writePPM(basename + ".ppm",
                       windowSize.x, windowSize.y, pixelBuffer.data());
     std::cout << "saved current frame to '" << basename << ".ppm'" << std::endl;
   }
 
-  void ImGuiViewer::toggleRenderingPaused()
+  void MainWindow::toggleRenderingPaused()
   {
     renderingPaused = !renderingPaused;
     renderingPaused ? renderEngine.stop() : renderEngine.start();
   }
 
-  void ImGuiViewer::display()
+  void MainWindow::display()
   {
     if (renderEngine.hasNewPickResult()) {
       auto picked = renderEngine.getPickResult();
@@ -502,7 +502,7 @@ namespace ospray {
     ucharFB = nullptr;
   }
 
-  void ImGuiViewer::processFinishedJobs()
+  void MainWindow::processFinishedJobs()
   {
     for (auto it = jobsInProgress.begin(); it != jobsInProgress.end(); ++it) {
       auto &job = *it;
@@ -514,7 +514,7 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::clearScene()
+  void MainWindow::clearScene()
   {
     bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
     renderEngine.stop();
@@ -528,7 +528,7 @@ namespace ospray {
       renderEngine.start();
   }
 
-  void ImGuiViewer::buildGui()
+  void MainWindow::buildGui()
   {
     ImGuiWindowFlags flags =
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
@@ -548,7 +548,7 @@ namespace ospray {
     if (showWindowImGuiDemo) ImGui::ShowTestWindow(&showWindowImGuiDemo);
   }
 
-  void ImGuiViewer::guiMainMenu()
+  void MainWindow::guiMainMenu()
   {
     if (ImGui::BeginMainMenuBar()) {
       guiMainMenuFile();
@@ -560,7 +560,7 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::guiMainMenuFile()
+  void MainWindow::guiMainMenuFile()
   {
     if (ImGui::BeginMenu("File")) {
 
@@ -592,7 +592,7 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::guiMainMenuView()
+  void MainWindow::guiMainMenuView()
   {
     if (ImGui::BeginMenu("View")) {
       ImGui::Checkbox("(1) Rendering Stats", &showWindowRenderStatistics);
@@ -604,7 +604,7 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::guiMainMenuCamera()
+  void MainWindow::guiMainMenuCamera()
   {
     if (ImGui::BeginMenu("Camera")) {
 
@@ -636,7 +636,7 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::guiMainMenuHelp()
+  void MainWindow::guiMainMenuHelp()
   {
     if (ImGui::BeginMenu("Help")) {
       if (ImGui::MenuItem("About"))
@@ -651,7 +651,7 @@ namespace ospray {
     }
   }
 
-  void ImGuiViewer::guiRenderStats()
+  void MainWindow::guiRenderStats()
   {
     auto flags = g_defaultWindowFlags |
                  ImGuiWindowFlags_NoResize |
@@ -673,7 +673,7 @@ namespace ospray {
     ImGui::End();
   }
 
-  void ImGuiViewer::guiFindNode()
+  void MainWindow::guiFindNode()
   {
     ImGui::SetNextWindowSize(ImVec2(400,300), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Node Finder",
@@ -729,7 +729,7 @@ namespace ospray {
     ImGui::End();
   }
 
-  void ImGuiViewer::guiSGWindow()
+  void MainWindow::guiSGWindow()
   {
     ImGui::SetNextWindowSize(ImVec2(500,400), ImGuiCond_FirstUseEver);
 
@@ -739,7 +739,7 @@ namespace ospray {
     ImGui::End();
   }
 
-  void ImGuiViewer::guiAbout()
+  void MainWindow::guiAbout()
   {
     ImGui::OpenPopup("About OSPRay Studio");
     if (ImGui::BeginPopupModal("About OSPRay Studio",
@@ -770,7 +770,7 @@ future updates!
     }
   }
 
-  void ImGuiViewer::guiJobStatusControlPanel()
+  void MainWindow::guiJobStatusControlPanel()
   {
     auto flags = g_defaultWindowFlags |
                  ImGuiWindowFlags_NoResize |
@@ -824,7 +824,7 @@ future updates!
     ImGui::End();
   }
 
-  void ImGuiViewer::guiSearchSGNodes()
+  void MainWindow::guiSearchSGNodes()
   {
     if (collectedNodesFromSearch.empty()) {
       if (!nodeNameForSearch.empty()) {
@@ -841,7 +841,7 @@ future updates!
     }
   }
 
-  void ImGuiViewer::guiGenerateData()
+  void MainWindow::guiGenerateData()
   {
     ImGui::OpenPopup("Generate Data");
     if (ImGui::BeginPopupModal("Generate Data",
@@ -927,7 +927,7 @@ future updates!
     }
   }
 
-  void ImGuiViewer::guiImportData()
+  void MainWindow::guiImportData()
   {
     ImGui::OpenPopup("Import Data");
     if (ImGui::BeginPopupModal("Import Data",
@@ -998,7 +998,7 @@ future updates!
     }
   }
 
-  void ImGuiViewer::guiSingleNode(const std::string &baseText,
+  void MainWindow::guiSingleNode(const std::string &baseText,
                                   std::shared_ptr<sg::Node> node)
   {
     std::string text = baseText;
@@ -1017,7 +1017,7 @@ future updates!
     }
   }
 
-  void ImGuiViewer::guiNodeContextMenu(const std::string &name,
+  void MainWindow::guiNodeContextMenu(const std::string &name,
                                        std::shared_ptr<sg::Node> node)
   {
     if (ImGui::BeginPopupContextItem("item context menu")) {
@@ -1083,7 +1083,7 @@ future updates!
     }
   }
 
-  void ImGuiViewer::guiSGTree(const std::string &name,
+  void MainWindow::guiSGTree(const std::string &name,
                               std::shared_ptr<sg::Node> node)
   {
     int styles = 0;
@@ -1125,7 +1125,7 @@ future updates!
       ImGui::SetTooltip("%s", node->documentation().c_str());
   }
 
-  void ImGuiViewer::setCurrentDeviceParameter(const std::string &param,
+  void MainWindow::setCurrentDeviceParameter(const std::string &param,
                                               int value)
   {
     renderEngine.stop();

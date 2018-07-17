@@ -30,7 +30,8 @@ namespace ospray {
 
     struct ImGui3DWidget;
 
-    struct OSPRAY_IMGUI3D_INTERFACE Manipulator {
+    struct OSPRAY_IMGUI3D_INTERFACE Manipulator
+    {
       // this is the fct that gets called when the mouse moved in the
       // associated window
       virtual void motion(ImGui3DWidget *widget);
