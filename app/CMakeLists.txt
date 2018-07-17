@@ -23,12 +23,12 @@ ospray_create_application(ospStudio
 
   util/AsyncRenderEngine.cpp
 
+  widgets/cameraManipulator.cpp
   widgets/Imgui3dExport.h
   widgets/imgui_impl_glfw_gl3.cpp
   widgets/imgui3D.cpp
-  widgets/imguiViewer.cpp
+  widgets/MainWindow.cpp
   widgets/transferFunction.cpp
-  widgets/cameraManipulator.cpp
 
 LINK
   ${OSPRAY_LIBRARIES}

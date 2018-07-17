@@ -17,7 +17,7 @@
 #include "sg/SceneGraph.h"
 #include "sg/geometry/TriangleMesh.h"
 
-#include "widgets/imguiViewer.h"
+#include "widgets/MainWindow.h"
 
 using namespace ospcommon;
 

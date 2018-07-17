@@ -20,7 +20,7 @@
 #include "ospcommon/utility/SaveImage.h"
 #include "ospcommon/utility/StringManip.h"
 
-#include "imguiViewer.h"
+#include "MainWindow.h"
 
 #include "sg/common/FrameBuffer.h"
 #include "sg/generator/Generator.h"
