@@ -1,5 +1,3 @@
-#include "Imgui3dExport.h"
-
 // ImGui GLFW binding with OpenGL3 + shaders
 // In this binding, ImTextureID is used to store an OpenGL 'GLuint' texture identifier. Read the FAQ about ImTextureID in imgui.cpp.
 
@@ -10,18 +8,18 @@
 
 struct GLFWwindow;
 
-OSPRAY_IMGUI3D_INTERFACE bool ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks);
-OSPRAY_IMGUI3D_INTERFACE void ImGui_ImplGlfwGL3_Shutdown();
-OSPRAY_IMGUI3D_INTERFACE void ImGui_ImplGlfwGL3_NewFrame();
+bool ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks);
+void ImGui_ImplGlfwGL3_Shutdown();
+void ImGui_ImplGlfwGL3_NewFrame();
 
 // Use if you want to reset your rendering device without losing ImGui state.
-OSPRAY_IMGUI3D_INTERFACE void ImGui_ImplGlfwGL3_InvalidateDeviceObjects();
-OSPRAY_IMGUI3D_INTERFACE bool ImGui_ImplGlfwGL3_CreateDeviceObjects();
+void ImGui_ImplGlfwGL3_InvalidateDeviceObjects();
+bool ImGui_ImplGlfwGL3_CreateDeviceObjects();
 
 // GLFW callbacks (installed by default if you enable 'install_callbacks' during initialization)
 // Provided here if you want to chain callbacks.
 // You can also handle inputs yourself and use those as a reference.
-OSPRAY_IMGUI3D_INTERFACE void ImGui_ImplGlfwGL3_MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-OSPRAY_IMGUI3D_INTERFACE void ImGui_ImplGlfwGL3_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-OSPRAY_IMGUI3D_INTERFACE void ImGui_ImplGlfwGL3_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void ImGui_ImplGlfwGL3_MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+void ImGui_ImplGlfwGL3_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void ImGui_ImplGlfwGL3_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 

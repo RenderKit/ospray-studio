@@ -16,12 +16,14 @@
 
 #pragma once
 
-#ifdef _WIN32
-#  ifdef ospray_imgui3d_sg_EXPORTS
-#    define OSPRAY_IMGUI3D_INTERFACE __declspec(dllexport)
-#  else
-#    define OSPRAY_IMGUI3D_INTERFACE __declspec(dllimport)
-#  endif
-#else
-#  define OSPRAY_IMGUI3D_INTERFACE
-#endif
+#include <memory>
+#include <string>
+
+#include "ospray/sg/common/Node.h"
+
+namespace ospray {
+
+  void guiSGSingleNode(const std::string &baseText,
+                       std::shared_ptr<sg::Node> node);
+
+} // namespace ospray

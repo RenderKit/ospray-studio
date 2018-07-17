@@ -29,11 +29,7 @@
 
 namespace ospray {
 
-  /*! mini scene graph viewer widget. \internal Note that all handling
-    of camera is almost exactly similar to the code in volView;
-    might make sense to move that into a common class! */
-  class OSPRAY_IMGUI3D_INTERFACE MainWindow
-    : public ospray::imgui3D::ImGui3DWidget
+  class MainWindow : public ospray::imgui3D::ImGui3DWidget
   {
   public:
 
@@ -77,8 +73,6 @@ namespace ospray {
     void guiImportData();
     void guiGenerateData();
 
-    void guiSingleNode(const std::string &baseText,
-                       std::shared_ptr<sg::Node> node);
     void guiNodeContextMenu(const std::string &name,
                             std::shared_ptr<sg::Node> node);
 

@@ -29,13 +29,13 @@
 #endif
 
 #include "tfn_lib/tfn_lib.h"
-#include "Imgui3dExport.h"
-#include <ospray/ospray_cpp/TransferFunction.h>
-#include "sg/transferFunction/TransferFunction.h"
+
+#include "ospray/ospray_cpp/TransferFunction.h"
+#include "ospray/sg/transferFunction/TransferFunction.h"
 
 namespace ospray {
 
-  class OSPRAY_IMGUI3D_INTERFACE TransferFunction
+  class TransferFunction
   {
   public:
 

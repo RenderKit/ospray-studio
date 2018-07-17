@@ -14,8 +14,6 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-ospray_disable_compiler_warnings()
-
 ## Build app
 
 ospray_create_application(ospStudio
@@ -24,11 +22,12 @@ ospray_create_application(ospStudio
   util/AsyncRenderEngine.cpp
 
   widgets/cameraManipulator.cpp
-  widgets/Imgui3dExport.h
   widgets/imgui_impl_glfw_gl3.cpp
   widgets/imgui3D.cpp
   widgets/MainWindow.cpp
-  widgets/transferFunction.cpp
+
+  widgets/sg_ui/ospray_sg_ui.cpp
+  widgets/sg_ui/transferFunction.cpp
 
 LINK
   ${OSPRAY_LIBRARIES}

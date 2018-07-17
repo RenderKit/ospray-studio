@@ -21,8 +21,6 @@
 #include "ospcommon/AffineSpace.h"
 #include "cameraManipulator.h"
 
-#include "Imgui3dExport.h"
-
 struct GLFWwindow;
 
 namespace ospray {
@@ -32,7 +30,7 @@ namespace ospray {
     using namespace ospcommon;
 
     /*! switch over to IMGUI for control flow. This func will not return */
-    OSPRAY_IMGUI3D_INTERFACE void run();
+    void run();
 
     using ospcommon::AffineSpace3fa;
 
@@ -55,18 +53,21 @@ namespace ospray {
       to draw the window's content.
 
     */
-    struct OSPRAY_IMGUI3D_INTERFACE ImGui3DWidget
+    struct ImGui3DWidget
     {
-       typedef enum {
+       typedef enum
+       {
          FRAMEBUFFER_UCHAR,FRAMEBUFFER_FLOAT,FRAMEBUFFER_DEPTH,FRAMEBUFFER_NONE
        } FrameBufferMode;
-       typedef enum {
+
+       typedef enum
+       {
          MOVE_MODE           =(1<<0),
          INSPECT_CENTER_MODE =(1<<1)
        } ManipulatorMode;
 
        /*! internal viewPort class */
-       struct OSPRAY_IMGUI3D_INTERFACE ViewPort {
+       struct ViewPort {
          bool modified; /* the viewPort will set this flag any time any of
                            its values get changed. */
 
@@ -136,7 +137,9 @@ namespace ospray {
        /*! create this window. Note that this just *creates* the window,
          but glut will not do anything else with this window before
          'run' got called */
-       void create(const char *title, const bool fullScreen = false, vec2i windowSize = {1024, 768});
+       void create(const char *title,
+                   const bool fullScreen = false,
+                   vec2i windowSize = {1024, 768});
 
        // ------------------------------------------------------------------
        // camera helper code
@@ -199,7 +202,7 @@ namespace ospray {
        virtual void keypress(char key);
     };
 
-    OSPRAY_IMGUI3D_INTERFACE std::ostream &operator<<(std::ostream &o,
+    std::ostream &operator<<(std::ostream &o,
                                             const ImGui3DWidget::ViewPort &cam);
   }
 }

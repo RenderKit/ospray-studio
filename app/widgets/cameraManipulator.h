@@ -20,8 +20,6 @@
 #include "ospcommon/box.h"
 #include "ospcommon/AffineSpace.h"
 
-#include "Imgui3dExport.h"
-
 namespace ospray {
   //! dedicated namespace for 3D glut viewer widget
   namespace imgui3D {
@@ -30,7 +28,7 @@ namespace ospray {
 
     struct ImGui3DWidget;
 
-    struct OSPRAY_IMGUI3D_INTERFACE Manipulator
+    struct Manipulator
     {
       // this is the fct that gets called when the mouse moved in the
       // associated window
