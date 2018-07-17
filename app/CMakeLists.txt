@@ -20,8 +20,8 @@ ospray_create_application(ospStudio
   ospStudioMain.cpp
 
   util/AsyncRenderEngine.cpp
+  util/CameraManipulator.cpp
 
-  widgets/cameraManipulator.cpp
   widgets/imgui_impl_glfw_gl3.cpp
   widgets/imgui3D.cpp
   widgets/MainWindow.cpp

@@ -15,8 +15,8 @@
 // ======================================================================== //
 
 #include <GLFW/glfw3.h>
-#include "imgui3D.h"
-#include "cameraManipulator.h"
+#include "../widgets/imgui3D.h"
+#include "CameraManipulator.h"
 
 namespace ospray {
   //! dedicated namespace for 3D glut viewer widget

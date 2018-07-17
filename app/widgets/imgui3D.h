@@ -19,7 +19,7 @@
 #include "ospcommon/common.h"
 #include "ospcommon/box.h"
 #include "ospcommon/AffineSpace.h"
-#include "cameraManipulator.h"
+#include "../util/CameraManipulator.h"
 
 struct GLFWwindow;
 
