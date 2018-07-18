@@ -19,7 +19,6 @@
 // ospcommon
 #include "ospcommon/utility/getEnvVar.h"
 #include "ospcommon/utility/SaveImage.h"
-#include "ospcommon/utility/StringManip.h"
 // ospray_sg
 #include "sg/common/FrameBuffer.h"
 #include "sg/generator/Generator.h"
@@ -33,15 +32,11 @@
 #include "sg_ui/ospray_sg_ui.h"
 // panels
 #include "panels/About.h"
+#include "panels/SGTreeView.h"
 
 #include <GLFW/glfw3.h>
 
 using namespace ospcommon;
-
-static const ImGuiWindowFlags g_defaultWindowFlags {
-  ImGuiWindowFlags_ShowBorders |
-  ImGuiWindowFlags_NoCollapse
-};
 
 static ImGuiFs::Dialog openFileDialog;
 
@@ -71,6 +66,7 @@ namespace ospray {
 
     // create panels //
 
+    panels.emplace_back(new PanelSGTreeView(scenegraph));
     panels.emplace_back(new PanelAbout());
   }
 
@@ -171,9 +167,6 @@ namespace ospray {
       break;
     case '3':
       showWindowFindNode = !showWindowFindNode;
-      break;
-    case '4':
-      showWindowSceneGraph = !showWindowSceneGraph;
       break;
     default:
       ImGui3DWidget::keypress(key);
@@ -325,7 +318,6 @@ namespace ospray {
 
     if (showWindowRenderStatistics) guiRenderStats();
     if (showWindowFindNode) guiFindNode();
-    if (showWindowSceneGraph) guiSGWindow();
     if (showWindowImportData) guiImportData();
     if (showWindowJobStatusControlPanel) guiJobStatusControlPanel();
     if (showWindowGenerateData) guiGenerateData();
@@ -397,7 +389,6 @@ namespace ospray {
       ImGui::Checkbox("(1) Rendering Stats", &showWindowRenderStatistics);
       ImGui::Checkbox("(2) Job Scheduler", &showWindowJobStatusControlPanel);
       ImGui::Checkbox("(3) Node Finder", &showWindowFindNode);
-      ImGui::Checkbox("(4) Scene Graph Window", &showWindowSceneGraph);
 
       ImGui::Separator();
 
@@ -523,16 +514,6 @@ namespace ospray {
     ImGui::NewLine();
 
     guiSearchSGNodes();
-
-    ImGui::End();
-  }
-
-  void MainWindow::guiSGWindow()
-  {
-    ImGui::SetNextWindowSize(ImVec2(500,400), ImGuiCond_FirstUseEver);
-
-    if (ImGui::Begin("SceneGraph", &showWindowSceneGraph, g_defaultWindowFlags))
-      guiSGTree("root", scenegraph);
 
     ImGui::End();
   }
@@ -763,114 +744,6 @@ namespace ospray {
 
       ImGui::EndPopup();
     }
-  }
-
-  void MainWindow::guiNodeContextMenu(const std::string &name,
-                                       std::shared_ptr<sg::Node> node)
-  {
-    if (ImGui::BeginPopupContextItem("item context menu")) {
-      char buf[256];
-      buf[0]='\0';
-      if (ImGui::Button("Add new node..."))
-        ImGui::OpenPopup("Add new node...");
-      if (ImGui::BeginPopup("Add new node...")) {
-        if (ImGui::InputText("node type: ", buf,
-                             256, ImGuiInputTextFlags_EnterReturnsTrue)) {
-          std::cout << "add node: \"" << buf << "\"\n";
-          try {
-            static int counter = 0;
-            std::stringstream ss;
-            ss << "userDefinedNode" << counter++;
-            node->add(sg::createNode(ss.str(), buf));
-          }
-          catch (const std::exception &) {
-            std::cerr << "invalid node type: " << buf << std::endl;
-          }
-        }
-        ImGui::EndPopup();
-      }
-      if (ImGui::Button("Set to new node..."))
-        ImGui::OpenPopup("Set to new node...");
-      if (ImGui::BeginPopup("Set to new node...")) {
-        if (ImGui::InputText("node type: ", buf,
-                             256, ImGuiInputTextFlags_EnterReturnsTrue)) {
-          std::cout << "set node: \"" << buf << "\"\n";
-          try {
-            static int counter = 0;
-            std::stringstream ss;
-            ss << "userDefinedNode" << counter++;
-            auto newNode = sg::createNode(ss.str(), buf);
-            newNode->setParent(node->parent());
-            node->parent().setChild(name, newNode);
-          } catch (const std::exception &) {
-            std::cerr << "invalid node type: " << buf << std::endl;
-          }
-        }
-        ImGui::EndPopup();
-      }
-      static ImGuiFs::Dialog importdlg;
-      const bool importButtonPressed = ImGui::Button("Import...");
-      const char* importpath = importdlg.chooseFileDialog(importButtonPressed);
-      if (strlen(importpath) > 0) {
-        std::cout << "importing OSPSG file from path: "
-                  << importpath << std::endl;
-        sg::loadOSPSG(node, std::string(importpath));
-      }
-
-      static ImGuiFs::Dialog exportdlg;
-      const bool exportButtonPressed = ImGui::Button("Export...");
-      const char* exportpath = exportdlg.saveFileDialog(exportButtonPressed);
-      if (strlen(exportpath) > 0) {
-        // Make sure that the file has the .ospsg suffix
-        FileName exportfile = FileName(exportpath).setExt(".ospsg");
-        std::cout << "writing OSPSG file to path: " << exportfile << std::endl;
-        sg::writeOSPSG(node, exportfile);
-      }
-
-      ImGui::EndPopup();
-    }
-  }
-
-  void MainWindow::guiSGTree(const std::string &name,
-                              std::shared_ptr<sg::Node> node)
-  {
-    int styles = 0;
-    if (!node->isValid()) {
-      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f,0.06f, 0.02f,1.f));
-      styles++;
-    }
-
-    std::string text;
-
-    std::string nameLower = utility::lowerCase(name);
-    std::string nodeNameLower = utility::lowerCase(node->name());
-
-    if (nameLower != nodeNameLower)
-      text += name + " -> " + node->name() + " : ";
-    else
-      text += name + " : ";
-
-    guiSGSingleNode(text, node);
-
-    if (!node->isValid())
-      ImGui::PopStyleColor(styles--);
-
-    if (node->hasChildren()) {
-      text += node->type() + "##" + std::to_string(node->uniqueID());
-      if (ImGui::TreeNodeEx(text.c_str(),
-                            (node->numChildren() > 25) ?
-                             0 : ImGuiTreeNodeFlags_DefaultOpen)) {
-        guiNodeContextMenu(name, node);
-
-        for(auto child : node->children())
-          guiSGTree(child.first, child.second);
-
-        ImGui::TreePop();
-      }
-    }
-
-    if (ImGui::IsItemHovered() && !node->documentation().empty())
-      ImGui::SetTooltip("%s", node->documentation().c_str());
   }
 
   void MainWindow::setCurrentDeviceParameter(const std::string &param,

@@ -14,28 +14,29 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include <memory>
-#include <string>
-
-#include "ospray/sg/common/Node.h"
+#include "SGTreeView.h"
 
 #include "imgui.h"
 
+#include "../sg_ui/ospray_sg_ui.h"
+
 namespace ospray {
 
-  void guiSGSingleNode(const std::string &baseText,
-                       std::shared_ptr<sg::Node> node);
+  PanelSGTreeView::PanelSGTreeView(std::shared_ptr<sg::Frame> sg)
+  {
+    name = "Scene Graph Tree View";
 
-  void guiSGTree(const std::string &name, std::shared_ptr<sg::Node> node);
+    scenegraph = sg;
+  }
 
-  void guiNodeContextMenu(const std::string &name,
-                          std::shared_ptr<sg::Node> node);
+  void PanelSGTreeView::buildUI()
+  {
+    ImGui::SetNextWindowSize(ImVec2(500,400), ImGuiCond_FirstUseEver);
 
-  static const ImGuiWindowFlags g_defaultWindowFlags {
-    ImGuiWindowFlags_ShowBorders |
-    ImGuiWindowFlags_NoCollapse
-  };
+    if (ImGui::Begin("SceneGraph", &show, g_defaultWindowFlags))
+      guiSGTree("root", scenegraph);
+
+    ImGui::End();
+  }
 
 } // namespace ospray

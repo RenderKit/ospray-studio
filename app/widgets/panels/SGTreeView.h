@@ -16,26 +16,23 @@
 
 #pragma once
 
+#include "../Panel.h"
+
+#include "ospray/sg/SceneGraph.h"
+
 #include <memory>
-#include <string>
-
-#include "ospray/sg/common/Node.h"
-
-#include "imgui.h"
 
 namespace ospray {
 
-  void guiSGSingleNode(const std::string &baseText,
-                       std::shared_ptr<sg::Node> node);
+  struct PanelSGTreeView : public Panel
+  {
+    PanelSGTreeView(std::shared_ptr<sg::Frame> sg);
 
-  void guiSGTree(const std::string &name, std::shared_ptr<sg::Node> node);
+    void buildUI() override;
 
-  void guiNodeContextMenu(const std::string &name,
-                          std::shared_ptr<sg::Node> node);
+  private:
 
-  static const ImGuiWindowFlags g_defaultWindowFlags {
-    ImGuiWindowFlags_ShowBorders |
-    ImGuiWindowFlags_NoCollapse
+    std::shared_ptr<sg::Frame> scenegraph;
   };
 
 } // namespace ospray

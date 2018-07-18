@@ -74,11 +74,6 @@ namespace ospray {
     void guiImportData();
     void guiGenerateData();
 
-    void guiNodeContextMenu(const std::string &name,
-                            std::shared_ptr<sg::Node> node);
-
-    void guiSGTree(const std::string &name, std::shared_ptr<sg::Node> node);
-
     void guiSearchSGNodes();
 
     void setCurrentDeviceParameter(const std::string &param, int value);
@@ -89,14 +84,12 @@ namespace ospray {
 
     // Windows to be shown/hidden //
 
-    bool showWindowAbout{false};
     bool showWindowFindNode{false};
     bool showWindowGenerateData{false};
     bool showWindowImGuiDemo{false};
     bool showWindowJobStatusControlPanel{true};
     bool showWindowImportData{false};
     bool showWindowRenderStatistics{false};
-    bool showWindowSceneGraph{false};
 
     // Experimental items //
 
