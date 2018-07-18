@@ -115,6 +115,9 @@ namespace ospray {
     double lastTotalTime;
     float lastVariance;
 
+    bool limitAccumulation{true};
+    int accumulationLimit{64};
+
     ospcommon::vec2i windowSize;
     imgui3D::ImGui3DWidget::ViewPort originalView;
 

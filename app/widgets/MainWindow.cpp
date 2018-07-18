@@ -67,6 +67,8 @@ namespace ospray {
 
     originalView = viewPort;
 
+    scenegraph->child("frameAccumulationLimit") = accumulationLimit;
+
     // create panels //
 
     panels.emplace_back(new PanelAbout());
@@ -368,6 +370,17 @@ namespace ospray {
       bool paused = renderingPaused;
       if (ImGui::Checkbox("Pause Rendering", &paused))
         toggleRenderingPaused();
+
+      ImGui::Checkbox("Limit Accumulation", &limitAccumulation);
+
+      if (limitAccumulation) {
+        if(ImGui::InputInt("Frame Limit", &accumulationLimit)) {
+          accumulationLimit = accumulationLimit < 0 ? 0 : accumulationLimit;
+          scenegraph->child("frameAccumulationLimit") = accumulationLimit;
+        }
+      } else {
+        scenegraph->child("frameAccumulationLimit") = -1;
+      }
 
       ImGui::Separator();
       ImGui::Separator();
@@ -861,7 +874,7 @@ namespace ospray {
   }
 
   void MainWindow::setCurrentDeviceParameter(const std::string &param,
-                                              int value)
+                                             int value)
   {
     renderEngine.stop();
 
