@@ -22,7 +22,6 @@
 // ospray_sg
 #include "sg/common/FrameBuffer.h"
 #include "sg/generator/Generator.h"
-#include "sg/visitor/GatherNodesByName.h"
 #include "sg/visitor/GatherNodesByPosition.h"
 #include "sg/visitor/MarkAllAsModified.h"
 // imgui
@@ -32,6 +31,7 @@
 #include "sg_ui/ospray_sg_ui.h"
 // panels
 #include "panels/About.h"
+#include "panels/NodeFinder.h"
 #include "panels/SGTreeView.h"
 
 #include <GLFW/glfw3.h>
@@ -66,6 +66,7 @@ namespace ospray {
 
     // create panels //
 
+    panels.emplace_back(new PanelNodeFinder(scenegraph));
     panels.emplace_back(new PanelSGTreeView(scenegraph));
     panels.emplace_back(new PanelAbout());
   }
@@ -165,9 +166,6 @@ namespace ospray {
     case '2':
       showWindowJobStatusControlPanel = !showWindowJobStatusControlPanel;
       break;
-    case '3':
-      showWindowFindNode = !showWindowFindNode;
-      break;
     default:
       ImGui3DWidget::keypress(key);
     }
@@ -228,9 +226,14 @@ namespace ospray {
       auto picked = renderEngine.getPickResult();
       if (picked.hit) {
         if (lastPickQueryType == PICK_NODE) {
+#if 0
           sg::GatherNodesByPosition visitor((vec3f&)picked.position);
           scenegraph->traverse(visitor);
           collectedNodesFromSearch = visitor.results();
+#else
+          std::cout << "TODO: node picking currently not implemented!"
+                    << std::endl;
+#endif
         } else {
           // No conversion operator or ctor??
           viewPort.at.x = picked.position.x;
@@ -317,7 +320,6 @@ namespace ospray {
     guiMainMenu();
 
     if (showWindowRenderStatistics) guiRenderStats();
-    if (showWindowFindNode) guiFindNode();
     if (showWindowImportData) guiImportData();
     if (showWindowJobStatusControlPanel) guiJobStatusControlPanel();
     if (showWindowGenerateData) guiGenerateData();
@@ -388,7 +390,6 @@ namespace ospray {
     if (ImGui::BeginMenu("View")) {
       ImGui::Checkbox("(1) Rendering Stats", &showWindowRenderStatistics);
       ImGui::Checkbox("(2) Job Scheduler", &showWindowJobStatusControlPanel);
-      ImGui::Checkbox("(3) Node Finder", &showWindowFindNode);
 
       ImGui::Separator();
 
@@ -462,62 +463,6 @@ namespace ospray {
     ImGui::End();
   }
 
-  void MainWindow::guiFindNode()
-  {
-    ImGui::SetNextWindowSize(ImVec2(400,300), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("Node Finder",
-                      &showWindowFindNode,
-                      g_defaultWindowFlags)) {
-      ImGui::End();
-      return;
-    }
-
-    ImGui::NewLine();
-
-    std::array<char, 512> buf;
-    strcpy(buf.data(), nodeNameForSearch.c_str());
-
-    ImGui::Text("Search for node:");
-    ImGui::SameLine();
-
-    ImGui::InputText("", buf.data(), buf.size(),
-                     ImGuiInputTextFlags_EnterReturnsTrue);
-
-    std::string textBoxValue = buf.data();
-
-    bool updateSearchResults = (nodeNameForSearch != textBoxValue);
-    if (updateSearchResults) {
-      nodeNameForSearch = textBoxValue;
-      bool doSearch = !nodeNameForSearch.empty();
-      if (doSearch) {
-        sg::GatherNodesByName visitor(nodeNameForSearch);
-        scenegraph->traverse(visitor);
-        collectedNodesFromSearch = visitor.results();
-      } else {
-        collectedNodesFromSearch.clear();
-      }
-    }
-
-    if (nodeNameForSearch.empty()) {
-      ImGui::Text("search for: N/A");
-    } else {
-      const auto verifyTextLabel = std::string("search for: ")
-                                   + nodeNameForSearch;
-      ImGui::Text(verifyTextLabel.c_str());
-    }
-
-    if (ImGui::Button("Clear")) {
-      collectedNodesFromSearch.clear();
-      nodeNameForSearch.clear();
-    }
-
-    ImGui::NewLine();
-
-    guiSearchSGNodes();
-
-    ImGui::End();
-  }
-
   void MainWindow::guiJobStatusControlPanel()
   {
     auto flags = g_defaultWindowFlags |
@@ -570,23 +515,6 @@ namespace ospray {
       ImGui::Text(n->name().c_str());
 
     ImGui::End();
-  }
-
-  void MainWindow::guiSearchSGNodes()
-  {
-    if (collectedNodesFromSearch.empty()) {
-      if (!nodeNameForSearch.empty()) {
-        std::string text = "No nodes found with name '";
-        text += nodeNameForSearch;
-        text += "'";
-        ImGui::Text(text.c_str());
-      }
-    } else {
-      for (auto &node : collectedNodesFromSearch) {
-        guiSGTree("", node);
-        ImGui::Separator();
-      }
-    }
   }
 
   void MainWindow::guiGenerateData()

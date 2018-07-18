@@ -14,29 +14,34 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "SGTreeView.h"
+#pragma once
 
-#include "imgui.h"
+#include "../Panel.h"
 
-#include "../sg_ui/ospray_sg_ui.h"
+#include "ospray/sg/SceneGraph.h"
+
+#include <memory>
 
 namespace ospray {
 
-  PanelSGTreeView::PanelSGTreeView(std::shared_ptr<sg::Frame> sg)
+  struct PanelNodeFinder : public Panel
   {
-    name = "Scene Graph - Tree View";
+    PanelNodeFinder(std::shared_ptr<sg::Frame> sg);
 
-    scenegraph = sg;
-  }
+    void buildUI() override;
 
-  void PanelSGTreeView::buildUI()
-  {
-    ImGui::SetNextWindowSize(ImVec2(500,400), ImGuiCond_FirstUseEver);
+  private:
 
-    if (ImGui::Begin("SceneGraph", &show, g_defaultWindowFlags))
-      guiSGTree("root", scenegraph);
+    // Helper functions //
 
-    ImGui::End();
-  }
+    void guiSearchSGNodes();
+
+    // Data //
+
+    std::shared_ptr<sg::Frame> scenegraph;
+
+    std::string nodeNameForSearch;
+    std::vector<std::shared_ptr<sg::Node>> collectedNodesFromSearch;
+  };
 
 } // namespace ospray

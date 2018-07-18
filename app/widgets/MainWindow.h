@@ -68,13 +68,9 @@ namespace ospray {
 
     void guiJobStatusControlPanel();
     void guiRenderStats();
-    void guiFindNode();
-    void guiSGWindow();
 
     void guiImportData();
     void guiGenerateData();
-
-    void guiSearchSGNodes();
 
     void setCurrentDeviceParameter(const std::string &param, int value);
 
@@ -84,7 +80,6 @@ namespace ospray {
 
     // Windows to be shown/hidden //
 
-    bool showWindowFindNode{false};
     bool showWindowGenerateData{false};
     bool showWindowImGuiDemo{false};
     bool showWindowJobStatusControlPanel{true};
@@ -116,9 +111,6 @@ namespace ospray {
 
     std::shared_ptr<sg::Frame> scenegraph;
     std::shared_ptr<sg::Renderer> renderer;
-
-    std::string nodeNameForSearch;
-    std::vector<std::shared_ptr<sg::Node>> collectedNodesFromSearch;
 
     AsyncRenderEngine renderEngine;
     std::vector<uint32_t> pixelBuffer;
