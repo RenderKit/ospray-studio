@@ -21,6 +21,8 @@
 #include "ospcommon/AffineSpace.h"
 #include "../util/CameraManipulator.h"
 
+#include <array>
+
 struct GLFWwindow;
 
 namespace ospray {
