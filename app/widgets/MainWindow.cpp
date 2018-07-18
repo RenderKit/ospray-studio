@@ -365,13 +365,19 @@ namespace ospray {
       if (ImGui::Checkbox("Pause Rendering", &paused))
         toggleRenderingPaused();
 
-      ImGui::Checkbox("Limit Accumulation", &limitAccumulation);
+      auto setFrameAccumulation = [&]() {
+        accumulationLimit = accumulationLimit < 0 ? 0 : accumulationLimit;
+        scenegraph->child("frameAccumulationLimit") = accumulationLimit;
+      };
+
+      if (ImGui::Checkbox("Limit Accumulation", &limitAccumulation)) {
+        if (limitAccumulation)
+          setFrameAccumulation();
+      }
 
       if (limitAccumulation) {
-        if(ImGui::InputInt("Frame Limit", &accumulationLimit)) {
-          accumulationLimit = accumulationLimit < 0 ? 0 : accumulationLimit;
-          scenegraph->child("frameAccumulationLimit") = accumulationLimit;
-        }
+        if(ImGui::InputInt("Frame Limit", &accumulationLimit))
+          setFrameAccumulation();
       } else {
         scenegraph->child("frameAccumulationLimit") = -1;
       }
