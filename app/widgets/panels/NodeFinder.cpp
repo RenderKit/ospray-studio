@@ -21,6 +21,8 @@
 #include "imgui.h"
 // ospray_sg ui
 #include "../sg_ui/ospray_sg_ui.h"
+// stl
+#include <array>
 
 namespace ospray {
 
