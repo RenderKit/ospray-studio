@@ -23,7 +23,12 @@
 
 #include <array>
 
-struct GLFWwindow;
+#include <GLFW/glfw3.h>
+
+// on Windows often only GL 1.1 headers are present
+#ifndef GL_CLAMP_TO_BORDER
+#define GL_CLAMP_TO_BORDER                0x812D
+#endif
 
 namespace ospray {
   //! dedicated namespace for 3D glut viewer widget
@@ -59,11 +64,11 @@ namespace ospray {
     {
        typedef enum
        {
-         FRAMEBUFFER_UCHAR,
-         FRAMEBUFFER_FLOAT,
-         FRAMEBUFFER_DEPTH,
-         FRAMEBUFFER_NONE
-       } FrameBufferMode;
+         RESIZE_LETTERBOX, // show complete framebuffer, add borders to keep aspect
+         RESIZE_CROP,      // fill complete window, crop framebuffer to keep aspect
+         RESIZE_KEEPFOVY,  // height is filled, keeping camera fov, crop or pad sides to keep aspect
+         RESIZE_FILL,      // fill window with framebuffer, distort image aspect
+       } ResizeMode;
 
        typedef enum
        {
@@ -107,7 +112,7 @@ namespace ospray {
        /*! current manipulator */
        Manipulator *manipulator;
 
-       ImGui3DWidget(FrameBufferMode frameBufferMode,
+       ImGui3DWidget(ResizeMode,
                      ManipulatorMode initialManipulator=INSPECT_CENTER_MODE);
 
        /*! set a default camera position that views given bounds from the
@@ -118,12 +123,16 @@ namespace ospray {
        /*! set viewport to given values */
        void setViewPort(const vec3f from, const vec3f at, const vec3f up);
 
+       void toggleFullscreen();
+
        // ------------------------------------------------------------------
        // event handling - override this to change this widgets behavior
        // to input events
        // ------------------------------------------------------------------
 
        void setMotionSpeed(float speed);
+
+       virtual void startAsyncRendering() = 0;
 
        virtual void motion(const vec2i &pos);
        virtual void mouseButton(int button, int action, int mods);
@@ -166,14 +175,23 @@ namespace ospray {
        ViewPort viewPort;
        box3f  worldBounds; /*!< world bounds, to automatically set viewPort
                              lookat, mouse speed, etc */
+       bool fullScreen;
        vec2i windowSize;
+       float renderResolutionScale {1.0f};
+       vec2i renderSize;
+       float fixedRenderAspect {0.f};
+       // position and size when not in fullscreen
+       vec2i windowedPos;
+       vec2i windowedSize;
+       // during navigation
+       float navRenderResolutionScale {1.0};
+       vec2i navRenderSize;
        /*! camera speed modifier - affects how many units the camera
           _moves_ with each unit on the screen */
        float motionSpeed {-1.f};
        /*! camera rotation speed modifier - affects how many units the
           camera _rotates_ with each unit on the screen */
        float rotateSpeed;
-       FrameBufferMode frameBufferMode;
 
        /*! recompute current viewPort's frame from cameras 'from',
            'at', 'up' values. */
@@ -184,7 +202,8 @@ namespace ospray {
        static bool animating;
        static bool showGui;
        double displayTime;
-       double renderTime;
+       double renderFPS;
+       double renderFPSsmoothed;
        double guiTime;
        double totalTime;
        float  fontScale;
@@ -193,15 +212,9 @@ namespace ospray {
        bool renderingPaused {false};
 
        bool exitRequestedByUser{false};
-       /*! pointer to the frame buffer data. it is the repsonsiblity of
-           the applicatoin derived from this class to properly allocate
-           and deallocate the frame buffer pointer */
-       union {
-         /*! uchar[4] RGBA-framebuffer, if applicable */
-         uint32_t *ucharFB;
-         /*! float[4] RGBA-framebuffer, if applicable */
-         vec3fa *floatFB;
-       };
+       GLuint fbTexture {0};
+       float fbAspect {1.f};
+       ResizeMode resizeMode;
 
        GLFWwindow *window {nullptr};
 
@@ -209,7 +222,7 @@ namespace ospray {
     };
 
     std::ostream &operator<<(std::ostream &o,
-                                            const ImGui3DWidget::ViewPort &cam);
+                             const ImGui3DWidget::ViewPort &cam);
   }
 }
 

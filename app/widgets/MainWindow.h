@@ -39,6 +39,8 @@ namespace ospray {
 
     ~MainWindow();
 
+    void startAsyncRendering() override;
+
   protected:
 
     enum PickMode { PICK_CAMERA, PICK_NODE };
@@ -50,7 +52,6 @@ namespace ospray {
     void resetView();
     void resetDefaultView();
     void printViewport();
-    void saveScreenshot(const std::string &basename);
     void toggleRenderingPaused();
 
     void display() override;
@@ -97,11 +98,20 @@ namespace ospray {
 
     // Not-yet-categorized data //
 
+    int progressCallback(const float progress);
+    static int progressCallbackWrapper(void * ptr, const float progress);
+
     double lastFrameFPS;
     double lastGUITime;
     double lastDisplayTime;
     double lastTotalTime;
     float lastVariance;
+
+    bool saveScreenshot {false}; // write next mapped framebuffer to disk
+    bool cancelFrameOnInteraction {true};
+
+    float frameProgress {0.f};
+    std::atomic<bool> cancelRendering {false};
 
     bool limitAccumulation{true};
     int accumulationLimit{64};

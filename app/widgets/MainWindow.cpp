@@ -43,12 +43,14 @@ static ImGuiFs::Dialog openFileDialog;
 namespace ospray {
 
   MainWindow::MainWindow(const std::shared_ptr<sg::Frame> &scenegraph)
-    : ImGui3DWidget(ImGui3DWidget::FRAMEBUFFER_NONE),
+    : ImGui3DWidget(ImGui3DWidget::RESIZE_KEEPFOVY),
       scenegraph(scenegraph),
       renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
       renderEngine(scenegraph)
   {
-    frameBufferMode = ImGui3DWidget::FRAMEBUFFER_UCHAR;
+    auto &navFB = scenegraph->createChild("navFrameBuffer", "FrameBuffer");
+    navFB["useAccumBuffer"] = false;
+    navFB["useVarianceBuffer"] = false;
 
     auto OSPRAY_DYNAMIC_LOADBALANCER=
       utility::getEnvVar<int>("OSPRAY_DYNAMIC_LOADBALANCER");
@@ -58,11 +60,11 @@ namespace ospray {
     if (useDynamicLoadBalancer)
       numPreAllocatedTiles = OSPRAY_DYNAMIC_LOADBALANCER.value();
 
-    renderEngine.start();
-
     originalView = viewPort;
 
     scenegraph->child("frameAccumulationLimit") = accumulationLimit;
+
+    ospSetProgressFunc(&ospray::MainWindow::progressCallbackWrapper, this);
 
     // create panels //
 
@@ -74,6 +76,12 @@ namespace ospray {
   MainWindow::~MainWindow()
   {
     renderEngine.stop();
+    ospSetProgressFunc(nullptr, nullptr);
+  }
+
+  void MainWindow::startAsyncRendering()
+  {
+    renderEngine.start();
   }
 
   void MainWindow::mouseButton(int button, int action, int mods)
@@ -94,8 +102,8 @@ namespace ospray {
 
     viewPort.modified = true;
 
-    renderEngine.setFbSize(newSize);
     scenegraph->child("frameBuffer")["size"].setValue(newSize);
+    scenegraph->child("navFrameBuffer")["size"].setValue(navRenderSize);
 
     pixelBuffer.resize(newSize.x * newSize.y);
   }
@@ -116,7 +124,7 @@ namespace ospray {
       toggleRenderingPaused();
       break;
     case '!':
-      saveScreenshot("ospexampleviewer");
+      saveScreenshot = true;
       break;
     case 'X':
       if (viewPort.up == vec3f(1,0,0) || viewPort.up == vec3f(-1.f,0,0)) {
@@ -207,13 +215,6 @@ namespace ospray {
     fflush(stdout);
   }
 
-  void MainWindow::saveScreenshot(const std::string &basename)
-  {
-    utility::writePPM(basename + ".ppm",
-                      windowSize.x, windowSize.y, pixelBuffer.data());
-    std::cout << "saved current frame to '" << basename << ".ppm'" << std::endl;
-  }
-
   void MainWindow::toggleRenderingPaused()
   {
     renderingPaused = !renderingPaused;
@@ -226,13 +227,10 @@ namespace ospray {
       auto picked = renderEngine.getPickResult();
       if (picked.hit) {
         if (lastPickQueryType == PICK_NODE) {
-#if 0
+#if 0 // TODO: this list needs to be forwarded to a UI widget (or pick pos?)
           sg::GatherNodesByPosition visitor((vec3f&)picked.position);
           scenegraph->traverse(visitor);
           collectedNodesFromSearch = visitor.results();
-#else
-          std::cout << "TODO: node picking currently not implemented!"
-                    << std::endl;
 #endif
         } else {
           // No conversion operator or ctor??
@@ -255,33 +253,78 @@ namespace ospray {
       camera["up"]  = viewPort.up;
       camera.markAsModified();
 
+      // don't cancel the first frame, otherwise it is hard to navigate
+      if (scenegraph->frameId() > 0 && cancelFrameOnInteraction) {
+        cancelRendering = true;
+        renderEngine.setFrameCancelled();
+      }
+
       viewPort.modified = false;
     }
 
+    renderFPS = renderEngine.lastFrameFps();
+    renderFPSsmoothed = renderEngine.lastFrameFpsSmoothed();
+
     if (renderEngine.hasNewFrame()) {
       auto &mappedFB = renderEngine.mapFramebuffer();
-      size_t nPixels = windowSize.x * windowSize.y;
+      auto fbSize = mappedFB.size();
+      auto fbData = mappedFB.data();
+      GLenum texelType;
+      std::string filename("ospexampleviewer");
+      switch (mappedFB.format()) {
+        default: /* fallthrough */
+        case OSP_FB_NONE:
+          fbData = nullptr;
+          break;
+        case OSP_FB_RGBA8: /* fallthrough */
+        case OSP_FB_SRGBA:
+          texelType = GL_UNSIGNED_BYTE;
+          if (saveScreenshot) {
+            filename += ".ppm";
+            utility::writePPM(filename, fbSize.x, fbSize.y, (uint32_t*)fbData);
+          }
+          break;
+        case OSP_FB_RGBA32F:
+          texelType = GL_FLOAT;
+          if (saveScreenshot) {
+            filename += ".pfm";
+            utility::writePFM(filename, fbSize.x, fbSize.y, (vec4f*)fbData);
+          }
+          break;
+      }
 
-      if (mappedFB.size() == nPixels) {
-        auto *srcPixels = mappedFB.data();
-        auto *dstPixels = pixelBuffer.data();
-        memcpy(dstPixels, srcPixels, nPixels * sizeof(uint32_t));
-        lastFrameFPS = renderEngine.lastFrameFps();
-        renderTime = 1.f/lastFrameFPS;
+      // update/upload fbTexture
+      if (fbData) {
+        fbAspect = fbSize.x/float(fbSize.y);
+        glBindTexture(GL_TEXTURE_2D, fbTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fbSize.x, fbSize.y, 0, GL_RGBA,
+            texelType, fbData);
+      } else
+        fbAspect = 1.f;
+
+      if (saveScreenshot) {
+        std::cout << "saved current frame to '" << filename << "'" << std::endl;
+        saveScreenshot = false;
       }
 
       renderEngine.unmapFramebuffer();
     }
 
-    ucharFB = pixelBuffer.data();
+    // set border color TODO maybe move to application
+    vec4f texBorderCol(0.f); // default black
+    // TODO be more sophisticated (depending on renderer type, fb mode (sRGB))
+    if (renderer->child("useBackplate").valueAs<bool>()) {
+      auto col = renderer->child("bgColor").valueAs<vec3f>();
+      const float g = 1.f/2.2f;
+      texBorderCol = vec4f(powf(col.x, g), powf(col.y, g), powf(col.z, g), 0.f);
+    }
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, &texBorderCol[0]);
+
     ImGui3DWidget::display();
 
     lastTotalTime = ImGui3DWidget::totalTime;
     lastGUITime = ImGui3DWidget::guiTime;
     lastDisplayTime = ImGui3DWidget::displayTime;
-
-    // that pointer is no longer valid, so set it to null
-    ucharFB = nullptr;
   }
 
   void MainWindow::processFinishedJobs()
@@ -385,6 +428,86 @@ namespace ospray {
       ImGui::Separator();
       ImGui::Separator();
 
+      if (ImGui::BeginMenu("Scale Resolution")) {
+        float scale = renderResolutionScale;
+        if (ImGui::MenuItem("0.25x")) renderResolutionScale = 0.25f;
+        if (ImGui::MenuItem("0.50x")) renderResolutionScale = 0.5f;
+        if (ImGui::MenuItem("0.75x")) renderResolutionScale = 0.75f;
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("1.00x")) renderResolutionScale = 1.f;
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("1.25x")) renderResolutionScale = 1.25f;
+        if (ImGui::MenuItem("2.00x")) renderResolutionScale = 2.0f;
+        if (ImGui::MenuItem("4.00x")) renderResolutionScale = 4.0f;
+
+        ImGui::Separator();
+
+        if (ImGui::BeginMenu("custom")) {
+          ImGui::InputFloat("x##fb_scaling", &renderResolutionScale);
+          ImGui::EndMenu();
+        }
+
+        if (scale != renderResolutionScale)
+          reshape(windowSize);
+
+        ImGui::EndMenu();
+      }
+
+      if (ImGui::BeginMenu("Scale Resolution while Navigating")) {
+        float scale = navRenderResolutionScale;
+        if (ImGui::MenuItem("0.25x")) navRenderResolutionScale = 0.25f;
+        if (ImGui::MenuItem("0.50x")) navRenderResolutionScale = 0.5f;
+        if (ImGui::MenuItem("0.75x")) navRenderResolutionScale = 0.75f;
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("1.00x")) navRenderResolutionScale = 1.f;
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("1.25x")) navRenderResolutionScale = 1.25f;
+        if (ImGui::MenuItem("2.00x")) navRenderResolutionScale = 2.0f;
+        if (ImGui::MenuItem("4.00x")) navRenderResolutionScale = 4.0f;
+
+        ImGui::Separator();
+
+        if (ImGui::BeginMenu("custom")) {
+          ImGui::InputFloat("x##fb_scaling", &navRenderResolutionScale);
+          ImGui::EndMenu();
+        }
+
+        if (scale != navRenderResolutionScale)
+          reshape(windowSize);
+
+        ImGui::EndMenu();
+      }
+
+      if (ImGui::BeginMenu("Aspect Control")) {
+        const float aspect = fixedRenderAspect;
+        if (ImGui::MenuItem("Lock"))
+          fixedRenderAspect = (float)windowSize.x / windowSize.y;
+        if (ImGui::MenuItem("Unlock")) fixedRenderAspect = 0.f;
+        ImGui::InputFloat("Set", &fixedRenderAspect);
+        fixedRenderAspect = std::max(fixedRenderAspect, 0.f);
+
+        if (aspect != fixedRenderAspect) {
+          if (fixedRenderAspect > 0.f)
+            resizeMode = RESIZE_LETTERBOX;
+          else
+            resizeMode = RESIZE_KEEPFOVY;
+          reshape(windowSize);
+        }
+
+        ImGui::EndMenu();
+      }
+
+      ImGui::Separator();
+      ImGui::Separator();
+
       if (ImGui::MenuItem("(q) Quit")) exitRequestedByUser = true;
 
       ImGui::EndMenu();
@@ -432,8 +555,6 @@ namespace ospray {
 
       ImGui::InputFloat("Motion Speed", &motionSpeed);
 
-      if (ImGui::MenuItem("Take Screenshot")) saveScreenshot("ospray_studio");
-
       ImGui::EndMenu();
     }
   }
@@ -456,14 +577,36 @@ namespace ospray {
     if (ImGui::Begin("Rendering Statistics",
                      &showWindowRenderStatistics,
                      flags)) {
-      ImGui::Text("OSPRay render rate: %.1f fps", lastFrameFPS);
       ImGui::NewLine();
-      ImGui::Text("Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
-      ImGui::Text("Total 3dwidget time: %.1f ms", lastTotalTime*1000.f);
-      ImGui::Text("GUI time: %.1f ms", lastGUITime*1000.f);
-      ImGui::Text("display pixel time: %.1f ms", lastDisplayTime*1000.f);
-      ImGui::NewLine();
-      ImGui::Text("Variance: %.3f", renderEngine.getLastVariance());
+      if (renderFPS > 1.f) {
+        ImGui::Text("OSPRay render rate: %.1f fps", renderFPS);
+      } else {
+        ImGui::Text("OSPRay render time: %.1f sec. Frame progress: ", 1.f/renderFPS);
+        ImGui::SameLine();
+        ImGui::ProgressBar(frameProgress);
+      }
+      ImGui::Text("  Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
+      ImGui::Text("  Total 3dwidget time: %.1f ms", lastTotalTime*1000.f);
+      ImGui::Text("  GUI time: %.1f ms", lastGUITime*1000.f);
+      ImGui::Text("  display pixel time: %.1f ms", lastDisplayTime*1000.f);
+      auto variance = renderer->getLastVariance();
+      ImGui::Text("Variance: %.3f", variance);
+
+      auto eta = scenegraph->estimatedSeconds();
+      if (std::isfinite(eta)) {
+        auto sec = scenegraph->elapsedSeconds();
+        ImGui::SameLine();
+        ImGui::Text(" Total progress: ");
+
+        char str[100];
+        if (sec < eta)
+          snprintf(str, sizeof(str), "%.1f s / %.1f s", sec, eta);
+        else
+          snprintf(str, sizeof(str), "%.1f s", sec);
+
+        ImGui::SameLine();
+        ImGui::ProgressBar(sec/eta, ImVec2(-1,0), str);
+      }
     }
 
     ImGui::End();
@@ -694,6 +837,19 @@ namespace ospray {
 
     if (!renderingPaused)
       renderEngine.start();
+  }
+
+  int MainWindow::progressCallback(const float progress)
+  {
+    frameProgress = progress;
+
+    // one-shot cancel
+    return !cancelRendering.exchange(false);
+  }
+
+  int MainWindow::progressCallbackWrapper(void * ptr, const float progress)
+  {
+    return ((MainWindow*)ptr)->progressCallback(progress);
   }
 
 } // ::ospray
