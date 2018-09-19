@@ -98,7 +98,7 @@ namespace ospray {
   void MainWindow::reshape(const vec2i &newSize)
   {
     ImGui3DWidget::reshape(newSize);
-    scenegraph->child("frameBuffer")["size"] = newSize;
+    scenegraph->child("frameBuffer")["size"] = renderSize;
     scenegraph->child("navFrameBuffer")["size"] = navRenderSize;
   }
 
