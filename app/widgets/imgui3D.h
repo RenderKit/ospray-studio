@@ -184,7 +184,7 @@ namespace ospray {
        vec2i windowedPos;
        vec2i windowedSize;
        // during navigation
-       float navRenderResolutionScale {1.0};
+       float navRenderResolutionScale {0.5f};
        vec2i navRenderSize;
        /*! camera speed modifier - affects how many units the camera
           _moves_ with each unit on the screen */

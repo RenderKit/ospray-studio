@@ -98,14 +98,8 @@ namespace ospray {
   void MainWindow::reshape(const vec2i &newSize)
   {
     ImGui3DWidget::reshape(newSize);
-    windowSize = newSize;
-
-    viewPort.modified = true;
-
-    scenegraph->child("frameBuffer")["size"].setValue(newSize);
-    scenegraph->child("navFrameBuffer")["size"].setValue(navRenderSize);
-
-    pixelBuffer.resize(newSize.x * newSize.y);
+    scenegraph->child("frameBuffer")["size"] = newSize;
+    scenegraph->child("navFrameBuffer")["size"] = navRenderSize;
   }
 
   void MainWindow::keypress(char key)
@@ -184,6 +178,7 @@ namespace ospray {
     auto oldAspect = viewPort.aspect;
     viewPort = originalView;
     viewPort.aspect = oldAspect;
+    viewPort.modified = true;
   }
 
   void MainWindow::resetDefaultView()
