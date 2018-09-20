@@ -683,7 +683,7 @@ namespace ospray {
       ImGui::SameLine();
 
       static int which = 0;
-      ImGui::Combo("##1", &which, "vtkWavelet\0cube\0spheres\0cylinders\0\0", 4);
+      ImGui::Combo("##1", &which, "spheres\0cube\0cylinders\0vtkWavelet\0\0", 4);
 
       static std::string parameters;
       ImGui::Text("Generator Params: ");
@@ -707,16 +707,16 @@ namespace ospray {
 
           switch (which) {
           case 0:
-            type = "vtkWavelet";
+            type = "spheres";
             break;
           case 1:
             type = "cube";
             break;
           case 2:
-            type = "spheres";
+            type = "cylinders";
             break;
           case 3:
-            type = "cylinders";
+            type = "vtkWavelet";
             break;
           default:
             std::cerr << "WAAAAT" << std::endl;
