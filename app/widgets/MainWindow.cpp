@@ -575,13 +575,7 @@ namespace ospray {
                      &showWindowRenderStatistics,
                      flags)) {
       ImGui::NewLine();
-      if (renderFPS > 1.f) {
-        ImGui::Text("OSPRay render rate: %.1f fps", renderFPS);
-      } else {
-        ImGui::Text("OSPRay render time: %.1f sec. Frame progress: ", 1.f/renderFPS);
-        ImGui::SameLine();
-        ImGui::ProgressBar(frameProgress);
-      }
+      ImGui::Text("OSPRay render rate: %.1f fps", renderFPS);
       ImGui::Text("  Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
       ImGui::Text("  Total 3dwidget time: %.1f ms", lastTotalTime*1000.f);
       ImGui::Text("  GUI time: %.1f ms", lastGUITime*1000.f);
@@ -590,10 +584,23 @@ namespace ospray {
       ImGui::Text("Variance: %.3f", variance);
 
       auto eta = scenegraph->estimatedSeconds();
-      if (std::isfinite(eta)) {
-        auto sec = scenegraph->elapsedSeconds();
+
+      const bool showProgressBar        = (renderFPS <= 1.f);
+      const bool showFrameCompletionEst = (std::isfinite(eta) && eta > 5.f);
+
+      if (showProgressBar || showFrameCompletionEst)
+        ImGui::Separator();
+
+      if (showProgressBar) {
+        ImGui::Text("Frame progress: ");
         ImGui::SameLine();
-        ImGui::Text(" Total progress: ");
+        ImGui::ProgressBar(frameProgress);
+      }
+
+      if (showFrameCompletionEst) {
+        auto sec = scenegraph->elapsedSeconds();
+
+        ImGui::Text("Total progress: ");
 
         char str[100];
         if (sec < eta)
