@@ -28,6 +28,7 @@ ospray_create_application(ospStudio
 
   widgets/panels/About.cpp
   widgets/panels/NodeFinder.cpp
+  widgets/panels/SGAdvanced.cpp
   widgets/panels/SGTreeView.cpp
 
   widgets/sg_ui/ospray_sg_ui.cpp

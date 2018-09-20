@@ -32,6 +32,7 @@
 // panels
 #include "panels/About.h"
 #include "panels/NodeFinder.h"
+#include "panels/SGAdvanced.h"
 #include "panels/SGTreeView.h"
 
 #include <GLFW/glfw3.h>
@@ -70,6 +71,7 @@ namespace ospray {
 
     panels.emplace_back(new PanelNodeFinder(scenegraph));
     panels.emplace_back(new PanelSGTreeView(scenegraph));
+    panels.emplace_back(new PanelSGAdvanced(scenegraph));
     panels.emplace_back(new PanelAbout());
   }
 
