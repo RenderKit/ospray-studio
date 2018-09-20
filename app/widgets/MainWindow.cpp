@@ -613,7 +613,9 @@ namespace ospray {
                  ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_AlwaysAutoResize;
 
-    if (ImGui::Begin("Job Scheduler Control Panel",
+    static bool autoImport = true;
+
+    if (ImGui::Begin("Job Scheduler Panel",
                      &showWindowJobStatusControlPanel,
                      flags)) {
       ImGui::Text("%i jobs running", jobsInProgress.size());
@@ -643,20 +645,20 @@ namespace ospray {
           renderEngine.start();
       };
 
-      static bool autoImport = true;
       ImGui::Checkbox("auto add to scene", &autoImport);
 
       if (autoImport && !loadedNodes.empty())
         doIt();
-      else if (ImGui::Button("Add Loaded Nodes to SceneGraph"))
-        doIt();
+      else if (!autoImport) {
+        if (ImGui::Button("Add Loaded Nodes to SceneGraph"))
+          doIt();
+        ImGui::Separator();
+        ImGui::Text("Loaded Nodes:");
+        ImGui::NewLine();
+        for (auto &n : loadedNodes)
+          ImGui::Text(n->name().c_str());
+      }
     }
-
-    ImGui::Separator();
-    ImGui::Text("Loaded Nodes:");
-    ImGui::NewLine();
-    for (auto &n : loadedNodes)
-      ImGui::Text(n->name().c_str());
 
     ImGui::End();
   }
