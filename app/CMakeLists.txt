@@ -32,7 +32,8 @@ ospray_create_application(ospStudio
   widgets/panels/SGTreeView.cpp
 
   widgets/sg_ui/ospray_sg_ui.cpp
-  widgets/sg_ui/transferFunction.cpp
+
+  widgets/transfer_function/TransferFunctionWidget.cpp
 
 LINK
   ${OSPRAY_LIBRARIES}

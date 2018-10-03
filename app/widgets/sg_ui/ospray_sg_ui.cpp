@@ -18,8 +18,10 @@
 
 #include "imguifilesystem/imguifilesystem.h"
 
-#include "transferFunction.h"
 #include "sg/SceneGraph.h"
+
+#include "../transfer_function/TransferFunctionWidget.h"
+using tfn::tfn_widget::TransferFunctionWidget;
 
 #include "ospcommon/utility/StringManip.h"
 
@@ -207,23 +209,25 @@ namespace ospray {
     const std::string &text,
     std::shared_ptr<sg::Node> node)
   {
+    using WidgetPtr = std::shared_ptr<TransferFunctionWidget>;
+
     if (!node->hasChild("transferFunctionWidget")) {
       std::shared_ptr<sg::TransferFunction> tfn =
         std::dynamic_pointer_cast<sg::TransferFunction>(node);
 
       node->createChildWithValue("transferFunctionWidget","Node",
-                                 TransferFunction(tfn));
+                                 WidgetPtr(new TransferFunctionWidget(tfn)));
     }
 
     auto &tfnWidget =
-      node->child("transferFunctionWidget").valueAs<TransferFunction>();
+      node->child("transferFunctionWidget").valueAs<WidgetPtr>();
 
     static bool show_editor = true;
     ImGui::Checkbox("show_editor", &show_editor);
 
     if (show_editor) {
-      tfnWidget.render();
-      tfnWidget.drawUi();
+      tfnWidget->render();
+      tfnWidget->drawUI();
     }
   }
 
