@@ -170,6 +170,20 @@ namespace ospray {
     case '2':
       showWindowJobStatusControlPanel = !showWindowJobStatusControlPanel;
       break;
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9': {
+      int whichPanel = key - '0' - 3;
+      if (panels.size() > whichPanel) {
+        bool isVisible = panels[whichPanel]->show;
+        panels[whichPanel]->show = !isVisible;
+      }
+      break;
+    }
     default:
       ImGui3DWidget::keypress(key);
     }
@@ -519,8 +533,17 @@ namespace ospray {
 
       ImGui::Separator();
 
-      for (auto &p : panels)
-        ImGui::Checkbox(p->name.c_str(), &p->show);
+      int panelIndex = 3; // account for first 2
+      for (auto &p : panels) {
+        std::stringstream ss;
+
+        if (panelIndex <= 9)
+          ss << '(' << std::to_string(panelIndex++) << ") " << p->name;
+        else
+          ss << p->name;
+
+        ImGui::Checkbox(ss.str().c_str(), &p->show);
+      }
 
       ImGui::EndMenu();
     }
@@ -627,8 +650,8 @@ namespace ospray {
     if (ImGui::Begin("Job Scheduler Panel",
                      &showWindowJobStatusControlPanel,
                      flags)) {
-      ImGui::Text("%i jobs running", jobsInProgress.size());
-      ImGui::Text("%i nodes ready", loadedNodes.size());
+      ImGui::Text("%lu jobs running", jobsInProgress.size());
+      ImGui::Text("%lu nodes ready", loadedNodes.size());
       ImGui::NewLine();
 
       auto doIt = [&]() {
@@ -665,7 +688,7 @@ namespace ospray {
         ImGui::Text("Loaded Nodes:");
         ImGui::NewLine();
         for (auto &n : loadedNodes)
-          ImGui::Text(n->name().c_str());
+          ImGui::Text("%s", n->name().c_str());
       }
     }
 
