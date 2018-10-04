@@ -22,6 +22,8 @@ namespace ospray {
 
   struct Panel
   {
+    virtual ~Panel() = default;
+
     // build the UI itself (per-frame ImGui calls)
     virtual void buildUI() = 0;
 

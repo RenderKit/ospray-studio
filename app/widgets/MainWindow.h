@@ -45,7 +45,7 @@ namespace ospray {
 
     enum PickMode { PICK_CAMERA, PICK_NODE };
 
-    void mouseButton(int button, int action, int mods);
+    void mouseButton(int button, int action, int mods) override;
     void reshape(const ospcommon::vec2i &newSize) override;
     void keypress(char key) override;
 
