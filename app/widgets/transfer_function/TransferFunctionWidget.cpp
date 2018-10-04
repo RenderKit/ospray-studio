@@ -31,12 +31,6 @@ using namespace ospcommon;
 
 namespace help {
 
-  template <class T>
-  const T &clamp(const T &v, const T &lo, const T &hi)
-  {
-    return (v < lo) ? lo : (hi < v ? hi : v);
-  }
-
   template <typename T>
   int find_idx(const T &A, float p, int l = -1, int r = -1)
   {
@@ -401,7 +395,7 @@ void TransferFunctionWidget::drawUI()
         if (i > 0 && i < tfn_c->size() - 1) {
           (*tfn_c)[i].x += delta.x / width;
           (*tfn_c)[i].x =
-              help::clamp((*tfn_c)[i].x, (*tfn_c)[i - 1].x, (*tfn_c)[i + 1].x);
+              clamp((*tfn_c)[i].x, (*tfn_c)[i - 1].x, (*tfn_c)[i + 1].x);
         }
         tfn_changed = true;
       } else if (ImGui::IsItemHovered()) {
@@ -457,7 +451,7 @@ void TransferFunctionWidget::drawUI()
   ImGui::InvisibleButton("##tfn_palette_color", ImVec2(width, 2.5 * color_len));
   // add color point
   if (tfn_edit && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
-    const float p = help::clamp(
+    const float p = clamp(
         (mouse_x - canvas_x - margin - scroll_x) / (float)width, 0.f, 1.f);
     const int ir   = help::find_idx(*tfn_c, p);
     const int il   = ir - 1;
@@ -479,9 +473,9 @@ void TransferFunctionWidget::drawUI()
   ImGui::InvisibleButton("##tfn_palette_opacity", ImVec2(width, height));
   // add opacity point
   if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
-    const float x = help::clamp(
+    const float x = clamp(
         (mouse_x - canvas_x - margin - scroll_x) / (float)width, 0.f, 1.f);
-    const float y = help::clamp(
+    const float y = clamp(
         -(mouse_y - canvas_y + margin - scroll_y) / (float)height, 0.f, 1.f);
     const int idx = help::find_idx(*tfn_o, x);
     OpacityPoint pt(x, y);
@@ -551,7 +545,7 @@ void TransferFunctionWidget::render()
     std::vector<float> alpha(2 * tfn_w, 1.f);
     const float step = 1.0f / (float)(tfn_w - 1);
     for (int i = 0; i < tfn_w; ++i) {
-      const float p = help::clamp(i * step, 0.0f, 1.0f);
+      const float p = clamp(i * step, 0.0f, 1.0f);
       int ir, il;
       float pr, pl;
       // color
