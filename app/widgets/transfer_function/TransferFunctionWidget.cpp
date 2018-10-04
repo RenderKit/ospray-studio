@@ -84,9 +84,6 @@ void TransferFunctionWidget::LoadDefaultMap()
   colors.emplace_back(1.0f, 1.f, 0.f, 0.f);
 
   opacities.emplace_back(0.00f, 0.00f);
-  opacities.emplace_back(0.25f, 0.25f);
-  opacities.emplace_back(0.50f, 0.50f);
-  opacities.emplace_back(0.75f, 0.75f);
   opacities.emplace_back(1.00f, 1.00f);
 
   tfn_c_list.push_back(colors);
@@ -96,7 +93,6 @@ void TransferFunctionWidget::LoadDefaultMap()
   tfn_names.push_back("Jet");
 
   colors.clear();
-  opacities.clear();
 
   // Ice Fire //
 
@@ -120,28 +116,6 @@ void TransferFunctionWidget::LoadDefaultMap()
   colors.emplace_back(15 * spacing, 0.299413 , 0.000366217, 0.000549325);
 
   colors.emplace_back(1.f, 0.0157473, 0.00332647 , 0          );
-
-  spacing = 1.f / 17;
-
-  opacities.emplace_back(0  * spacing, 0  * spacing);
-  opacities.emplace_back(1  * spacing, 1  * spacing);
-  opacities.emplace_back(2  * spacing, 2  * spacing);
-  opacities.emplace_back(3  * spacing, 3  * spacing);
-  opacities.emplace_back(4  * spacing, 4  * spacing);
-  opacities.emplace_back(5  * spacing, 5  * spacing);
-  opacities.emplace_back(6  * spacing, 6  * spacing);
-  opacities.emplace_back(7  * spacing, 7  * spacing);
-  opacities.emplace_back(8  * spacing, 8  * spacing);
-  opacities.emplace_back(9  * spacing, 9  * spacing);
-  opacities.emplace_back(10 * spacing, 10 * spacing);
-  opacities.emplace_back(11 * spacing, 11 * spacing);
-  opacities.emplace_back(12 * spacing, 12 * spacing);
-  opacities.emplace_back(13 * spacing, 13 * spacing);
-  opacities.emplace_back(14 * spacing, 14 * spacing);
-  opacities.emplace_back(15 * spacing, 15 * spacing);
-  opacities.emplace_back(16 * spacing, 16 * spacing);
-
-  opacities.emplace_back(1.f, 1.f);
 
   tfn_c_list.push_back(colors);
   tfn_o_list.push_back(opacities);
