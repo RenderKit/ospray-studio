@@ -147,29 +147,33 @@ TransferFunctionWidget::TransferFunctionWidget(
     std::shared_ptr<sg::TransferFunction> tfn)
     : tfn_text_buffer(512, '\0'), valueRange{0.f, 0.f}, defaultRange{0.f, 0.f}
 {
-  tfn_sample_set = [=](const std::vector<float> &c,
-                       const std::vector<float> &a,
+  tfn_sample_set = [=](const std::vector<ColorPoint> &c,
+                       const std::vector<OpacityPoint> &a,
                        const std::array<float, 2> &r) {
-    int sampleNum = tfn->child("numSamples").valueAs<int>();
-    if (r[1] > r[0]) {
-      tfn->child("valueRange").setValue(ospcommon::vec2f(r[0], r[1]));
-    }
-    auto colors = ospray::sg::createNode("colors", "DataVector3f")
-                      ->nodeAs<ospray::sg::DataVector3f>();
-    auto alpha = ospray::sg::createNode("alpha", "DataVector2f")
+    if (r[1] > r[0])
+      tfn->child("valueRange") = ospcommon::vec2f(r[0], r[1]);
+
+    auto colors = ospray::sg::createNode("colorControlPoints", "DataVector4f")
+                     ->nodeAs<ospray::sg::DataVector4f>();
+    auto alpha = ospray::sg::createNode("opacityControlPoints", "DataVector2f")
                      ->nodeAs<ospray::sg::DataVector2f>();
-    colors->v.resize(sampleNum);
-    alpha->v.resize(sampleNum);
+    colors->v.resize(c.size());
+    alpha->v.resize(a.size());
+
     std::copy(c.data(),
               c.data() + c.size(),
-              reinterpret_cast<float *>(colors->v.data()));
+              reinterpret_cast<ColorPoint*>(colors->v.data()));
+
     std::copy(a.data(),
               a.data() + a.size(),
-              reinterpret_cast<float *>(alpha->v.data()));
+              reinterpret_cast<OpacityPoint*>(alpha->v.data()));
+
     tfn->add(colors);
     tfn->add(alpha);
     colors->markAsModified();
     alpha->markAsModified();
+
+    tfn->updateChildDataValues();
   };
 
   numSamples = tfn->child("numSamples").valueAs<int>();
@@ -223,13 +227,13 @@ TransferFunctionWidget &TransferFunctionWidget::operator=(
   return *this;
 }
 
-bool TransferFunctionWidget::drawUI()
+void TransferFunctionWidget::drawUI()
 {
   if (!ImGui::Begin("Transfer Function Widget")) {
     ImGui::End();
-    return false;
+    return;
   }
-  ImGui::Text("1D Transfer Function");
+  ImGui::Text("Linear Transfer Function");
   // radio paremeters
   ImGui::Separator();
   std::vector<const char *> names(tfn_names.size(), nullptr);
@@ -263,10 +267,10 @@ bool TransferFunctionWidget::drawUI()
       tfn_changed = true;
     }
   } else {
-    if (ImGui::DragFloat2("value range", valueRange.data())) {
+    if (ImGui::DragFloat2("value range", valueRange.data()))
       tfn_changed = true;
-    }
   }
+
   //------------ Transfer Function -------------------
   // style
   // only God and me know what do they do ...
@@ -509,7 +513,6 @@ bool TransferFunctionWidget::drawUI()
     ImGui::Text("Double left click empty area to add point\n");
   }
   ImGui::End();
-  return true;
 }
 
 void RenderTFNTexture(GLuint &tex, int width, int height)
@@ -608,7 +611,7 @@ void TransferFunctionWidget::render()
       glBindTexture(GL_TEXTURE_2D, prevBinding);
     }
 
-    tfn_sample_set(colors, alpha, valueRange);
+    tfn_sample_set(*tfn_c, *tfn_o, valueRange);
     tfn_changed = false;
   }
 }

@@ -55,10 +55,8 @@ namespace tfn {
         valueRange[1]   = b;
         tfn_changed     = true;
       }
-      /* Draw the transfer function editor widget, returns true if the
-       * transfer function changed
-       */
-      bool drawUI();
+      /* Draw the transfer function editor widget */
+      void drawUI();
       /* Render the transfer function to a 1D texture that can
        * be applied to volume data
        */
@@ -141,8 +139,8 @@ namespace tfn {
       };
 
       // Core Handler
-      std::function<void(const std::vector<float> &,
-                         const std::vector<float> &,
+      std::function<void(const std::vector<ColorPoint> &,
+                         const std::vector<OpacityPoint> &,
                          const std::array<float, 2> &)>
           tfn_sample_set;
       std::vector<tfn::TransferFunction> tfn_readers;
