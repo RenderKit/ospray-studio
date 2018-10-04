@@ -263,6 +263,8 @@ void TransferFunctionWidget::drawUI()
   SetTFNSelection(newSelection);
 
   drawUI_currentTF();
+
+  ImGui::End();
 }
 
 void TransferFunctionWidget::drawUI_currentTF() {
@@ -283,11 +285,12 @@ void TransferFunctionWidget::drawUI_currentTF() {
   const float height      = 260.f;
   const float color_len   = 9.f;
   const float opacity_len = 7.f;
-  bool display_helper_0   = false;  // How to operate/delete a control point
-  bool display_helper_1   = false;  // How to add control points
   // draw preview texture
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y));
   ImGui::Image(reinterpret_cast<void *>(tfn_palette), ImVec2(width, height));
+  if (ImGui::IsItemHovered())
+    ImGui::SetTooltip("Double left click to add new control point");
+
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
   for (int i = 0; i < tfn_o->size() - 1; ++i) {
     std::vector<ImVec2> polyline;
@@ -402,8 +405,6 @@ void TransferFunctionWidget::drawUI_currentTF() {
               clamp((*tfn_c)[i].x, (*tfn_c)[i - 1].x, (*tfn_c)[i + 1].x);
         }
         tfn_changed = true;
-      } else if (ImGui::IsItemHovered()) {
-        display_helper_0 = true;
       }
     }
   }
@@ -446,7 +447,9 @@ void TransferFunctionWidget::drawUI_currentTF() {
         }
         tfn_changed = true;
       } else if (ImGui::IsItemHovered()) {
-        display_helper_0 = true;
+        ImGui::SetTooltip(
+            "Double right click botton to delete point\n"
+            "Left click and drag to move point");
       }
     }
   }
@@ -469,7 +472,7 @@ void TransferFunctionWidget::drawUI_currentTF() {
     tfn_changed = true;
   }
   if (ImGui::IsItemHovered()) {
-    display_helper_1 = true;
+    ImGui::SetTooltip("Double left click to add new color point");
   }
   // draw background interaction
   ImGui::SetCursorScreenPos(
@@ -486,23 +489,12 @@ void TransferFunctionWidget::drawUI_currentTF() {
     tfn_o->insert(tfn_o->begin() + idx, pt);
     tfn_changed = true;
   }
-  if (ImGui::IsItemHovered()) {
-    display_helper_1 = true;
-  }
   // update cursors
   canvas_y += 4.f * color_len + margin;
   canvas_avail_y -= 4.f * color_len + margin;
-  //------------ Transfer Function -------------------
+
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-  if (display_helper_0) {
-    ImGui::Text(
-        "Double right click botton to delete point\n"
-        "Left click and drag to move point");
-  }
-  if (display_helper_1 && !display_helper_0) {
-    ImGui::Text("Double left click empty area to add point\n");
-  }
-  ImGui::End();
+  //------------ Transfer Function -------------------
 }
 
 void RenderTFNTexture(GLuint &tex, int width, int height)
