@@ -38,6 +38,9 @@ namespace tfn {
   namespace tfn_widget {
     using namespace ospray;
 
+    using ColorPoint   = ospcommon::vec4f;
+    using OpacityPoint = ospcommon::vec2f;
+
     class TransferFunctionWidget
     {
      public:
@@ -75,58 +78,6 @@ namespace tfn {
         COOL_WARM,
         BLUE_RED,
         GRAYSCALE,
-      };
-
-      // This defines the control point class
-      struct ColorPoint
-      {
-        float p;  // location of the control point [0, 1]
-        float r, g, b;
-        ColorPoint(){};
-        ColorPoint(const float cp,
-                   const float cr,
-                   const float cg,
-                   const float cb)
-            : p(cp), r(cr), g(cg), b(cb)
-        {
-        }
-        ColorPoint(const ColorPoint &c) : p(c.p), r(c.r), g(c.g), b(c.b) {}
-        ColorPoint &operator=(const ColorPoint &c)
-        {
-          if (this == &c) {
-            return *this;
-          }
-          p = c.p;
-          r = c.r;
-          g = c.g;
-          b = c.b;
-          return *this;
-        }
-        // This function gives Hex color for ImGui
-        unsigned long GetHex()
-        {
-          return (0xff << 24) +
-                 ((static_cast<uint8_t>(b * 255.f) & 0xff) << 16) +
-                 ((static_cast<uint8_t>(g * 255.f) & 0xff) << 8) +
-                 ((static_cast<uint8_t>(r * 255.f) & 0xff));
-        }
-      };
-      struct OpacityPoint
-      {
-        OpacityPoint(){};
-        OpacityPoint(const float cp, const float ca) : p(cp), a(ca) {}
-        OpacityPoint(const OpacityPoint &c) : p(c.p), a(c.a) {}
-        OpacityPoint &operator=(const OpacityPoint &c)
-        {
-          if (this == &c) {
-            return *this;
-          }
-          p = c.p;
-          a = c.a;
-          return *this;
-        }
-        float p;  // location of the control point [0, 1]
-        float a;
       };
 
       // TODO

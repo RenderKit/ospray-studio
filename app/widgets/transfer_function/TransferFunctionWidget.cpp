@@ -27,6 +27,7 @@
 
 using namespace tfn;
 using namespace tfn_widget;
+using namespace ospcommon;
 
 namespace help {
 
@@ -43,14 +44,14 @@ namespace help {
     r = r == -1 ? A.size() - 1 : r;
 
     int m = (r + l) / 2;
-    if (A[l].p > p) {
+    if (A[l].x > p) {
       return l;
-    } else if (A[r].p <= p) {
+    } else if (A[r].x <= p) {
       return r + 1;
     } else if ((m == l) || (m == r)) {
       return m + 1;
     } else {
-      if (A[m].p <= p) {
+      if (A[m].x <= p) {
         return find_idx(A, p, m, r);
       } else {
         return find_idx(A, p, l, m);
@@ -160,13 +161,8 @@ TransferFunctionWidget::TransferFunctionWidget(
     colors->v.resize(c.size());
     alpha->v.resize(a.size());
 
-    std::copy(c.data(),
-              c.data() + c.size(),
-              reinterpret_cast<ColorPoint*>(colors->v.data()));
-
-    std::copy(a.data(),
-              a.data() + a.size(),
-              reinterpret_cast<OpacityPoint*>(alpha->v.data()));
+    std::copy(c.data(), c.data() + c.size(), colors->v.data());
+    std::copy(a.data(), a.data() + a.size(), alpha->v.data());
 
     tfn->add(colors);
     tfn->add(alpha);
@@ -297,13 +293,13 @@ void TransferFunctionWidget::drawUI()
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
   for (int i = 0; i < tfn_o->size() - 1; ++i) {
     std::vector<ImVec2> polyline;
-    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i].p * width,
+    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i].x * width,
                           canvas_y + height);
-    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i].p * width,
-                          canvas_y + height - (*tfn_o)[i].a * height);
-    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].p * width + 1,
-                          canvas_y + height - (*tfn_o)[i + 1].a * height);
-    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].p * width + 1,
+    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i].x * width,
+                          canvas_y + height - (*tfn_o)[i].y * height);
+    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].x * width + 1,
+                          canvas_y + height - (*tfn_o)[i + 1].y * height);
+    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].x * width + 1,
                           canvas_y + height);
     draw_list->AddConvexPolyFilled(
         polyline.data(), polyline.size(), 0xFFD8D8D8, true);
@@ -320,7 +316,7 @@ void TransferFunctionWidget::drawUI()
         0xFF474646);
     // draw circles
     for (int i = tfn_c->size() - 1; i >= 0; --i) {
-      const ImVec2 pos(canvas_x + width * (*tfn_c)[i].p + margin, canvas_y);
+      const ImVec2 pos(canvas_x + width * (*tfn_c)[i].x + margin, canvas_y);
       ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
       // white background
       draw_list->AddTriangleFilled(ImVec2(pos.x - 0.5f * color_len, pos.y),
@@ -331,7 +327,7 @@ void TransferFunctionWidget::drawUI()
           ImVec2(pos.x, pos.y + 0.5f * color_len), color_len, 0xFFD8D8D8);
       // draw picker
       ImVec4 picked_color =
-          ImColor((*tfn_c)[i].r, (*tfn_c)[i].g, (*tfn_c)[i].b, 1.f);
+          ImColor((*tfn_c)[i].y, (*tfn_c)[i].z, (*tfn_c)[i].w, 1.f);
       ImGui::SetCursorScreenPos(
           ImVec2(pos.x - color_len, pos.y + 1.5f * color_len));
       if (ImGui::ColorEdit4(("##ColorPicker" + std::to_string(i)).c_str(),
@@ -342,9 +338,9 @@ void TransferFunctionWidget::drawUI()
                                 ImGuiColorEditFlags_AlphaPreview |
                                 ImGuiColorEditFlags_NoOptions |
                                 ImGuiColorEditFlags_NoTooltip)) {
-        (*tfn_c)[i].r = picked_color.x;
-        (*tfn_c)[i].g = picked_color.y;
-        (*tfn_c)[i].b = picked_color.z;
+        (*tfn_c)[i].y = picked_color.x;
+        (*tfn_c)[i].z = picked_color.y;
+        (*tfn_c)[i].w = picked_color.z;
         tfn_changed   = true;
       }
       if (ImGui::IsItemHovered()) {
@@ -380,7 +376,7 @@ void TransferFunctionWidget::drawUI()
       }
     }
     for (int i = 0; i < tfn_c->size(); ++i) {
-      const ImVec2 pos(canvas_x + width * (*tfn_c)[i].p + margin, canvas_y);
+      const ImVec2 pos(canvas_x + width * (*tfn_c)[i].x + margin, canvas_y);
       // draw button
       ImGui::SetCursorScreenPos(
           ImVec2(pos.x - color_len, pos.y - 0.5 * color_len));
@@ -403,9 +399,9 @@ void TransferFunctionWidget::drawUI()
       else if (ImGui::IsItemActive()) {
         ImVec2 delta = ImGui::GetIO().MouseDelta;
         if (i > 0 && i < tfn_c->size() - 1) {
-          (*tfn_c)[i].p += delta.x / width;
-          (*tfn_c)[i].p =
-              help::clamp((*tfn_c)[i].p, (*tfn_c)[i - 1].p, (*tfn_c)[i + 1].p);
+          (*tfn_c)[i].x += delta.x / width;
+          (*tfn_c)[i].x =
+              help::clamp((*tfn_c)[i].x, (*tfn_c)[i - 1].x, (*tfn_c)[i + 1].x);
         }
         tfn_changed = true;
       } else if (ImGui::IsItemHovered()) {
@@ -418,8 +414,8 @@ void TransferFunctionWidget::drawUI()
   {
     // draw circles
     for (int i = 0; i < tfn_o->size(); ++i) {
-      const ImVec2 pos(canvas_x + width * (*tfn_o)[i].p + margin,
-                       canvas_y - height * (*tfn_o)[i].a - margin);
+      const ImVec2 pos(canvas_x + width * (*tfn_o)[i].x + margin,
+                       canvas_y - height * (*tfn_o)[i].y - margin);
       ImGui::SetCursorScreenPos(
           ImVec2(pos.x - opacity_len, pos.y - opacity_len));
       ImGui::InvisibleButton(("##OpacityControl-" + std::to_string(i)).c_str(),
@@ -443,12 +439,12 @@ void TransferFunctionWidget::drawUI()
         }
       } else if (ImGui::IsItemActive()) {
         ImVec2 delta = ImGui::GetIO().MouseDelta;
-        (*tfn_o)[i].a -= delta.y / height;
-        (*tfn_o)[i].a = clamp((*tfn_o)[i].a, 0.0f, 1.0f);
+        (*tfn_o)[i].y -= delta.y / height;
+        (*tfn_o)[i].y = clamp((*tfn_o)[i].y, 0.0f, 1.0f);
         if (i > 0 && i < tfn_o->size() - 1) {
-          (*tfn_o)[i].p += delta.x / width;
-          (*tfn_o)[i].p =
-              clamp((*tfn_o)[i].p, (*tfn_o)[i - 1].p, (*tfn_o)[i + 1].p);
+          (*tfn_o)[i].x += delta.x / width;
+          (*tfn_o)[i].x =
+              clamp((*tfn_o)[i].x, (*tfn_o)[i - 1].x, (*tfn_o)[i + 1].x);
         }
         tfn_changed = true;
       } else if (ImGui::IsItemHovered()) {
@@ -465,15 +461,12 @@ void TransferFunctionWidget::drawUI()
         (mouse_x - canvas_x - margin - scroll_x) / (float)width, 0.f, 1.f);
     const int ir   = help::find_idx(*tfn_c, p);
     const int il   = ir - 1;
-    const float pr = (*tfn_c)[ir].p;
-    const float pl = (*tfn_c)[il].p;
-    const float r  = help::lerp((*tfn_c)[il].r, (*tfn_c)[ir].r, pl, pr, p);
-    const float g  = help::lerp((*tfn_c)[il].g, (*tfn_c)[ir].g, pl, pr, p);
-    const float b  = help::lerp((*tfn_c)[il].b, (*tfn_c)[ir].b, pl, pr, p);
-    ColorPoint pt;
-    pt.p = p, pt.r = r;
-    pt.g = g;
-    pt.b = b;
+    const float pr = (*tfn_c)[ir].x;
+    const float pl = (*tfn_c)[il].x;
+    const float r  = help::lerp((*tfn_c)[il].y, (*tfn_c)[ir].y, pl, pr, p);
+    const float g  = help::lerp((*tfn_c)[il].z, (*tfn_c)[ir].z, pl, pr, p);
+    const float b  = help::lerp((*tfn_c)[il].w, (*tfn_c)[ir].w, pl, pr, p);
+    ColorPoint pt(p, r, g, b);
     tfn_c->insert(tfn_c->begin() + ir, pt);
     tfn_changed = true;
   }
@@ -491,8 +484,7 @@ void TransferFunctionWidget::drawUI()
     const float y = help::clamp(
         -(mouse_y - canvas_y + margin - scroll_y) / (float)height, 0.f, 1.f);
     const int idx = help::find_idx(*tfn_o, x);
-    OpacityPoint pt;
-    pt.p = x, pt.a = y;
+    OpacityPoint pt(x, y);
     tfn_o->insert(tfn_o->begin() + idx, pt);
     tfn_changed = true;
   }
@@ -565,12 +557,12 @@ void TransferFunctionWidget::render()
       // color
       ir = help::find_idx(*tfn_c, p);
       il = ir - 1;
-      pr = (*tfn_c)[ir].p;
-      pl = (*tfn_c)[il].p;
+      pr = (*tfn_c)[ir].x;
+      pl = (*tfn_c)[il].x;
 
-      const float r = help::lerp((*tfn_c)[il].r, (*tfn_c)[ir].r, pl, pr, p);
-      const float g = help::lerp((*tfn_c)[il].g, (*tfn_c)[ir].g, pl, pr, p);
-      const float b = help::lerp((*tfn_c)[il].b, (*tfn_c)[ir].b, pl, pr, p);
+      const float r = help::lerp((*tfn_c)[il].y, (*tfn_c)[ir].y, pl, pr, p);
+      const float g = help::lerp((*tfn_c)[il].z, (*tfn_c)[ir].z, pl, pr, p);
+      const float b = help::lerp((*tfn_c)[il].w, (*tfn_c)[ir].w, pl, pr, p);
 
       colors[3 * i + 0] = r;
       colors[3 * i + 1] = g;
@@ -579,10 +571,10 @@ void TransferFunctionWidget::render()
       // opacity
       ir = help::find_idx(*tfn_o, p);
       il = ir - 1;
-      pr = (*tfn_o)[ir].p;
-      pl = (*tfn_o)[il].p;
+      pr = (*tfn_o)[ir].x;
+      pl = (*tfn_o)[il].x;
 
-      const float a = help::lerp((*tfn_o)[il].a, (*tfn_o)[ir].a, pl, pr, p);
+      const float a = help::lerp((*tfn_o)[il].y, (*tfn_o)[ir].y, pl, pr, p);
 
       alpha[2 * i + 0] = p;
       alpha[2 * i + 1] = a;
@@ -635,18 +627,18 @@ void TransferFunctionWidget::load(const std::string &fileName)
   const float c_step = 1.f / (c_size - 1);
   for (int i = 0; i < c_size; ++i) {
     const float p = static_cast<float>(i) * c_step;
-    (*tfn_c)[i].p = p;
-    (*tfn_c)[i].r = tfn_new.rgbValues[i].x;
-    (*tfn_c)[i].g = tfn_new.rgbValues[i].y;
-    (*tfn_c)[i].b = tfn_new.rgbValues[i].z;
+    (*tfn_c)[i].x = p;
+    (*tfn_c)[i].y = tfn_new.rgbValues[i].x;
+    (*tfn_c)[i].z = tfn_new.rgbValues[i].y;
+    (*tfn_c)[i].w = tfn_new.rgbValues[i].z;
   }
   if (o_size < 2) {
     throw std::runtime_error(
         "transfer function contains too few opacity points");
   }
   for (int i = 0; i < o_size; ++i) {
-    (*tfn_o)[i].p = tfn_new.opacityValues[i].x;
-    (*tfn_o)[i].a = tfn_new.opacityValues[i].y;
+    (*tfn_o)[i].x = tfn_new.opacityValues[i].x;
+    (*tfn_o)[i].y = tfn_new.opacityValues[i].y;
   }
   tfn_changed = true;
 }
