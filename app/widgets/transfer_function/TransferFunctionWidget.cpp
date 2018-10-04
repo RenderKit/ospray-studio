@@ -221,6 +221,7 @@ void TransferFunctionWidget::drawUI()
     ImGui::End();
     return;
   }
+
   ImGui::Text("Linear Transfer Function");
   // radio paremeters
   ImGui::Separator();
@@ -259,10 +260,15 @@ void TransferFunctionWidget::drawUI()
       tfn_changed = true;
   }
 
+  SetTFNSelection(newSelection);
+
+  drawUI_currentTF();
+}
+
+void TransferFunctionWidget::drawUI_currentTF() {
   //------------ Transfer Function -------------------
   // style
   // only God and me know what do they do ...
-  SetTFNSelection(newSelection);
   ImDrawList *draw_list   = ImGui::GetWindowDrawList();
   float canvas_x          = ImGui::GetCursorScreenPos().x;
   float canvas_y          = ImGui::GetCursorScreenPos().y;
@@ -274,7 +280,7 @@ void TransferFunctionWidget::drawUI()
   const float scroll_y    = ImGui::GetScrollY();
   const float margin      = 10.f;
   const float width       = canvas_avail_x - 2.f * margin;
-  const float height      = 60.f;
+  const float height      = 260.f;
   const float color_len   = 9.f;
   const float opacity_len = 7.f;
   bool display_helper_0   = false;  // How to operate/delete a control point

@@ -69,6 +69,8 @@ namespace tfn {
 
      private:
 
+      // Helper types /////////////////////////////////////////////////////////
+
       // TODO
       // This MAYBE the correct way of doing this
       struct TFN
@@ -77,6 +79,16 @@ namespace tfn {
         std::vector<OpacityPoint> opacity;
         tfn::TransferFunction reader;
       };
+
+      // Helper functions /////////////////////////////////////////////////////
+
+      void LoadDefaultMap();
+      void SetTFNSelection(int);
+
+      // ImGui helpers //
+      void drawUI_currentTF();
+
+      // Data /////////////////////////////////////////////////////////////////
 
       // Core Handler
       std::function<void(const std::vector<ColorPoint> &,
@@ -118,9 +130,6 @@ namespace tfn {
       // * The 2d palette texture on the GPU for displaying the color map in the
       // UI.
       GLuint tfn_palette{0};
-      // Local functions
-      void LoadDefaultMap();
-      void SetTFNSelection(int);
     };
   }  // namespace tfn_widget
 }  // namespace tfn
