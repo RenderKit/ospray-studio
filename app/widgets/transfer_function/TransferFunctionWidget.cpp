@@ -29,6 +29,7 @@ using namespace tfn;
 using namespace tfn_widget;
 
 namespace help {
+
   template <class T>
   const T &clamp(const T &v, const T &lo, const T &hi)
   {
@@ -72,19 +73,81 @@ namespace help {
 
 void TransferFunctionWidget::LoadDefaultMap()
 {
-  tfn_c_list.emplace_back(4);
-  tfn_c_list.back()[0] = ColorPoint(0.0f, 0.f, 0.f, 1.f);
-  tfn_c_list.back()[1] = ColorPoint(0.3f, 0.f, 1.f, 1.f);
-  tfn_c_list.back()[2] = ColorPoint(0.6f, 1.f, 1.f, 0.f);
-  tfn_c_list.back()[3] = ColorPoint(1.0f, 1.f, 0.f, 0.f);
-  tfn_o_list.emplace_back(5);
-  tfn_o_list.back()[0] = OpacityPoint(0.00f, 0.00f);
-  tfn_o_list.back()[1] = OpacityPoint(0.25f, 0.25f);
-  tfn_o_list.back()[2] = OpacityPoint(0.50f, 0.50f);
-  tfn_o_list.back()[3] = OpacityPoint(0.75f, 0.75f);
-  tfn_o_list.back()[4] = OpacityPoint(1.00f, 1.00f);
+  std::vector<ColorPoint> colors;
+  std::vector<OpacityPoint> opacities;
+
+  // Jet //
+
+  colors.emplace_back(0.0f, 0.f, 0.f, 1.f);
+  colors.emplace_back(0.3f, 0.f, 1.f, 1.f);
+  colors.emplace_back(0.6f, 1.f, 1.f, 0.f);
+  colors.emplace_back(1.0f, 1.f, 0.f, 0.f);
+
+  opacities.emplace_back(0.00f, 0.00f);
+  opacities.emplace_back(0.25f, 0.25f);
+  opacities.emplace_back(0.50f, 0.50f);
+  opacities.emplace_back(0.75f, 0.75f);
+  opacities.emplace_back(1.00f, 1.00f);
+
+  tfn_c_list.push_back(colors);
+  tfn_o_list.push_back(opacities);
+
   tfn_editable.push_back(true);
   tfn_names.push_back("Jet");
+
+  colors.clear();
+  opacities.clear();
+
+  // Ice Fire //
+
+  float spacing = 1.f / 16;
+
+  colors.emplace_back(0  * spacing, 0        , 0          , 0          );
+  colors.emplace_back(1  * spacing, 0        , 0.120394   , 0.302678   );
+  colors.emplace_back(2  * spacing, 0        , 0.216587   , 0.524575   );
+  colors.emplace_back(3  * spacing, 0.0552529, 0.345022   , 0.659495   );
+  colors.emplace_back(4  * spacing, 0.128054 , 0.492592   , 0.720287   );
+  colors.emplace_back(5  * spacing, 0.188952 , 0.641306   , 0.792096   );
+  colors.emplace_back(6  * spacing, 0.327672 , 0.784939   , 0.873426   );
+  colors.emplace_back(7  * spacing, 0.60824  , 0.892164   , 0.935546   );
+  colors.emplace_back(8  * spacing, 0.881376 , 0.912184   , 0.818097   );
+  colors.emplace_back(9  * spacing, 0.9514   , 0.835615   , 0.449271   );
+  colors.emplace_back(10 * spacing, 0.904479 , 0.690486   , 0          );
+  colors.emplace_back(11 * spacing, 0.854063 , 0.510857   , 0          );
+  colors.emplace_back(12 * spacing, 0.777096 , 0.330175   , 0.000885023);
+  colors.emplace_back(13 * spacing, 0.672862 , 0.139086   , 0.00270085 );
+  colors.emplace_back(14 * spacing, 0.508812 , 0          , 0          );
+  colors.emplace_back(15 * spacing, 0.299413 , 0.000366217, 0.000549325);
+
+  colors.emplace_back(1.f, 0.0157473, 0.00332647 , 0          );
+
+  spacing = 1.f / 17;
+
+  opacities.emplace_back(0  * spacing, 0  * spacing);
+  opacities.emplace_back(1  * spacing, 1  * spacing);
+  opacities.emplace_back(2  * spacing, 2  * spacing);
+  opacities.emplace_back(3  * spacing, 3  * spacing);
+  opacities.emplace_back(4  * spacing, 4  * spacing);
+  opacities.emplace_back(5  * spacing, 5  * spacing);
+  opacities.emplace_back(6  * spacing, 6  * spacing);
+  opacities.emplace_back(7  * spacing, 7  * spacing);
+  opacities.emplace_back(8  * spacing, 8  * spacing);
+  opacities.emplace_back(9  * spacing, 9  * spacing);
+  opacities.emplace_back(10 * spacing, 10 * spacing);
+  opacities.emplace_back(11 * spacing, 11 * spacing);
+  opacities.emplace_back(12 * spacing, 12 * spacing);
+  opacities.emplace_back(13 * spacing, 13 * spacing);
+  opacities.emplace_back(14 * spacing, 14 * spacing);
+  opacities.emplace_back(15 * spacing, 15 * spacing);
+  opacities.emplace_back(16 * spacing, 16 * spacing);
+
+  opacities.emplace_back(1.f, 1.f);
+
+  tfn_c_list.push_back(colors);
+  tfn_o_list.push_back(opacities);
+
+  tfn_editable.push_back(true);
+  tfn_names.push_back("Ice Fire");
 };
 
 void TransferFunctionWidget::SetTFNSelection(int selection)
@@ -136,6 +199,10 @@ TransferFunctionWidget::TransferFunctionWidget(
   };
 
   numSamples = tfn->child("numSamples").valueAs<int>();
+
+  auto range = tfn->child("valueRange").valueAs<ospcommon::vec2f>();
+  valueRange[0] = range.x;
+  valueRange[1] = range.y;
 
   LoadDefaultMap();
 
@@ -196,7 +263,8 @@ bool TransferFunctionWidget::drawUI()
                  tfn_names.end(),
                  names.begin(),
                  [](const std::string &t) { return t.c_str(); });
-  ImGui::ListBox("Color maps", &tfn_selection, names.data(), names.size());
+  int newSelection = tfn_selection;
+  ImGui::ListBox("Color maps", &newSelection, names.data(), names.size());
   ImGui::InputText("", tfn_text_buffer.data(), tfn_text_buffer.size() - 1);
   ImGui::SameLine();
   if (ImGui::Button("load new file")) {
@@ -228,7 +296,7 @@ bool TransferFunctionWidget::drawUI()
   //------------ Transfer Function -------------------
   // style
   // only God and me know what do they do ...
-  SetTFNSelection(tfn_selection);
+  SetTFNSelection(newSelection);
   ImDrawList *draw_list   = ImGui::GetWindowDrawList();
   float canvas_x          = ImGui::GetCursorScreenPos().x;
   float canvas_y          = ImGui::GetCursorScreenPos().y;
@@ -565,6 +633,7 @@ void TransferFunctionWidget::render()
     if (prevBinding) {
       glBindTexture(GL_TEXTURE_2D, prevBinding);
     }
+
     tfn_sample_set(colors, alpha, valueRange);
     tfn_changed = false;
   }
