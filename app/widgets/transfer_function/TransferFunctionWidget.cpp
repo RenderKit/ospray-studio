@@ -144,9 +144,9 @@ TransferFunctionWidget::TransferFunctionWidget(
 {
   tfn_sample_set = [=](const std::vector<ColorPoint> &c,
                        const std::vector<OpacityPoint> &a,
-                       const std::array<float, 2> &r) {
-    if (r[1] > r[0])
-      tfn->child("valueRange") = ospcommon::vec2f(r[0], r[1]);
+                       const ospcommon::range1f &r) {
+    if (r.upper > r.lower)
+      tfn->child("valueRange") = r.toVec2f();
 
     auto colors = ospray::sg::createNode("colorControlPoints", "DataVector4f")
                      ->nodeAs<ospray::sg::DataVector4f>();
@@ -169,8 +169,8 @@ TransferFunctionWidget::TransferFunctionWidget(
   numSamples = tfn->child("numSamples").valueAs<int>();
 
   auto range = tfn->child("valueRange").valueAs<ospcommon::vec2f>();
-  valueRange[0] = range.x;
-  valueRange[1] = range.y;
+  valueRange.lower = range.x;
+  valueRange.upper = range.y;
 
   LoadDefaultMap();
 
@@ -210,10 +210,8 @@ TransferFunctionWidget &TransferFunctionWidget::operator=(
   tfn_changed     = true;
   tfn_palette     = 0;
   tfn_sample_set  = core.tfn_sample_set;
-  valueRange[0]   = core.valueRange[0];
-  valueRange[1]   = core.valueRange[1];
-  defaultRange[0] = core.defaultRange[0];
-  defaultRange[1] = core.defaultRange[1];
+  valueRange      = core.valueRange;
+  defaultRange    = core.defaultRange;
   return *this;
 }
 
@@ -248,16 +246,16 @@ void TransferFunctionWidget::drawUI()
   }
   // TODO: save function is not implemented
   // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
-  if (defaultRange[1] > defaultRange[0]) {
+  if (defaultRange.upper > defaultRange.lower) {
     if (ImGui::DragFloat2("value range",
-                          valueRange.data(),
-                          (defaultRange[1] - defaultRange[0]) / 1000.f,
-                          defaultRange[0],
-                          defaultRange[1])) {
+                          reinterpret_cast<float*>(&valueRange),
+                          defaultRange.size() / 1000.f,
+                          defaultRange.lower,
+                          defaultRange.upper)) {
       tfn_changed = true;
     }
   } else {
-    if (ImGui::DragFloat2("value range", valueRange.data()))
+    if (ImGui::DragFloat2("value range", reinterpret_cast<float*>(&valueRange)))
       tfn_changed = true;
   }
 

@@ -50,13 +50,11 @@ namespace tfn {
       TransferFunctionWidget &operator=(const TransferFunctionWidget &);
       /* Control Widget Values
        */
-      void setDefaultRange(const float &a, const float &b)
+      void setDefaultRange(const ospcommon::range1f &newRange)
       {
-        defaultRange[0] = a;
-        defaultRange[1] = b;
-        valueRange[0]   = a;
-        valueRange[1]   = b;
-        tfn_changed     = true;
+        defaultRange = valueRange = newRange;
+
+        tfn_changed = true;
       }
       /* Draw the transfer function editor widget */
       void drawUI();
@@ -70,15 +68,6 @@ namespace tfn {
       void save(const std::string &fileName) const;
 
      private:
-      // The indices of the transfer function color presets available
-      enum ColorMap
-      {
-        JET,
-        ICE_FIRE,
-        COOL_WARM,
-        BLUE_RED,
-        GRAYSCALE,
-      };
 
       // TODO
       // This MAYBE the correct way of doing this
@@ -92,11 +81,12 @@ namespace tfn {
       // Core Handler
       std::function<void(const std::vector<ColorPoint> &,
                          const std::vector<OpacityPoint> &,
-                         const std::array<float, 2> &)>
+                         const ospcommon::range1f &)>
           tfn_sample_set;
+
       std::vector<tfn::TransferFunction> tfn_readers;
-      std::array<float, 2> valueRange;
-      std::array<float, 2> defaultRange;
+      ospcommon::range1f valueRange;
+      ospcommon::range1f defaultRange;
 
       // TFNs information:
       std::vector<bool> tfn_editable;
@@ -124,7 +114,7 @@ namespace tfn {
       int numSamples {1};
 
       // * The selected transfer function being shown
-      int tfn_selection{JET};
+      int tfn_selection{0};
       // * The 2d palette texture on the GPU for displaying the color map in the
       // UI.
       GLuint tfn_palette{0};
