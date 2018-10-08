@@ -31,7 +31,7 @@ namespace ospray {
   {
     ImGui::SetNextWindowSize(ImVec2(500,400), ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("SceneGraph", &show, g_defaultWindowFlags))
+    if (ImGui::Begin("SceneGraph", nullptr, g_defaultWindowFlags))
       guiSGTree("root", scenegraph);
 
     ImGui::End();

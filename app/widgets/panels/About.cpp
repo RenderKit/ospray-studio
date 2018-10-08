@@ -27,8 +27,9 @@ namespace ospray {
   void PanelAbout::buildUI()
   {
     ImGui::OpenPopup("About OSPRay Studio");
+
     if (ImGui::BeginPopupModal("About OSPRay Studio",
-                               &show,
+                               nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
       ImGui::Text(
 R"text(
@@ -47,7 +48,7 @@ future updates!
       ImGui::Separator();
 
       if (ImGui::Button("Close")) {
-        show = false;
+        setShown(false);
         ImGui::CloseCurrentPopup();
       }
 

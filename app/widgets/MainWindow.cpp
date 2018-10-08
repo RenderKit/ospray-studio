@@ -619,9 +619,7 @@ namespace ospray {
                  ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_AlwaysAutoResize;
 
-    if (ImGui::Begin("Rendering Statistics",
-                     &showWindowRenderStatistics,
-                     flags)) {
+    if (ImGui::Begin("Rendering Statistics", nullptr, flags)) {
       ImGui::NewLine();
       ImGui::Text("OSPRay render rate: %.1f fps", renderFPS);
       ImGui::Text("  Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
@@ -672,9 +670,7 @@ namespace ospray {
 
     bool &autoImport = autoImportNodesFromFinishedJobs;
 
-    if (ImGui::Begin("Job Scheduler Panel",
-                     &showWindowJobStatusControlPanel,
-                     flags)) {
+    if (ImGui::Begin("Job Scheduler Panel", nullptr, flags)) {
       ImGui::Text("%lu jobs running", jobsInProgress.size());
       ImGui::Text("%lu nodes ready", loadedNodes.size());
       ImGui::NewLine();

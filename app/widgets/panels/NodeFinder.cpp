@@ -34,9 +34,8 @@ namespace ospray {
   void PanelNodeFinder::buildUI()
   {
     ImGui::SetNextWindowSize(ImVec2(400,300), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("Node Finder",
-                      &show,
-                      g_defaultWindowFlags)) {
+
+    if (!ImGui::Begin("Node Finder", nullptr, g_defaultWindowFlags)) {
       ImGui::End();
       return;
     }

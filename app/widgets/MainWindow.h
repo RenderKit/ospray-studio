@@ -84,9 +84,7 @@ namespace ospray {
 
     bool showWindowGenerateData{false};
     bool showWindowImGuiDemo{false};
-    bool showWindowJobStatusControlPanel{true};
     bool showWindowImportData{false};
-    bool showWindowRenderStatistics{false};
 
     // Experimental items //
 

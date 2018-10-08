@@ -34,7 +34,7 @@ namespace ospray {
                  ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_AlwaysAutoResize;
 
-    if (!ImGui::Begin("Scene Graph Advanced Tools", &show, flags)) {
+    if (!ImGui::Begin("Scene Graph Advanced Tools", nullptr, flags)) {
       ImGui::End();
       return;
     }

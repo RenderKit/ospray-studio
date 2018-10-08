@@ -25,20 +25,27 @@ namespace ospray {
     Panel() = default;
     virtual ~Panel() = default;
 
-    // build the UI itself (per-frame ImGui calls)
+    // Function called by MainWindow to construct the desired ImGui widgets ///
+
     virtual void buildUI() = 0;
+
+    // Controls to show/hide the panel in the app /////////////////////////////
 
     void setShown(bool shouldBeShown);
     void toggleShown();
     bool isShown() const;
 
-    void setName(const std::string &newName);
+    // Panel name controls ////////////////////////////////////////////////////
 
+    void setName(const std::string &newName);
     std::string name() const;
 
   protected:
 
+    // Constructor to be used by child classes
     Panel(const std::string &_name) : currentName(_name) {}
+
+  private:
 
     // Properties //
 
