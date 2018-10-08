@@ -351,6 +351,33 @@ namespace ospray {
         jobsInProgress.erase(it++);
       }
     }
+
+    if (autoImportNodesFromFinishedJobs && !loadedNodes.empty())
+      importFinishedNodes();
+  }
+
+  void MainWindow::importFinishedNodes()
+  {
+    bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
+    renderEngine.stop();
+
+    for (auto &node : loadedNodes)
+      renderer->child("world").add(node);
+
+    loadedNodes.clear();
+
+    renderer->computeBounds();
+
+    scenegraph->verify();
+
+    resetDefaultView();
+    resetView();
+
+    setMotionSpeed(-1.f);
+    setWorldBounds(renderer->child("bounds").valueAs<box3f>());
+
+    if (wasRunning)
+      renderEngine.start();
   }
 
   void MainWindow::clearScene()
@@ -643,7 +670,7 @@ namespace ospray {
                  ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_AlwaysAutoResize;
 
-    static bool autoImport = true;
+    bool &autoImport = autoImportNodesFromFinishedJobs;
 
     if (ImGui::Begin("Job Scheduler Panel",
                      &showWindowJobStatusControlPanel,
@@ -652,36 +679,11 @@ namespace ospray {
       ImGui::Text("%lu nodes ready", loadedNodes.size());
       ImGui::NewLine();
 
-      auto doIt = [&]() {
-        bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
-        renderEngine.stop();
-
-        for (auto &node : loadedNodes)
-          renderer->child("world").add(node);
-
-        loadedNodes.clear();
-
-        renderer->computeBounds();
-
-        scenegraph->verify();
-
-        resetDefaultView();
-        resetView();
-
-        setMotionSpeed(-1.f);
-        setWorldBounds(renderer->child("bounds").valueAs<box3f>());
-
-        if (wasRunning)
-          renderEngine.start();
-      };
-
       ImGui::Checkbox("auto add to scene", &autoImport);
 
-      if (autoImport && !loadedNodes.empty())
-        doIt();
-      else if (!autoImport) {
+      if (!autoImport) {
         if (ImGui::Button("Add Loaded Nodes to SceneGraph"))
-          doIt();
+          importFinishedNodes();
         ImGui::Separator();
         ImGui::Text("Loaded Nodes:");
         ImGui::NewLine();

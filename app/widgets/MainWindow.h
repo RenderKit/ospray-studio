@@ -58,6 +58,7 @@ namespace ospray {
 
     void processFinishedJobs();
     void clearFinishedJobs();
+    void importFinishedNodes();
 
     void buildGui() override;
 
@@ -109,6 +110,7 @@ namespace ospray {
 
     bool saveScreenshot {false}; // write next mapped framebuffer to disk
     bool cancelFrameOnInteraction {true};
+    bool autoImportNodesFromFinishedJobs {true};
 
     float frameProgress {0.f};
     std::atomic<bool> cancelRendering {false};
