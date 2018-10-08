@@ -16,70 +16,38 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
+#include "Plugin.h"
+
+#include <ospray/sg/SceneGraph.h>
 
 namespace ospray {
 
-  struct Panel
+  struct PluginManager
   {
-    Panel()          = default;
-    virtual ~Panel() = default;
+    PluginManager()  = default;
+    ~PluginManager() = default;
 
-    // Function called by MainWindow to construct the desired ImGui widgets //
+    void loadPlugin(const std::string &name);
+    void removePlugin(const std::string &name);
 
-    virtual void buildUI() = 0;
-
-    // Controls to show/hide the panel in the app //
-
-    void setShown(bool shouldBeShown);
-    void toggleShown();
-    bool isShown() const;
-
-    // Panel name controls //
-
-    void setName(const std::string &newName);
-    std::string name() const;
-
-   protected:
-    // Constructor to be used by child classes
-    Panel(const std::string &_name) : currentName(_name) {}
+    // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
+    PanelList getAllPanelsFromPlugins(std::shared_ptr<sg::Frame> scenegraph);
 
    private:
-    // Properties //
+    // Helper types //
+    struct LoadedPlugin
+    {
+      std::unique_ptr<Plugin> instance;
+      bool active{true};
+    };
 
-    bool show = false;
-    std::string currentName{"<unnamed panel>"};
+    // Helper functions //
+
+    void addPlugin(std::unique_ptr<Plugin> plugin);
+
+    // Data //
+
+    std::vector<LoadedPlugin> plugins;
   };
-
-  using PanelList = std::vector<std::unique_ptr<Panel>>;
-
-  // Inlined members //////////////////////////////////////////////////////////
-
-  inline void Panel::setShown(bool shouldBeShown)
-  {
-    show = shouldBeShown;
-  }
-
-  inline void Panel::toggleShown()
-  {
-    show = !show;
-  }
-
-  inline bool Panel::isShown() const
-  {
-    return show;
-  }
-
-  inline void Panel::setName(const std::string &newName)
-  {
-    currentName = newName;
-  }
-
-  inline std::string Panel::name() const
-  {
-    return currentName;
-  }
 
 }  // namespace ospray

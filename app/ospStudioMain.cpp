@@ -19,7 +19,21 @@
 
 #include "widgets/MainWindow.h"
 
+#include <ospray/ospcommon/utility/StringManip.h>
+
 using namespace ospcommon;
+using namespace ospray;
+
+// Static data ////////////////////////////////////////////////////////////////
+
+static int width       = 1200;
+static int height      = 800;
+static bool fullscreen = false;
+
+static std::vector<std::string> filesToImport;
+static std::vector<std::string> pluginsToLoad;
+
+// Helper functions ///////////////////////////////////////////////////////////
 
 static int initializeOSPRay(int *argc, const char *argv[])
 {
@@ -45,10 +59,6 @@ static int initializeOSPRay(int *argc, const char *argv[])
   return 0;
 }
 
-static int width  = 1200;
-static int height = 800;
-static bool fullscreen = false;
-
 static void parseCommandLine(int &ac, const char **&av)
 {
   for (int i = 1; i < ac; i++) {
@@ -70,7 +80,7 @@ static void parseCommandLine(int &ac, const char **&av)
       removeArgs(ac, av, i, 2);
       --i;
     } else if (arg == "--size") {
-      width = atoi(av[i + 1]);
+      width  = atoi(av[i + 1]);
       height = atoi(av[i + 2]);
       removeArgs(ac, av, i, 3);
       --i;
@@ -80,14 +90,40 @@ static void parseCommandLine(int &ac, const char **&av)
     } else if (arg == "-hd") {
       width  = 1920;
       height = 1080;
+    } else if (utility::beginsWith(arg, "-sg:")) {
+      // SG parameters are validated by prefix only.
+      // Later different function is used for parsing this type parameters.
+      continue;
+    } else if (arg == "--plugin" || arg == "-p") {
+      pluginsToLoad.emplace_back(av[i + 1]);
+      removeArgs(ac, av, i, 2);
+      --i;
+    } else {
+      filesToImport.push_back(arg);
     }
   }
 }
 
+static void importFilesFromCommandLine(const sg::Frame & /*root*/)
+{
+  // TODO
+}
+
+static void setupLights(const sg::Frame &root)
+{
+  // TODO: this should be easy to add via the UI!
+  auto &lights         = root.child("renderer").child("lights");
+  auto &ambient        = lights.createChild("ambient", "AmbientLight");
+  ambient["intensity"] = 1.25f;
+  ambient["color"]     = vec3f(1.f);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
 int main(int argc, const char **argv)
 {
-  using namespace ospray;
-
   int result = initializeOSPRay(&argc, argv);
 
   if (result != 0) {
@@ -95,21 +131,16 @@ int main(int argc, const char **argv)
     return result;
   }
 
-  // access/load symbols/sg::Nodes dynamically
   loadLibrary("ospray_sg");
 
   parseCommandLine(argc, argv);
 
   auto root = sg::createNode("ROOT", "Frame")->nodeAs<sg::Frame>();
 
-  // TODO: this should be easy to add via the UI! /////////////////////////////
-  auto &lights = root->child("renderer").child("lights");
-  auto &ambient = lights.createChild("ambient", "AmbientLight");
-  ambient["intensity"] =  1.25f;
-  ambient["color"] = vec3f(1.f);
-  /////////////////////////////////////////////////////////////////////////////
+  importFilesFromCommandLine(*root);
+  setupLights(*root);
 
-  ospray::MainWindow window(root);
+  MainWindow window(root, pluginsToLoad);
 
   window.create("OSPRay Studio", fullscreen, vec2i(width, height));
 

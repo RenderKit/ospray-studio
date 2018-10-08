@@ -14,33 +14,20 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-## Build app
+option(BUILD_PLUGIN_EXAMPLE "Example plugin" OFF)
 
-ospray_create_application(ospStudio
-  ospStudioMain.cpp
-  imgui_impl_glfw_gl3.cpp
-  PluginManager.cpp
+if (BUILD_PLUGIN_EXAMPLE)
 
-  util/AsyncRenderEngine.cpp
-  util/CameraManipulator.cpp
+  ospray_create_library(ospray_studio_plugin_example
+    plugin_example.cpp
+    PanelExample.cpp
+  LINK
+    ${OSPRAY_LIBRARIES}
+    ospray_imgui
+  )
 
-  widgets/imgui3D.cpp
-  widgets/MainWindow.cpp
+  target_include_directories(ospray_studio_plugin_example
+    PRIVATE ${CMAKE_SOURCE_DIR}
+  )
 
-  widgets/panels/About.cpp
-  widgets/panels/NodeFinder.cpp
-  widgets/panels/SGAdvanced.cpp
-  widgets/panels/SGTreeView.cpp
-
-  widgets/sg_ui/ospray_sg_ui.cpp
-
-  widgets/transfer_function/TransferFunctionWidget.cpp
-
-LINK
-  ${OSPRAY_LIBRARIES}
-  ${OSPRAY_SG_LIBRARIES}
-  Threads::Threads
-  ospray_imgui
-  ospray_tfn
-  glfw
-)
+endif()

@@ -17,69 +17,38 @@
 #pragma once
 
 #include <memory>
-#include <string>
 #include <vector>
+
+#include "widgets/Panel.h"
+
+#include "ospray/sg/SceneGraph.h"
 
 namespace ospray {
 
-  struct Panel
+  struct Plugin
   {
-    Panel()          = default;
-    virtual ~Panel() = default;
+    virtual ~Plugin() = default;
 
-    // Function called by MainWindow to construct the desired ImGui widgets //
+    // Create an instance of each panel, the parameter passed in the is root
+    // node in the scene graph
+    virtual PanelList createPanels(std::shared_ptr<sg::Frame> scenegraph) = 0;
 
-    virtual void buildUI() = 0;
-
-    // Controls to show/hide the panel in the app //
-
-    void setShown(bool shouldBeShown);
-    void toggleShown();
-    bool isShown() const;
-
-    // Panel name controls //
-
-    void setName(const std::string &newName);
     std::string name() const;
 
    protected:
-    // Constructor to be used by child classes
-    Panel(const std::string &_name) : currentName(_name) {}
+    Plugin(const std::string &pluginName);
 
    private:
-    // Properties //
-
-    bool show = false;
-    std::string currentName{"<unnamed panel>"};
+    std::string pluginName;
   };
-
-  using PanelList = std::vector<std::unique_ptr<Panel>>;
 
   // Inlined members //////////////////////////////////////////////////////////
 
-  inline void Panel::setShown(bool shouldBeShown)
+  inline std::string Plugin::name() const
   {
-    show = shouldBeShown;
+    return pluginName;
   }
 
-  inline void Panel::toggleShown()
-  {
-    show = !show;
-  }
-
-  inline bool Panel::isShown() const
-  {
-    return show;
-  }
-
-  inline void Panel::setName(const std::string &newName)
-  {
-    currentName = newName;
-  }
-
-  inline std::string Panel::name() const
-  {
-    return currentName;
-  }
+  inline Plugin::Plugin(const std::string &_name) : pluginName(_name) {}
 
 }  // namespace ospray

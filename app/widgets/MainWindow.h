@@ -20,11 +20,12 @@
 
 #include "imgui3D.h"
 
-#include "sg/SceneGraph.h"
 #include "sg/Renderer.h"
+#include "sg/SceneGraph.h"
 
 #include "../jobs/JobScheduler.h"
 
+#include "../PluginManager.h"
 #include "Panel.h"
 
 #include <list>
@@ -33,17 +34,20 @@ namespace ospray {
 
   class MainWindow : public ospray::imgui3D::ImGui3DWidget
   {
-  public:
-
-    MainWindow(const std::shared_ptr<sg::Frame> &scenegraph);
+   public:
+    MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
+               const std::vector<std::string> &pluginsToLoad = {});
 
     ~MainWindow();
 
     void startAsyncRendering() override;
 
-  private:
-
-    enum PickMode { PICK_CAMERA, PICK_NODE };
+   private:
+    enum PickMode
+    {
+      PICK_CAMERA,
+      PICK_NODE
+    };
 
     void mouseButton(int button, int action, int mods) override;
     void reshape(const ospcommon::vec2i &newSize) override;
@@ -95,10 +99,14 @@ namespace ospray {
 
     std::vector<std::unique_ptr<Panel>> panels;
 
+    // Plugins //
+
+    PluginManager pluginManager;
+
     // Not-yet-categorized data //
 
     int progressCallback(const float progress);
-    static int progressCallbackWrapper(void * ptr, const float progress);
+    static int progressCallbackWrapper(void *ptr, const float progress);
 
     double lastFrameFPS;
     double lastGUITime;
@@ -106,12 +114,12 @@ namespace ospray {
     double lastTotalTime;
     float lastVariance;
 
-    bool saveScreenshot {false}; // write next mapped framebuffer to disk
-    bool cancelFrameOnInteraction {true};
-    bool autoImportNodesFromFinishedJobs {true};
+    bool saveScreenshot{false};  // write next mapped framebuffer to disk
+    bool cancelFrameOnInteraction{true};
+    bool autoImportNodesFromFinishedJobs{true};
 
-    float frameProgress {0.f};
-    std::atomic<bool> cancelRendering {false};
+    float frameProgress{0.f};
+    std::atomic<bool> cancelRendering{false};
 
     bool limitAccumulation{true};
     int accumulationLimit{64};
@@ -124,9 +132,9 @@ namespace ospray {
     AsyncRenderEngine renderEngine;
 
     bool useDynamicLoadBalancer{false};
-    int  numPreAllocatedTiles{4};
+    int numPreAllocatedTiles{4};
 
-    PickMode lastPickQueryType {PICK_CAMERA};
+    PickMode lastPickQueryType{PICK_CAMERA};
   };
 
-}// namespace ospray
+}  // namespace ospray

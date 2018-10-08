@@ -14,33 +14,9 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-## Build app
-
-ospray_create_application(ospStudio
-  ospStudioMain.cpp
-  imgui_impl_glfw_gl3.cpp
-  PluginManager.cpp
-
-  util/AsyncRenderEngine.cpp
-  util/CameraManipulator.cpp
-
-  widgets/imgui3D.cpp
-  widgets/MainWindow.cpp
-
-  widgets/panels/About.cpp
-  widgets/panels/NodeFinder.cpp
-  widgets/panels/SGAdvanced.cpp
-  widgets/panels/SGTreeView.cpp
-
-  widgets/sg_ui/ospray_sg_ui.cpp
-
-  widgets/transfer_function/TransferFunctionWidget.cpp
-
-LINK
-  ${OSPRAY_LIBRARIES}
-  ${OSPRAY_SG_LIBRARIES}
-  Threads::Threads
-  ospray_imgui
-  ospray_tfn
-  glfw
-)
+file(GLOB plugins RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/ *)
+foreach(plugin ${plugins})
+  if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${plugin}/CMakeLists.txt)
+    add_subdirectory(${plugin})
+  endif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${plugin}/CMakeLists.txt)
+endforeach(plugin ${plugins})

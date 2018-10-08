@@ -17,8 +17,8 @@
 
 #include "MainWindow.h"
 // ospcommon
-#include "ospcommon/utility/getEnvVar.h"
 #include "ospcommon/utility/SaveImage.h"
+#include "ospcommon/utility/getEnvVar.h"
 // ospray_sg
 #include "sg/common/FrameBuffer.h"
 #include "sg/generator/Generator.h"
@@ -44,18 +44,19 @@ static ImGuiFs::Dialog openFileDialog;
 
 namespace ospray {
 
-  MainWindow::MainWindow(const std::shared_ptr<sg::Frame> &scenegraph)
-    : ImGui3DWidget(ImGui3DWidget::RESIZE_KEEPFOVY),
-      scenegraph(scenegraph),
-      renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
-      renderEngine(scenegraph)
+  MainWindow::MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
+                         const std::vector<std::string> &pluginsToLoad)
+      : ImGui3DWidget(ImGui3DWidget::RESIZE_KEEPFOVY),
+        scenegraph(scenegraph),
+        renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
+        renderEngine(scenegraph)
   {
     auto &navFB = scenegraph->createChild("navFrameBuffer", "FrameBuffer");
-    navFB["useAccumBuffer"] = false;
+    navFB["useAccumBuffer"]    = false;
     navFB["useVarianceBuffer"] = false;
 
-    auto OSPRAY_DYNAMIC_LOADBALANCER=
-      utility::getEnvVar<int>("OSPRAY_DYNAMIC_LOADBALANCER");
+    auto OSPRAY_DYNAMIC_LOADBALANCER =
+        utility::getEnvVar<int>("OSPRAY_DYNAMIC_LOADBALANCER");
 
     useDynamicLoadBalancer = OSPRAY_DYNAMIC_LOADBALANCER.value_or(false);
 
@@ -68,20 +69,29 @@ namespace ospray {
 
     ospSetProgressFunc(&ospray::MainWindow::progressCallbackWrapper, this);
 
+    // load plugins //
+
+    for (auto &p : pluginsToLoad)
+      pluginManager.loadPlugin(p);
+
     // create panels //
 
-    panels.emplace_back(new GenericPanel("Renderer Stats", [&](){
-      this->guiRenderStats();
-    }));
+    panels.emplace_back(
+        new GenericPanel("Renderer Stats", [&]() { this->guiRenderStats(); }));
 
-    panels.emplace_back(new GenericPanel("Job Scheduler", [&](){
-      this->guiJobStatusControlPanel();
-    }));
+    panels.emplace_back(new GenericPanel(
+        "Job Scheduler", [&]() { this->guiJobStatusControlPanel(); }));
 
     panels.emplace_back(new PanelNodeFinder(scenegraph));
     panels.emplace_back(new PanelSGTreeView(scenegraph));
     panels.emplace_back(new PanelSGAdvanced(scenegraph));
     panels.emplace_back(new PanelAbout());
+
+    auto pluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
+    std::transform(pluginPanels.begin(),
+                   pluginPanels.end(),
+                   std::back_inserter(panels),
+                   [](auto &p) { return std::move(p); });
   }
 
   MainWindow::~MainWindow()
@@ -97,8 +107,8 @@ namespace ospray {
 
   void MainWindow::mouseButton(int button, int action, int mods)
   {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS
-        && ((mods & GLFW_MOD_SHIFT) | (mods & GLFW_MOD_CONTROL))) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS &&
+        ((mods & GLFW_MOD_SHIFT) | (mods & GLFW_MOD_CONTROL))) {
       const vec2f pos(currMousePos.x / static_cast<float>(windowSize.x),
                       1.f - currMousePos.y / static_cast<float>(windowSize.y));
       renderEngine.pick(pos);
@@ -109,15 +119,14 @@ namespace ospray {
   void MainWindow::reshape(const vec2i &newSize)
   {
     ImGui3DWidget::reshape(newSize);
-    scenegraph->child("frameBuffer")["size"] = renderSize;
+    scenegraph->child("frameBuffer")["size"]    = renderSize;
     scenegraph->child("navFrameBuffer")["size"] = navRenderSize;
   }
 
   void MainWindow::keypress(char key)
   {
     switch (key) {
-    case ' ':
-    {
+    case ' ': {
       if (renderer && renderer->hasChild("animationcontroller")) {
         bool animating =
             renderer->child("animationcontroller")["enabled"].valueAs<bool>();
@@ -132,31 +141,31 @@ namespace ospray {
       saveScreenshot = true;
       break;
     case 'X':
-      if (viewPort.up == vec3f(1,0,0) || viewPort.up == vec3f(-1.f,0,0)) {
-        viewPort.up = - viewPort.up;
+      if (viewPort.up == vec3f(1, 0, 0) || viewPort.up == vec3f(-1.f, 0, 0)) {
+        viewPort.up = -viewPort.up;
       } else {
-        viewPort.up = vec3f(1,0,0);
+        viewPort.up = vec3f(1, 0, 0);
       }
       viewPort.modified = true;
       break;
     case 'Y':
-      if (viewPort.up == vec3f(0,1,0) || viewPort.up == vec3f(0,-1.f,0)) {
-        viewPort.up = - viewPort.up;
+      if (viewPort.up == vec3f(0, 1, 0) || viewPort.up == vec3f(0, -1.f, 0)) {
+        viewPort.up = -viewPort.up;
       } else {
-        viewPort.up = vec3f(0,1,0);
+        viewPort.up = vec3f(0, 1, 0);
       }
       viewPort.modified = true;
       break;
     case 'Z':
-      if (viewPort.up == vec3f(0,0,1) || viewPort.up == vec3f(0,0,-1.f)) {
-        viewPort.up = - viewPort.up;
+      if (viewPort.up == vec3f(0, 0, 1) || viewPort.up == vec3f(0, 0, -1.f)) {
+        viewPort.up = -viewPort.up;
       } else {
-        viewPort.up = vec3f(0,0,1);
+        viewPort.up = vec3f(0, 0, 1);
       }
       viewPort.modified = true;
       break;
     case 'c':
-      viewPort.modified = true;//Reset accumulation
+      viewPort.modified = true;  // Reset accumulation
       break;
     case 'o':
       showWindowImportData = true;
@@ -194,27 +203,27 @@ namespace ospray {
 
   void MainWindow::resetView()
   {
-    auto oldAspect = viewPort.aspect;
-    viewPort = originalView;
-    viewPort.aspect = oldAspect;
+    auto oldAspect    = viewPort.aspect;
+    viewPort          = originalView;
+    viewPort.aspect   = oldAspect;
     viewPort.modified = true;
   }
 
   void MainWindow::resetDefaultView()
   {
     auto &world = renderer->child("world");
-    auto bbox = world.bounds();
-    vec3f diag = bbox.size();
-    diag = max(diag, vec3f(0.3f * length(diag)));
+    auto bbox   = world.bounds();
+    vec3f diag  = bbox.size();
+    diag        = max(diag, vec3f(0.3f * length(diag)));
 
     auto gaze = ospcommon::center(bbox);
-    auto pos = gaze - .75f * vec3f(-.6 * diag.x, -1.2f * diag.y, .8f * diag.z);
-    auto up = vec3f(0.f, 1.f, 0.f);
+    auto pos  = gaze - .75f * vec3f(-.6 * diag.x, -1.2f * diag.y, .8f * diag.z);
+    auto up   = vec3f(0.f, 1.f, 0.f);
 
-    auto &camera = scenegraph->child("camera");
+    auto &camera  = scenegraph->child("camera");
     camera["pos"] = pos;
     camera["dir"] = normalize(gaze - pos);
-    camera["up"] = up;
+    camera["up"]  = up;
 
     setViewPort(pos, gaze, up);
     originalView = viewPort;
@@ -223,9 +232,15 @@ namespace ospray {
   void MainWindow::printViewport()
   {
     printf("-vp %f %f %f -vu %f %f %f -vi %f %f %f\n",
-           viewPort.from.x, viewPort.from.y, viewPort.from.z,
-           viewPort.up.x,   viewPort.up.y,   viewPort.up.z,
-           viewPort.at.x,   viewPort.at.y,   viewPort.at.z);
+           viewPort.from.x,
+           viewPort.from.y,
+           viewPort.from.z,
+           viewPort.up.x,
+           viewPort.up.y,
+           viewPort.up.z,
+           viewPort.at.x,
+           viewPort.at.y,
+           viewPort.at.z);
     fflush(stdout);
   }
 
@@ -241,16 +256,16 @@ namespace ospray {
       auto picked = renderEngine.getPickResult();
       if (picked.hit) {
         if (lastPickQueryType == PICK_NODE) {
-#if 0 // TODO: this list needs to be forwarded to a UI widget (or pick pos?)
+#if 0  // TODO: this list needs to be forwarded to a UI widget (or pick pos?)
           sg::GatherNodesByPosition visitor((vec3f&)picked.position);
           scenegraph->traverse(visitor);
           collectedNodesFromSearch = visitor.results();
 #endif
         } else {
           // No conversion operator or ctor??
-          viewPort.at.x = picked.position.x;
-          viewPort.at.y = picked.position.y;
-          viewPort.at.z = picked.position.z;
+          viewPort.at.x     = picked.position.x;
+          viewPort.at.y     = picked.position.y;
+          viewPort.at.z     = picked.position.z;
           viewPort.modified = true;
         }
       }
@@ -258,10 +273,10 @@ namespace ospray {
 
     if (viewPort.modified) {
       auto &camera = scenegraph->child("camera");
-      auto dir = viewPort.at - viewPort.from;
+      auto dir     = viewPort.at - viewPort.from;
       if (camera.hasChild("focusdistance"))
         camera["focusdistance"] = length(dir);
-      dir = normalize(dir);
+      dir           = normalize(dir);
       camera["dir"] = dir;
       camera["pos"] = viewPort.from;
       camera["up"]  = viewPort.up;
@@ -276,43 +291,50 @@ namespace ospray {
       viewPort.modified = false;
     }
 
-    renderFPS = renderEngine.lastFrameFps();
+    renderFPS         = renderEngine.lastFrameFps();
     renderFPSsmoothed = renderEngine.lastFrameFpsSmoothed();
 
     if (renderEngine.hasNewFrame()) {
       auto &mappedFB = renderEngine.mapFramebuffer();
-      auto fbSize = mappedFB.size();
-      auto fbData = mappedFB.data();
+      auto fbSize    = mappedFB.size();
+      auto fbData    = mappedFB.data();
       GLenum texelType;
       std::string filename("ospexampleviewer");
       switch (mappedFB.format()) {
-        default: /* fallthrough */
-        case OSP_FB_NONE:
-          fbData = nullptr;
-          break;
-        case OSP_FB_RGBA8: /* fallthrough */
-        case OSP_FB_SRGBA:
-          texelType = GL_UNSIGNED_BYTE;
-          if (saveScreenshot) {
-            filename += ".ppm";
-            utility::writePPM(filename, fbSize.x, fbSize.y, (uint32_t*)fbData);
-          }
-          break;
-        case OSP_FB_RGBA32F:
-          texelType = GL_FLOAT;
-          if (saveScreenshot) {
-            filename += ".pfm";
-            utility::writePFM(filename, fbSize.x, fbSize.y, (vec4f*)fbData);
-          }
-          break;
+      default: /* fallthrough */
+      case OSP_FB_NONE:
+        fbData = nullptr;
+        break;
+      case OSP_FB_RGBA8: /* fallthrough */
+      case OSP_FB_SRGBA:
+        texelType = GL_UNSIGNED_BYTE;
+        if (saveScreenshot) {
+          filename += ".ppm";
+          utility::writePPM(filename, fbSize.x, fbSize.y, (uint32_t *)fbData);
+        }
+        break;
+      case OSP_FB_RGBA32F:
+        texelType = GL_FLOAT;
+        if (saveScreenshot) {
+          filename += ".pfm";
+          utility::writePFM(filename, fbSize.x, fbSize.y, (vec4f *)fbData);
+        }
+        break;
       }
 
       // update/upload fbTexture
       if (fbData) {
-        fbAspect = fbSize.x/float(fbSize.y);
+        fbAspect = fbSize.x / float(fbSize.y);
         glBindTexture(GL_TEXTURE_2D, fbTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fbSize.x, fbSize.y, 0, GL_RGBA,
-            texelType, fbData);
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RGBA,
+                     fbSize.x,
+                     fbSize.y,
+                     0,
+                     GL_RGBA,
+                     texelType,
+                     fbData);
       } else
         fbAspect = 1.f;
 
@@ -325,19 +347,19 @@ namespace ospray {
     }
 
     // set border color TODO maybe move to application
-    vec4f texBorderCol(0.f); // default black
+    vec4f texBorderCol(0.f);  // default black
     // TODO be more sophisticated (depending on renderer type, fb mode (sRGB))
     if (renderer->child("useBackplate").valueAs<bool>()) {
-      auto col = renderer->child("bgColor").valueAs<vec3f>();
-      const float g = 1.f/2.2f;
+      auto col      = renderer->child("bgColor").valueAs<vec3f>();
+      const float g = 1.f / 2.2f;
       texBorderCol = vec4f(powf(col.x, g), powf(col.y, g), powf(col.z, g), 0.f);
     }
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, &texBorderCol[0]);
 
     ImGui3DWidget::display();
 
-    lastTotalTime = ImGui3DWidget::totalTime;
-    lastGUITime = ImGui3DWidget::guiTime;
+    lastTotalTime   = ImGui3DWidget::totalTime;
+    lastGUITime     = ImGui3DWidget::guiTime;
     lastDisplayTime = ImGui3DWidget::displayTime;
   }
 
@@ -403,13 +425,17 @@ namespace ospray {
 
     guiMainMenu();
 
-    if (showWindowImportData) guiImportData();
-    if (showWindowGenerateData) guiGenerateData();
+    if (showWindowImportData)
+      guiImportData();
+    if (showWindowGenerateData)
+      guiGenerateData();
 
     for (auto &p : panels)
-      if (p->isShown()) p->buildUI();
+      if (p->isShown())
+        p->buildUI();
 
-    if (showWindowImGuiDemo) ImGui::ShowTestWindow(&showWindowImGuiDemo);
+    if (showWindowImGuiDemo)
+      ImGui::ShowTestWindow(&showWindowImGuiDemo);
   }
 
   void MainWindow::guiMainMenu()
@@ -427,7 +453,6 @@ namespace ospray {
   void MainWindow::guiMainMenuFile()
   {
     if (ImGui::BeginMenu("File")) {
-
       if (ImGui::MenuItem("(o) Import Data..."))
         showWindowImportData = true;
 
@@ -458,7 +483,7 @@ namespace ospray {
       }
 
       if (limitAccumulation) {
-        if(ImGui::InputInt("Frame Limit", &accumulationLimit))
+        if (ImGui::InputInt("Frame Limit", &accumulationLimit))
           setFrameAccumulation();
       } else {
         scenegraph->child("frameAccumulationLimit") = -1;
@@ -469,19 +494,26 @@ namespace ospray {
 
       if (ImGui::BeginMenu("Scale Resolution")) {
         float scale = renderResolutionScale;
-        if (ImGui::MenuItem("0.25x")) renderResolutionScale = 0.25f;
-        if (ImGui::MenuItem("0.50x")) renderResolutionScale = 0.5f;
-        if (ImGui::MenuItem("0.75x")) renderResolutionScale = 0.75f;
+        if (ImGui::MenuItem("0.25x"))
+          renderResolutionScale = 0.25f;
+        if (ImGui::MenuItem("0.50x"))
+          renderResolutionScale = 0.5f;
+        if (ImGui::MenuItem("0.75x"))
+          renderResolutionScale = 0.75f;
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("1.00x")) renderResolutionScale = 1.f;
+        if (ImGui::MenuItem("1.00x"))
+          renderResolutionScale = 1.f;
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("1.25x")) renderResolutionScale = 1.25f;
-        if (ImGui::MenuItem("2.00x")) renderResolutionScale = 2.0f;
-        if (ImGui::MenuItem("4.00x")) renderResolutionScale = 4.0f;
+        if (ImGui::MenuItem("1.25x"))
+          renderResolutionScale = 1.25f;
+        if (ImGui::MenuItem("2.00x"))
+          renderResolutionScale = 2.0f;
+        if (ImGui::MenuItem("4.00x"))
+          renderResolutionScale = 4.0f;
 
         ImGui::Separator();
 
@@ -498,19 +530,26 @@ namespace ospray {
 
       if (ImGui::BeginMenu("Scale Resolution while Navigating")) {
         float scale = navRenderResolutionScale;
-        if (ImGui::MenuItem("0.25x")) navRenderResolutionScale = 0.25f;
-        if (ImGui::MenuItem("0.50x")) navRenderResolutionScale = 0.5f;
-        if (ImGui::MenuItem("0.75x")) navRenderResolutionScale = 0.75f;
+        if (ImGui::MenuItem("0.25x"))
+          navRenderResolutionScale = 0.25f;
+        if (ImGui::MenuItem("0.50x"))
+          navRenderResolutionScale = 0.5f;
+        if (ImGui::MenuItem("0.75x"))
+          navRenderResolutionScale = 0.75f;
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("1.00x")) navRenderResolutionScale = 1.f;
+        if (ImGui::MenuItem("1.00x"))
+          navRenderResolutionScale = 1.f;
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("1.25x")) navRenderResolutionScale = 1.25f;
-        if (ImGui::MenuItem("2.00x")) navRenderResolutionScale = 2.0f;
-        if (ImGui::MenuItem("4.00x")) navRenderResolutionScale = 4.0f;
+        if (ImGui::MenuItem("1.25x"))
+          navRenderResolutionScale = 1.25f;
+        if (ImGui::MenuItem("2.00x"))
+          navRenderResolutionScale = 2.0f;
+        if (ImGui::MenuItem("4.00x"))
+          navRenderResolutionScale = 4.0f;
 
         ImGui::Separator();
 
@@ -529,7 +568,8 @@ namespace ospray {
         const float aspect = fixedRenderAspect;
         if (ImGui::MenuItem("Lock"))
           fixedRenderAspect = (float)windowSize.x / windowSize.y;
-        if (ImGui::MenuItem("Unlock")) fixedRenderAspect = 0.f;
+        if (ImGui::MenuItem("Unlock"))
+          fixedRenderAspect = 0.f;
         ImGui::InputFloat("Set", &fixedRenderAspect);
         fixedRenderAspect = std::max(fixedRenderAspect, 0.f);
 
@@ -547,7 +587,8 @@ namespace ospray {
       ImGui::Separator();
       ImGui::Separator();
 
-      if (ImGui::MenuItem("(q) Quit")) exitRequestedByUser = true;
+      if (ImGui::MenuItem("(q) Quit"))
+        exitRequestedByUser = true;
 
       ImGui::EndMenu();
     }
@@ -577,7 +618,6 @@ namespace ospray {
   void MainWindow::guiMainMenuCamera()
   {
     if (ImGui::BeginMenu("Camera")) {
-
       ImGui::Checkbox("Auto-Rotate", &animating);
 
       ImGui::Separator();
@@ -588,15 +628,20 @@ namespace ospray {
       if (ImGui::Checkbox("Orbit Camera Mode", &orbitMode))
         manipulator = inspectCenterManipulator.get();
 
-      if (orbitMode) ImGui::Checkbox("Anchor 'Up' Direction", &upAnchored);
+      if (orbitMode)
+        ImGui::Checkbox("Anchor 'Up' Direction", &upAnchored);
 
       if (ImGui::Checkbox("Fly Camera Mode", &flyMode))
         manipulator = moveModeManipulator.get();
 
-      if (ImGui::MenuItem("Reset View")) resetView();
-      if (ImGui::MenuItem("Create Default View")) resetDefaultView();
-      if (ImGui::MenuItem("Reset Accumulation")) viewPort.modified = true;
-      if (ImGui::MenuItem("Print View")) printViewport();
+      if (ImGui::MenuItem("Reset View"))
+        resetView();
+      if (ImGui::MenuItem("Create Default View"))
+        resetDefaultView();
+      if (ImGui::MenuItem("Reset Accumulation"))
+        viewPort.modified = true;
+      if (ImGui::MenuItem("Print View"))
+        printViewport();
 
       ImGui::InputFloat("Motion Speed", &motionSpeed);
 
@@ -615,17 +660,16 @@ namespace ospray {
 
   void MainWindow::guiRenderStats()
   {
-    auto flags = g_defaultWindowFlags |
-                 ImGuiWindowFlags_NoResize |
+    auto flags = g_defaultWindowFlags | ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_AlwaysAutoResize;
 
     if (ImGui::Begin("Rendering Statistics", nullptr, flags)) {
       ImGui::NewLine();
       ImGui::Text("OSPRay render rate: %.1f fps", renderFPS);
       ImGui::Text("  Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
-      ImGui::Text("  Total 3dwidget time: %.1f ms", lastTotalTime*1000.f);
-      ImGui::Text("  GUI time: %.1f ms", lastGUITime*1000.f);
-      ImGui::Text("  display pixel time: %.1f ms", lastDisplayTime*1000.f);
+      ImGui::Text("  Total 3dwidget time: %.1f ms", lastTotalTime * 1000.f);
+      ImGui::Text("  GUI time: %.1f ms", lastGUITime * 1000.f);
+      ImGui::Text("  display pixel time: %.1f ms", lastDisplayTime * 1000.f);
       auto variance = renderer->getLastVariance();
       ImGui::Text("Variance: %.3f", variance);
 
@@ -655,7 +699,7 @@ namespace ospray {
           snprintf(str, sizeof(str), "%.1f s", sec);
 
         ImGui::SameLine();
-        ImGui::ProgressBar(sec/eta, ImVec2(-1,0), str);
+        ImGui::ProgressBar(sec / eta, ImVec2(-1, 0), str);
       }
     }
 
@@ -664,8 +708,7 @@ namespace ospray {
 
   void MainWindow::guiJobStatusControlPanel()
   {
-    auto flags = g_defaultWindowFlags |
-                 ImGuiWindowFlags_NoResize |
+    auto flags = g_defaultWindowFlags | ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_AlwaysAutoResize;
 
     bool &autoImport = autoImportNodesFromFinishedJobs;
@@ -697,12 +740,12 @@ namespace ospray {
     if (ImGui::BeginPopupModal("Generate Data",
                                &showWindowGenerateData,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
-
       ImGui::Text("Generator Type:   ");
       ImGui::SameLine();
 
       static int which = 0;
-      ImGui::Combo("##1", &which, "spheres\0cube\0cylinders\0volume\0vtkWavelet\0\0", 5);
+      ImGui::Combo(
+          "##1", &which, "spheres\0cube\0cylinders\0volume\0vtkWavelet\0\0", 5);
 
       static std::string parameters;
       ImGui::Text("Generator Params: ");
@@ -710,16 +753,15 @@ namespace ospray {
       static std::array<char, 512> buf;
       strcpy(buf.data(), parameters.c_str());
       buf[parameters.size()] = '\0';
-      if (ImGui::InputText("##2", buf.data(),
-                           511)) {
+      if (ImGui::InputText("##2", buf.data(), 511)) {
         parameters = std::string(buf.data());
       }
 
       ImGui::Separator();
 
-      if (ImGui::Button("OK", ImVec2(120,0))) {
+      if (ImGui::Button("OK", ImVec2(120, 0))) {
         // TODO: move this inline-lambda to a named functor instead
-        auto job = job_scheduler::schedule_job([=](){
+        auto job = job_scheduler::schedule_job([=]() {
           job_scheduler::Nodes retval;
 
           std::string type;
@@ -748,13 +790,13 @@ namespace ospray {
               sg::createNode("Transform_" + type, "Transform");
 
           auto generatorNode_ptr =
-            sg::createNode("Generator_" + type,
-                           "Generator")->nodeAs<sg::Generator>();
+              sg::createNode("Generator_" + type, "Generator")
+                  ->nodeAs<sg::Generator>();
           transformNode_ptr->add(generatorNode_ptr);
           auto &generatorNode = *generatorNode_ptr;
 
           generatorNode["generatorType"] = type;
-          generatorNode["parameters"] = parameters;
+          generatorNode["parameters"]    = parameters;
 
           generatorNode.generateData();
 
@@ -771,7 +813,7 @@ namespace ospray {
 
       ImGui::SameLine();
 
-      if (ImGui::Button("Cancel", ImVec2(120,0))) {
+      if (ImGui::Button("Cancel", ImVec2(120, 0))) {
         showWindowGenerateData = false;
         ImGui::CloseCurrentPopup();
       }
@@ -786,8 +828,7 @@ namespace ospray {
     if (ImGui::BeginPopupModal("Import Data",
                                &showWindowImportData,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
-
-      const bool pressed = ImGui::Button("Choose File...");
+      const bool pressed   = ImGui::Button("Choose File...");
       const char *fileName = openFileDialog.chooseFileDialog(pressed);
 
       static std::string fileToOpen;
@@ -801,30 +842,30 @@ namespace ospray {
       std::array<char, 512> buf;
       strcpy(buf.data(), fileToOpen.c_str());
 
-      ImGui::InputText("", buf.data(), buf.size(),
-                       ImGuiInputTextFlags_EnterReturnsTrue);
+      ImGui::InputText(
+          "", buf.data(), buf.size(), ImGuiInputTextFlags_EnterReturnsTrue);
 
       fileToOpen = buf.data();
 
       ImGui::Separator();
 
-      if (ImGui::Button("OK", ImVec2(120,0))) {
+      if (ImGui::Button("OK", ImVec2(120, 0))) {
         // TODO: move this inline-lambda to a named functor instead
-        auto job = job_scheduler::schedule_job([=](){
+        auto job = job_scheduler::schedule_job([=]() {
           job_scheduler::Nodes retval;
 
           auto transformNode_ptr =
               sg::createNode("Transform_" + fileToOpen, "Transform");
 
           auto importerNode_ptr =
-              sg::createNode("Importer_" + fileToOpen,
-                             "Importer")->nodeAs<sg::Importer>();
+              sg::createNode("Importer_" + fileToOpen, "Importer")
+                  ->nodeAs<sg::Importer>();
           transformNode_ptr->add(importerNode_ptr);
           auto &importerNode = *importerNode_ptr;
 
           try {
             importerNode["fileName"] = fileToOpen;
-            importerNode.setChildrenModified(sg::TimeStamp());// trigger load
+            importerNode.setChildrenModified(sg::TimeStamp());  // trigger load
           } catch (...) {
             std::cerr << "Failed to open file '" << fileToOpen << "'!\n";
           }
@@ -842,7 +883,7 @@ namespace ospray {
 
       ImGui::SameLine();
 
-      if (ImGui::Button("Cancel", ImVec2(120,0))) {
+      if (ImGui::Button("Cancel", ImVec2(120, 0))) {
         showWindowImportData = false;
         ImGui::CloseCurrentPopup();
       }
@@ -875,9 +916,9 @@ namespace ospray {
     return !cancelRendering.exchange(false);
   }
 
-  int MainWindow::progressCallbackWrapper(void * ptr, const float progress)
+  int MainWindow::progressCallbackWrapper(void *ptr, const float progress)
   {
-    return ((MainWindow*)ptr)->progressCallback(progress);
+    return ((MainWindow *)ptr)->progressCallback(progress);
   }
 
-} // ::ospray
+}  // namespace ospray

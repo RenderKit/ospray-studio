@@ -48,3 +48,7 @@ include_directories(
 
 add_subdirectory(external)
 add_subdirectory(app)
+
+## Build plugins ##
+
+add_subdirectory(plugins)
