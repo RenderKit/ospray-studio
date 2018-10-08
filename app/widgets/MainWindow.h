@@ -41,7 +41,7 @@ namespace ospray {
 
     void startAsyncRendering() override;
 
-  protected:
+  private:
 
     enum PickMode { PICK_CAMERA, PICK_NODE };
 

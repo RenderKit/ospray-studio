@@ -30,6 +30,7 @@
 // ospray_sg ui
 #include "sg_ui/ospray_sg_ui.h"
 // panels
+#include "GenericPanel.h"
 #include "panels/About.h"
 #include "panels/NodeFinder.h"
 #include "panels/SGAdvanced.h"
@@ -68,6 +69,14 @@ namespace ospray {
     ospSetProgressFunc(&ospray::MainWindow::progressCallbackWrapper, this);
 
     // create panels //
+
+    panels.emplace_back(new GenericPanel("Renderer Stats", [&](){
+      this->guiRenderStats();
+    }));
+
+    panels.emplace_back(new GenericPanel("Job Scheduler", [&](){
+      this->guiJobStatusControlPanel();
+    }));
 
     panels.emplace_back(new PanelNodeFinder(scenegraph));
     panels.emplace_back(new PanelSGTreeView(scenegraph));
@@ -165,11 +174,7 @@ namespace ospray {
       printViewport();
       break;
     case '1':
-      showWindowRenderStatistics = !showWindowRenderStatistics;
-      break;
     case '2':
-      showWindowJobStatusControlPanel = !showWindowJobStatusControlPanel;
-      break;
     case '3':
     case '4':
     case '5':
@@ -177,7 +182,7 @@ namespace ospray {
     case '7':
     case '8':
     case '9': {
-      int whichPanel = key - '0' - 3;
+      int whichPanel = key - '0' - 1;
       if (whichPanel < panels.size())
         panels[whichPanel]->toggleShown();
       break;
@@ -371,9 +376,7 @@ namespace ospray {
 
     guiMainMenu();
 
-    if (showWindowRenderStatistics) guiRenderStats();
     if (showWindowImportData) guiImportData();
-    if (showWindowJobStatusControlPanel) guiJobStatusControlPanel();
     if (showWindowGenerateData) guiGenerateData();
 
     for (auto &p : panels)
@@ -526,12 +529,7 @@ namespace ospray {
   void MainWindow::guiMainMenuView()
   {
     if (ImGui::BeginMenu("View")) {
-      ImGui::Checkbox("(1) Rendering Stats", &showWindowRenderStatistics);
-      ImGui::Checkbox("(2) Job Scheduler", &showWindowJobStatusControlPanel);
-
-      ImGui::Separator();
-
-      int panelIndex = 3; // account for first 2
+      int panelIndex = 1;
       for (auto &p : panels) {
         std::stringstream ss;
 
