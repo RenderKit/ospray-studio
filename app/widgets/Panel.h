@@ -22,15 +22,55 @@ namespace ospray {
 
   struct Panel
   {
+    Panel() = default;
     virtual ~Panel() = default;
 
     // build the UI itself (per-frame ImGui calls)
     virtual void buildUI() = 0;
 
+    void setShown(bool shouldBeShown);
+    void toggleShown();
+    bool isShown() const;
+
+    void setName(const std::string &newName);
+
+    std::string name() const;
+
+  protected:
+
+    Panel(const std::string &_name) : currentName(_name) {}
+
     // Properties //
 
     bool show = false;
-    std::string name {"<unnamed panel>"};
+    std::string currentName {"<unnamed panel>"};
   };
+
+  // Inlined members //////////////////////////////////////////////////////////
+
+  inline void Panel::setShown(bool shouldBeShown)
+  {
+    show = shouldBeShown;
+  }
+
+  inline void Panel::toggleShown()
+  {
+    show = !show;
+  }
+
+  inline bool Panel::isShown() const
+  {
+    return show;
+  }
+
+  inline void Panel::setName(const std::string &newName)
+  {
+    currentName = newName;
+  }
+
+  inline std::string Panel::name() const
+  {
+    return currentName;
+  }
 
 } // namespace ospray

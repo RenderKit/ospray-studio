@@ -24,10 +24,8 @@
 namespace ospray {
 
   PanelSGAdvanced::PanelSGAdvanced(std::shared_ptr<sg::Frame> sg)
+    : Panel("Scene Graph - Advanced Tools"), scenegraph(sg)
   {
-    name = "Scene Graph - Advanced Tools";
-
-    scenegraph = sg;
   }
 
   void PanelSGAdvanced::buildUI()

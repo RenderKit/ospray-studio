@@ -23,10 +23,8 @@
 namespace ospray {
 
   PanelSGTreeView::PanelSGTreeView(std::shared_ptr<sg::Frame> sg)
+    : Panel("Scene Graph - Tree View"), scenegraph(sg)
   {
-    name = "Scene Graph - Tree View";
-
-    scenegraph = sg;
   }
 
   void PanelSGTreeView::buildUI()

@@ -20,9 +20,8 @@
 
 namespace ospray {
 
-  PanelAbout::PanelAbout()
+  PanelAbout::PanelAbout() : Panel("About OSPRay Studio")
   {
-    name = "About OSPRay Studio";
   }
 
   void PanelAbout::buildUI()

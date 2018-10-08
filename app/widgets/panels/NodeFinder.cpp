@@ -27,10 +27,8 @@
 namespace ospray {
 
   PanelNodeFinder::PanelNodeFinder(std::shared_ptr<sg::Frame> sg)
+    : Panel("Scene Graph - Node Finder"), scenegraph(sg)
   {
-    name = "Scene Graph - Node Finder";
-
-    scenegraph = sg;
   }
 
   void PanelNodeFinder::buildUI()

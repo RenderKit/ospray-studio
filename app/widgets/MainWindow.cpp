@@ -178,10 +178,8 @@ namespace ospray {
     case '8':
     case '9': {
       int whichPanel = key - '0' - 3;
-      if (panels.size() > whichPanel) {
-        bool isVisible = panels[whichPanel]->show;
-        panels[whichPanel]->show = !isVisible;
-      }
+      if (whichPanel < panels.size())
+        panels[whichPanel]->toggleShown();
       break;
     }
     default:
@@ -379,7 +377,7 @@ namespace ospray {
     if (showWindowGenerateData) guiGenerateData();
 
     for (auto &p : panels)
-      if (p->show) p->buildUI();
+      if (p->isShown()) p->buildUI();
 
     if (showWindowImGuiDemo) ImGui::ShowTestWindow(&showWindowImGuiDemo);
   }
@@ -538,11 +536,13 @@ namespace ospray {
         std::stringstream ss;
 
         if (panelIndex <= 9)
-          ss << '(' << std::to_string(panelIndex++) << ") " << p->name;
+          ss << '(' << std::to_string(panelIndex++) << ") " << p->name();
         else
-          ss << p->name;
+          ss << p->name();
 
-        ImGui::Checkbox(ss.str().c_str(), &p->show);
+        bool show = p->isShown();
+        if (ImGui::Checkbox(ss.str().c_str(), &show))
+          p->toggleShown();
       }
 
       ImGui::EndMenu();
