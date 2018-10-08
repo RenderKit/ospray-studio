@@ -18,7 +18,7 @@
 #include "imgui3D.h"
 
 #include <imgui.h>
-#include "imgui_impl_glfw_gl3.h"
+#include "../imgui_impl_glfw_gl3.h"
 
 #include "ospcommon/utility/CodeTimer.h"
 #include "ospcommon/utility/getEnvVar.h"

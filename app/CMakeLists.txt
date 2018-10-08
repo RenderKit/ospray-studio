@@ -18,11 +18,11 @@
 
 ospray_create_application(ospStudio
   ospStudioMain.cpp
+  imgui_impl_glfw_gl3.cpp
 
   util/AsyncRenderEngine.cpp
   util/CameraManipulator.cpp
 
-  widgets/imgui_impl_glfw_gl3.cpp
   widgets/imgui3D.cpp
   widgets/MainWindow.cpp
 
