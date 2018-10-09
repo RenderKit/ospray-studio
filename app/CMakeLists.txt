@@ -38,6 +38,7 @@ ospray_create_application(ospStudio
 LINK
   ${OSPRAY_LIBRARIES}
   ${OSPRAY_SG_LIBRARIES}
+  Threads::Threads
   ospray_imgui
   ospray_tfn
   glfw

@@ -27,6 +27,9 @@ set (CMAKE_CXX_STANDARD 11)
 
 find_package(OpenGL REQUIRED)
 find_package(glfw3)
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE) # for gcc6
+find_package(Threads REQUIRED)
 find_package(ospray REQUIRED)
 
 include(${OSPRAY_USE_FILE})
