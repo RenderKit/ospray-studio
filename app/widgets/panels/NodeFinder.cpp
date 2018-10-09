@@ -71,7 +71,7 @@ namespace ospray {
     } else {
       const auto verifyTextLabel = std::string("search for: ")
                                    + nodeNameForSearch;
-      ImGui::Text(verifyTextLabel.c_str());
+      ImGui::Text("%s", verifyTextLabel.c_str());
     }
 
     if (ImGui::Button("Clear")) {
@@ -93,7 +93,7 @@ namespace ospray {
         std::string text = "No nodes found with name '";
         text += nodeNameForSearch;
         text += "'";
-        ImGui::Text(text.c_str());
+        ImGui::Text("%s", text.c_str());
       }
     } else {
       for (auto &node : collectedNodesFromSearch) {

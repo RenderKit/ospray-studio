@@ -166,7 +166,7 @@ namespace ospray {
     auto value = node->valueAs<std::string>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
-      ImGui::Text(value.c_str());
+      ImGui::Text("%s", value.c_str());
     } else {
       auto whitelist = node->whitelist();
       if (!whitelist.empty()) {
@@ -260,14 +260,14 @@ namespace ospray {
     auto fcn = widgetBuilders[node->type()];
 
     if (fcn) {
-      ImGui::Text(text.c_str());
+      ImGui::Text("%s", text.c_str());
       ImGui::SameLine();
       text = "##" + std::to_string(node->uniqueID());
 
       fcn(text, node);
     } else if (!node->hasChildren()) {
       text += node->type();
-      ImGui::Text(text.c_str());
+      ImGui::Text("%s", text.c_str());
     }
   }
 
