@@ -78,8 +78,11 @@ namespace ospray {
         jobFinished = false;
         auto *thisJob = this;
 
-        //runningJob = ospcommon::tasking::async([std::move(task), &jobFinished](){
+#if 0
+        runningJob = ospcommon::tasking::async([=](){
+#else
         runningJob = detail::async([=](){
+#endif
           Nodes retval = thisJob->stashedTask();
           thisJob->jobFinished = true;
           return retval;
