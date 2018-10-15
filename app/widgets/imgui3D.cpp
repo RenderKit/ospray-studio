@@ -264,7 +264,6 @@ namespace ospray {
       viewPort.from   = from;
       viewPort.up     = up;
 
-      this->worldBounds = worldBounds;
       viewPort.frame.l.vy = normalize(dir);
       viewPort.frame.l.vx = normalize(cross(viewPort.frame.l.vy,up));
       viewPort.frame.l.vz = normalize(cross(viewPort.frame.l.vx,viewPort.frame.l.vy));
