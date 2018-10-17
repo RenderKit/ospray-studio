@@ -88,10 +88,8 @@ namespace ospray {
     panels.emplace_back(new PanelAbout());
 
     auto pluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
-    std::transform(pluginPanels.begin(),
-                   pluginPanels.end(),
-                   std::back_inserter(panels),
-                   [](auto &p) { return std::move(p); });
+    std::move(
+        pluginPanels.begin(), pluginPanels.end(), std::back_inserter(panels));
   }
 
   MainWindow::~MainWindow()

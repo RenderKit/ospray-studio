@@ -63,10 +63,7 @@ namespace ospray {
 
     for (auto &plugin : plugins) {
       auto panels = plugin.instance->createPanels(scenegraph);
-      std::transform(panels.begin(),
-                     panels.end(),
-                     std::back_inserter(allPanels),
-                     [](auto &p) { return std::move(p); });
+      std::move(panels.begin(), panels.end(), std::back_inserter(allPanels));
     }
 
     return allPanels;
