@@ -16,7 +16,9 @@
 
 #include "sg/SceneGraph.h"
 #include "sg/geometry/TriangleMesh.h"
+#include "sg/visitor/MarkAllAsModified.h"
 
+#include "sg_visitors/RecomputeBounds.h"
 #include "widgets/MainWindow.h"
 
 #include <ospray/ospcommon/utility/StringManip.h>
@@ -104,9 +106,63 @@ static void parseCommandLine(int &ac, const char **&av)
   }
 }
 
-static void importFilesFromCommandLine(const sg::Frame & /*root*/)
+///////////////////////////////////////////////////////////////////////////////
+// TODO: this is replicated code from MainWindow::resetDefaultView()...!!!
+///////////////////////////////////////////////////////////////////////////////
+static void createDefaultView(const sg::Frame &root)
 {
-  // TODO
+  auto &world = root["renderer"]["world"];
+  auto bbox   = world.bounds();
+  vec3f diag  = bbox.size();
+  diag        = max(diag, vec3f(0.3f * length(diag)));
+
+  auto gaze = ospcommon::center(bbox);
+  auto pos  = gaze - .75f * vec3f(-.6 * diag.x, -1.2f * diag.y, .8f * diag.z);
+  auto up   = vec3f(0.f, 1.f, 0.f);
+
+  auto &camera  = root["camera"];
+  camera["pos"] = pos;
+  camera["dir"] = normalize(gaze - pos);
+  camera["up"]  = up;
+}
+
+static void importFilesFromCommandLine(const sg::Frame &root)
+{
+  auto &renderer = root["renderer"];
+  auto &world    = renderer["world"];
+
+  for (auto file : filesToImport) {
+    try {
+      FileName fn = file;
+      std::stringstream ss;
+      ss << fn.name();
+      auto importerNode_ptr = sg::createNode(ss.str(), "Importer");
+      auto &importerNode    = *importerNode_ptr;
+
+      importerNode["fileName"] = fn.str();
+
+      if (importerNode.hasChildRecursive("gradientShadingEnabled"))
+        importerNode.childRecursive("gradientShadingEnabled") = false;
+      if (importerNode.hasChildRecursive("adaptiveMaxSamplingRate"))
+        importerNode.childRecursive("adaptiveMaxSamplingRate") = 0.2f;
+
+      auto &transform = world.createChild("transform_" + ss.str(), "Transform");
+      transform.add(importerNode_ptr);
+
+      importerNode.traverse(sg::RecomputeBounds{});
+
+    } catch (...) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // TODO: no! too many recomputing of scene bounds! ugh! fix this!
+  /////////////////////////////////////////////////////////////////////////////
+  if (!filesToImport.empty()) {
+    renderer.traverse(sg::RecomputeBounds{});
+    createDefaultView(root);
+  }
 }
 
 static void setupLights(const sg::Frame &root)

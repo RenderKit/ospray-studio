@@ -51,6 +51,12 @@ namespace ospray {
         renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
         renderEngine(scenegraph)
   {
+    ///////////////////////////////////////////////////////////////////////////
+    //TODO: remove this and init from existing camera...
+    resetDefaultView();
+    setWorldBounds(renderer->child("bounds").valueAs<box3f>());
+    ///////////////////////////////////////////////////////////////////////////
+
     auto &navFB = scenegraph->createChild("navFrameBuffer", "FrameBuffer");
     navFB["useAccumBuffer"]    = false;
     navFB["useVarianceBuffer"] = false;

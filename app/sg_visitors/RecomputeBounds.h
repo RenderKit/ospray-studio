@@ -14,52 +14,32 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "SGAdvanced.h"
-#include "../sg_ui/ospray_sg_ui.h"
-#include "../../sg_visitors/RecomputeBounds.h"
-// imgui
-#include "imgui.h"
-// ospray_sg
-#include "ospray/sg/visitor/MarkAllAsModified.h"
+#pragma once
+
+#include "sg/common/Renderable.h"
+#include "sg/visitor/Visitor.h"
 
 namespace ospray {
+  namespace sg {
 
-  PanelSGAdvanced::PanelSGAdvanced(std::shared_ptr<sg::Frame> sg)
-    : Panel("Scene Graph - Advanced Tools"), scenegraph(sg)
-  {
-  }
+    struct RecomputeBounds : public Visitor
+    {
+      RecomputeBounds() = default;
 
-  void PanelSGAdvanced::buildUI()
-  {
-    auto flags = g_defaultWindowFlags |
-                 ImGuiWindowFlags_NoResize |
-                 ImGuiWindowFlags_AlwaysAutoResize;
+      bool operator()(Node &node, TraversalContext &ctx) override;
+    };
 
-    if (!ImGui::Begin("Scene Graph Advanced Tools", nullptr, flags)) {
-      ImGui::End();
-      return;
+    // Inlined definitions ////////////////////////////////////////////////////
+
+    inline bool RecomputeBounds::operator()(Node &node, TraversalContext &)
+    {
+      auto renderable = node.tryNodeAs<Renderable>();
+      if (renderable.get() != nullptr) {
+        renderable->child("bounds") = renderable->computeBounds();
+      }
+      return true;
     }
 
-    ImGui::NewLine();
+  } // ::ospray::sg
+} // ::ospray
 
-    if (ImGui::Button("Mark All Modified"))
-      scenegraph->traverse(sg::MarkAllAsModified());
-
-    if (ImGui::Button("Verify"))
-      scenegraph->verify();
-
-    if (ImGui::Button("Compute Bounds")) {
-      #if 0
-      auto renderer = scenegraph->child("renderer").nodeAs<sg::Renderer>();
-      renderer->computeBounds();
-      #else
-      scenegraph->traverse(sg::RecomputeBounds{});
-      #endif
-    }
-
-    ImGui::NewLine();
-
-    ImGui::End();
-  }
-
-} // namespace ospray
