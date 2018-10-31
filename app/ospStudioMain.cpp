@@ -107,6 +107,130 @@ static void parseCommandLine(int &ac, const char **&av)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// TODO: needs cleanup...
+///////////////////////////////////////////////////////////////////////////////
+void parseCommandLineSG(int ac, const char **&av, sg::Frame &root)
+{
+  for (int i = 1; i < ac; i++) {
+    std::string arg(av[i]);
+    size_t f;
+    std::string value("");
+
+    // Only parameters started with "-sg:" are allowed
+    if (arg.compare(0, 4, "-sg:") != 0)
+      continue;
+
+    // Store original argument before processing
+    const std::string orgarg(arg);
+
+    // Remove "-sg:" prefix
+    arg = arg.substr(4, arg.length());
+
+    while ((f = arg.find(":")) != std::string::npos ||
+           (f = arg.find(",")) != std::string::npos) {
+      arg[f] = ' ';
+    }
+
+    f            = arg.find("+=");
+    bool addNode = false;
+    if (f != std::string::npos) {
+      value   = arg.substr(f + 2, arg.size());
+      addNode = true;
+    } else {
+      f = arg.find("=");
+      if (f != std::string::npos)
+        value = arg.substr(f + 1, arg.size());
+    }
+    if (value != "") {
+      std::stringstream ss;
+      ss << arg.substr(0, f);
+      std::string child;
+      std::reference_wrapper<sg::Node> node_ref = root;
+      std::vector<std::shared_ptr<sg::Node>> children;
+      while (ss >> child) {
+        try {
+          if (ss.eof())
+            children = node_ref.get().childrenRecursive(child);
+          else
+            node_ref = node_ref.get().childRecursive(child);
+        } catch (...) {
+          std::cerr << "Warning: could not find child: " << child << std::endl;
+        }
+      }
+
+      if (children.empty()) {
+        std::cerr << "Warning: no children found for " << av[i] << " lookup\n";
+        continue;
+      }
+
+      std::stringstream vals(value);
+
+      if (addNode) {
+        auto &node = *children[0];
+        std::string name, type;
+        vals >> name >> type;
+        try {
+          node.createChild(name, type);
+        } catch (const std::runtime_error &) {
+          std::cerr << "Warning: unknown sg::Node type '" << type
+                    << "', ignoring option '" << orgarg << "'." << std::endl;
+        }
+      } else {  // set node value
+        for (auto nodePtr : children) {
+          auto &node = *nodePtr;
+          // TODO: more generic implementation
+          if (node.valueIsType<std::string>()) {
+            node.setValue(value);
+          } else if (node.valueIsType<float>()) {
+            float x;
+            vals >> x;
+            node.setValue(x);
+          } else if (node.valueIsType<int>()) {
+            int x;
+            vals >> x;
+            node.setValue(x);
+          } else if (node.valueIsType<bool>()) {
+            bool x;
+            vals >> x;
+            node.setValue(x);
+          } else if (node.valueIsType<ospcommon::vec3f>()) {
+            float x, y, z;
+            vals >> x >> y >> z;
+            node.setValue(ospcommon::vec3f(x, y, z));
+          } else if (node.valueIsType<ospcommon::vec3i>()) {
+            int x, y, z;
+            vals >> x >> y >> z;
+            node.setValue(ospcommon::vec3i(x, y, z));
+          } else if (node.valueIsType<ospcommon::vec2i>()) {
+            int x, y;
+            vals >> x >> y;
+            node.setValue(ospcommon::vec2i(x, y));
+          } else if (node.valueIsType<ospcommon::vec2f>()) {
+            float x, y;
+            vals >> x >> y;
+            node.setValue(ospcommon::vec2f(x, y));
+          } else {
+            try {
+              auto &vec = dynamic_cast<sg::DataVector1f &>(node);
+              float f;
+              while (vals.good()) {
+                vals >> f;
+                vec.push_back(f);
+              }
+            } catch (...) {
+              std::cerr << "Cannot set value of node '" << node.name()
+                        << "' on the command line!"
+                        << " The expected value type is not (yet) handled."
+                        << std::endl;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // TODO: this is replicated code from MainWindow::resetDefaultView()...!!!
 ///////////////////////////////////////////////////////////////////////////////
 static void createDefaultView(const sg::Frame &root)
@@ -199,6 +323,8 @@ int main(int argc, const char **argv)
   MainWindow window(root, pluginsToLoad);
 
   window.create("OSPRay Studio", fullscreen, vec2i(width, height));
+
+  parseCommandLineSG(argc, argv, *root);
 
   imgui3D::run();
 
