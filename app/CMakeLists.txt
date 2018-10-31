@@ -21,6 +21,8 @@ ospray_create_application(ospStudio
   imgui_impl_glfw_gl3.cpp
   PluginManager.cpp
 
+  sg_utility/utility.cpp
+
   util/AsyncRenderEngine.cpp
   util/CameraManipulator.cpp
 

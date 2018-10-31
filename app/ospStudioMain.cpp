@@ -18,6 +18,7 @@
 #include "sg/geometry/TriangleMesh.h"
 #include "sg/visitor/MarkAllAsModified.h"
 
+#include "sg_utility/utility.h"
 #include "sg_visitors/RecomputeBounds.h"
 #include "widgets/MainWindow.h"
 
@@ -131,7 +132,8 @@ void parseCommandLineSG(int ac, const char **&av, sg::Frame &root)
       arg[f] = ' ';
     }
 
-    f            = arg.find("+=");
+    f = arg.find("+=");
+
     bool addNode = false;
     if (f != std::string::npos) {
       value   = arg.substr(f + 2, arg.size());
@@ -228,26 +230,6 @@ void parseCommandLineSG(int ac, const char **&av, sg::Frame &root)
       }
     }
   }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// TODO: this is replicated code from MainWindow::resetDefaultView()...!!!
-///////////////////////////////////////////////////////////////////////////////
-static void createDefaultView(const sg::Frame &root)
-{
-  auto &world = root["renderer"]["world"];
-  auto bbox   = world.bounds();
-  vec3f diag  = bbox.size();
-  diag        = max(diag, vec3f(0.3f * length(diag)));
-
-  auto gaze = ospcommon::center(bbox);
-  auto pos  = gaze - .75f * vec3f(-.6 * diag.x, -1.2f * diag.y, .8f * diag.z);
-  auto up   = vec3f(0.f, 1.f, 0.f);
-
-  auto &camera  = root["camera"];
-  camera["pos"] = pos;
-  camera["dir"] = normalize(gaze - pos);
-  camera["up"]  = up;
 }
 
 static void importFilesFromCommandLine(const sg::Frame &root)

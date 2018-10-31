@@ -36,6 +36,8 @@
 #include "panels/SGAdvanced.h"
 #include "panels/SGTreeView.h"
 
+#include "../sg_utility/utility.h"
+
 #include <GLFW/glfw3.h>
 
 using namespace ospcommon;
@@ -51,11 +53,8 @@ namespace ospray {
         renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
         renderEngine(scenegraph)
   {
-    ///////////////////////////////////////////////////////////////////////////
-    //TODO: remove this and init from existing camera...
-    resetDefaultView();
+    setDefaultViewToCamera();
     setWorldBounds(renderer->child("bounds").valueAs<box3f>());
-    ///////////////////////////////////////////////////////////////////////////
 
     auto &navFB = scenegraph->createChild("navFrameBuffer", "FrameBuffer");
     navFB["useAccumBuffer"]    = false;
@@ -213,24 +212,18 @@ namespace ospray {
     viewPort.modified = true;
   }
 
-  void MainWindow::resetDefaultView()
+  void MainWindow::setDefaultViewToCamera()
   {
-    auto &world = renderer->child("world");
-    auto bbox   = world.bounds();
-    vec3f diag  = bbox.size();
-    diag        = max(diag, vec3f(0.3f * length(diag)));
-
-    auto gaze = ospcommon::center(bbox);
-    auto pos  = gaze - .75f * vec3f(-.6 * diag.x, -1.2f * diag.y, .8f * diag.z);
-    auto up   = vec3f(0.f, 1.f, 0.f);
-
-    auto &camera  = scenegraph->child("camera");
-    camera["pos"] = pos;
-    camera["dir"] = normalize(gaze - pos);
-    camera["up"]  = up;
+    auto [pos, gaze, up] = getViewFromCamera(*scenegraph);
 
     setViewPort(pos, gaze, up);
     originalView = viewPort;
+  }
+
+  void MainWindow::resetDefaultView()
+  {
+    createDefaultView(*scenegraph);
+    setDefaultViewToCamera();
   }
 
   void MainWindow::printViewport()

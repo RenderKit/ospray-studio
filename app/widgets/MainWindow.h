@@ -54,6 +54,7 @@ namespace ospray {
     void keypress(char key) override;
 
     void resetView();
+    void setDefaultViewToCamera();
     void resetDefaultView();
     void printViewport();
     void toggleRenderingPaused();
