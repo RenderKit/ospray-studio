@@ -286,6 +286,9 @@ static void importFilesFromCommandLine(const sg::Frame &root)
   if (!filesToImport.empty()) {
     renderer.traverse(sg::RecomputeBounds{});
     createDefaultView(root);
+
+    renderer.verify();
+    renderer.commit();
   }
 }
 
