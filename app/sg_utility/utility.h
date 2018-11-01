@@ -27,6 +27,10 @@ namespace ospray {
 
     std::tuple<vec3f, vec3f, vec3f> getViewFromCamera(const sg::Frame &root);
 
-  } // ::ospray::sg
-} // ::ospray
+    std::shared_ptr<sg::Node> createImporterNode(const std::string &file);
 
+    std::shared_ptr<sg::Node> createGeneratorNode(
+        const std::string &type, const std::string &parameters = {});
+
+  }  // namespace sg
+}  // namespace ospray

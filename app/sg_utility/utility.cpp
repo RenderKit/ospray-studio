@@ -16,6 +16,11 @@
 
 #include "utility.h"
 
+// ospray_sg
+#include "sg/generator/Generator.h"
+
+#include "../sg_visitors/RecomputeBounds.h"
+
 namespace ospray {
   namespace sg {
 
@@ -51,6 +56,52 @@ namespace ospray {
       auto gaze = pos + (normalize(dir) * dist);
 
       return std::make_tuple(pos, gaze, up);
+    }
+
+    std::shared_ptr<sg::Node> createImporterNode(
+        const std::string &fileToImport)
+    {
+      FileName fn = fileToImport;
+      std::stringstream ss;
+      ss << fn.name();
+      auto importerNode_ptr = sg::createNode(ss.str(), "Importer");
+      auto &importerNode    = *importerNode_ptr;
+
+      importerNode["fileName"] = fn.str();
+
+      if (importerNode.hasChildRecursive("gradientShadingEnabled"))
+        importerNode.childRecursive("gradientShadingEnabled") = false;
+      if (importerNode.hasChildRecursive("samplingRate"))
+        importerNode.childRecursive("samplingRate") = 0.25f;
+      if (importerNode.hasChildRecursive("adaptiveMaxSamplingRate"))
+        importerNode.childRecursive("adaptiveMaxSamplingRate") = 1.0f;
+
+      auto transform = createNode("transform_" + ss.str(), "Transform");
+      transform->add(importerNode_ptr);
+
+      importerNode.traverse(sg::RecomputeBounds{});
+      importerNode.verify();
+      importerNode.commit();
+
+      return transform;
+    }
+
+    std::shared_ptr<sg::Node> createGeneratorNode(const std::string &type,
+                                                  const std::string &parameters)
+    {
+      auto transformNode_ptr = sg::createNode("Transform_" + type, "Transform");
+
+      auto generatorNode_ptr = sg::createNode("Generator_" + type, "Generator")
+                                   ->nodeAs<sg::Generator>();
+      transformNode_ptr->add(generatorNode_ptr);
+      auto &generatorNode = *generatorNode_ptr;
+
+      generatorNode["generatorType"] = type;
+      generatorNode["parameters"]    = parameters;
+
+      generatorNode.generateData();
+
+      return transformNode_ptr;
     }
 
   }  // namespace sg

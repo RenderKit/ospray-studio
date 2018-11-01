@@ -21,7 +21,6 @@
 #include "ospcommon/utility/getEnvVar.h"
 // ospray_sg
 #include "sg/common/FrameBuffer.h"
-#include "sg/generator/Generator.h"
 #include "sg/visitor/GatherNodesByPosition.h"
 #include "sg/visitor/MarkAllAsModified.h"
 // imgui
@@ -783,21 +782,13 @@ namespace ospray {
             std::cerr << "WAAAAT" << std::endl;
           }
 
-          auto transformNode_ptr =
-              sg::createNode("Transform_" + type, "Transform");
-
-          auto generatorNode_ptr =
-              sg::createNode("Generator_" + type, "Generator")
-                  ->nodeAs<sg::Generator>();
-          transformNode_ptr->add(generatorNode_ptr);
-          auto &generatorNode = *generatorNode_ptr;
-
-          generatorNode["generatorType"] = type;
-          generatorNode["parameters"]    = parameters;
-
-          generatorNode.generateData();
-
-          retval.push_back(transformNode_ptr);
+          try {
+            auto node = sg::createGeneratorNode(type, parameters);
+            retval.push_back(node);
+          } catch (...) {
+            std::cerr << "Failed to generate data with '" << type
+                      << "'!\n";
+          }
 
           return retval;
         });
@@ -847,27 +838,15 @@ namespace ospray {
       ImGui::Separator();
 
       if (ImGui::Button("OK", ImVec2(120, 0))) {
-        // TODO: move this inline-lambda to a named functor instead
         auto job = job_scheduler::schedule_job([=]() {
           job_scheduler::Nodes retval;
 
-          auto transformNode_ptr =
-              sg::createNode("Transform_" + fileToOpen, "Transform");
-
-          auto importerNode_ptr =
-              sg::createNode("Importer_" + fileToOpen, "Importer")
-                  ->nodeAs<sg::Importer>();
-          transformNode_ptr->add(importerNode_ptr);
-          auto &importerNode = *importerNode_ptr;
-
           try {
-            importerNode["fileName"] = fileToOpen;
-            importerNode.setChildrenModified(sg::TimeStamp());  // trigger load
+            auto node = sg::createImporterNode(fileToOpen);
+            retval.push_back(node);
           } catch (...) {
             std::cerr << "Failed to open file '" << fileToOpen << "'!\n";
           }
-
-          retval.push_back(transformNode_ptr);
 
           return retval;
         });

@@ -239,24 +239,8 @@ static void importFilesFromCommandLine(const sg::Frame &root)
 
   for (auto file : filesToImport) {
     try {
-      FileName fn = file;
-      std::stringstream ss;
-      ss << fn.name();
-      auto importerNode_ptr = sg::createNode(ss.str(), "Importer");
-      auto &importerNode    = *importerNode_ptr;
-
-      importerNode["fileName"] = fn.str();
-
-      if (importerNode.hasChildRecursive("gradientShadingEnabled"))
-        importerNode.childRecursive("gradientShadingEnabled") = false;
-      if (importerNode.hasChildRecursive("adaptiveMaxSamplingRate"))
-        importerNode.childRecursive("adaptiveMaxSamplingRate") = 0.2f;
-
-      auto &transform = world.createChild("transform_" + ss.str(), "Transform");
-      transform.add(importerNode_ptr);
-
-      importerNode.traverse(sg::RecomputeBounds{});
-
+      auto node = sg::createImporterNode(file);
+      world.add(node);
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }
@@ -268,9 +252,6 @@ static void importFilesFromCommandLine(const sg::Frame &root)
   if (!filesToImport.empty()) {
     renderer.traverse(sg::RecomputeBounds{});
     createDefaultView(root);
-
-    renderer.verify();
-    renderer.commit();
   }
 }
 
