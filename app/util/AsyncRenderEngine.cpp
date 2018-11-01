@@ -45,15 +45,8 @@ namespace ospray {
     if (state == ExecState::INVALID)
       throw std::runtime_error("Can't start the engine in an invalid state!");
 
-    if (numOsprayThreads > 0) {
-      auto device = ospGetCurrentDevice();
-      if (device == nullptr)
-        throw std::runtime_error("Can't get current device!");
+    state = ExecState::STARTED;
 
-      ospDeviceSet1i(device, "numThreads", numOsprayThreads);
-    }
-
-    state                         = ExecState::STARTED;
     commitDeviceOnAsyncLoopThread = true;
 
     // NOTE(jda) - This whole loop is because I haven't found a way to get
