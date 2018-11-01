@@ -288,11 +288,11 @@ int main(int argc, const char **argv)
 
   MainWindow window(root, pluginsToLoad);
 
+  root->commit();
+
   window.create("OSPRay Studio", fullscreen, vec2i(width, height));
 
   parseCommandLineSG(argc, argv, *root);
-
-  root->commit();
 
   imgui3D::run();
 
