@@ -292,6 +292,8 @@ int main(int argc, const char **argv)
 
   parseCommandLineSG(argc, argv, *root);
 
+  root->commit();
+
   imgui3D::run();
 
   return 0;

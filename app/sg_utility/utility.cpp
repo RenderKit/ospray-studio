@@ -81,7 +81,6 @@ namespace ospray {
 
       importerNode.traverse(sg::RecomputeBounds{});
       importerNode.verify();
-      importerNode.commit();
 
       return transform;
     }
