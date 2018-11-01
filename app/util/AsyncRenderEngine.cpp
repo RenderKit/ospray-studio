@@ -21,6 +21,8 @@
 
 namespace ospray {
 
+  AsyncRenderEngine *AsyncRenderEngine::g_instance = nullptr;
+
   AsyncRenderEngine::AsyncRenderEngine(std::shared_ptr<sg::Frame> root)
       : scenegraph(root)
   {
@@ -101,6 +103,18 @@ namespace ospray {
     pickPos = screenPos;
   }
 
+  void AsyncRenderEngine::scheduleNodeValueChange(sg::Node &node,
+                                                  utility::Any value)
+  {
+    auto *n = &node;
+    nodeOps.push_back([=]() { n->setValue(value); });
+  }
+
+  void AsyncRenderEngine::scheduleNodeOp(std::function<void()> op)
+  {
+    nodeOps.push_back(op);
+  }
+
   bool AsyncRenderEngine::hasNewPickResult()
   {
     return pickResult.update();
@@ -141,6 +155,12 @@ namespace ospray {
         throw std::runtime_error("could not get the current device!");
       ospDeviceCommit(device);  // workaround #239
       commitDeviceOnAsyncLoopThread = false;
+    }
+
+    if (!nodeOps.empty()) {
+      auto ops = nodeOps.consume();
+      for (auto &o : ops)
+        o();
     }
 
     if (renderer->hasChild("animationcontroller"))

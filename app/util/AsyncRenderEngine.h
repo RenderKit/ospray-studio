@@ -23,6 +23,7 @@
 // ospcommon
 #include "ospcommon/box.h"
 #include "ospcommon/AsyncLoop.h"
+#include "ospcommon/containers/TransactionalBuffer.h"
 #include "ospcommon/utility/CodeTimer.h"
 #include "ospcommon/utility/DoubleBufferedValue.h"
 #include "ospcommon/utility/TransactionalValue.h"
@@ -39,12 +40,16 @@ namespace ospray {
   {
   public:
 
+    static AsyncRenderEngine *g_instance;
+
     AsyncRenderEngine(std::shared_ptr<sg::Frame> root);
     ~AsyncRenderEngine();
 
-    // Method to say that an objects needs to be comitted before next frame //
+    // Scheduled operations //
 
     void pick(const vec2f &screenPos);
+    void scheduleNodeValueChange(sg::Node &node, utility::Any value);
+    void scheduleNodeOp(std::function<void()> op);
 
     // Engine conrols //
 
@@ -103,6 +108,8 @@ namespace ospray {
     utility::TransactionalValue<vec2f> pickPos;
     utility::TransactionalValue<OSPPickResult> pickResult;
     utility::DoubleBufferedValue<Framebuffer> frameBuffers;
+
+    TransactionalBuffer<std::function<void()>> nodeOps;
 
     std::atomic<bool> newPixels {false};
 

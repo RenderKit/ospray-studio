@@ -23,6 +23,8 @@
 #include "../transfer_function/TransferFunctionWidget.h"
 using tfn::tfn_widget::TransferFunctionWidget;
 
+#include "../../util/AsyncRenderEngine.h"
+
 #include "ospcommon/utility/StringManip.h"
 
 #include <unordered_map>
@@ -43,37 +45,39 @@ namespace ospray {
   static void sgWidget_vec4f(const std::string &text,
                              std::shared_ptr<sg::Node> node)
   {
-    vec4f val = node->valueAs<vec4f>();
+    vec4f val      = node->valueAs<vec4f>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("(%f, %f, %f, %f)", val.x, val.y, val.z, val.w);
     } else if (nodeFlags & sg::NodeFlags::gui_slider) {
-      if (ImGui::SliderFloat4(text.c_str(), &val.x,
+      if (ImGui::SliderFloat4(text.c_str(),
+                              &val.x,
                               node->min().get<vec4f>().x,
                               node->max().get<vec4f>().x))
-        node->setValue(val);
-    } else if (ImGui::DragFloat4(text.c_str(), (float*)&val.x, .01f)) {
-      node->setValue(val);
+        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
+    } else if (ImGui::DragFloat4(text.c_str(), (float *)&val.x, .01f)) {
+      AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     }
   }
 
   static void sgWidget_vec3f(const std::string &text,
                              std::shared_ptr<sg::Node> node)
   {
-    vec3f val = node->valueAs<vec3f>();
+    vec3f val      = node->valueAs<vec3f>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("(%f, %f, %f)", val.x, val.y, val.z);
     } else if (nodeFlags & sg::NodeFlags::gui_color) {
-      if (ImGui::ColorEdit3(text.c_str(), (float*)&val.x))
-        node->setValue(val);
+      if (ImGui::ColorEdit3(text.c_str(), (float *)&val.x))
+        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     } else if (nodeFlags & sg::NodeFlags::gui_slider) {
-      if (ImGui::SliderFloat3(text.c_str(), &val.x,
+      if (ImGui::SliderFloat3(text.c_str(),
+                              &val.x,
                               node->min().get<vec3f>().x,
                               node->max().get<vec3f>().x))
-        node->setValue(val);
-    } else if (ImGui::DragFloat3(text.c_str(), (float*)&val.x, .01f)) {
-      node->setValue(val);
+        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
+    } else if (ImGui::DragFloat3(text.c_str(), (float *)&val.x, .01f)) {
+      AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     }
   }
 
@@ -87,83 +91,93 @@ namespace ospray {
   static void sgWidget_vec2f(const std::string &text,
                              std::shared_ptr<sg::Node> node)
   {
-    vec2f val = node->valueAs<vec2f>();
+    vec2f val      = node->valueAs<vec2f>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("(%f, %f)", val.x, val.y);
-    } else if (ImGui::DragFloat2(text.c_str(), (float*)&val.x, .01f)) {
-      node->setValue(val);
+    } else if (ImGui::DragFloat2(text.c_str(), (float *)&val.x, .01f)) {
+      AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     }
   }
 
   static void sgWidget_vec2i(const std::string &text,
                              std::shared_ptr<sg::Node> node)
   {
-    vec2i val = node->valueAs<vec2i>();
+    vec2i val      = node->valueAs<vec2i>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("(%i, %i)", val.x, val.y);
-    } else if (ImGui::DragInt2(text.c_str(), (int*)&val.x)) {
-      node->setValue(val);
+    } else if (ImGui::DragInt2(text.c_str(), (int *)&val.x)) {
+      AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     }
   }
 
   static void sgWidget_float(const std::string &text,
                              std::shared_ptr<sg::Node> node)
   {
-    float val = node->valueAs<float>();
+    float val      = node->valueAs<float>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("%f", val);
     } else if ((node->flags() & sg::NodeFlags::gui_slider)) {
-      if (ImGui::SliderFloat(text.c_str(), &val,
+      if (ImGui::SliderFloat(text.c_str(),
+                             &val,
                              node->min().get<float>(),
                              node->max().get<float>()))
-        node->setValue(val);
+        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     } else if (node->flags() & sg::NodeFlags::valid_min_max) {
-      if (ImGui::DragFloat(text.c_str(), &val, .01f, node->min().get<float>(), node->max().get<float>()))
-        node->setValue(val);
+      if (ImGui::DragFloat(text.c_str(),
+                           &val,
+                           .01f,
+                           node->min().get<float>(),
+                           node->max().get<float>()))
+        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     } else if (ImGui::DragFloat(text.c_str(), &val, .01f)) {
-      node->setValue(val);
+      AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     }
   }
 
   static void sgWidget_bool(const std::string &text,
                             std::shared_ptr<sg::Node> node)
   {
-    bool val = node->valueAs<bool>();
+    bool val       = node->valueAs<bool>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text(val ? "true" : "false");
     } else if (ImGui::Checkbox(text.c_str(), &val)) {
-      node->setValue(val);
+      AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     }
   }
 
   static void sgWidget_int(const std::string &text,
                            std::shared_ptr<sg::Node> node)
   {
-    int val = node->valueAs<int>();
+    int val        = node->valueAs<int>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("%i", val);
     } else if ((node->flags() & sg::NodeFlags::gui_slider)) {
-      if (ImGui::SliderInt(text.c_str(), &val,
+      if (ImGui::SliderInt(text.c_str(),
+                           &val,
                            node->min().get<int>(),
                            node->max().get<int>()))
-        node->setValue(val);
+        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     } else if (node->flags() & sg::NodeFlags::valid_min_max) {
-      if (ImGui::DragInt(text.c_str(), &val, .01f, node->min().get<int>(), node->max().get<int>()))
-        node->setValue(val);
+      if (ImGui::DragInt(text.c_str(),
+                         &val,
+                         .01f,
+                         node->min().get<int>(),
+                         node->max().get<int>()))
+        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     } else if (ImGui::DragInt(text.c_str(), &val)) {
-      node->setValue(val);
+      AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
     }
   }
 
   static void sgWidget_string(const std::string &text,
                               std::shared_ptr<sg::Node> node)
   {
-    auto value = node->valueAs<std::string>();
+    auto value     = node->valueAs<std::string>();
     auto nodeFlags = node->flags();
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("%s", value.c_str());
@@ -174,11 +188,11 @@ namespace ospray {
 
         std::string list;
         for (auto it = whitelist.begin(); it != whitelist.end(); ++it) {
-            auto option = *it;
-            if (option.get<std::string>() == value)
-                val = std::distance(whitelist.begin(), it);
-            list += option.get<std::string>();
-            list.push_back('\0');
+          auto option = *it;
+          if (option.get<std::string>() == value)
+            val = std::distance(whitelist.begin(), it);
+          list += option.get<std::string>();
+          list.push_back('\0');
         }
 
         // add to whitelist if not found
@@ -191,36 +205,39 @@ namespace ospray {
         }
 
         ImGui::Combo(text.c_str(), &val, list.c_str(), whitelist.size());
-        node->setValue(whitelist[val]);
+        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node,
+                                                               whitelist[val]);
       } else {
         std::vector<char> buf(value.size() + 1 + 256);
         strcpy(buf.data(), value.c_str());
         buf[value.size()] = '\0';
-        if (ImGui::InputText(text.c_str(), buf.data(),
-                             value.size()+256,
+        if (ImGui::InputText(text.c_str(),
+                             buf.data(),
+                             value.size() + 256,
                              ImGuiInputTextFlags_EnterReturnsTrue)) {
-            node->setValue(std::string(buf.data()));
+          utility::Any val(std::string(buf.data()));
+          AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node, val);
         }
       }
     }
   }
 
-  static void sgWidget_TransferFunction(
-    const std::string &text,
-    std::shared_ptr<sg::Node> node)
+  static void sgWidget_TransferFunction(const std::string &text,
+                                        std::shared_ptr<sg::Node> node)
   {
     using WidgetPtr = std::shared_ptr<TransferFunctionWidget>;
 
     if (!node->hasChild("transferFunctionWidget")) {
       std::shared_ptr<sg::TransferFunction> tfn =
-        std::dynamic_pointer_cast<sg::TransferFunction>(node);
+          std::dynamic_pointer_cast<sg::TransferFunction>(node);
 
-      node->createChildWithValue("transferFunctionWidget","Node",
+      node->createChildWithValue("transferFunctionWidget",
+                                 "Node",
                                  WidgetPtr(new TransferFunctionWidget(tfn)));
     }
 
     auto &tfnWidget =
-      node->child("transferFunctionWidget").valueAs<WidgetPtr>();
+        node->child("transferFunctionWidget").valueAs<WidgetPtr>();
 
     static bool show_editor = true;
     ImGui::Checkbox("show_editor", &show_editor);
@@ -231,24 +248,21 @@ namespace ospray {
     }
   }
 
-  using ParameterWidgetBuilder =
-      void(*)(const std::string &, std::shared_ptr<sg::Node>);
+  using ParameterWidgetBuilder = void (*)(const std::string &,
+                                          std::shared_ptr<sg::Node>);
 
   static std::unordered_map<std::string, ParameterWidgetBuilder>
-      widgetBuilders =
-      {
-        {"float", sgWidget_float},
-        {"int", sgWidget_int},
-        {"vec2i", sgWidget_vec2i},
-        {"vec2f", sgWidget_vec2f},
-        {"vec3f", sgWidget_vec3f},
-        {"vec3i", sgWidget_vec3i},
-        {"vec4f", sgWidget_vec4f},
-        {"box3f", sgWidget_box3f},
-        {"string", sgWidget_string},
-        {"bool", sgWidget_bool},
-        {"TransferFunction", sgWidget_TransferFunction}
-      };
+      widgetBuilders = {{"float", sgWidget_float},
+                        {"int", sgWidget_int},
+                        {"vec2i", sgWidget_vec2i},
+                        {"vec2f", sgWidget_vec2f},
+                        {"vec3f", sgWidget_vec3f},
+                        {"vec3i", sgWidget_vec3i},
+                        {"vec4f", sgWidget_vec4f},
+                        {"box3f", sgWidget_box3f},
+                        {"string", sgWidget_string},
+                        {"bool", sgWidget_bool},
+                        {"TransferFunction", sgWidget_TransferFunction}};
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -275,13 +289,13 @@ namespace ospray {
   {
     int styles = 0;
     if (!node->isValid()) {
-      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f,0.06f, 0.02f,1.f));
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.06f, 0.02f, 1.f));
       styles++;
     }
 
     std::string text;
 
-    std::string nameLower = utility::lowerCase(name);
+    std::string nameLower     = utility::lowerCase(name);
     std::string nodeNameLower = utility::lowerCase(node->name());
 
     if (nameLower != nodeNameLower)
@@ -297,11 +311,12 @@ namespace ospray {
     if (node->hasChildren()) {
       text += node->type() + "##" + std::to_string(node->uniqueID());
       if (ImGui::TreeNodeEx(text.c_str(),
-                            (node->numChildren() > 25) ?
-                             0 : ImGuiTreeNodeFlags_DefaultOpen)) {
+                            (node->numChildren() > 25)
+                                ? 0
+                                : ImGuiTreeNodeFlags_DefaultOpen)) {
         guiNodeContextMenu(name, node);
 
-        for(auto child : node->children())
+        for (auto child : node->children())
           guiSGTree(child.first, child.second);
 
         ImGui::TreePop();
@@ -317,20 +332,21 @@ namespace ospray {
   {
     if (ImGui::BeginPopupContextItem("item context menu")) {
       char buf[256];
-      buf[0]='\0';
+      buf[0] = '\0';
       if (ImGui::Button("Add new node..."))
         ImGui::OpenPopup("Add new node...");
       if (ImGui::BeginPopup("Add new node...")) {
-        if (ImGui::InputText("node type: ", buf,
-                             256, ImGuiInputTextFlags_EnterReturnsTrue)) {
+        if (ImGui::InputText("node type: ",
+                             buf,
+                             256,
+                             ImGuiInputTextFlags_EnterReturnsTrue)) {
           std::cout << "add node: \"" << buf << "\"\n";
           try {
             static int counter = 0;
             std::stringstream ss;
             ss << "userDefinedNode" << counter++;
             node->add(sg::createNode(ss.str(), buf));
-          }
-          catch (const std::exception &) {
+          } catch (const std::exception &) {
             std::cerr << "invalid node type: " << buf << std::endl;
           }
         }
@@ -339,8 +355,10 @@ namespace ospray {
       if (ImGui::Button("Set to new node..."))
         ImGui::OpenPopup("Set to new node...");
       if (ImGui::BeginPopup("Set to new node...")) {
-        if (ImGui::InputText("node type: ", buf,
-                             256, ImGuiInputTextFlags_EnterReturnsTrue)) {
+        if (ImGui::InputText("node type: ",
+                             buf,
+                             256,
+                             ImGuiInputTextFlags_EnterReturnsTrue)) {
           std::cout << "set node: \"" << buf << "\"\n";
           try {
             static int counter = 0;
@@ -357,16 +375,16 @@ namespace ospray {
       }
       static ImGuiFs::Dialog importdlg;
       const bool importButtonPressed = ImGui::Button("Import...");
-      const char* importpath = importdlg.chooseFileDialog(importButtonPressed);
+      const char *importpath = importdlg.chooseFileDialog(importButtonPressed);
       if (strlen(importpath) > 0) {
-        std::cout << "importing OSPSG file from path: "
-                  << importpath << std::endl;
+        std::cout << "importing OSPSG file from path: " << importpath
+                  << std::endl;
         sg::loadOSPSG(node, std::string(importpath));
       }
 
       static ImGuiFs::Dialog exportdlg;
       const bool exportButtonPressed = ImGui::Button("Export...");
-      const char* exportpath = exportdlg.saveFileDialog(exportButtonPressed);
+      const char *exportpath = exportdlg.saveFileDialog(exportButtonPressed);
       if (strlen(exportpath) > 0) {
         // Make sure that the file has the .ospsg suffix
         FileName exportfile = FileName(exportpath).setExt(".ospsg");
@@ -378,4 +396,4 @@ namespace ospray {
     }
   }
 
-} // namespace ospray
+}  // namespace ospray

@@ -25,6 +25,8 @@
 
 #include "TransferFunctionWidget.h"
 
+#include "../../util/AsyncRenderEngine.h"
+
 using namespace tfn;
 using namespace tfn_widget;
 using namespace ospcommon;
@@ -93,24 +95,24 @@ void TransferFunctionWidget::LoadDefaultMap()
 
   float spacing = 1.f / 16;
 
-  colors.emplace_back(0  * spacing, 0        , 0          , 0          );
-  colors.emplace_back(1  * spacing, 0        , 0.120394   , 0.302678   );
-  colors.emplace_back(2  * spacing, 0        , 0.216587   , 0.524575   );
-  colors.emplace_back(3  * spacing, 0.0552529, 0.345022   , 0.659495   );
-  colors.emplace_back(4  * spacing, 0.128054 , 0.492592   , 0.720287   );
-  colors.emplace_back(5  * spacing, 0.188952 , 0.641306   , 0.792096   );
-  colors.emplace_back(6  * spacing, 0.327672 , 0.784939   , 0.873426   );
-  colors.emplace_back(7  * spacing, 0.60824  , 0.892164   , 0.935546   );
-  colors.emplace_back(8  * spacing, 0.881376 , 0.912184   , 0.818097   );
-  colors.emplace_back(9  * spacing, 0.9514   , 0.835615   , 0.449271   );
-  colors.emplace_back(10 * spacing, 0.904479 , 0.690486   , 0          );
-  colors.emplace_back(11 * spacing, 0.854063 , 0.510857   , 0          );
-  colors.emplace_back(12 * spacing, 0.777096 , 0.330175   , 0.000885023);
-  colors.emplace_back(13 * spacing, 0.672862 , 0.139086   , 0.00270085 );
-  colors.emplace_back(14 * spacing, 0.508812 , 0          , 0          );
-  colors.emplace_back(15 * spacing, 0.299413 , 0.000366217, 0.000549325);
+  colors.emplace_back(0 * spacing, 0, 0, 0);
+  colors.emplace_back(1 * spacing, 0, 0.120394, 0.302678);
+  colors.emplace_back(2 * spacing, 0, 0.216587, 0.524575);
+  colors.emplace_back(3 * spacing, 0.0552529, 0.345022, 0.659495);
+  colors.emplace_back(4 * spacing, 0.128054, 0.492592, 0.720287);
+  colors.emplace_back(5 * spacing, 0.188952, 0.641306, 0.792096);
+  colors.emplace_back(6 * spacing, 0.327672, 0.784939, 0.873426);
+  colors.emplace_back(7 * spacing, 0.60824, 0.892164, 0.935546);
+  colors.emplace_back(8 * spacing, 0.881376, 0.912184, 0.818097);
+  colors.emplace_back(9 * spacing, 0.9514, 0.835615, 0.449271);
+  colors.emplace_back(10 * spacing, 0.904479, 0.690486, 0);
+  colors.emplace_back(11 * spacing, 0.854063, 0.510857, 0);
+  colors.emplace_back(12 * spacing, 0.777096, 0.330175, 0.000885023);
+  colors.emplace_back(13 * spacing, 0.672862, 0.139086, 0.00270085);
+  colors.emplace_back(14 * spacing, 0.508812, 0, 0);
+  colors.emplace_back(15 * spacing, 0.299413, 0.000366217, 0.000549325);
 
-  colors.emplace_back(1.f, 0.0157473, 0.00332647 , 0          );
+  colors.emplace_back(1.f, 0.0157473, 0.00332647, 0);
 
   tfn_c_list.push_back(colors);
   tfn_o_list.push_back(opacities);
@@ -148,27 +150,30 @@ TransferFunctionWidget::TransferFunctionWidget(
     if (r.upper > r.lower)
       tfn->child("valueRange") = r.toVec2f();
 
-    auto colors = ospray::sg::createNode("colorControlPoints", "DataVector4f")
-                     ->nodeAs<ospray::sg::DataVector4f>();
-    auto alpha = ospray::sg::createNode("opacityControlPoints", "DataVector2f")
-                     ->nodeAs<ospray::sg::DataVector2f>();
-    colors->v.resize(c.size());
-    alpha->v.resize(a.size());
+    AsyncRenderEngine::g_instance->scheduleNodeOp([&]() {
+      auto colors = ospray::sg::createNode("colorControlPoints", "DataVector4f")
+                        ->nodeAs<ospray::sg::DataVector4f>();
+      auto alphas =
+          ospray::sg::createNode("opacityControlPoints", "DataVector2f")
+              ->nodeAs<ospray::sg::DataVector2f>();
+      colors->v.resize(c.size());
+      alphas->v.resize(a.size());
 
-    std::copy(c.data(), c.data() + c.size(), colors->v.data());
-    std::copy(a.data(), a.data() + a.size(), alpha->v.data());
+      std::copy(c.data(), c.data() + c.size(), colors->v.data());
+      std::copy(a.data(), a.data() + a.size(), alphas->v.data());
 
-    tfn->add(colors);
-    tfn->add(alpha);
-    colors->markAsModified();
-    alpha->markAsModified();
+      tfn->add(colors);
+      tfn->add(alphas);
+      colors->markAsModified();
+      alphas->markAsModified();
 
-    tfn->updateChildDataValues();
+      tfn->updateChildDataValues();
+    });
   };
 
   numSamples = tfn->child("numSamples").valueAs<int>();
 
-  auto range = tfn->child("valueRange").valueAs<ospcommon::vec2f>();
+  auto range       = tfn->child("valueRange").valueAs<ospcommon::vec2f>();
   valueRange.lower = range.x;
   valueRange.upper = range.y;
 
@@ -203,15 +208,15 @@ TransferFunctionWidget &TransferFunctionWidget::operator=(
   if (this == &core) {
     return *this;
   }
-  tfn_c_list      = core.tfn_c_list;
-  tfn_o_list      = core.tfn_o_list;
-  tfn_readers     = core.tfn_readers;
-  tfn_selection   = core.tfn_selection;
-  tfn_changed     = true;
-  tfn_palette     = 0;
-  tfn_sample_set  = core.tfn_sample_set;
-  valueRange      = core.valueRange;
-  defaultRange    = core.defaultRange;
+  tfn_c_list     = core.tfn_c_list;
+  tfn_o_list     = core.tfn_o_list;
+  tfn_readers    = core.tfn_readers;
+  tfn_selection  = core.tfn_selection;
+  tfn_changed    = true;
+  tfn_palette    = 0;
+  tfn_sample_set = core.tfn_sample_set;
+  valueRange     = core.valueRange;
+  defaultRange   = core.defaultRange;
   return *this;
 }
 
@@ -249,14 +254,15 @@ void TransferFunctionWidget::drawUI()
   // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
   if (defaultRange.upper > defaultRange.lower) {
     if (ImGui::DragFloat2("value range",
-                          reinterpret_cast<float*>(&valueRange),
+                          reinterpret_cast<float *>(&valueRange),
                           defaultRange.size() / 1000.f,
                           defaultRange.lower,
                           defaultRange.upper)) {
       tfn_changed = true;
     }
   } else {
-    if (ImGui::DragFloat2("value range", reinterpret_cast<float*>(&valueRange)))
+    if (ImGui::DragFloat2("value range",
+                          reinterpret_cast<float *>(&valueRange)))
       tfn_changed = true;
   }
 
@@ -267,7 +273,8 @@ void TransferFunctionWidget::drawUI()
   ImGui::End();
 }
 
-void TransferFunctionWidget::drawUI_currentTF() {
+void TransferFunctionWidget::drawUI_currentTF()
+{
   //------------ Transfer Function -------------------
   // style
   // only God and me know what do they do ...

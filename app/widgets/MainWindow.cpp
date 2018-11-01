@@ -52,6 +52,7 @@ namespace ospray {
         renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
         renderEngine(scenegraph)
   {
+    AsyncRenderEngine::g_instance = &renderEngine;
     setDefaultViewToCamera();
     setWorldBounds(renderer->child("bounds").valueAs<box3f>());
 
