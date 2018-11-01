@@ -16,56 +16,18 @@
 
 #include "AsyncRenderEngine.h"
 
-#include "sg/common/FrameBuffer.h"
 #include "sg/Renderer.h"
+#include "sg/common/FrameBuffer.h"
 
 namespace ospray {
 
   AsyncRenderEngine::AsyncRenderEngine(std::shared_ptr<sg::Frame> root)
-    : scenegraph(root)
+      : scenegraph(root)
   {
-    auto renderer = scenegraph->child("renderer").nodeAs<sg::Renderer>();
+    renderer = scenegraph->child("renderer").nodeAs<sg::Renderer>();
 
-    backgroundThread = make_unique<AsyncLoop>([&, renderer](){
-      state = ExecState::RUNNING;
-
-      if (commitDeviceOnAsyncLoopThread) {
-        auto *device = ospGetCurrentDevice();
-        if (!device)
-          throw std::runtime_error("could not get the current device!");
-        ospDeviceCommit(device); // workaround #239
-        commitDeviceOnAsyncLoopThread = false;
-      }
-
-      if (renderer->hasChild("animationcontroller"))
-        renderer->child("animationcontroller").animate();
-
-      if (pickPos.update())
-        pickResult = scenegraph->pick(pickPos.ref());
-
-      fps.start();
-      auto sgFB = scenegraph->renderFrame();
-      fps.stop();
-
-      if (frameCancelled.exchange(false))
-        return; // actually a continue
-
-      if (!sgFB) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(15));
-        return; // actually a continue
-      }
-
-      // NOTE(jda) - Spin here until the consumer has had the chance to update
-      //             to the latest frame.
-      while(state == ExecState::RUNNING && newPixels == true);
-
-      frameBuffers.back().resize(sgFB->size(), sgFB->format());
-      auto srcPB = (uint8_t*)sgFB->map();
-      frameBuffers.back().copy(srcPB);
-      sgFB->unmap(srcPB);
-
-      newPixels = true;
-    }, AsyncLoop::LaunchMethod::THREAD);
+    backgroundThread = make_unique<AsyncLoop>([&]() { renderLoopBody(); },
+                                              AsyncLoop::LaunchMethod::THREAD);
   }
 
   AsyncRenderEngine::~AsyncRenderEngine()
@@ -85,13 +47,13 @@ namespace ospray {
 
     if (numOsprayThreads > 0) {
       auto device = ospGetCurrentDevice();
-      if(device == nullptr)
+      if (device == nullptr)
         throw std::runtime_error("Can't get current device!");
 
       ospDeviceSet1i(device, "numThreads", numOsprayThreads);
     }
 
-    state = ExecState::STARTED;
+    state                         = ExecState::STARTED;
     commitDeviceOnAsyncLoopThread = true;
 
     // NOTE(jda) - This whole loop is because I haven't found a way to get
@@ -176,28 +138,72 @@ namespace ospray {
       state = ExecState::STOPPED;
   }
 
-  // Framebuffer impl
-  void AsyncRenderEngine::Framebuffer::resize(const vec2i& size,
-      const OSPFrameBufferFormat format)
+  void AsyncRenderEngine::renderLoopBody()
+  {
+    state = ExecState::RUNNING;
+
+    if (commitDeviceOnAsyncLoopThread) {
+      auto *device = ospGetCurrentDevice();
+      if (!device)
+        throw std::runtime_error("could not get the current device!");
+      ospDeviceCommit(device);  // workaround #239
+      commitDeviceOnAsyncLoopThread = false;
+    }
+
+    if (renderer->hasChild("animationcontroller"))
+      renderer->child("animationcontroller").animate();
+
+    if (pickPos.update())
+      pickResult = scenegraph->pick(pickPos.ref());
+
+    fps.start();
+    auto sgFB = scenegraph->renderFrame();
+    fps.stop();
+
+    if (frameCancelled.exchange(false))
+      return;  // actually a continue
+
+    if (!sgFB) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(15));
+      return;  // actually a continue
+    }
+
+    // NOTE(jda) - Spin here until the consumer has had the chance to update
+    //             to the latest frame.
+    while (state == ExecState::RUNNING && newPixels == true)
+      ;
+
+    frameBuffers.back().resize(sgFB->size(), sgFB->format());
+    auto srcPB = (uint8_t *)sgFB->map();
+    frameBuffers.back().copy(srcPB);
+    sgFB->unmap(srcPB);
+
+    newPixels = true;
+  }
+
+  // Framebuffer impl /////////////////////////////////////////////////////////
+
+  void AsyncRenderEngine::Framebuffer::resize(const vec2i &size,
+                                              const OSPFrameBufferFormat format)
   {
     format_ = format;
-    size_ = size;
-    bytes = size.x * size.y;
+    size_   = size;
+    bytes   = size.x * size.y;
     switch (format) {
-      default: /* fallthrough */
-      case OSP_FB_NONE:
-        bytes = 0;
-        size_ = vec2i(0);
-        break;
-      case OSP_FB_RGBA8: /* fallthrough */
-      case OSP_FB_SRGBA:
-        bytes *= sizeof(uint32_t);
-        break;
-      case OSP_FB_RGBA32F:
-        bytes *= 4*sizeof(float);
-        break;
+    default: /* fallthrough */
+    case OSP_FB_NONE:
+      bytes = 0;
+      size_ = vec2i(0);
+      break;
+    case OSP_FB_RGBA8: /* fallthrough */
+    case OSP_FB_SRGBA:
+      bytes *= sizeof(uint32_t);
+      break;
+    case OSP_FB_RGBA32F:
+      bytes *= 4 * sizeof(float);
+      break;
     }
     buf.reserve(bytes);
   }
 
-}// namespace ospray
+}  // namespace ospray

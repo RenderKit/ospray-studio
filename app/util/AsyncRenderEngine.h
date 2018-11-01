@@ -86,6 +86,7 @@ namespace ospray {
     // Helper functions //
 
     void validate();
+    void renderLoopBody();
 
     // Data //
 
@@ -97,6 +98,7 @@ namespace ospray {
     int numOsprayThreads {-1};
 
     std::shared_ptr<sg::Frame> scenegraph;
+    std::shared_ptr<sg::Renderer> renderer;
 
     utility::TransactionalValue<vec2f> pickPos;
     utility::TransactionalValue<OSPPickResult> pickResult;
