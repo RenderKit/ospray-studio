@@ -204,9 +204,10 @@ namespace ospray {
           list.push_back('\0');
         }
 
-        ImGui::Combo(text.c_str(), &val, list.c_str(), whitelist.size());
-        AsyncRenderEngine::g_instance->scheduleNodeValueChange(*node,
-                                                               whitelist[val]);
+        if (ImGui::Combo(text.c_str(), &val, list.c_str())) {
+          AsyncRenderEngine::g_instance->scheduleNodeValueChange(
+              *node, whitelist[val]);
+        }
       } else {
         std::vector<char> buf(value.size() + 1 + 256);
         strcpy(buf.data(), value.c_str());
