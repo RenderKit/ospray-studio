@@ -310,7 +310,7 @@ void TransferFunctionWidget::drawUI_currentTF()
     polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].x * width + 1,
                           canvas_y + height);
     draw_list->AddConvexPolyFilled(
-        polyline.data(), polyline.size(), 0xFFD8D8D8, true);
+        polyline.data(), polyline.size(), 0xFFD8D8D8);
   }
   canvas_y += height + margin;
   canvas_avail_y -= height + margin;

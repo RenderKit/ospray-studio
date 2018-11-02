@@ -18,7 +18,8 @@
 #include "imgui3D.h"
 
 #include <imgui.h>
-#include "../imgui_impl_glfw_gl3.h"
+#include "../imgui_impl_glfw.h"
+#include "../imgui_impl_opengl2.h"
 
 #include "ospcommon/utility/CodeTimer.h"
 #include "ospcommon/utility/SaveImage.h"
@@ -382,8 +383,11 @@ namespace ospray {
 
       glfwMakeContextCurrent(window);
 
+      ImGui::CreateContext();
+
       // NOTE(jda) - move key handler registration into this class
-      ImGui_ImplGlfwGL3_Init(window, true);
+      ImGui_ImplGlfw_InitForOpenGL(window, true);
+      ImGui_ImplOpenGL2_Init();
 
       glfwSetFramebufferSizeCallback(
           window, [](GLFWwindow *, int neww, int newh) {
@@ -454,6 +458,13 @@ namespace ospray {
       }
 #endif
 
+      // --> Set style.FrameBorderSize=1.0f / style.WindowBorderSize=1.0f to
+      // enable borders around windows and items
+      auto &style = ImGui::GetStyle();
+
+      style.FrameBorderSize  = 1.f;
+      style.WindowBorderSize = 1.f;
+
       // make sure the widget matches the initial size of the window
       vec2i displaySize;
       glfwGetFramebufferSize(window, &displaySize.x, &displaySize.y);
@@ -470,7 +481,9 @@ namespace ospray {
         timerTotal.start();
         glfwPollEvents();
         timer.start();
-        ImGui_ImplGlfwGL3_NewFrame();
+        ImGui_ImplOpenGL2_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
         timer.stop();
 
         if (ImGui3DWidget::showGui)
@@ -498,6 +511,7 @@ namespace ospray {
         timer.start();
         // Render GUI
         ImGui::Render();
+        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
         timer.stop();
         currentWidget->guiTime = timer.secondsSmoothed();
 
@@ -507,7 +521,9 @@ namespace ospray {
       }
 
       // Cleanup
-      ImGui_ImplGlfwGL3_Shutdown();
+      ImGui_ImplOpenGL2_Shutdown();
+      ImGui_ImplGlfw_Shutdown();
+      ImGui::DestroyContext();
       glfwTerminate();
     }
 

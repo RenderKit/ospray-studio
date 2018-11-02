@@ -417,7 +417,7 @@ namespace ospray {
         p->buildUI();
 
     if (showWindowImGuiDemo)
-      ImGui::ShowTestWindow(&showWindowImGuiDemo);
+      ImGui::ShowTestWindow();
   }
 
   void MainWindow::guiMainMenu()

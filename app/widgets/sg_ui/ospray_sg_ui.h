@@ -34,7 +34,6 @@ namespace ospray {
                           std::shared_ptr<sg::Node> node);
 
   static const ImGuiWindowFlags g_defaultWindowFlags {
-    ImGuiWindowFlags_ShowBorders |
     ImGuiWindowFlags_NoCollapse
   };
 

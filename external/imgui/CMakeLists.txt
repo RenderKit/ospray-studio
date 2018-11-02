@@ -20,6 +20,7 @@ ospray_create_library(ospray_imgui
   imgui.cpp
   imgui_draw.cpp
   imgui_demo.cpp
+  imgui_widgets.cpp
   imguifilesystem/imguifilesystem.cpp
 LINK
   ${OPENGL_LIBRARIES}

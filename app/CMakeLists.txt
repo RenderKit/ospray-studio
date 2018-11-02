@@ -18,7 +18,8 @@
 
 ospray_create_application(ospStudio
   ospStudioMain.cpp
-  imgui_impl_glfw_gl3.cpp
+  imgui_impl_glfw.cpp
+  imgui_impl_opengl2.cpp
   PluginManager.cpp
 
   sg_utility/utility.cpp
