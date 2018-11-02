@@ -447,19 +447,6 @@ namespace ospray {
       ImFontConfig config;
       config.MergeMode = false;
 
-#if 0  // NOTE(jda) - this can cause crashes in Debug builds, needs fixed
-      ImGuiIO& io = ImGui::GetIO();
-      ImFont* font =
-          io.Fonts->AddFontFromFileTTF("LibreBaskerville-Regular.ttf",
-                                       28, &config);
-      if (font) {
-        std::cout << "loaded font\n";
-        currentWidget->fontScale = 1.f;
-      }
-#endif
-
-      // --> Set style.FrameBorderSize=1.0f / style.WindowBorderSize=1.0f to
-      // enable borders around windows and items
       auto &style = ImGui::GetStyle();
 
       style.FrameBorderSize  = 1.f;
