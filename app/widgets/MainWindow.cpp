@@ -623,7 +623,7 @@ namespace ospray {
 
       ImGui::Separator();
 
-      if (ImGui::BeginMenu("Set viewport 'up'...")) {
+      if (ImGui::BeginMenu("Set Viewport 'Up'...")) {
         if (ImGui::MenuItem("(X) +/- X"))
           viewPort.setViewUpX();
         if (ImGui::MenuItem("(Y) +/- Y"))
