@@ -452,6 +452,9 @@ namespace ospray {
       style.FrameBorderSize  = 1.f;
       style.WindowBorderSize = 1.f;
 
+      auto &io = ImGui::GetIO();
+      io.FontGlobalScale = 1.3f;
+
       // make sure the widget matches the initial size of the window
       vec2i displaySize;
       glfwGetFramebufferSize(window, &displaySize.x, &displaySize.y);
