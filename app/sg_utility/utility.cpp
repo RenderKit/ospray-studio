@@ -72,7 +72,7 @@ namespace ospray {
       if (importerNode.hasChildRecursive("gradientShadingEnabled"))
         importerNode.childRecursive("gradientShadingEnabled") = false;
       if (importerNode.hasChildRecursive("samplingRate"))
-        importerNode.childRecursive("samplingRate") = 0.25f;
+        importerNode.childRecursive("samplingRate") = 0.125f;
       if (importerNode.hasChildRecursive("adaptiveMaxSamplingRate"))
         importerNode.childRecursive("adaptiveMaxSamplingRate") = 1.0f;
 
