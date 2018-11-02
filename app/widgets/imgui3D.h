@@ -19,7 +19,7 @@
 #include "ospcommon/common.h"
 #include "ospcommon/box.h"
 #include "ospcommon/AffineSpace.h"
-#include "../util/CameraManipulator.h"
+#include "../app_utility/CameraManipulator.h"
 
 #include <array>
 

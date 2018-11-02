@@ -23,7 +23,7 @@
 #include "../transfer_function/TransferFunctionWidget.h"
 using tfn::tfn_widget::TransferFunctionWidget;
 
-#include "../../util/AsyncRenderEngine.h"
+#include "../../app_utility/AsyncRenderEngine.h"
 
 #include "ospcommon/utility/StringManip.h"
 

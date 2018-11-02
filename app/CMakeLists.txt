@@ -22,10 +22,10 @@ ospray_create_application(ospStudio
   imgui_impl_opengl2.cpp
   PluginManager.cpp
 
-  sg_utility/utility.cpp
+  app_utility/AsyncRenderEngine.cpp
+  app_utility/CameraManipulator.cpp
 
-  util/AsyncRenderEngine.cpp
-  util/CameraManipulator.cpp
+  sg_utility/utility.cpp
 
   widgets/imgui3D.cpp
   widgets/MainWindow.cpp

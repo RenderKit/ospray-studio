@@ -25,7 +25,7 @@
 
 #include "TransferFunctionWidget.h"
 
-#include "../../util/AsyncRenderEngine.h"
+#include "../../app_utility/AsyncRenderEngine.h"
 
 using namespace tfn;
 using namespace tfn_widget;
