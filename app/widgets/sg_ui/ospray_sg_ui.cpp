@@ -288,7 +288,8 @@ namespace ospray {
   void guiSGTree(const std::string &name, std::shared_ptr<sg::Node> node)
   {
     int styles = 0;
-    if (!node->isValid()) {
+    bool nodeValid = node->isValid();
+    if (!nodeValid) {
       ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.06f, 0.02f, 1.f));
       styles++;
     }
@@ -305,7 +306,7 @@ namespace ospray {
 
     guiSGSingleNode(text, node);
 
-    if (!node->isValid())
+    if (!nodeValid)
       ImGui::PopStyleColor(styles--);
 
     if (node->hasChildren()) {
