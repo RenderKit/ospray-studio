@@ -45,12 +45,6 @@ namespace ospray {
     AsyncRenderEngine(std::shared_ptr<sg::Frame> root);
     ~AsyncRenderEngine();
 
-    // Scheduled operations //
-
-    void pick(const vec2f &screenPos);
-    void scheduleNodeValueChange(sg::Node &node, utility::Any value);
-    void scheduleNodeOp(std::function<void()> op);
-
     // Engine conrols //
 
     void start(int numThreads = -1);
@@ -59,7 +53,13 @@ namespace ospray {
 
     ExecState runningState() const;
 
-    // Output queries //
+    // Operations scheduled on rendering thread //
+
+    void pick(const vec2f &screenPos);
+    void scheduleNodeValueChange(sg::Node &node, utility::Any value);
+    void scheduleNodeOp(std::function<void()> op);
+
+    // Query results from rendering thread //
 
     bool   hasNewFrame() const;
     double lastFrameFps() const;

@@ -83,21 +83,6 @@ namespace ospray {
     frameCancelled = true;
   }
 
-  bool AsyncRenderEngine::hasNewFrame() const
-  {
-    return newPixels;
-  }
-
-  double AsyncRenderEngine::lastFrameFps() const
-  {
-    return fps.perSecond();
-  }
-
-  double AsyncRenderEngine::lastFrameFpsSmoothed() const
-  {
-    return fps.perSecondSmoothed();
-  }
-
   void AsyncRenderEngine::pick(const vec2f &screenPos)
   {
     pickPos = screenPos;
@@ -113,6 +98,21 @@ namespace ospray {
   void AsyncRenderEngine::scheduleNodeOp(std::function<void()> op)
   {
     nodeOps.push_back(op);
+  }
+
+  bool AsyncRenderEngine::hasNewFrame() const
+  {
+    return newPixels;
+  }
+
+  double AsyncRenderEngine::lastFrameFps() const
+  {
+    return fps.perSecond();
+  }
+
+  double AsyncRenderEngine::lastFrameFpsSmoothed() const
+  {
+    return fps.perSecondSmoothed();
   }
 
   bool AsyncRenderEngine::hasNewPickResult()
