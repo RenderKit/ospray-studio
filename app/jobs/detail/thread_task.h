@@ -16,44 +16,36 @@
 
 #pragma once
 
-// std
-#include <atomic>
 #include <future>
-// ospray_sg
-#include "sg/common/Node.h"
+#include <thread>
 
 namespace ospray {
   namespace job_scheduler {
+    namespace detail {
 
-    // Helper types //
-
-    using Nodes = std::vector<std::shared_ptr<sg::Node>>;
-
-    struct Job
-    {
       template <typename TASK_T>
-      Job(TASK_T &&task);
+      inline void schedule(TASK_T fcn)
+      {
+        std::thread thread(fcn);
+        thread.detach();
+      }
 
-      ~Job();
+      template<typename TASK_T>
+      using operator_return_t = typename std::result_of<TASK_T()>::type;
 
-      bool isFinished() const;
-      bool isValid() const;
+      template<typename TASK_T>
+      inline auto async(TASK_T&& fcn) -> std::future<operator_return_t<TASK_T>>
+      {
+        using package_t = std::packaged_task<operator_return_t<TASK_T>()>;
 
-      Nodes get();
+        auto task   = new package_t(std::forward<TASK_T>(fcn));
+        auto future = task->get_future();
 
-    private:
+        schedule([=](){ (*task)(); delete task; });
 
-      std::function<Nodes()> stashedTask;
-      std::future<Nodes> runningJob;
-      std::atomic<bool> jobFinished;
-    };
+        return future;
+      }
 
-    // Main Job Scheduler API /////////////////////////////////////////////////
-
-    template <typename JOB_T>
-    std::unique_ptr<Job> schedule_job(JOB_T &&job);
-
+    } // namespace detail
   } // namespace job_scheduler
 } // namespace ospray
-
-#include "detail/JobScheduler.inl"
