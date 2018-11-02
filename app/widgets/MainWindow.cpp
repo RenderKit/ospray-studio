@@ -620,6 +620,21 @@ namespace ospray {
         resetView();
       if (ImGui::MenuItem("Create Default View"))
         resetDefaultView();
+
+      ImGui::Separator();
+
+      if (ImGui::BeginMenu("Edit 'up' vector")) {
+        if (ImGui::MenuItem("+/- x (X)"))
+          viewPort.setViewUpX();
+        if (ImGui::MenuItem("+/- y (Y)"))
+          viewPort.setViewUpY();
+        if (ImGui::MenuItem("+/- z (X)"))
+          viewPort.setViewUpZ();
+        ImGui::EndMenu();
+      }
+
+      ImGui::Separator();
+
       if (ImGui::MenuItem("Reset Accumulation"))
         viewPort.modified = true;
       if (ImGui::MenuItem("Print View"))
