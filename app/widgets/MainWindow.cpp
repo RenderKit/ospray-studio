@@ -623,12 +623,12 @@ namespace ospray {
 
       ImGui::Separator();
 
-      if (ImGui::BeginMenu("Edit 'up' vector")) {
-        if (ImGui::MenuItem("+/- x (X)"))
+      if (ImGui::BeginMenu("Set viewport 'up'...")) {
+        if (ImGui::MenuItem("(X) +/- X"))
           viewPort.setViewUpX();
-        if (ImGui::MenuItem("+/- y (Y)"))
+        if (ImGui::MenuItem("(Y) +/- Y"))
           viewPort.setViewUpY();
-        if (ImGui::MenuItem("+/- z (X)"))
+        if (ImGui::MenuItem("(Z) +/- Z"))
           viewPort.setViewUpZ();
         ImGui::EndMenu();
       }
