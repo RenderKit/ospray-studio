@@ -16,12 +16,12 @@
 
 ospray_create_library(ospray_tfn tfn_lib.cpp LINK ${OSPRAY_LIBRARIES})
 
-option(OSPRAY_APPS_PARAVIEW_TFN_CVT
+option(BUILD_PARAVIEW_TFN_CVT
   "Build ParaView to OSPRay viewer transfer function converter"
-  ON
+  OFF
 )
 
-if (OSPRAY_APPS_PARAVIEW_TFN_CVT)
+if (BUILD_PARAVIEW_TFN_CVT)
   ospray_create_application(ospCvtParaViewTfcn
     convertParaViewTfcn.cpp
     jsoncpp.cpp
