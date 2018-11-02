@@ -657,11 +657,24 @@ namespace ospray {
 
   void MainWindow::guiRenderStats()
   {
-    auto flags = g_defaultWindowFlags | ImGuiWindowFlags_NoResize |
-                 ImGuiWindowFlags_AlwaysAutoResize;
-
-    if (ImGui::Begin("Rendering Statistics", nullptr, flags)) {
-      ImGui::NewLine();
+    const float DISTANCE = 10.0f;
+    static int corner    = 2; // <-- encoding comes from imgui_demo.cpp
+    ImVec2 window_pos    = ImVec2(
+        (corner & 1) ? ImGui::GetIO().DisplaySize.x - DISTANCE : DISTANCE,
+        (corner & 2) ? ImGui::GetIO().DisplaySize.y - DISTANCE : DISTANCE);
+    ImVec2 window_pos_pivot =
+        ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
+    if (corner != -1)
+      ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+    ImGui::SetNextWindowBgAlpha(0.3f);  // Transparent background
+    if (ImGui::Begin(
+            "Rendering Statistics",
+            nullptr,
+            (corner != -1 ? ImGuiWindowFlags_NoMove : 0) |
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_AlwaysAutoResize |
+                ImGuiWindowFlags_NoSavedSettings |
+                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav)) {
       ImGui::Text("OSPRay render rate: %.1f fps", renderFPS);
       ImGui::Text("  Total GUI frame rate: %.1f fps", ImGui::GetIO().Framerate);
       ImGui::Text("  Total 3dwidget time: %.1f ms", lastTotalTime * 1000.f);
@@ -675,13 +688,14 @@ namespace ospray {
       const bool showProgressBar        = (renderFPS <= 1.f);
       const bool showFrameCompletionEst = (std::isfinite(eta) && eta > 5.f);
 
-      if (showProgressBar || showFrameCompletionEst)
-        ImGui::Separator();
+      ImGui::Separator();
 
       if (showProgressBar) {
         ImGui::Text("Frame progress: ");
         ImGui::SameLine();
         ImGui::ProgressBar(frameProgress);
+      } else {
+        ImGui::NewLine();
       }
 
       if (showFrameCompletionEst) {
@@ -697,6 +711,8 @@ namespace ospray {
 
         ImGui::SameLine();
         ImGui::ProgressBar(sec / eta, ImVec2(-1, 0), str);
+      } else {
+        ImGui::NewLine();
       }
     }
 
@@ -787,8 +803,7 @@ namespace ospray {
             auto node = sg::createGeneratorNode(type, parameters);
             retval.push_back(node);
           } catch (...) {
-            std::cerr << "Failed to generate data with '" << type
-                      << "'!\n";
+            std::cerr << "Failed to generate data with '" << type << "'!\n";
           }
 
           return retval;
