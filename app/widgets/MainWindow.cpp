@@ -144,28 +144,13 @@ namespace ospray {
       saveScreenshot = true;
       break;
     case 'X':
-      if (viewPort.up == vec3f(1, 0, 0) || viewPort.up == vec3f(-1.f, 0, 0)) {
-        viewPort.up = -viewPort.up;
-      } else {
-        viewPort.up = vec3f(1, 0, 0);
-      }
-      viewPort.modified = true;
+      viewPort.setViewUpX();
       break;
     case 'Y':
-      if (viewPort.up == vec3f(0, 1, 0) || viewPort.up == vec3f(0, -1.f, 0)) {
-        viewPort.up = -viewPort.up;
-      } else {
-        viewPort.up = vec3f(0, 1, 0);
-      }
-      viewPort.modified = true;
+      viewPort.setViewUpY();
       break;
     case 'Z':
-      if (viewPort.up == vec3f(0, 0, 1) || viewPort.up == vec3f(0, 0, -1.f)) {
-        viewPort.up = -viewPort.up;
-      } else {
-        viewPort.up = vec3f(0, 0, 1);
-      }
-      viewPort.modified = true;
+      viewPort.setViewUpZ();
       break;
     case 'c':
       viewPort.modified = true;  // Reset accumulation

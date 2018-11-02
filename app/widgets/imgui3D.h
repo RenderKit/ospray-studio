@@ -102,6 +102,10 @@ namespace ospray {
           *not* apply the up-vector after camera manipulation */
          void snapFrameUp();
 
+         void setViewUpX();
+         void setViewUpY();
+         void setViewUpZ();
+
          ViewPort();
        };
 
