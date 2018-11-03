@@ -16,8 +16,7 @@
 
 ## Build app
 
-ospray_create_application(ospStudio
-  ospStudioMain.cpp
+ospray_create_library(ospray_studio
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
   PluginManager.cpp
@@ -46,4 +45,10 @@ LINK
   ospray_imgui
   ospray_tfn
   glfw
+)
+
+ospray_create_application(ospStudio
+  ospStudioMain.cpp
+LINK
+  ospray_studio
 )

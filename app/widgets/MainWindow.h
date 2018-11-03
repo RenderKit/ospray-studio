@@ -23,7 +23,7 @@
 #include "sg/Renderer.h"
 #include "sg/SceneGraph.h"
 
-#include "../jobs/JobScheduler.h"
+#include "../jobs/Job.h"
 
 #include "../PluginManager.h"
 #include "Panel.h"
@@ -35,12 +35,16 @@ namespace ospray {
   class MainWindow : public ospray::imgui3D::ImGui3DWidget
   {
    public:
+    static MainWindow* g_instance;
+
     MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
                const std::vector<std::string> &pluginsToLoad = {});
 
     ~MainWindow();
 
     void startAsyncRendering() override;
+
+    void addJob(job_scheduler::Task task);
 
    private:
     enum PickMode
@@ -137,5 +141,13 @@ namespace ospray {
 
     PickMode lastPickQueryType{PICK_CAMERA};
   };
+
+  // Inlined members //////////////////////////////////////////////////////////
+
+  inline void MainWindow::addJob(job_scheduler::Task task)
+  {
+    jobsInProgress.emplace_back(
+        ospcommon::make_unique<job_scheduler::Job>(task));
+  }
 
 }  // namespace ospray

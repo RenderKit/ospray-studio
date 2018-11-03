@@ -14,8 +14,6 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
 // TEMPORARY //////////////////////////////////////////////////////////////////
 // NOTE: TBB segfaults when using ospcommon::taksing::* to schedule work,
 //       so use equivalent versions which always launch a std::thread for
@@ -23,20 +21,15 @@
 #define USE_OSPCOMMON_SCHEDULE 0
 
 #if USE_OSPCOMMON_SCHEDULE
-# include "ospcommon/tasking/async.h"
+#include "ospcommon/tasking/async.h"
 #else
-# include "thread_task.h"
+#include "thread_task.h"
 #endif
 
 namespace ospray {
   namespace job_scheduler {
 
-    // Helper types //
-
-    using Nodes = std::vector<std::shared_ptr<sg::Node>>;
-
-    template <typename TASK_T>
-    inline Job::Job(TASK_T &&task)
+    inline Job::Job(Task task)
     {
       stashedTask   = task;
       jobFinished   = false;
@@ -72,14 +65,6 @@ namespace ospray {
     inline Nodes Job::get()
     {
       return runningJob.valid() ? runningJob.get() : Nodes{};
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    template <typename JOB_T>
-    inline std::unique_ptr<Job> schedule_job(JOB_T &&job)
-    {
-      return ospcommon::make_unique<Job>(std::forward<JOB_T>(job));
     }
 
   }  // namespace job_scheduler

@@ -37,6 +37,8 @@
 
 #include "../sg_utility/utility.h"
 
+#include "../jobs/JobScheduler.h"
+
 #include <GLFW/glfw3.h>
 
 using namespace ospcommon;
@@ -45,6 +47,8 @@ static ImGuiFs::Dialog openFileDialog;
 
 namespace ospray {
 
+  MainWindow *MainWindow::g_instance = nullptr;
+
   MainWindow::MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
                          const std::vector<std::string> &pluginsToLoad)
       : ImGui3DWidget(ImGui3DWidget::RESIZE_KEEPFOVY),
@@ -52,6 +56,11 @@ namespace ospray {
         renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
         renderEngine(scenegraph)
   {
+    if (g_instance != nullptr)
+      throw std::runtime_error("FATAL: can only instantiate MainWindow once!");
+
+    g_instance = this;
+
     AsyncRenderEngine::g_instance = &renderEngine;
     setDefaultViewToCamera();
     setWorldBounds(renderer->child("bounds").valueAs<box3f>());
@@ -658,7 +667,7 @@ namespace ospray {
   void MainWindow::guiRenderStats()
   {
     const float DISTANCE = 10.0f;
-    static int corner    = 2; // <-- encoding comes from imgui_demo.cpp
+    static int corner    = 2;  // <-- encoding comes from imgui_demo.cpp
     ImVec2 window_pos    = ImVec2(
         (corner & 1) ? ImGui::GetIO().DisplaySize.x - DISTANCE : DISTANCE,
         (corner & 2) ? ImGui::GetIO().DisplaySize.y - DISTANCE : DISTANCE);
@@ -774,7 +783,7 @@ namespace ospray {
 
       if (ImGui::Button("OK", ImVec2(120, 0))) {
         // TODO: move this inline-lambda to a named functor instead
-        auto job = job_scheduler::schedule_job([=]() {
+        job_scheduler::schedule_job([=]() {
           job_scheduler::Nodes retval;
 
           std::string type;
@@ -808,8 +817,6 @@ namespace ospray {
 
           return retval;
         });
-
-        jobsInProgress.emplace_back(std::move(job));
 
         showWindowGenerateData = false;
         ImGui::CloseCurrentPopup();
@@ -854,7 +861,7 @@ namespace ospray {
       ImGui::Separator();
 
       if (ImGui::Button("OK", ImVec2(120, 0))) {
-        auto job = job_scheduler::schedule_job([=]() {
+        job_scheduler::schedule_job([=]() {
           job_scheduler::Nodes retval;
 
           try {
@@ -866,8 +873,6 @@ namespace ospray {
 
           return retval;
         });
-
-        jobsInProgress.emplace_back(std::move(job));
 
         showWindowImportData = false;
         ImGui::CloseCurrentPopup();

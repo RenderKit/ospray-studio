@@ -16,24 +16,38 @@
 
 #pragma once
 
-#include "Job.h"
-#include "../widgets/MainWindow.h"
+// std
+#include <atomic>
+#include <future>
+// ospray_sg
+#include "sg/common/Node.h"
 
 namespace ospray {
   namespace job_scheduler {
 
-    // Main Job Scheduler API /////////////////////////////////////////////////
+    // Helper types //
 
-    inline void schedule_job(Task task)
+    using Nodes = std::vector<std::shared_ptr<sg::Node>>;
+    using Task  = std::function<Nodes()>;
+
+    struct Job
     {
-      auto *mw = MainWindow::g_instance;
-      if (mw == nullptr) {
-        throw std::runtime_error(
-            "FATAL: make MainWindow instance before calling schedule_job()!");
-      }
+      Job(Task task);
+      ~Job();
 
-      mw->addJob(task);
-    }
+      bool isFinished() const;
+      bool isValid() const;
+
+      Nodes get();
+
+    private:
+
+      std::function<Nodes()> stashedTask;
+      std::future<Nodes> runningJob;
+      std::atomic<bool> jobFinished;
+    };
 
   } // namespace job_scheduler
 } // namespace ospray
+
+#include "detail/Job.inl"

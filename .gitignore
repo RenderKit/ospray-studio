@@ -3,3 +3,6 @@
 *#
 *~
 *DS_Store*
+!/plugins
+/plugins/*
+!/plugins/example_plugin

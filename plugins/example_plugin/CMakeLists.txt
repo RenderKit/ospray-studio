@@ -22,8 +22,7 @@ if (BUILD_PLUGIN_EXAMPLE)
     plugin_example.cpp
     PanelExample.cpp
   LINK
-    ${OSPRAY_LIBRARIES}
-    ospray_imgui
+    ospray_studio
   )
 
   target_include_directories(ospray_studio_plugin_example
