@@ -463,7 +463,7 @@ namespace ospray {
       ImGui::Separator();
 
       bool paused = renderingPaused;
-      if (ImGui::Checkbox("Pause Rendering", &paused))
+      if (ImGui::Checkbox("(R) Pause Rendering", &paused))
         toggleRenderingPaused();
 
       auto setFrameAccumulation = [&]() {
@@ -612,23 +612,23 @@ namespace ospray {
   void MainWindow::guiMainMenuCamera()
   {
     if (ImGui::BeginMenu("Camera")) {
-      ImGui::Checkbox("Auto-Rotate", &animating);
+      ImGui::Checkbox("(A) Auto-Rotate", &animating);
 
       ImGui::Separator();
 
       bool orbitMode = (manipulator == inspectCenterManipulator.get());
       bool flyMode   = (manipulator == moveModeManipulator.get());
 
-      if (ImGui::Checkbox("Orbit Camera Mode", &orbitMode))
+      if (ImGui::Checkbox("(I) Orbit Camera Mode", &orbitMode))
         manipulator = inspectCenterManipulator.get();
 
       if (orbitMode)
         ImGui::Checkbox("Anchor 'Up' Direction", &upAnchored);
 
-      if (ImGui::Checkbox("Fly Camera Mode", &flyMode))
+      if (ImGui::Checkbox("(F) Fly Camera Mode", &flyMode))
         manipulator = moveModeManipulator.get();
 
-      if (ImGui::MenuItem("Reset View"))
+      if (ImGui::MenuItem("(r) Reset View"))
         resetView();
       if (ImGui::MenuItem("Create Default View"))
         resetDefaultView();
@@ -647,9 +647,9 @@ namespace ospray {
 
       ImGui::Separator();
 
-      if (ImGui::MenuItem("Reset Accumulation"))
+      if (ImGui::MenuItem("(c) Reset Accumulation"))
         viewPort.modified = true;
-      if (ImGui::MenuItem("Print View"))
+      if (ImGui::MenuItem("(p) Print View"))
         printViewport();
 
       ImGui::InputFloat("Motion Speed", &motionSpeed);
