@@ -45,6 +45,7 @@ namespace ospray {
     void startAsyncRendering() override;
 
     void addJob(job_scheduler::Task task);
+    void clearScene();
 
    private:
     enum PickMode
@@ -84,8 +85,6 @@ namespace ospray {
     void guiGenerateData();
 
     void setCurrentDeviceParameter(const std::string &param, int value);
-
-    void clearScene();
 
     // Data ///////////////////////////////////////////////////////////////////
 

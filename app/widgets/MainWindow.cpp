@@ -176,6 +176,9 @@ namespace ospray {
     case 'd':
       resetDefaultView();
       break;
+    case 'L':
+      clearScene();
+      break;
     case 'p':
       printViewport();
       break;
@@ -453,7 +456,7 @@ namespace ospray {
       ImGui::Separator();
       ImGui::Separator();
 
-      if (ImGui::MenuItem("Clear Scene"))
+      if (ImGui::MenuItem("(L) Clear Scene"))
         clearScene();
 
       ImGui::Separator();
