@@ -27,4 +27,4 @@ namespace ospray {
     void buildUI() override;
   };
 
-} // namespace ospray
+}  // namespace ospray

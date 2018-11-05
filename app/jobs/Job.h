@@ -40,14 +40,13 @@ namespace ospray {
 
       Nodes get();
 
-    private:
-
+     private:
       std::function<Nodes()> stashedTask;
       std::future<Nodes> runningJob;
       std::atomic<bool> jobFinished;
     };
 
-  } // namespace job_scheduler
-} // namespace ospray
+  }  // namespace job_scheduler
+}  // namespace ospray
 
 #include "detail/Job.inl"

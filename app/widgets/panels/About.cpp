@@ -20,9 +20,7 @@
 
 namespace ospray {
 
-  PanelAbout::PanelAbout() : Panel("About OSPRay Studio")
-  {
-  }
+  PanelAbout::PanelAbout() : Panel("About OSPRay Studio") {}
 
   void PanelAbout::buildUI()
   {
@@ -32,7 +30,7 @@ namespace ospray {
                                nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
       ImGui::Text(
-R"text(
+          R"text(
 Copyright Intel Corporation 2018
 
 This application is brought to you
@@ -42,8 +40,7 @@ Please check out www.sdvis.org and
 www.ospray.org for more details and
 future updates!
 
-)text"
-      );
+)text");
 
       ImGui::Separator();
 
@@ -56,4 +53,4 @@ future updates!
     }
   }
 
-} // namespace ospray
+}  // namespace ospray

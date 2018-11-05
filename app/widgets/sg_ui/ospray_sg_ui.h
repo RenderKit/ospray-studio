@@ -33,8 +33,7 @@ namespace ospray {
   void guiNodeContextMenu(const std::string &name,
                           std::shared_ptr<sg::Node> node);
 
-  static const ImGuiWindowFlags g_defaultWindowFlags {
-    ImGuiWindowFlags_NoCollapse
-  };
+  static const ImGuiWindowFlags g_defaultWindowFlags{
+      ImGuiWindowFlags_NoCollapse};
 
-} // namespace ospray
+}  // namespace ospray

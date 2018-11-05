@@ -26,17 +26,17 @@ namespace ospray {
   {
     template <typename FCN_T>
     GenericPanel(const std::string &name, FCN_T &&gui_fcn)
-      : Panel(name), fcn(gui_fcn) {}
+        : Panel(name), fcn(gui_fcn)
+    {
+    }
 
     void buildUI() override
     {
       fcn();
     }
 
-  private:
-
+   private:
     std::function<void()> fcn;
   };
 
-
-} // namespace ospray
+}  // namespace ospray

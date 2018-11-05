@@ -30,22 +30,25 @@ namespace ospray {
         thread.detach();
       }
 
-      template<typename TASK_T>
+      template <typename TASK_T>
       using operator_return_t = typename std::result_of<TASK_T()>::type;
 
-      template<typename TASK_T>
-      inline auto async(TASK_T&& fcn) -> std::future<operator_return_t<TASK_T>>
+      template <typename TASK_T>
+      inline auto async(TASK_T &&fcn) -> std::future<operator_return_t<TASK_T>>
       {
         using package_t = std::packaged_task<operator_return_t<TASK_T>()>;
 
         auto task   = new package_t(std::forward<TASK_T>(fcn));
         auto future = task->get_future();
 
-        schedule([=](){ (*task)(); delete task; });
+        schedule([=]() {
+          (*task)();
+          delete task;
+        });
 
         return future;
       }
 
-    } // namespace detail
-  } // namespace job_scheduler
-} // namespace ospray
+    }  // namespace detail
+  }    // namespace job_scheduler
+}  // namespace ospray

@@ -35,7 +35,7 @@ namespace ospray {
   class MainWindow : public ospray::imgui3D::ImGui3DWidget
   {
    public:
-    static MainWindow* g_instance;
+    static MainWindow *g_instance;
 
     MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
                const std::vector<std::string> &pluginsToLoad = {});

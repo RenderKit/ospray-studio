@@ -40,6 +40,5 @@ namespace ospray {
       return true;
     }
 
-  } // ::ospray::sg
-} // ::ospray
-
+  }  // namespace sg
+}  // namespace ospray

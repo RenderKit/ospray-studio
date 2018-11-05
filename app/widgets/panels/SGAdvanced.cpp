@@ -15,8 +15,8 @@
 // ======================================================================== //
 
 #include "SGAdvanced.h"
-#include "../sg_ui/ospray_sg_ui.h"
 #include "../../sg_visitors/RecomputeBounds.h"
+#include "../sg_ui/ospray_sg_ui.h"
 // imgui
 #include "imgui.h"
 // ospray_sg
@@ -25,14 +25,13 @@
 namespace ospray {
 
   PanelSGAdvanced::PanelSGAdvanced(std::shared_ptr<sg::Frame> sg)
-    : Panel("Scene Graph - Advanced Tools"), scenegraph(sg)
+      : Panel("Scene Graph - Advanced Tools"), scenegraph(sg)
   {
   }
 
   void PanelSGAdvanced::buildUI()
   {
-    auto flags = g_defaultWindowFlags |
-                 ImGuiWindowFlags_NoResize |
+    auto flags = g_defaultWindowFlags | ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_AlwaysAutoResize;
 
     if (!ImGui::Begin("Scene Graph Advanced Tools", nullptr, flags)) {
@@ -49,12 +48,12 @@ namespace ospray {
       scenegraph->verify();
 
     if (ImGui::Button("Compute Bounds")) {
-      #if 0
+#if 0
       auto renderer = scenegraph->child("renderer").nodeAs<sg::Renderer>();
       renderer->computeBounds();
-      #else
+#else
       scenegraph->traverse(sg::RecomputeBounds{});
-      #endif
+#endif
     }
 
     ImGui::NewLine();
@@ -62,4 +61,4 @@ namespace ospray {
     ImGui::End();
   }
 
-} // namespace ospray
+}  // namespace ospray

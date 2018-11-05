@@ -27,13 +27,13 @@
 namespace ospray {
 
   PanelNodeFinder::PanelNodeFinder(std::shared_ptr<sg::Frame> sg)
-    : Panel("Scene Graph - Node Finder"), scenegraph(sg)
+      : Panel("Scene Graph - Node Finder"), scenegraph(sg)
   {
   }
 
   void PanelNodeFinder::buildUI()
   {
-    ImGui::SetNextWindowSize(ImVec2(400,300), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
 
     if (!ImGui::Begin("Node Finder", nullptr, g_defaultWindowFlags)) {
       ImGui::End();
@@ -48,15 +48,15 @@ namespace ospray {
     ImGui::Text("Search for node:");
     ImGui::SameLine();
 
-    ImGui::InputText("", buf.data(), buf.size(),
-                     ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::InputText(
+        "", buf.data(), buf.size(), ImGuiInputTextFlags_EnterReturnsTrue);
 
     std::string textBoxValue = buf.data();
 
     bool updateSearchResults = (nodeNameForSearch != textBoxValue);
     if (updateSearchResults) {
       nodeNameForSearch = textBoxValue;
-      bool doSearch = !nodeNameForSearch.empty();
+      bool doSearch     = !nodeNameForSearch.empty();
       if (doSearch) {
         sg::GatherNodesByName visitor(nodeNameForSearch);
         scenegraph->traverse(visitor);
@@ -69,8 +69,8 @@ namespace ospray {
     if (nodeNameForSearch.empty()) {
       ImGui::Text("search for: N/A");
     } else {
-      const auto verifyTextLabel = std::string("search for: ")
-                                   + nodeNameForSearch;
+      const auto verifyTextLabel =
+          std::string("search for: ") + nodeNameForSearch;
       ImGui::Text("%s", verifyTextLabel.c_str());
     }
 
@@ -103,4 +103,4 @@ namespace ospray {
     }
   }
 
-} // namespace ospray
+}  // namespace ospray

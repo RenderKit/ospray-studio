@@ -23,13 +23,13 @@
 namespace ospray {
 
   PanelSGTreeView::PanelSGTreeView(std::shared_ptr<sg::Frame> sg)
-    : Panel("Scene Graph - Tree View"), scenegraph(sg)
+      : Panel("Scene Graph - Tree View"), scenegraph(sg)
   {
   }
 
   void PanelSGTreeView::buildUI()
   {
-    ImGui::SetNextWindowSize(ImVec2(500,400), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("SceneGraph", nullptr, g_defaultWindowFlags))
       guiSGTree("root", scenegraph);
@@ -37,4 +37,4 @@ namespace ospray {
     ImGui::End();
   }
 
-} // namespace ospray
+}  // namespace ospray

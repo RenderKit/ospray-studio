@@ -30,9 +30,8 @@ namespace ospray {
 
     void buildUI() override;
 
-  private:
-
+   private:
     std::shared_ptr<sg::Frame> scenegraph;
   };
 
-} // namespace ospray
+}  // namespace ospray

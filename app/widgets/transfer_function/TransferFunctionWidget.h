@@ -68,7 +68,6 @@ namespace tfn {
       void save(const std::string &fileName) const;
 
      private:
-
       // Helper types /////////////////////////////////////////////////////////
 
       // TODO
@@ -123,7 +122,7 @@ namespace tfn {
       // * Interpolated trasnfer function size
       // int tfn_w = 256;
       // int tfn_h = 1; // TODO: right now we onlu support 1D TFN
-      int numSamples {1};
+      int numSamples{1};
 
       // * The selected transfer function being shown
       int tfn_selection{0};

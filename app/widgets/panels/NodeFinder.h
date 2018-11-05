@@ -30,8 +30,7 @@ namespace ospray {
 
     void buildUI() override;
 
-  private:
-
+   private:
     // Helper functions //
 
     void guiSearchSGNodes();
@@ -44,4 +43,4 @@ namespace ospray {
     std::vector<std::shared_ptr<sg::Node>> collectedNodesFromSearch;
   };
 
-} // namespace ospray
+}  // namespace ospray

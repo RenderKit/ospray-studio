@@ -30,8 +30,6 @@
 #include <stdio.h>
 
 #ifdef _WIN32
-#define snprintf(buf, len, format, ...) \
-  _snprintf_s(buf, len, len, format, __VA_ARGS__)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -452,7 +450,7 @@ namespace ospray {
       style.FrameBorderSize  = 1.f;
       style.WindowBorderSize = 1.f;
 
-      auto &io = ImGui::GetIO();
+      auto &io           = ImGui::GetIO();
       io.FontGlobalScale = 1.3f;
 
       // make sure the widget matches the initial size of the window
