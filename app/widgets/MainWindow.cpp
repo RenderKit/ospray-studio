@@ -91,6 +91,8 @@ namespace ospray {
 
     // create panels //
 
+    aboutPanel = make_unique<PanelAbout>();
+
     panels.emplace_back(
         new GenericPanel("Renderer Stats", [&]() { this->guiRenderStats(); }));
 
@@ -101,7 +103,6 @@ namespace ospray {
     panels.emplace_back(new PanelNodeFinder(scenegraph));
     panels.emplace_back(new PanelSGTreeView(scenegraph));
     panels.emplace_back(new PanelSGAdvanced(scenegraph));
-    panels.emplace_back(new PanelAbout());
 
     auto pluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
     std::move(
@@ -426,6 +427,9 @@ namespace ospray {
     if (showWindowGenerateData)
       guiGenerateData();
 
+    if (aboutPanel->isShown())
+      aboutPanel->buildUI();
+
     for (auto &p : panels)
       if (p->isShown())
         p->buildUI();
@@ -664,6 +668,11 @@ namespace ospray {
   {
     if (ImGui::BeginMenu("Help")) {
       ImGui::Checkbox("Show ImGui Demo", &showWindowImGuiDemo);
+
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("About OSPRay Studio"))
+        aboutPanel->toggleShown();
 
       ImGui::EndMenu();
     }

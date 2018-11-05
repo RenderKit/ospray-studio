@@ -102,6 +102,7 @@ namespace ospray {
     // Panels //
 
     std::vector<std::unique_ptr<Panel>> panels;
+    std::unique_ptr<Panel> aboutPanel;
 
     // Plugins //
 
