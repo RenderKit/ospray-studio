@@ -159,8 +159,8 @@ namespace ospray {
 
     if (!nodeOps.empty()) {
       auto ops = nodeOps.consume();
-      for (auto &o : ops)
-        o();
+      for (auto &op : ops)
+        op();
     }
 
     if (renderer->hasChild("animationcontroller"))
