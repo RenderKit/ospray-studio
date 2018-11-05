@@ -16,28 +16,21 @@
 
 #pragma once
 
-#include "Task.h"
+#include "../../widgets/MainWindow.h"
 
 namespace ospray {
   namespace job_scheduler {
 
-    struct Job
+    inline void schedule_job(Task task)
     {
-      Job(Task task);
-      ~Job();
+      auto *mw = MainWindow::g_instance;
+      if (mw == nullptr) {
+        throw std::runtime_error(
+            "FATAL: make MainWindow instance before calling schedule_job()!");
+      }
 
-      bool isFinished() const;
-      bool isValid() const;
+      mw->addJob(task);
+    }
 
-      Nodes get();
-
-     private:
-      std::function<Nodes()> stashedTask;
-      std::future<Nodes> runningJob;
-      std::atomic<bool> jobFinished;
-    };
-
-  }  // namespace job_scheduler
-}  // namespace ospray
-
-#include "detail/Job.inl"
+  } // namespace job_scheduler
+} // namespace ospray

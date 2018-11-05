@@ -16,28 +16,17 @@
 
 #pragma once
 
-#include "Task.h"
+// std
+#include <atomic>
+#include <future>
+// ospray_sg
+#include "sg/common/Node.h"
 
 namespace ospray {
   namespace job_scheduler {
 
-    struct Job
-    {
-      Job(Task task);
-      ~Job();
-
-      bool isFinished() const;
-      bool isValid() const;
-
-      Nodes get();
-
-     private:
-      std::function<Nodes()> stashedTask;
-      std::future<Nodes> runningJob;
-      std::atomic<bool> jobFinished;
-    };
+    using Nodes = std::vector<std::shared_ptr<sg::Node>>;
+    using Task  = std::function<Nodes()>;
 
   }  // namespace job_scheduler
 }  // namespace ospray
-
-#include "detail/Job.inl"

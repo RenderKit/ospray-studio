@@ -16,24 +16,17 @@
 
 #pragma once
 
-#include "Job.h"
-#include "../widgets/MainWindow.h"
+#include "Task.h"
 
 namespace ospray {
   namespace job_scheduler {
 
     // Main Job Scheduler API /////////////////////////////////////////////////
 
-    inline void schedule_job(Task task)
-    {
-      auto *mw = MainWindow::g_instance;
-      if (mw == nullptr) {
-        throw std::runtime_error(
-            "FATAL: make MainWindow instance before calling schedule_job()!");
-      }
-
-      mw->addJob(task);
-    }
+    // Schedule a job in MainWindow
+    void schedule_job(Task task);
 
   } // namespace job_scheduler
 } // namespace ospray
+
+#include "detail/JobScheduler.inl"
