@@ -127,7 +127,9 @@ void TransferFunctionWidget::SetTFNSelection(int selection)
     tfn_selection = selection;
     // Remember to update other constructors as well
     tfn_c       = &(tfn_c_list[selection]);
+#if 0 // NOTE(jda) - this will use the first tf's opacities for all color maps
     tfn_o       = &(tfn_o_list[selection]);
+#endif
     tfn_edit    = tfn_editable[selection];
     tfn_changed = true;
   }
