@@ -31,15 +31,15 @@ namespace ospray {
   {
     auto &renderer = scenegraph->child("renderer");
 
-    //TODO: categorize/organize these controls
+    // TODO: categorize/organize these controls
 
-    //TODO: format these like the "properties editor" found in ImGui_demo.cpp
-
-    if (ImGui::Begin(
-            "Renderer Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    // TODO: format these like the "properties editor" found in ImGui_demo.cpp
+    auto flags = g_defaultWindowFlags | ImGuiWindowFlags_AlwaysAutoResize;
+    if (ImGui::Begin("Renderer Settings", nullptr, flags)) {
       guiSGSingleNode("aoDistance", renderer["aoDistance"]);
       guiSGSingleNode("aoSamples", renderer["aoSamples"]);
-      guiSGSingleNode("aoTransparencyEnabled", renderer["aoTransparencyEnabled"]);
+      guiSGSingleNode("aoTransparencyEnabled",
+                      renderer["aoTransparencyEnabled"]);
 
       guiSGSingleNode("bgColor", renderer["bgColor"]);
 
