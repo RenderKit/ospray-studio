@@ -25,8 +25,7 @@
 
 namespace ospray {
 
-  void guiSGSingleNode(const std::string &baseText,
-                       std::shared_ptr<sg::Node> node);
+  void guiSGSingleNode(const std::string &baseText, sg::Node &node);
 
   void guiSGTree(const std::string &name, std::shared_ptr<sg::Node> node);
 
