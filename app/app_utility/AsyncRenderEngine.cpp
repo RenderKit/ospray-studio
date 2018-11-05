@@ -169,29 +169,35 @@ namespace ospray {
     if (pickPos.update())
       pickResult = scenegraph->pick(pickPos.ref());
 
-    fps.start();
-    auto sgFB = scenegraph->renderFrame();
-    fps.stop();
+    try {
+      fps.start();
 
-    if (frameCancelled.exchange(false))
-      return;  // actually a continue
+      auto sgFB = scenegraph->renderFrame();
 
-    if (!sgFB) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(15));
-      return;  // actually a continue
+      fps.stop();
+
+      if (frameCancelled.exchange(false))
+        return;  // actually a continue
+
+      if (!sgFB) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(15));
+        return;  // actually a continue
+      }
+
+      // NOTE(jda) - Spin here until the consumer has had the chance to update
+      //             to the latest frame.
+      while (state == ExecState::RUNNING && newPixels == true)
+        ;
+
+      frameBuffers.back().resize(sgFB->size(), sgFB->format());
+      auto srcPB = (uint8_t *)sgFB->map();
+      frameBuffers.back().copy(srcPB);
+      sgFB->unmap(srcPB);
+
+      newPixels = true;
+    } catch (const std::runtime_error &e) {
+      std::cout << e.what() << std::endl;
     }
-
-    // NOTE(jda) - Spin here until the consumer has had the chance to update
-    //             to the latest frame.
-    while (state == ExecState::RUNNING && newPixels == true)
-      ;
-
-    frameBuffers.back().resize(sgFB->size(), sgFB->format());
-    auto srcPB = (uint8_t *)sgFB->map();
-    frameBuffers.back().copy(srcPB);
-    sgFB->unmap(srcPB);
-
-    newPixels = true;
   }
 
   // Framebuffer impl /////////////////////////////////////////////////////////
