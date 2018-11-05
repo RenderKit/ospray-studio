@@ -118,7 +118,7 @@ void parseCommandLineSG(int ac, const char **&av, sg::Frame &root)
     std::string value("");
 
     // Only parameters started with "-sg:" are allowed
-    if (arg.compare(0, 4, "-sg:") != 0)
+    if (!utility::beginsWith(arg, "-sg:"))
       continue;
 
     // Store original argument before processing
@@ -196,21 +196,21 @@ void parseCommandLineSG(int ac, const char **&av, sg::Frame &root)
             vals >> x;
             node.setValue(x);
           } else if (node.valueIsType<ospcommon::vec3f>()) {
-            float x, y, z;
-            vals >> x >> y >> z;
-            node.setValue(ospcommon::vec3f(x, y, z));
+            vec3f v;
+            vals >> v.x >> v.y >> v.z;
+            node.setValue(v);
           } else if (node.valueIsType<ospcommon::vec3i>()) {
-            int x, y, z;
-            vals >> x >> y >> z;
-            node.setValue(ospcommon::vec3i(x, y, z));
+            vec3i v;
+            vals >> v.x >> v.y >> v.z;
+            node.setValue(v);
           } else if (node.valueIsType<ospcommon::vec2i>()) {
-            int x, y;
-            vals >> x >> y;
-            node.setValue(ospcommon::vec2i(x, y));
+            vec2i v;
+            vals >> v.x >> v.y;
+            node.setValue(v);
           } else if (node.valueIsType<ospcommon::vec2f>()) {
-            float x, y;
-            vals >> x >> y;
-            node.setValue(ospcommon::vec2f(x, y));
+            vec2f v;
+            vals >> v.x >> v.y;
+            node.setValue(v);
           } else {
             try {
               auto &vec = dynamic_cast<sg::DataVector1f &>(node);
