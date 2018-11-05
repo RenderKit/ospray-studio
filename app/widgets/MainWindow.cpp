@@ -93,20 +93,22 @@ namespace ospray {
 
     aboutPanel = make_unique<PanelAbout>();
 
-    panels.emplace_back(
+    normalPanels.emplace_back(
         new GenericPanel("Renderer Stats", [&]() { this->guiRenderStats(); }));
 
-    panels.emplace_back(new GenericPanel(
+    normalPanels.emplace_back(new GenericPanel(
         "Job Scheduler", [&]() { this->guiJobStatusControlPanel(); }));
 
-    panels.emplace_back(new PanelRenderingSettings(scenegraph));
-    panels.emplace_back(new PanelNodeFinder(scenegraph));
-    panels.emplace_back(new PanelSGTreeView(scenegraph));
-    panels.emplace_back(new PanelSGAdvanced(scenegraph));
+    normalPanels.emplace_back(new PanelRenderingSettings(scenegraph));
+    normalPanels.emplace_back(new PanelNodeFinder(scenegraph));
 
     auto pluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
-    std::move(
-        pluginPanels.begin(), pluginPanels.end(), std::back_inserter(panels));
+    std::move(pluginPanels.begin(),
+              pluginPanels.end(),
+              std::back_inserter(normalPanels));
+
+    advancedPanels.emplace_back(new PanelSGTreeView(scenegraph));
+    advancedPanels.emplace_back(new PanelSGAdvanced(scenegraph));
   }
 
   MainWindow::~MainWindow()
@@ -195,8 +197,8 @@ namespace ospray {
     case '8':
     case '9': {
       int whichPanel = key - '0' - 1;
-      if (whichPanel < panels.size())
-        panels[whichPanel]->toggleShown();
+      if (whichPanel < normalPanels.size())
+        normalPanels[whichPanel]->toggleShown();
       break;
     }
     default:
@@ -430,7 +432,11 @@ namespace ospray {
     if (aboutPanel->isShown())
       aboutPanel->buildUI();
 
-    for (auto &p : panels)
+    for (auto &p : normalPanels)
+      if (p->isShown())
+        p->buildUI();
+
+    for (auto &p : advancedPanels)
       if (p->isShown())
         p->buildUI();
 
@@ -598,7 +604,7 @@ namespace ospray {
   {
     if (ImGui::BeginMenu("View")) {
       int panelIndex = 1;
-      for (auto &p : panels) {
+      for (auto &p : normalPanels) {
         std::stringstream ss;
 
         if (panelIndex <= 9)
@@ -609,6 +615,18 @@ namespace ospray {
         bool show = p->isShown();
         if (ImGui::Checkbox(ss.str().c_str(), &show))
           p->toggleShown();
+      }
+
+      ImGui::Separator();
+
+      if (ImGui::BeginMenu("Advanced")) {
+        for (auto &p : advancedPanels) {
+          bool show = p->isShown();
+          if (ImGui::Checkbox(p->name().c_str(), &show))
+            p->toggleShown();
+        }
+
+        ImGui::EndMenu();
       }
 
       ImGui::EndMenu();
