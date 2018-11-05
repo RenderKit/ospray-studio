@@ -57,6 +57,10 @@ namespace ospray {
     }
 
     ImGui::NewLine();
+    ImGui::Separator();
+
+    if (ImGui::Button("Close##SGAvanced"))
+      setShown(false);
 
     ImGui::End();
   }
