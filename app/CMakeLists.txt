@@ -31,6 +31,7 @@ ospray_create_library(ospray_studio
 
   widgets/panels/About.cpp
   widgets/panels/NodeFinder.cpp
+  widgets/panels/RenderingSettings.cpp
   widgets/panels/SGAdvanced.cpp
   widgets/panels/SGTreeView.cpp
 

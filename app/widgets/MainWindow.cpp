@@ -32,6 +32,7 @@
 #include "GenericPanel.h"
 #include "panels/About.h"
 #include "panels/NodeFinder.h"
+#include "panels/RenderingSettings.h"
 #include "panels/SGAdvanced.h"
 #include "panels/SGTreeView.h"
 
@@ -96,6 +97,7 @@ namespace ospray {
     panels.emplace_back(new GenericPanel(
         "Job Scheduler", [&]() { this->guiJobStatusControlPanel(); }));
 
+    panels.emplace_back(new PanelRenderingSettings(scenegraph));
     panels.emplace_back(new PanelNodeFinder(scenegraph));
     panels.emplace_back(new PanelSGTreeView(scenegraph));
     panels.emplace_back(new PanelSGAdvanced(scenegraph));
