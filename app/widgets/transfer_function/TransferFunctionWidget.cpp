@@ -180,6 +180,8 @@ TransferFunctionWidget::TransferFunctionWidget(
   tfn_c    = &(tfn_c_list[tfn_selection]);
   tfn_o    = &(tfn_o_list[tfn_selection]);
   tfn_edit = tfn_editable[tfn_selection];
+
+  tfn_sample_set(*tfn_c, *tfn_o);
 }
 
 TransferFunctionWidget::TransferFunctionWidget(

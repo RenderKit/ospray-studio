@@ -25,6 +25,8 @@
 
 #include "../widgets/MainWindow.h"
 
+#include "../jobs/JobScheduler.h"
+
 namespace ospray {
   namespace sg {
 
@@ -115,15 +117,20 @@ namespace ospray {
 
       sg::GetVoxelRangeOfAllVolumes vrVisitor;
       root.traverse(vrVisitor);
-      if (vrVisitor.numVoxelRangesFound > 0)
-        master_tfn->child("valueRange") = vrVisitor.voxelRange.toVec2f();
+      if (vrVisitor.numVoxelRangesFound > 0) {
+        auto &valueRangeNode = master_tfn->child("valueRange");
+        auto value           = vrVisitor.voxelRange.toVec2f();
+        job_scheduler::scheduleNodeValueChange(valueRangeNode, value);
+      }
     }
 
     void replaceAllTFsWithMasterTF(sg::Node &root)
     {
-      auto &window    = *MainWindow::g_instance;
-      auto master_tfn = window.getMasterTransferFunctioNode();
-      root.traverse(sg::ReplaceAllTFs{master_tfn});
+      auto &window = *MainWindow::g_instance;
+      job_scheduler::scheduleNodeOp([&]() {
+        auto master_tfn = window.getMasterTransferFunctioNode();
+        root.traverse(sg::ReplaceAllTFs{master_tfn});
+      });
     }
 
   }  // namespace sg
