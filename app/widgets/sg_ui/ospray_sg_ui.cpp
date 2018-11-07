@@ -23,7 +23,7 @@
 #include "../transfer_function/TransferFunctionWidget.h"
 using tfn::tfn_widget::TransferFunctionWidget;
 
-#include "../../app_utility/AsyncRenderEngine.h"
+#include "../../jobs/JobScheduler.h"
 
 #include "ospcommon/utility/StringManip.h"
 
@@ -52,9 +52,9 @@ namespace ospray {
                               &val.x,
                               node.min().get<vec4f>().x,
                               node.max().get<vec4f>().x))
-        AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+        job_scheduler::scheduleNodeValueChange(node, val);
     } else if (ImGui::DragFloat4(text.c_str(), (float *)&val.x, .01f)) {
-      AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+      job_scheduler::scheduleNodeValueChange(node, val);
     }
   }
 
@@ -66,15 +66,15 @@ namespace ospray {
       ImGui::Text("(%f, %f, %f)", val.x, val.y, val.z);
     } else if (nodeFlags & sg::NodeFlags::gui_color) {
       if (ImGui::ColorEdit3(text.c_str(), (float *)&val.x))
-        AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+        job_scheduler::scheduleNodeValueChange(node, val);
     } else if (nodeFlags & sg::NodeFlags::gui_slider) {
       if (ImGui::SliderFloat3(text.c_str(),
                               &val.x,
                               node.min().get<vec3f>().x,
                               node.max().get<vec3f>().x))
-        AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+        job_scheduler::scheduleNodeValueChange(node, val);
     } else if (ImGui::DragFloat3(text.c_str(), (float *)&val.x, .01f)) {
-      AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+      job_scheduler::scheduleNodeValueChange(node, val);
     }
   }
 
@@ -91,7 +91,7 @@ namespace ospray {
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("(%f, %f)", val.x, val.y);
     } else if (ImGui::DragFloat2(text.c_str(), (float *)&val.x, .01f)) {
-      AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+      job_scheduler::scheduleNodeValueChange(node, val);
     }
   }
 
@@ -102,7 +102,7 @@ namespace ospray {
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text("(%i, %i)", val.x, val.y);
     } else if (ImGui::DragInt2(text.c_str(), (int *)&val.x)) {
-      AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+      job_scheduler::scheduleNodeValueChange(node, val);
     }
   }
 
@@ -117,16 +117,16 @@ namespace ospray {
                              &val,
                              node.min().get<float>(),
                              node.max().get<float>()))
-        AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+        job_scheduler::scheduleNodeValueChange(node, val);
     } else if (node.flags() & sg::NodeFlags::valid_min_max) {
       if (ImGui::DragFloat(text.c_str(),
                            &val,
                            .01f,
                            node.min().get<float>(),
                            node.max().get<float>()))
-        AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+        job_scheduler::scheduleNodeValueChange(node, val);
     } else if (ImGui::DragFloat(text.c_str(), &val, .01f)) {
-      AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+      job_scheduler::scheduleNodeValueChange(node, val);
     }
   }
 
@@ -137,7 +137,7 @@ namespace ospray {
     if (nodeFlags & sg::NodeFlags::gui_readonly) {
       ImGui::Text(val ? "true" : "false");
     } else if (ImGui::Checkbox(text.c_str(), &val)) {
-      AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+      job_scheduler::scheduleNodeValueChange(node, val);
     }
   }
 
@@ -150,16 +150,16 @@ namespace ospray {
     } else if ((node.flags() & sg::NodeFlags::gui_slider)) {
       if (ImGui::SliderInt(
               text.c_str(), &val, node.min().get<int>(), node.max().get<int>()))
-        AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+        job_scheduler::scheduleNodeValueChange(node, val);
     } else if (node.flags() & sg::NodeFlags::valid_min_max) {
       if (ImGui::DragInt(text.c_str(),
                          &val,
                          .01f,
                          node.min().get<int>(),
                          node.max().get<int>()))
-        AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+        job_scheduler::scheduleNodeValueChange(node, val);
     } else if (ImGui::DragInt(text.c_str(), &val)) {
-      AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+      job_scheduler::scheduleNodeValueChange(node, val);
     }
   }
 
@@ -193,7 +193,7 @@ namespace ospray {
         }
 
         if (ImGui::Combo(text.c_str(), &val, list.c_str())) {
-          AsyncRenderEngine::g_instance->scheduleNodeValueChange(
+          job_scheduler::scheduleNodeValueChange(
               node, whitelist[val]);
         }
       } else {
@@ -205,7 +205,7 @@ namespace ospray {
                              value.size() + 256,
                              ImGuiInputTextFlags_EnterReturnsTrue)) {
           utility::Any val(std::string(buf.data()));
-          AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, val);
+          job_scheduler::scheduleNodeValueChange(node, val);
         }
       }
     }

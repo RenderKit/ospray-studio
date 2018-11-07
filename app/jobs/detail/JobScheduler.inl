@@ -21,15 +21,25 @@
 namespace ospray {
   namespace job_scheduler {
 
-    inline void schedule_job(Task task)
+    inline void scheduleJob(Task task)
     {
       auto *mw = MainWindow::g_instance;
       if (mw == nullptr) {
         throw std::runtime_error(
-            "FATAL: make MainWindow instance before calling schedule_job()!");
+            "FATAL: make MainWindow instance before calling scheduleJob()!");
       }
 
       mw->addJob(task);
+    }
+
+    inline void scheduleNodeValueChange(sg::Node &node, utility::Any value)
+    {
+      AsyncRenderEngine::g_instance->scheduleNodeValueChange(node, value);
+    }
+
+    inline void scheduleNodeOp(std::function<void()> op)
+    {
+      AsyncRenderEngine::g_instance->scheduleNodeOp(std::move(op));
     }
 
   } // namespace job_scheduler

@@ -815,7 +815,7 @@ namespace ospray {
 
       if (ImGui::Button("OK", ImVec2(120, 0))) {
         // TODO: move this inline-lambda to a named functor instead
-        job_scheduler::schedule_job([=]() {
+        job_scheduler::scheduleJob([=]() {
           job_scheduler::Nodes retval;
 
           std::string type;
@@ -893,7 +893,7 @@ namespace ospray {
       ImGui::Separator();
 
       if (ImGui::Button("OK", ImVec2(120, 0))) {
-        job_scheduler::schedule_job([=]() {
+        job_scheduler::scheduleJob([=]() {
           job_scheduler::Nodes retval;
 
           try {

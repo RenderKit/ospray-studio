@@ -23,8 +23,12 @@ namespace ospray {
 
     // Main Job Scheduler API /////////////////////////////////////////////////
 
-    // Schedule a job in MainWindow
-    void schedule_job(Task task);
+    // Schedule a generic, Node generating task on a background thread
+    void scheduleJob(Task task);
+
+    // Schedule scene graph node changes on the background rendering thread
+    void scheduleNodeValueChange(sg::Node &node, utility::Any value);
+    void scheduleNodeOp(std::function<void()> op);
 
   } // namespace job_scheduler
 } // namespace ospray
