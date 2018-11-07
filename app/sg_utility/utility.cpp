@@ -107,7 +107,7 @@ namespace ospray {
       return transformNode_ptr;
     }
 
-    void resetVoxelRangeOfMasterTfn(sg::Frame &root)
+    void resetVoxelRangeOfMasterTfn(sg::Node &root)
     {
       auto &window = *MainWindow::g_instance;
 
@@ -119,7 +119,7 @@ namespace ospray {
         master_tfn->child("valueRange") = vrVisitor.voxelRange.toVec2f();
     }
 
-    void replaceAllTFsWithMasterTF(sg::Frame &root)
+    void replaceAllTFsWithMasterTF(sg::Node &root)
     {
       auto &window    = *MainWindow::g_instance;
       auto master_tfn = window.getMasterTransferFunctioNode();

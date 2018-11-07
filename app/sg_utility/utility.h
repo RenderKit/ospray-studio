@@ -32,9 +32,9 @@ namespace ospray {
     std::shared_ptr<sg::Node> createGeneratorNode(
         const std::string &type, const std::string &parameters = {});
 
-    void resetVoxelRangeOfMasterTfn(sg::Frame &root);
+    void resetVoxelRangeOfMasterTfn(sg::Node &root);
 
-    void replaceAllTFsWithMasterTF(sg::Frame &root);
+    void replaceAllTFsWithMasterTF(sg::Node &root);
 
   }  // namespace sg
 }  // namespace ospray
