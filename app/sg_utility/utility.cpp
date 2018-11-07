@@ -19,7 +19,11 @@
 // ospray_sg
 #include "sg/generator/Generator.h"
 
+#include "../sg_visitors/GetVoxelRangeOfAllVolumes.h"
 #include "../sg_visitors/RecomputeBounds.h"
+#include "../sg_visitors/ReplaceAllTFs.h"
+
+#include "../widgets/MainWindow.h"
 
 namespace ospray {
   namespace sg {
@@ -101,6 +105,25 @@ namespace ospray {
       generatorNode.generateData();
 
       return transformNode_ptr;
+    }
+
+    void resetVoxelRangeOfMasterTfn(sg::Frame &root)
+    {
+      auto &window = *MainWindow::g_instance;
+
+      auto master_tfn = window.getMasterTransferFunctioNode();
+
+      sg::GetVoxelRangeOfAllVolumes vrVisitor;
+      root.traverse(vrVisitor);
+      if (vrVisitor.numVoxelRangesFound > 0)
+        master_tfn->child("valueRange") = vrVisitor.voxelRange.toVec2f();
+    }
+
+    void replaceAllTFsWithMasterTF(sg::Frame &root)
+    {
+      auto &window    = *MainWindow::g_instance;
+      auto master_tfn = window.getMasterTransferFunctioNode();
+      root.traverse(sg::ReplaceAllTFs{master_tfn});
     }
 
   }  // namespace sg

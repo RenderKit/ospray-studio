@@ -294,16 +294,11 @@ int main(int argc, const char **argv)
 
   MainWindow window(root, pluginsToLoad);
 
-  auto master_tfn = window.getMasterTransferFunctioNode();
-  root->traverse(sg::ReplaceAllTFs{master_tfn});
+  replaceAllTFsWithMasterTF(*root);
 
   root->commit();
 
-  sg::GatherNodesByName getNodes("voxelRange");
-  sg::GetVoxelRangeOfAllVolumes vrVisitor;
-  root->traverse(vrVisitor);
-  if (vrVisitor.numVoxelRangesFound > 0)
-    master_tfn->child("valueRange") = vrVisitor.voxelRange.toVec2f();
+  resetVoxelRangeOfMasterTfn(*root);
 
   window.create("OSPRay Studio", fullscreen, vec2i(width, height));
 

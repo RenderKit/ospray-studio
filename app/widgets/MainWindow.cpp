@@ -38,7 +38,6 @@
 #include "panels/TransferFunctionEditor.h"
 
 #include "../sg_utility/utility.h"
-#include "../sg_visitors/ReplaceAllTFs.h"
 
 #include "../jobs/JobScheduler.h"
 
@@ -104,8 +103,8 @@ namespace ospray {
         "Job Scheduler", [&]() { this->guiJobStatusControlPanel(); }));
 
     normalPanels.emplace_back(new PanelRenderingSettings(scenegraph));
-    normalPanels.emplace_back(new PanelNodeFinder(scenegraph));
     normalPanels.emplace_back(new PanelTFEditor(master_tfn));
+    normalPanels.emplace_back(new PanelNodeFinder(scenegraph));
 
     auto pluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
     std::move(pluginPanels.begin(),
@@ -388,7 +387,7 @@ namespace ospray {
     renderEngine.stop();
 
     for (auto &node : loadedNodes) {
-      node->traverse(sg::ReplaceAllTFs{master_tfn});
+      replaceAllTFsWithMasterTF(*scenegraph);
       renderer->child("world").add(node);
     }
 
