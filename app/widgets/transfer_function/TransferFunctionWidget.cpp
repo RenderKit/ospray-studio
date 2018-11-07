@@ -24,10 +24,12 @@
 #include <imgui.h>
 
 #include "TransferFunctionWidget.h"
-
+// job_scheduler
 #include "../../jobs/JobScheduler.h"
-
+// sg_ui
 #include "../sg_ui/ospray_sg_ui.h"
+// ospray_sg
+#include "ospray/sg/visitor/MarkAllAsModified.h"
 
 using namespace tfn;
 using namespace tfn_widget;
@@ -166,10 +168,9 @@ TransferFunctionWidget::TransferFunctionWidget(
 
       tfn->add(colors);
       tfn->add(alphas);
-      colors->markAsModified();
-      alphas->markAsModified();
-
       tfn->updateChildDataValues();
+
+      tfn->traverse(sg::MarkAllAsModified{});
     });
   };
 
