@@ -165,7 +165,7 @@ TransferFunctionWidget::TransferFunctionWidget(
 
       std::copy(c.data(), c.data() + c.size(), colors->v.data());
       std::transform(a.begin(), a.end(), alphas->v.begin(), [&](auto &v) {
-        return OpacityPoint(v.x, v.y * (float(globalOpacityScale) / 100.f));
+        return OpacityPoint(v.x, v.y * globalOpacityScale);
       });
 
       sg_tfn->add(colors);
@@ -257,7 +257,7 @@ void TransferFunctionWidget::drawUI()
 
   ImGui::Text("opacity scale");
   ImGui::SameLine();
-  if (ImGui::SliderInt("##OpacityScale", &globalOpacityScale, 0, 100))
+  if (ImGui::SliderFloat("##OpacityScale", &globalOpacityScale, 0.f, 10.f))
     tfn_changed = true;
 
   SetTFNSelection(newSelection);
