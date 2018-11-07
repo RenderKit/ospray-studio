@@ -47,6 +47,8 @@ namespace ospray {
     void addJob(job_scheduler::Task task);
     void clearScene();
 
+    std::shared_ptr<sg::Node> getMasterTransferFunctioNode();
+
    private:
     enum PickMode
     {
@@ -135,6 +137,7 @@ namespace ospray {
 
     std::shared_ptr<sg::Frame> scenegraph;
     std::shared_ptr<sg::Renderer> renderer;
+    std::shared_ptr<sg::TransferFunction> master_tfn;
 
     AsyncRenderEngine renderEngine;
 

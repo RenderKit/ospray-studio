@@ -34,6 +34,7 @@ ospray_create_library(ospray_studio
   widgets/panels/RenderingSettings.cpp
   widgets/panels/SGAdvanced.cpp
   widgets/panels/SGTreeView.cpp
+  widgets/panels/TransferFunctionEditor.cpp
 
   widgets/sg_ui/ospray_sg_ui.cpp
 

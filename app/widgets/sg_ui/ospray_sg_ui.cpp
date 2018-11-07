@@ -20,9 +20,6 @@
 
 #include "sg/SceneGraph.h"
 
-#include "../transfer_function/TransferFunctionWidget.h"
-using tfn::tfn_widget::TransferFunctionWidget;
-
 #include "../../jobs/JobScheduler.h"
 
 #include "ospcommon/utility/StringManip.h"
@@ -211,28 +208,6 @@ namespace ospray {
     }
   }
 
-  static void sgWidget_TransferFunction(const std::string &text, sg::Node &node)
-  {
-    using WidgetPtr = std::shared_ptr<TransferFunctionWidget>;
-
-    if (!node.hasChild("transferFunctionWidget")) {
-      auto tfn = node.tryNodeAs<sg::TransferFunction>();
-      node.createChildWithValue("transferFunctionWidget",
-                                "Node",
-                                WidgetPtr(new TransferFunctionWidget(tfn)));
-    }
-
-    auto &tfnWidget = node.child("transferFunctionWidget").valueAs<WidgetPtr>();
-
-    static bool show_editor = true;
-    ImGui::Checkbox("show_editor", &show_editor);
-
-    if (show_editor) {
-      tfnWidget->render();
-      tfnWidget->drawUI();
-    }
-  }
-
   using ParameterWidgetBuilder = void (*)(const std::string &, sg::Node &);
 
   static std::unordered_map<std::string, ParameterWidgetBuilder>
@@ -245,8 +220,7 @@ namespace ospray {
                         {"vec4f", sgWidget_vec4f},
                         {"box3f", sgWidget_box3f},
                         {"string", sgWidget_string},
-                        {"bool", sgWidget_bool},
-                        {"TransferFunction", sgWidget_TransferFunction}};
+                        {"bool", sgWidget_bool}};
 
   /////////////////////////////////////////////////////////////////////////////
 

@@ -48,14 +48,6 @@ namespace tfn {
       ~TransferFunctionWidget();
       TransferFunctionWidget(const TransferFunctionWidget &);
       TransferFunctionWidget &operator=(const TransferFunctionWidget &);
-      /* Control Widget Values
-       */
-      void setDefaultRange(const ospcommon::range1f &newRange)
-      {
-        defaultRange = valueRange = newRange;
-
-        tfn_changed = true;
-      }
       /* Draw the transfer function editor widget */
       void drawUI();
       /* Render the transfer function to a 1D texture that can
@@ -91,13 +83,10 @@ namespace tfn {
 
       // Core Handler
       std::function<void(const std::vector<ColorPoint> &,
-                         const std::vector<OpacityPoint> &,
-                         const ospcommon::range1f &)>
+                         const std::vector<OpacityPoint> &)>
           tfn_sample_set;
 
       std::vector<tfn::TransferFunction> tfn_readers;
-      ospcommon::range1f valueRange;
-      ospcommon::range1f defaultRange;
 
       // TFNs information:
       std::vector<bool> tfn_editable;
@@ -106,6 +95,9 @@ namespace tfn {
       std::vector<ColorPoint> *tfn_c;
       std::vector<OpacityPoint> *tfn_o;
       std::vector<std::string> tfn_names;  // name of TFNs in the dropdown menu
+
+      // scene graph node
+      std::shared_ptr<sg::TransferFunction> sg_tfn;
 
       // State Variables:
       // TODO: those variables might be unnecessary

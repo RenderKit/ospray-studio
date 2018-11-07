@@ -35,8 +35,10 @@
 #include "panels/RenderingSettings.h"
 #include "panels/SGAdvanced.h"
 #include "panels/SGTreeView.h"
+#include "panels/TransferFunctionEditor.h"
 
 #include "../sg_utility/utility.h"
+#include "../sg_visitors/ReplaceAllTFs.h"
 
 #include "../jobs/JobScheduler.h"
 
@@ -55,6 +57,8 @@ namespace ospray {
       : ImGui3DWidget(ImGui3DWidget::RESIZE_KEEPFOVY),
         scenegraph(scenegraph),
         renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
+        master_tfn(sg::createNode("master_tf", "TransferFunction")
+                       ->nodeAs<sg::TransferFunction>()),
         renderEngine(scenegraph)
   {
     if (g_instance != nullptr)
@@ -101,6 +105,7 @@ namespace ospray {
 
     normalPanels.emplace_back(new PanelRenderingSettings(scenegraph));
     normalPanels.emplace_back(new PanelNodeFinder(scenegraph));
+    normalPanels.emplace_back(new PanelTFEditor(master_tfn));
 
     auto pluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
     std::move(pluginPanels.begin(),
@@ -382,8 +387,10 @@ namespace ospray {
     bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
     renderEngine.stop();
 
-    for (auto &node : loadedNodes)
+    for (auto &node : loadedNodes) {
+      node->traverse(sg::ReplaceAllTFs{master_tfn});
       renderer->child("world").add(node);
+    }
 
     loadedNodes.clear();
 
@@ -413,6 +420,11 @@ namespace ospray {
 
     if (wasRunning)
       renderEngine.start();
+  }
+
+  std::shared_ptr<sg::Node> MainWindow::getMasterTransferFunctioNode()
+  {
+    return master_tfn;
   }
 
   void MainWindow::buildGui()

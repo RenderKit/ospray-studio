@@ -14,12 +14,18 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "sg/SceneGraph.h"
-#include "sg/geometry/TriangleMesh.h"
-#include "sg/visitor/MarkAllAsModified.h"
+#include "ospray/sg/SceneGraph.h"
+#include "ospray/sg/geometry/TriangleMesh.h"
+#include "ospray/sg/visitor/GatherNodesByName.h"
+#include "ospray/sg/visitor/MarkAllAsModified.h"
 
 #include "sg_utility/utility.h"
+
+// custom visitors
+#include "sg_visitors/GetVoxelRangeOfAllVolumes.h"
 #include "sg_visitors/RecomputeBounds.h"
+#include "sg_visitors/ReplaceAllTFs.h"
+
 #include "widgets/MainWindow.h"
 
 #include <ospray/ospcommon/utility/StringManip.h>
@@ -288,7 +294,16 @@ int main(int argc, const char **argv)
 
   MainWindow window(root, pluginsToLoad);
 
+  auto master_tfn = window.getMasterTransferFunctioNode();
+  root->traverse(sg::ReplaceAllTFs{master_tfn});
+
   root->commit();
+
+  sg::GatherNodesByName getNodes("voxelRange");
+  sg::GetVoxelRangeOfAllVolumes vrVisitor;
+  root->traverse(vrVisitor);
+  if (vrVisitor.numVoxelRangesFound > 0)
+    master_tfn->child("valueRange") = vrVisitor.voxelRange.toVec2f();
 
   window.create("OSPRay Studio", fullscreen, vec2i(width, height));
 

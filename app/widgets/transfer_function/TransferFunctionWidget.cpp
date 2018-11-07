@@ -25,7 +25,9 @@
 
 #include "TransferFunctionWidget.h"
 
-#include "../../app_utility/AsyncRenderEngine.h"
+#include "../../jobs/JobScheduler.h"
+
+#include "../sg_ui/ospray_sg_ui.h"
 
 using namespace tfn;
 using namespace tfn_widget;
@@ -126,8 +128,8 @@ void TransferFunctionWidget::SetTFNSelection(int selection)
   if (tfn_selection != selection) {
     tfn_selection = selection;
     // Remember to update other constructors as well
-    tfn_c       = &(tfn_c_list[selection]);
-#if 0 // NOTE(jda) - this will use the first tf's opacities for all color maps
+    tfn_c = &(tfn_c_list[selection]);
+#if 0  // NOTE(jda) - this will use the first tf's opacities for all color maps
     tfn_o       = &(tfn_o_list[selection]);
 #endif
     tfn_edit    = tfn_editable[selection];
@@ -144,15 +146,13 @@ TransferFunctionWidget::~TransferFunctionWidget()
 
 TransferFunctionWidget::TransferFunctionWidget(
     std::shared_ptr<sg::TransferFunction> tfn)
-    : tfn_text_buffer(512, '\0'), valueRange{0.f, 0.f}, defaultRange{0.f, 0.f}
+    : tfn_text_buffer(512, '\0')
 {
-  tfn_sample_set = [=](const std::vector<ColorPoint> &c,
-                       const std::vector<OpacityPoint> &a,
-                       const ospcommon::range1f &r) {
-    if (r.upper > r.lower)
-      tfn->child("valueRange") = r.toVec2f();
+  sg_tfn = tfn;
 
-    AsyncRenderEngine::g_instance->scheduleNodeOp([&]() {
+  tfn_sample_set = [=](const std::vector<ColorPoint> &c,
+                       const std::vector<OpacityPoint> &a) {
+    job_scheduler::scheduleNodeOp([&]() {
       auto colors = ospray::sg::createNode("colorControlPoints", "DataVector4f")
                         ->nodeAs<ospray::sg::DataVector4f>();
       auto alphas =
@@ -175,10 +175,6 @@ TransferFunctionWidget::TransferFunctionWidget(
 
   numSamples = tfn->child("numSamples").valueAs<int>();
 
-  auto range       = tfn->child("valueRange").valueAs<ospcommon::vec2f>();
-  valueRange.lower = range.x;
-  valueRange.upper = range.y;
-
   LoadDefaultMap();
 
   tfn_c    = &(tfn_c_list[tfn_selection]);
@@ -195,9 +191,7 @@ TransferFunctionWidget::TransferFunctionWidget(
       tfn_changed(true),
       tfn_palette(0),
       tfn_text_buffer(512, '\0'),
-      tfn_sample_set(core.tfn_sample_set),
-      valueRange(core.valueRange),
-      defaultRange(core.defaultRange)
+      tfn_sample_set(core.tfn_sample_set)
 {
   tfn_c    = &(tfn_c_list[tfn_selection]);
   tfn_o    = &(tfn_o_list[tfn_selection]);
@@ -217,8 +211,6 @@ TransferFunctionWidget &TransferFunctionWidget::operator=(
   tfn_changed    = true;
   tfn_palette    = 0;
   tfn_sample_set = core.tfn_sample_set;
-  valueRange     = core.valueRange;
-  defaultRange   = core.defaultRange;
   return *this;
 }
 
@@ -254,19 +246,8 @@ void TransferFunctionWidget::drawUI()
   }
   // TODO: save function is not implemented
   // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
-  if (defaultRange.upper > defaultRange.lower) {
-    if (ImGui::DragFloat2("value range",
-                          reinterpret_cast<float *>(&valueRange),
-                          defaultRange.size() / 1000.f,
-                          defaultRange.lower,
-                          defaultRange.upper)) {
-      tfn_changed = true;
-    }
-  } else {
-    if (ImGui::DragFloat2("value range",
-                          reinterpret_cast<float *>(&valueRange)))
-      tfn_changed = true;
-  }
+  auto &valueRangeNode = sg_tfn->child("valueRange");
+  guiSGSingleNode("valueRange", valueRangeNode);
 
   SetTFNSelection(newSelection);
 
@@ -602,7 +583,7 @@ void TransferFunctionWidget::render()
       glBindTexture(GL_TEXTURE_2D, prevBinding);
     }
 
-    tfn_sample_set(*tfn_c, *tfn_o, valueRange);
+    tfn_sample_set(*tfn_c, *tfn_o);
     tfn_changed = false;
   }
 }
