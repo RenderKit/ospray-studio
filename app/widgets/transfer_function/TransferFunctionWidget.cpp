@@ -152,7 +152,7 @@ TransferFunctionWidget::TransferFunctionWidget(
 {
   sg_tfn = tfn;
 
-  tfn_sample_set = [=](const std::vector<ColorPoint> &c,
+  tfn_sample_set = [&](const std::vector<ColorPoint> &c,
                        const std::vector<OpacityPoint> &a) {
     job_scheduler::scheduleNodeOp([&]() {
       auto colors = ospray::sg::createNode("colorControlPoints", "DataVector4f")
@@ -164,13 +164,15 @@ TransferFunctionWidget::TransferFunctionWidget(
       alphas->v.resize(a.size());
 
       std::copy(c.data(), c.data() + c.size(), colors->v.data());
-      std::copy(a.data(), a.data() + a.size(), alphas->v.data());
+      std::transform(a.begin(), a.end(), alphas->v.begin(), [&](auto &v) {
+        return OpacityPoint(v.x, v.y * (float(globalOpacityScale) / 100.f));
+      });
 
-      tfn->add(colors);
-      tfn->add(alphas);
-      tfn->updateChildDataValues();
+      sg_tfn->add(colors);
+      sg_tfn->add(alphas);
+      sg_tfn->updateChildDataValues();
 
-      tfn->traverse(sg::MarkAllAsModified{});
+      sg_tfn->traverse(sg::MarkAllAsModified{});
     });
   };
 
@@ -249,8 +251,14 @@ void TransferFunctionWidget::drawUI()
   }
   // TODO: save function is not implemented
   // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
+
   auto &valueRangeNode = sg_tfn->child("valueRange");
   guiSGSingleNode("valueRange", valueRangeNode);
+
+  ImGui::Text("opacity scale");
+  ImGui::SameLine();
+  if (ImGui::SliderInt("##OpacityScale", &globalOpacityScale, 0, 100))
+    tfn_changed = true;
 
   SetTFNSelection(newSelection);
 

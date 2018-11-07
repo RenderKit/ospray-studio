@@ -115,6 +115,7 @@ namespace tfn {
       // int tfn_w = 256;
       // int tfn_h = 1; // TODO: right now we onlu support 1D TFN
       int numSamples{1};
+      int globalOpacityScale{100}; //<-- unit is %
 
       // * The selected transfer function being shown
       int tfn_selection{0};
