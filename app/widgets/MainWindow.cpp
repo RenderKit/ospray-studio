@@ -386,10 +386,10 @@ namespace ospray {
     bool wasRunning = renderEngine.runningState() == ExecState::RUNNING;
     renderEngine.stop();
 
-    for (auto &node : loadedNodes) {
-      replaceAllTFsWithMasterTF(*scenegraph);
+    for (auto &node : loadedNodes)
       renderer->child("world").add(node);
-    }
+
+    replaceAllTFsWithMasterTF(*scenegraph);
 
     loadedNodes.clear();
 

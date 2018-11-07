@@ -46,6 +46,7 @@ namespace ospray {
       if (tf.get() != nullptr) {
         auto &parent = tf->parent();
         parent.setChild("transferFunction", master_tf);
+        master_tf->setParent(parent);
         return false;
       } else {
         return true;
