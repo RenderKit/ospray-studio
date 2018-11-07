@@ -74,7 +74,7 @@ namespace ospray {
 
     void guiMainMenu();
     void guiMainMenuFile();
-    void guiMainMenuView();
+    void guiMainMenuPanels();
     void guiMainMenuCamera();
     void guiMainMenuHelp();
 

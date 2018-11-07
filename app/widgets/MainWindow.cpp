@@ -448,7 +448,7 @@ namespace ospray {
   {
     if (ImGui::BeginMainMenuBar()) {
       guiMainMenuFile();
-      guiMainMenuView();
+      guiMainMenuPanels();
       guiMainMenuCamera();
       guiMainMenuHelp();
 
@@ -600,9 +600,9 @@ namespace ospray {
     }
   }
 
-  void MainWindow::guiMainMenuView()
+  void MainWindow::guiMainMenuPanels()
   {
-    if (ImGui::BeginMenu("View")) {
+    if (ImGui::BeginMenu("Panels")) {
       int panelIndex = 1;
       for (auto &p : normalPanels) {
         std::stringstream ss;
