@@ -14,16 +14,20 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+#include "TransferFunctionWidget.h"
+
+// stl
 #include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
-
+// imgui
 #include <imconfig.h>
 #include <imgui.h>
-
-#include "TransferFunctionWidget.h"
+#include "imguifilesystem/imguifilesystem.h"
+// ospcommon
+#include "ospray/ospcommon/FileName.h"
 // job_scheduler
 #include "../../jobs/JobScheduler.h"
 // sg_ui
@@ -150,6 +154,11 @@ TransferFunctionWidget::TransferFunctionWidget(
     std::shared_ptr<sg::TransferFunction> tfn)
     : tfn_text_buffer(512, '\0')
 {
+  tfn_editable.reserve(20);
+  tfn_c_list.reserve(20);
+  tfn_o_list.reserve(20);
+  tfn_names.reserve(20);
+
   sg_tfn = tfn;
 
   tfn_sample_set = [&](const std::vector<ColorPoint> &c,
@@ -236,19 +245,38 @@ void TransferFunctionWidget::drawUI()
                  [](const std::string &t) { return t.c_str(); });
   int newSelection = tfn_selection;
   ImGui::ListBox("Color maps", &newSelection, names.data(), names.size());
-  ImGui::InputText("", tfn_text_buffer.data(), tfn_text_buffer.size() - 1);
+
+  static ImGuiFs::Dialog openFileDialog;
+
+  const bool pressed         = ImGui::Button("Choose File...");
+  const std::string fileName = openFileDialog.chooseFileDialog(pressed);
+
+  static std::string fileToOpen;
+
+  if (!fileName.empty())
+    fileToOpen = fileName;
+
   ImGui::SameLine();
-  if (ImGui::Button("load new file")) {
+
+  std::array<char, 512> buf;
+  strcpy(buf.data(), fileToOpen.c_str());
+
+  if (ImGui::InputText(
+          "", buf.data(), buf.size(), ImGuiInputTextFlags_EnterReturnsTrue))
+    fileToOpen = buf.data();
+
+  if (ImGui::Button("Load##tfn_editor")) {
     try {
-      std::string s = tfn_text_buffer.data();
-      s.erase(s.find_last_not_of(" \n\r\t") + 1);
-      s.erase(0, s.find_first_not_of(" \n\r\t"));
-      load(s.c_str());
+      load(fileToOpen.c_str());
     } catch (const std::runtime_error &error) {
       std::cerr << "\033[1;33m"
                 << "Error:" << error.what() << "\033[0m" << std::endl;
     }
   }
+
+  ImGui::Separator();
+  ImGui::Separator();
+
   // TODO: save function is not implemented
   // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
 
@@ -601,20 +629,22 @@ void TransferFunctionWidget::render()
 
 void TransferFunctionWidget::load(const std::string &fileName)
 {
-  tfn::TransferFunction loaded(fileName);
   tfn_readers.emplace_back(fileName);
-  const auto tfn_new = tfn_readers.back();
-  const int c_size   = tfn_new.rgbValues.size();
-  const int o_size   = tfn_new.opacityValues.size();
+  const auto &tfn_new = tfn_readers.back();
+  const int c_size    = tfn_new.rgbValues.size();
+
   // load data
   tfn_c_list.emplace_back(c_size);
-  tfn_o_list.emplace_back(o_size);
   tfn_editable.push_back(false);  // TODO we dont want to edit loaded TFN
-  tfn_names.push_back(tfn_new.name);
+
+  ospcommon::FileName fName = fileName;
+  tfn_names.push_back(fName.base());
+
   SetTFNSelection(tfn_names.size() - 1);  // set the loaded function as current
-  if (c_size < 2) {
+
+  if (c_size < 2)
     throw std::runtime_error("transfer function contains too few color points");
-  }
+
   const float c_step = 1.f / (c_size - 1);
   for (int i = 0; i < c_size; ++i) {
     const float p = static_cast<float>(i) * c_step;
@@ -623,14 +653,7 @@ void TransferFunctionWidget::load(const std::string &fileName)
     (*tfn_c)[i].z = tfn_new.rgbValues[i].y;
     (*tfn_c)[i].w = tfn_new.rgbValues[i].z;
   }
-  if (o_size < 2) {
-    throw std::runtime_error(
-        "transfer function contains too few opacity points");
-  }
-  for (int i = 0; i < o_size; ++i) {
-    (*tfn_o)[i].x = tfn_new.opacityValues[i].x;
-    (*tfn_o)[i].y = tfn_new.opacityValues[i].y;
-  }
+
   tfn_changed = true;
 }
 
