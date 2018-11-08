@@ -38,7 +38,8 @@ namespace ospray {
     static MainWindow *g_instance;
 
     MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
-               const std::vector<std::string> &pluginsToLoad = {});
+               const std::vector<std::string> &pluginsToLoad,
+               const std::vector<std::string> &tfnsToLoad);
 
     ~MainWindow();
 

@@ -24,10 +24,13 @@
 
 namespace ospray {
 
-  PanelTFEditor::PanelTFEditor(std::shared_ptr<sg::TransferFunction> tfn)
+  PanelTFEditor::PanelTFEditor(std::shared_ptr<sg::TransferFunction> tfn,
+                               const std::vector<std::string> &tfnsToLoad)
       : Panel("Transfer Function Editor"),
         widget(new TransferFunctionWidget(tfn))
   {
+    for (auto &tfn : tfnsToLoad)
+      widget->load(tfn);
   }
 
   void PanelTFEditor::buildUI()

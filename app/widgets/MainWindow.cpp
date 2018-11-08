@@ -52,7 +52,8 @@ namespace ospray {
   MainWindow *MainWindow::g_instance = nullptr;
 
   MainWindow::MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
-                         const std::vector<std::string> &pluginsToLoad)
+                         const std::vector<std::string> &pluginsToLoad,
+                         const std::vector<std::string> &tfnsToLoad)
       : ImGui3DWidget(ImGui3DWidget::RESIZE_KEEPFOVY),
         scenegraph(scenegraph),
         renderer(scenegraph->child("renderer").nodeAs<sg::Renderer>()),
@@ -103,7 +104,7 @@ namespace ospray {
         "Job Scheduler", [&]() { this->guiJobStatusControlPanel(); }));
 
     normalPanels.emplace_back(new PanelRenderingSettings(scenegraph));
-    normalPanels.emplace_back(new PanelTFEditor(master_tfn));
+    normalPanels.emplace_back(new PanelTFEditor(master_tfn, tfnsToLoad));
     normalPanels.emplace_back(new PanelNodeFinder(scenegraph));
 
     auto pluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);

@@ -28,7 +28,8 @@ namespace ospray {
 
   struct PanelTFEditor : public Panel
   {
-    PanelTFEditor(std::shared_ptr<sg::TransferFunction> tfn);
+    PanelTFEditor(std::shared_ptr<sg::TransferFunction> tfn,
+                   const std::vector<std::string> &tfnsToLoad);
 
     void buildUI() override;
 

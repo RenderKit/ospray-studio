@@ -41,6 +41,7 @@ static bool fullscreen = false;
 
 static std::vector<std::string> filesToImport;
 static std::vector<std::string> pluginsToLoad;
+static std::vector<std::string> tfnsToLoad;
 
 // Helper functions ///////////////////////////////////////////////////////////
 
@@ -105,6 +106,10 @@ static void parseCommandLine(int &ac, const char **&av)
       continue;
     } else if (arg == "--plugin" || arg == "-p") {
       pluginsToLoad.emplace_back(av[i + 1]);
+      removeArgs(ac, av, i, 2);
+      --i;
+    } else if (arg == "--transfer-function" || arg == "-tfn" || arg == "-tf") {
+      tfnsToLoad.emplace_back(av[i + 1]);
       removeArgs(ac, av, i, 2);
       --i;
     } else {
@@ -292,7 +297,7 @@ int main(int argc, const char **argv)
   importFilesFromCommandLine(*root);
   setupLights(*root);
 
-  MainWindow window(root, pluginsToLoad);
+  MainWindow window(root, pluginsToLoad, tfnsToLoad);
 
   replaceAllTFsWithMasterTF(*root);
 
