@@ -64,6 +64,8 @@ namespace ospray {
     void scheduleNodeValueChange(sg::Node &node, utility::Any value);
     void scheduleNodeOp(std::function<void()> op);
 
+    void flushScheduledOps();
+
     // Query results from rendering thread //
 
     bool hasNewFrame() const;

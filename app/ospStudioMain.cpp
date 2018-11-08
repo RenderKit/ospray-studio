@@ -307,6 +307,8 @@ int main(int argc, const char **argv)
 
   window.create("OSPRay Studio", fullscreen, vec2i(width, height));
 
+  AsyncRenderEngine::g_instance->flushScheduledOps();
+
   parseCommandLineSG(argc, argv, *root);
 
   imgui3D::run();

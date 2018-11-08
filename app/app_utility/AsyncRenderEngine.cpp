@@ -100,6 +100,15 @@ namespace ospray {
     nodeOps.push_back(op);
   }
 
+  void AsyncRenderEngine::flushScheduledOps()
+  {
+    if (!nodeOps.empty()) {
+      auto ops = nodeOps.consume();
+      for (auto &op : ops)
+        op();
+    }
+  }
+
   bool AsyncRenderEngine::hasNewFrame() const
   {
     return newPixels;
@@ -157,11 +166,7 @@ namespace ospray {
       commitDeviceOnAsyncLoopThread = false;
     }
 
-    if (!nodeOps.empty()) {
-      auto ops = nodeOps.consume();
-      for (auto &op : ops)
-        op();
-    }
+    flushScheduledOps();
 
     if (renderer->hasChild("animationcontroller"))
       renderer->child("animationcontroller").animate();
