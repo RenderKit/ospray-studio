@@ -24,7 +24,15 @@ namespace ospray {
   {
     std::cout << "...attempting to load module '" << name << "'\n";
     std::string libName = "ospray_studio_plugin_" + name;
-    loadLibrary(libName);
+    try {
+      loadLibrary(libName);
+    } catch (...) {
+      std::cout
+          << "...failed to load plugin '" << name << "'!"
+          << " (plugin was not found). Please verify the name of the plugin"
+          << " is correct and that it is on your LD_LIBRARY_PATH." << std::endl;
+      return;
+    }
 
     std::string initSymName = "init_plugin_" + name;
     void *initSym           = getSymbol(initSymName);

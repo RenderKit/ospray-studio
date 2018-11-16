@@ -32,7 +32,7 @@ namespace ospray {
       Nodes get();
 
      private:
-      std::function<Nodes()> stashedTask;
+      Task stashedTask;
       std::future<Nodes> runningJob;
       std::atomic<bool> jobFinished;
     };
