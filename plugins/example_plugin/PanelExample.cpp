@@ -21,7 +21,7 @@
 namespace ospray {
   namespace example_plugin {
 
-    PanelExample::PanelExample() : Panel("Example Panel - Plugin") {}
+    PanelExample::PanelExample() : Panel("Example Panel") {}
 
     void PanelExample::buildUI()
     {

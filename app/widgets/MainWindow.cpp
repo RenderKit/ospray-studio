@@ -97,20 +97,20 @@ namespace ospray {
 
     aboutPanel = make_unique<PanelAbout>();
 
-    normalPanels.emplace_back(
+    defaultPanels.emplace_back(
         new GenericPanel("Renderer Stats", [&]() { this->guiRenderStats(); }));
 
-    normalPanels.emplace_back(new GenericPanel(
+    defaultPanels.emplace_back(new GenericPanel(
         "Job Scheduler", [&]() { this->guiJobStatusControlPanel(); }));
 
-    normalPanels.emplace_back(new PanelRenderingSettings(scenegraph));
-    normalPanels.emplace_back(new PanelTFEditor(master_tfn, tfnsToLoad));
-    normalPanels.emplace_back(new PanelNodeFinder(scenegraph));
+    defaultPanels.emplace_back(new PanelRenderingSettings(scenegraph));
+    defaultPanels.emplace_back(new PanelTFEditor(master_tfn, tfnsToLoad));
+    defaultPanels.emplace_back(new PanelNodeFinder(scenegraph));
 
-    auto pluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
-    std::move(pluginPanels.begin(),
-              pluginPanels.end(),
-              std::back_inserter(normalPanels));
+    auto newPluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
+    std::move(newPluginPanels.begin(),
+              newPluginPanels.end(),
+              std::back_inserter(pluginPanels));
 
     advancedPanels.emplace_back(new PanelSGTreeView(scenegraph));
     advancedPanels.emplace_back(new PanelSGAdvanced(scenegraph));
@@ -202,8 +202,11 @@ namespace ospray {
     case '8':
     case '9': {
       int whichPanel = key - '0' - 1;
-      if (whichPanel < normalPanels.size())
-        normalPanels[whichPanel]->toggleShown();
+      auto numDefaultPanels = defaultPanels.size();
+      if (whichPanel < numDefaultPanels)
+        defaultPanels[whichPanel]->toggleShown();
+      else if (whichPanel < numDefaultPanels + pluginPanels.size())
+        pluginPanels[whichPanel - numDefaultPanels]->toggleShown();
       break;
     }
     default:
@@ -444,7 +447,11 @@ namespace ospray {
     if (aboutPanel->isShown())
       aboutPanel->buildUI();
 
-    for (auto &p : normalPanels)
+    for (auto &p : defaultPanels)
+      if (p->isShown())
+        p->buildUI();
+
+    for (auto &p : pluginPanels)
       if (p->isShown())
         p->buildUI();
 
@@ -616,7 +623,25 @@ namespace ospray {
   {
     if (ImGui::BeginMenu("Panels")) {
       int panelIndex = 1;
-      for (auto &p : normalPanels) {
+      for (auto &p : defaultPanels) {
+        std::stringstream ss;
+
+        if (panelIndex <= 9)
+          ss << '(' << std::to_string(panelIndex++) << ") " << p->name();
+        else
+          ss << p->name();
+
+        bool show = p->isShown();
+        if (ImGui::Checkbox(ss.str().c_str(), &show))
+          p->toggleShown();
+      }
+
+      if (!pluginPanels.empty()) {
+        ImGui::Separator();
+        ImGui::Text("Plugins");
+      }
+
+      for (auto &p : pluginPanels) {
         std::stringstream ss;
 
         if (panelIndex <= 9)
