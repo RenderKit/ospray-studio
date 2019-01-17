@@ -16,12 +16,12 @@
 
 include_directories(. imguifilesystem)
 
-ospray_create_library(ospray_imgui
+add_library(imgui
   imgui.cpp
   imgui_draw.cpp
   imgui_demo.cpp
   imgui_widgets.cpp
   imguifilesystem/imguifilesystem.cpp
-LINK
-  ${OPENGL_LIBRARIES}
 )
+
+target_link_libraries(imgui PUBLIC ${OPENGL_LIBRARIES})

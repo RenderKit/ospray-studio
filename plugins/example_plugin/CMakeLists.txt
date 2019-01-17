@@ -18,12 +18,9 @@ option(BUILD_PLUGIN_EXAMPLE "Example plugin" OFF)
 
 if (BUILD_PLUGIN_EXAMPLE)
 
-  ospray_create_library(ospray_studio_plugin_example
-    plugin_example.cpp
-    PanelExample.cpp
-  LINK
-    ospray_studio
-  )
+  add_library(ospray_studio_plugin_example plugin_example.cpp PanelExample.cpp)
+
+  target_link_libraries(ospray_studio_plugin_example ospray_studio)
 
   target_include_directories(ospray_studio_plugin_example
     PRIVATE ${CMAKE_SOURCE_DIR}

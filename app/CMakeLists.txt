@@ -16,7 +16,7 @@
 
 ## Build app
 
-ospray_create_library(ospray_studio
+add_library(ospray_studio
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
   PluginManager.cpp
@@ -39,18 +39,16 @@ ospray_create_library(ospray_studio
   widgets/sg_ui/ospray_sg_ui.cpp
 
   widgets/transfer_function/TransferFunctionWidget.cpp
-
-LINK
-  ${OSPRAY_LIBRARIES}
-  ${OSPRAY_SG_LIBRARIES}
-  Threads::Threads
-  ospray_imgui
-  ospray_tfn
-  glfw
 )
 
-ospray_create_application(ospStudio
-  ospStudioMain.cpp
-LINK
-  ospray_studio
+target_link_libraries(ospray_studio
+  PUBLIC
+    ${OSPRAY_SG_LIBRARIES}
+    Threads::Threads
+    imgui
+    tfn_lib
+    glfw
 )
+
+add_executable(ospStudio ospStudioMain.cpp)
+target_link_libraries(ospStudio PRIVATE ospray_studio)
