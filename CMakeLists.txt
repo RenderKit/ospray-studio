@@ -17,6 +17,10 @@
 project(ospray_studio)
 cmake_minimum_required(VERSION 3.1)
 
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW) # since 3.12
+endif()
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -25,7 +29,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 ## Find dependencies ##
 
-find_package(OpenGL REQUIRED)
+set(OpenGL_GL_PREFERENCE "LEGACY")
+find_package(OpenGL 2 REQUIRED)
 find_package(glfw3 REQUIRED)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE) # for gcc6
