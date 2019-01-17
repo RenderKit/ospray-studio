@@ -26,7 +26,7 @@ set(CMAKE_CXX_STANDARD 17)
 ## Find dependencies ##
 
 find_package(OpenGL REQUIRED)
-find_package(glfw3)
+find_package(glfw3 REQUIRED)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE) # for gcc6
 find_package(Threads REQUIRED)
