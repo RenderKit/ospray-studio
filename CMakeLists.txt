@@ -29,6 +29,21 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
+if (WIN32)
+  if (NOT OSPRAY_DEFAULT_CMAKE_CONFIGURATION_TYPES_SET)
+    set(CMAKE_CONFIGURATION_TYPES "${CONFIGURATION_TYPES}"
+        CACHE STRING "List of generated configurations." FORCE)
+    set(OSPRAY_DEFAULT_CMAKE_CONFIGURATION_TYPES_SET ON
+        CACHE INTERNAL "Default CMake configuration types set.")
+  endif()
+else()
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the build type." FORCE)
+  endif()
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CONFIGURATION_TYPES})
+endif()
+
 ## Find dependencies ##
 
 set(OpenGL_GL_PREFERENCE "LEGACY")
