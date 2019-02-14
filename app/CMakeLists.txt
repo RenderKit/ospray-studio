@@ -30,6 +30,7 @@ add_library(ospray_studio SHARED
   widgets/MainWindow.cpp
 
   widgets/panels/About.cpp
+  widgets/panels/Lights.cpp
   widgets/panels/NodeFinder.cpp
   widgets/panels/RenderingSettings.cpp
   widgets/panels/SGAdvanced.cpp

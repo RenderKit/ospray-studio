@@ -31,6 +31,7 @@
 // panels
 #include "GenericPanel.h"
 #include "panels/About.h"
+#include "panels/Lights.h"
 #include "panels/NodeFinder.h"
 #include "panels/RenderingSettings.h"
 #include "panels/SGAdvanced.h"
@@ -105,6 +106,7 @@ namespace ospray {
 
     defaultPanels.emplace_back(new PanelRenderingSettings(scenegraph));
     defaultPanels.emplace_back(new PanelTFEditor(master_tfn, tfnsToLoad));
+    defaultPanels.emplace_back(new PanelLights(scenegraph));
     defaultPanels.emplace_back(new PanelNodeFinder(scenegraph));
 
     auto newPluginPanels = pluginManager.getAllPanelsFromPlugins(scenegraph);
