@@ -16,7 +16,7 @@
 
 ## Build app
 
-add_library(ospray_studio
+add_library(ospray_studio SHARED
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
   PluginManager.cpp
