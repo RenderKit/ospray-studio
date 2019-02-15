@@ -56,7 +56,7 @@ namespace ospray {
       ImGui::SameLine();
 
       static int which = 0;
-      ImGui::Combo("##1", &which, "directional\0ambient\0", 2);
+      ImGui::Combo("##1", &which, "directional\0point\0quad\0ambient\0", 4);
 
       if (ImGui::Button("Cancel")) {
         show_add_light_modal = false;
@@ -73,6 +73,12 @@ namespace ospray {
           type = "DirectionalLight";
           break;
         case 1:
+          type = "PointLight";
+          break;
+        case 2:
+          type = "QuadLight";
+          break;
+        case 3:
           type = "AmbientLight";
           break;
         default:
