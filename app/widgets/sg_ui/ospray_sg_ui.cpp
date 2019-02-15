@@ -295,65 +295,8 @@ namespace ospray {
                           std::shared_ptr<sg::Node> node)
   {
     if (ImGui::BeginPopupContextItem("item context menu")) {
-      char buf[256];
-      buf[0] = '\0';
-      if (ImGui::Button("Add new node..."))
-        ImGui::OpenPopup("Add new node...");
-      if (ImGui::BeginPopup("Add new node...")) {
-        if (ImGui::InputText("node type: ",
-                             buf,
-                             256,
-                             ImGuiInputTextFlags_EnterReturnsTrue)) {
-          std::cout << "add node: \"" << buf << "\"\n";
-          try {
-            static int counter = 0;
-            std::stringstream ss;
-            ss << "userDefinedNode" << counter++;
-            node->add(sg::createNode(ss.str(), buf));
-          } catch (const std::exception &) {
-            std::cerr << "invalid node type: " << buf << std::endl;
-          }
-        }
-        ImGui::EndPopup();
-      }
-      if (ImGui::Button("Set to new node..."))
-        ImGui::OpenPopup("Set to new node...");
-      if (ImGui::BeginPopup("Set to new node...")) {
-        if (ImGui::InputText("node type: ",
-                             buf,
-                             256,
-                             ImGuiInputTextFlags_EnterReturnsTrue)) {
-          std::cout << "set node: \"" << buf << "\"\n";
-          try {
-            static int counter = 0;
-            std::stringstream ss;
-            ss << "userDefinedNode" << counter++;
-            auto newNode = sg::createNode(ss.str(), buf);
-            newNode->setParent(node->parent());
-            node->parent().setChild(name, newNode);
-          } catch (const std::exception &) {
-            std::cerr << "invalid node type: " << buf << std::endl;
-          }
-        }
-        ImGui::EndPopup();
-      }
-      static ImGuiFs::Dialog importdlg;
-      const bool importButtonPressed = ImGui::Button("Import...");
-      const char *importpath = importdlg.chooseFileDialog(importButtonPressed);
-      if (strlen(importpath) > 0) {
-        std::cout << "importing OSPSG file from path: " << importpath
-                  << std::endl;
-        sg::loadOSPSG(node, std::string(importpath));
-      }
-
-      static ImGuiFs::Dialog exportdlg;
-      const bool exportButtonPressed = ImGui::Button("Export...");
-      const char *exportpath = exportdlg.saveFileDialog(exportButtonPressed);
-      if (strlen(exportpath) > 0) {
-        // Make sure that the file has the .ospsg suffix
-        FileName exportfile = FileName(exportpath).setExt(".ospsg");
-        std::cout << "writing OSPSG file to path: " << exportfile << std::endl;
-        sg::writeOSPSG(node, exportfile);
+      if (ImGui::Button("delete")) {
+        std::cout << "TODO: delete '" << node->name() << "'\n";
       }
 
       ImGui::EndPopup();
