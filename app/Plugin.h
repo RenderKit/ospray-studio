@@ -21,7 +21,7 @@
 
 #include "widgets/Panel.h"
 
-#include "ospray/sg/SceneGraph.h"
+#include "sg/SceneGraph.h"
 
 namespace ospray {
 

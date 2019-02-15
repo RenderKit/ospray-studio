@@ -52,8 +52,7 @@ find_package(glfw3 REQUIRED)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE) # for gcc6
 find_package(Threads REQUIRED)
-find_package(ospray 1.8.5 EXACT REQUIRED)
-find_package(OpenImageDenoise)
+find_package(ospray 2.0.0 REQUIRED)
 
 # Prevent OSX 10.14+ OGL deprecation warnings
 if(APPLE)
@@ -75,6 +74,7 @@ include_directories(
 )
 
 add_subdirectory(external)
+add_subdirectory(sg)
 add_subdirectory(app)
 
 ## Build plugins ##

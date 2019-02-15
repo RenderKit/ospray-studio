@@ -14,7 +14,7 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-add_library(tfn_lib tfn_lib.cpp)
+add_library(tfn_lib tfn_lib.cpp jsoncpp.cpp)
 target_link_libraries(tfn_lib PUBLIC ${OSPRAY_LIBRARIES})
 
 option(BUILD_PARAVIEW_TFN_CVT

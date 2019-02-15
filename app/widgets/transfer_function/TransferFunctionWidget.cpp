@@ -33,7 +33,7 @@
 // sg_ui
 #include "../sg_ui/ospray_sg_ui.h"
 // ospray_sg
-#include "ospray/sg/visitor/MarkAllAsModified.h"
+#include "sg/visitor/MarkAllAsModified.h"
 
 using namespace tfn;
 using namespace tfn_widget;

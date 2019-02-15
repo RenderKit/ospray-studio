@@ -32,7 +32,7 @@
 
 #include "tfn_lib/tfn_lib.h"
 
-#include "ospray/sg/transferFunction/TransferFunction.h"
+#include "sg/transferFunction/TransferFunction.h"
 
 namespace tfn {
   namespace tfn_widget {

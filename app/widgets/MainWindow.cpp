@@ -116,7 +116,6 @@ namespace ospray {
   MainWindow::~MainWindow()
   {
     renderEngine.stop();
-    ospSetProgressFunc(nullptr, nullptr);
   }
 
   void MainWindow::startAsyncRendering()

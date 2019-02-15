@@ -18,7 +18,7 @@
 
 #include "../Panel.h"
 
-#include "ospray/sg/SceneGraph.h"
+#include "sg/SceneGraph.h"
 
 // tf editor widget
 #include "../transfer_function/TransferFunctionWidget.h"

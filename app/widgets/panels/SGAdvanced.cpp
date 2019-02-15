@@ -20,7 +20,7 @@
 // imgui
 #include "imgui.h"
 // ospray_sg
-#include "ospray/sg/visitor/MarkAllAsModified.h"
+#include "sg/visitor/MarkAllAsModified.h"
 
 namespace ospray {
 

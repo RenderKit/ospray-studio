@@ -19,7 +19,7 @@
 #include <memory>
 #include <string>
 
-#include "ospray/sg/common/Node.h"
+#include "sg/common/Node.h"
 
 #include "imgui.h"
 
