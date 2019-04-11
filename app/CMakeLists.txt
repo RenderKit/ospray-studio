@@ -45,7 +45,7 @@ add_library(ospray_studio SHARED
 target_link_libraries(ospray_studio
   PUBLIC
     ${OSPRAY_SG_LIBRARIES}
-    Threads::Threads
+    ospray_tasking
     imgui
     tfn_lib
     glfw
