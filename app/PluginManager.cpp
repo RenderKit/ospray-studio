@@ -25,7 +25,7 @@ namespace ospray {
     std::cout << "...attempting to load module '" << name << "'\n";
     std::string libName = "ospray_studio_plugin_" + name;
     try {
-      loadLibrary(libName);
+      loadLibrary(libName, false);
     } catch (...) {
       std::cout
           << "...failed to load plugin '" << name << "'!"

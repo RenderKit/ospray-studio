@@ -52,7 +52,7 @@ find_package(glfw3 REQUIRED)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE) # for gcc6
 find_package(Threads REQUIRED)
-find_package(ospray 1.8.3 EXACT REQUIRED)
+find_package(ospray 1.8.5 EXACT REQUIRED)
 
 include(${OSPRAY_USE_FILE})
 
