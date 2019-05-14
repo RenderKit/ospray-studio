@@ -73,10 +73,19 @@ include_directories(
   external/imgui
 )
 
-add_subdirectory(external)
 add_subdirectory(sg)
-add_subdirectory(app)
+
+option(BUILD_APPS "Build OSPRay Studio Apps" ON)
+
+if (BUILD_APPS)
+  add_subdirectory(external)
+  add_subdirectory(app)
+endif()
 
 ## Build plugins ##
 
-add_subdirectory(plugins)
+option(BUILD_PLUGINS "Build plugins subtree" ON)
+
+if (BUILD_APPS AND BUILD_PLUGINS)
+  add_subdirectory(plugins)
+endif()
