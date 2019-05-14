@@ -1,0 +1,294 @@
+// ======================================================================== //
+// Copyright 2009-2019 Intel Corporation                                    //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
+#include "Node.h"
+
+#include "ospcommon/library.h"
+#include "ospcommon/utility/StringManip.h"
+
+namespace ospray {
+  namespace sg {
+
+    // ==================================================================
+    // sg node implementations
+    // ==================================================================
+
+    // NOTE(jda) - can't do default member initializers due to MSVC...
+    Node::Node()
+    {
+      properties.name = "NULL";
+      properties.type = "Node";
+    }
+
+    Node::~Node()
+    {
+      // Call ospRelease() if the value is an OSPObject handle
+      if (valueIsType<OSPObject>())
+        ospRelease(valueAs<OSPObject>());
+    }
+
+    std::string Node::toString() const
+    {
+      return "ospray::sg::Node";
+    }
+
+    // Properties /////////////////////////////////////////////////////////////
+
+    std::string Node::name() const
+    {
+      return properties.name;
+    }
+
+    std::string Node::type() const
+    {
+      return properties.type;
+    }
+
+    std::string Node::documentation() const
+    {
+      return properties.documentation;
+    }
+
+    void Node::setName(const std::string &v)
+    {
+      properties.name = v;
+    }
+
+    void Node::setType(const std::string &v)
+    {
+      properties.type = v;
+    }
+
+    void Node::setDocumentation(const std::string &s)
+    {
+      properties.documentation = s;
+    }
+
+    size_t Node::uniqueID() const
+    {
+      return properties.whenCreated;
+    }
+
+    // Node stored value (data) interface /////////////////////////////////////
+
+    Any Node::value()
+    {
+      return properties.value;
+    }
+
+    // Update detection interface /////////////////////////////////////////////
+
+    TimeStamp Node::lastModified() const
+    {
+      return properties.lastModified;
+    }
+
+    TimeStamp Node::lastCommitted() const
+    {
+      return properties.lastCommitted;
+    }
+
+    TimeStamp Node::childrenLastModified() const
+    {
+      return properties.childrenMTime;
+    }
+
+    void Node::markAsCommitted()
+    {
+      properties.lastCommitted = TimeStamp();
+    }
+
+    void Node::markAsModified()
+    {
+      properties.lastModified = TimeStamp();
+#if 0
+      if (hasParent())
+        parent().setChildrenModified(properties.lastModified);
+#else
+#warning fix Node::markAsModified
+#endif
+    }
+
+    void Node::setChildrenModified(TimeStamp t)
+    {
+      if (t > properties.childrenMTime) {
+        properties.childrenMTime = t;
+#if 0
+        if (hasParent())
+          parent().setChildrenModified(properties.childrenMTime);
+#else
+#warning fix Node::markAsModified
+#endif
+      }
+    }
+
+    bool Node::subtreeModifiedButNotCommitted() const
+    {
+      return (lastModified() > lastCommitted()) ||
+             (childrenLastModified() > lastCommitted());
+    }
+
+    // Parent-child structual interface ///////////////////////////////////////
+
+    bool Node::hasChild(const std::string &name) const
+    {
+      auto itr = properties.children.find(name);
+      if (itr != properties.children.end())
+        return true;
+
+      std::string name_lower = utility::lowerCase(name);
+
+      auto &c = properties.children;
+      itr     = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
+        return utility::lowerCase(n.first) == name_lower;
+      });
+
+      return itr != properties.children.end();
+    }
+
+    Node &Node::child(const std::string &name) const
+    {
+      auto itr = properties.children.find(name);
+      if (itr != properties.children.end())
+        return *itr->second;
+
+      std::string name_lower = utility::lowerCase(name);
+
+      auto &c = properties.children;
+      itr     = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
+        return utility::lowerCase(n.first) == name_lower;
+      });
+
+      if (itr == properties.children.end()) {
+        throw std::runtime_error("in node " + toString() +
+                                 " : could not find sg child node with name '" +
+                                 name + "'");
+      } else {
+        return *itr->second;
+      }
+    }
+
+    Node &Node::operator[](const std::string &c) const
+    {
+      return child(c);
+    }
+
+    const std::map<std::string, std::shared_ptr<Node>> &Node::children() const
+    {
+      return properties.children;
+    }
+
+    bool Node::hasChildren() const
+    {
+      return properties.children.size() != 0;
+    }
+
+    size_t Node::numChildren() const
+    {
+      return properties.children.size();
+    }
+
+    void Node::add(std::shared_ptr<Node> node)
+    {
+      add(node, node->name());
+    }
+
+    void Node::add(std::shared_ptr<Node> node, const std::string &name)
+    {
+      setChild(name, node);
+#if 0
+      node->setParent(*this);
+#else
+#warning fix Node::add
+#endif
+    }
+
+    void Node::remove(const std::string &name)
+    {
+      if (hasChild(name)) {
+#if 0
+        child(name).properties.parent = nullptr;
+#else
+#warning fix Node::remove
+#endif
+        properties.children.erase(name);
+      }
+    }
+
+    Node &Node::createChild(std::string name,
+                            std::string type,
+                            Any value,
+                            std::string documentation)
+    {
+      auto child = createNode(name, type, value, documentation);
+      add(child);
+      return *child;
+    }
+
+    void Node::setChild(const std::string &name,
+                        const std::shared_ptr<Node> &node)
+    {
+      properties.children[name] = node;
+#if 0
+      node->setParent(*this);
+#else
+#warning fix Node::setChild
+#endif
+    }
+
+    // ==================================================================
+    // global stuff
+    // ==================================================================
+
+    using CreatorFct = sg::Node *(*)();
+
+    static std::map<std::string, CreatorFct> nodeRegistry;
+
+    std::shared_ptr<Node> createNode(std::string name,
+                                     std::string type,
+                                     Any value,
+                                     std::string documentation)
+    {
+      std::map<std::string, CreatorFct>::iterator it = nodeRegistry.find(type);
+      CreatorFct creator                             = nullptr;
+
+      if (it == nodeRegistry.end()) {
+        std::string creatorName = "ospray_create_sg_node__" + type;
+        creator                 = (CreatorFct)getSymbol(creatorName);
+
+        if (!creator)
+          throw std::runtime_error("unknown OSPRay sg::Node '" + type + "'");
+
+        nodeRegistry[type] = creator;
+      } else {
+        creator = it->second;
+      }
+
+      std::shared_ptr<sg::Node> newNode(creator());
+      newNode->setName(name);
+      newNode->setType(type);
+      newNode->setDocumentation(documentation);
+
+      if (value.valid())
+        newNode->setValue(value);
+
+      return newNode;
+    }
+
+    OSP_REGISTER_SG_NODE(Node);
+
+  }  // namespace sg
+}  // namespace ospray
