@@ -75,7 +75,7 @@ include_directories(
 
 add_subdirectory(sg)
 
-option(BUILD_APPS "Build OSPRay Studio Apps" ON)
+option(BUILD_APPS "Build OSPRay Studio Apps" OFF)
 
 if (BUILD_APPS)
   add_subdirectory(external)
@@ -84,7 +84,7 @@ endif()
 
 ## Build plugins ##
 
-option(BUILD_PLUGINS "Build plugins subtree" ON)
+option(BUILD_PLUGINS "Build plugins subtree" OFF)
 
 if (BUILD_APPS AND BUILD_PLUGINS)
   add_subdirectory(plugins)
