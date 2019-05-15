@@ -19,7 +19,18 @@
 #include "sg2/Node.h"
 using namespace ospray::sg;
 
-TEST_CASE("Node interface", "")
+TEST_CASE("Test sg::createNode()")
+{
+  auto node_ptr = createNode("test_node", "Node", 42, "test documentation");
+  auto &node    = *node_ptr;
+
+  REQUIRE(node.name() == "test_node");
+  REQUIRE(node.valueIsType<int>());
+  REQUIRE(node.valueAs<int>() == 42);
+  REQUIRE(node.documentation() == "test documentation");
+}
+
+TEST_CASE("Test sg::Node interface")
 {
   auto node_ptr = createNode("test_node");
   auto &node    = *node_ptr;
@@ -30,7 +41,7 @@ TEST_CASE("Node interface", "")
   {
     REQUIRE(!node.value().valid());
 
-    node = 1.f; // set as float
+    node = 1.f;  // set as float
 
     REQUIRE(node.valueIsType<float>());
     REQUIRE(!node.valueIsType<int>());
@@ -39,11 +50,61 @@ TEST_CASE("Node interface", "")
     TimeStamp lastModified = node.lastModified();
     REQUIRE(lastModified > whenCreated);
 
-    node = 1; // set as int
+    node = 1;  // set as int
 
     REQUIRE(!node.valueIsType<float>());
     REQUIRE(node.valueIsType<int>());
     REQUIRE(node.valueAs<int>() == 1);
     REQUIRE(lastModified < node.lastModified());
+  }
+
+  SECTION("Node parent/child relationships")
+  {
+    REQUIRE(!node.hasChildren());
+    REQUIRE(!node.hasParents());
+
+    SECTION("Add child from existing node")
+    {
+      auto child_ptr = createNode("child");
+      auto &child    = *child_ptr;
+
+      node.add(child);
+
+      REQUIRE(node.hasChildren());
+      REQUIRE(!node.hasParents());
+      REQUIRE(child.hasParents());
+      REQUIRE(!child.hasChildren());
+
+      REQUIRE(&node["child"] == &child);
+      REQUIRE(&node == &(*child.parents().front()));
+
+      node.remove("child");
+
+      REQUIRE(!node.hasChildren());
+      REQUIRE(!child.hasParents());
+    }
+
+    SECTION("Add child from createChild()")
+    {
+      auto &child = node.createChild("child", "Node", 42, "docs");
+
+      REQUIRE(child.name() == "child");
+      REQUIRE(child.valueIsType<int>());
+      REQUIRE(child.valueAs<int>() == 42);
+      REQUIRE(child.documentation() == "docs");
+
+      REQUIRE(node.hasChildren());
+      REQUIRE(!node.hasParents());
+      REQUIRE(child.hasParents());
+      REQUIRE(!child.hasChildren());
+
+      REQUIRE(&node["child"] == &child);
+      REQUIRE(&node == &(*child.parents().front()));
+
+      node.remove("child");
+
+      REQUIRE(!node.hasChildren());
+      REQUIRE(!child.hasParents());
+    }
   }
 }

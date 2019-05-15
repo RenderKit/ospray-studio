@@ -15,27 +15,22 @@
 // ======================================================================== //
 
 #include "Node.h"
-
+// ospcommon
 #include "ospcommon/library.h"
 #include "ospcommon/utility/StringManip.h"
 
 namespace ospray {
   namespace sg {
 
-    // ==================================================================
-    // sg node implementations
-    // ==================================================================
-
-    // NOTE(jda) - can't do default member initializers due to MSVC...
     Node::Node()
     {
+      // NOTE(jda) - can't do default member initializers due to MSVC...
       properties.name = "NULL";
       properties.type = "Node";
     }
 
     Node::~Node()
     {
-      // Call ospRelease() if the value is an OSPObject handle
       if (valueIsType<OSPObject>())
         ospRelease(valueAs<OSPObject>());
     }
@@ -45,7 +40,9 @@ namespace ospray {
       return "ospray::sg::Node";
     }
 
+    ///////////////////////////////////////////////////////////////////////////
     // Properties /////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
     std::string Node::name() const
     {
@@ -82,14 +79,18 @@ namespace ospray {
       return properties.whenCreated;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
     // Node stored value (data) interface /////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
     Any Node::value()
     {
       return properties.value;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
     // Update detection interface /////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
     TimeStamp Node::whenCreated() const
     {
@@ -111,42 +112,30 @@ namespace ospray {
       return properties.childrenMTime;
     }
 
-    void Node::markAsCommitted()
-    {
-      properties.lastCommitted = TimeStamp();
-    }
-
     void Node::markAsModified()
     {
-      properties.lastModified = TimeStamp();
-#if 0
-      if (hasParent())
-        parent().setChildrenModified(properties.lastModified);
-#else
-#warning fix Node::markAsModified
-#endif
+      properties.lastModified.renew();
+      for (auto &p : properties.parents)
+        p->setChildrenModified(properties.lastModified);
     }
 
     void Node::setChildrenModified(TimeStamp t)
     {
       if (t > properties.childrenMTime) {
         properties.childrenMTime = t;
-#if 0
-        if (hasParent())
-          parent().setChildrenModified(properties.childrenMTime);
-#else
-#warning fix Node::markAsModified
-#endif
+        for (auto &p : properties.parents)
+          p->setChildrenModified(properties.childrenMTime);
       }
     }
 
-    bool Node::subtreeModifiedButNotCommitted() const
-    {
-      return (lastModified() > lastCommitted()) ||
-             (childrenLastModified() > lastCommitted());
-    }
-
+    ///////////////////////////////////////////////////////////////////////////
     // Parent-child structual interface ///////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    const std::map<std::string, std::shared_ptr<Node>> &Node::children() const
+    {
+      return properties.children;
+    }
 
     bool Node::hasChild(const std::string &name) const
     {
@@ -191,46 +180,76 @@ namespace ospray {
       return child(c);
     }
 
-    const std::map<std::string, std::shared_ptr<Node>> &Node::children() const
-    {
-      return properties.children;
-    }
-
     bool Node::hasChildren() const
     {
-      return properties.children.size() != 0;
+      return !properties.children.empty();
     }
 
-    size_t Node::numChildren() const
+    const std::vector<NodePtr> &Node::parents() const
     {
-      return properties.children.size();
+      return properties.parents;
     }
 
-    void Node::add(std::shared_ptr<Node> node)
+    bool Node::hasParents() const
+    {
+      return !properties.parents.empty();
+    }
+
+    void Node::add(Node &node)
+    {
+      add(node.shared_from_this());
+    }
+
+    void Node::add(Node &node, const std::string &name)
+    {
+      add(node.shared_from_this(), name);
+    }
+
+    void Node::add(NodePtr node)
     {
       add(node, node->name());
     }
 
-    void Node::add(std::shared_ptr<Node> node, const std::string &name)
+    void Node::add(NodePtr node, const std::string &name)
     {
-      setChild(name, node);
-#if 0
-      node->setParent(*this);
-#else
-#warning fix Node::add
-#endif
+      properties.children[name] = node;
+      node->properties.parents.push_back(shared_from_this());
+      markAsModified();
+    }
+
+    void Node::remove(Node &node)
+    {
+      auto &c = properties.children;
+
+      for (auto &child : c) {
+        if (child.second.get() == &node) {
+          child.second->removeFromParentList(*this);
+          c.erase(child.first);
+          return;
+        }
+      }
+
+      markAsModified();
+    }
+
+    void Node::remove(NodePtr node)
+    {
+      remove(*node);
     }
 
     void Node::remove(const std::string &name)
     {
-      if (hasChild(name)) {
-#if 0
-        child(name).properties.parent = nullptr;
-#else
-#warning fix Node::remove
-#endif
-        properties.children.erase(name);
+      auto &c = properties.children;
+
+      for (auto &child : c) {
+        if (child.first == name) {
+          child.second->removeFromParentList(*this);
+          c.erase(child.first);
+          return;
+        }
       }
+
+      markAsModified();
     }
 
     Node &Node::createChild(std::string name,
@@ -243,20 +262,16 @@ namespace ospray {
       return *child;
     }
 
-    void Node::setChild(const std::string &name,
-                        const std::shared_ptr<Node> &node)
+    void Node::removeFromParentList(Node &node)
     {
-      properties.children[name] = node;
-#if 0
-      node->setParent(*this);
-#else
-#warning fix Node::setChild
-#endif
+      auto &p          = properties.parents;
+      auto remove_node = [&](NodePtr np) { return np.get() == &node; };
+      p.erase(std::remove_if(p.begin(), p.end(), remove_node), p.end());
     }
 
-    // ==================================================================
-    // global stuff
-    // ==================================================================
+    ///////////////////////////////////////////////////////////////////////////
+    // Global Stuff ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
     using CreatorFct = Node *(*)();
 
