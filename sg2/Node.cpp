@@ -91,6 +91,11 @@ namespace ospray {
 
     // Update detection interface /////////////////////////////////////////////
 
+    TimeStamp Node::whenCreated() const
+    {
+      return properties.whenCreated;
+    }
+
     TimeStamp Node::lastModified() const
     {
       return properties.lastModified;
@@ -253,7 +258,7 @@ namespace ospray {
     // global stuff
     // ==================================================================
 
-    using CreatorFct = sg::Node *(*)();
+    using CreatorFct = Node *(*)();
 
     static std::map<std::string, CreatorFct> nodeRegistry;
 
@@ -262,20 +267,33 @@ namespace ospray {
                                      Any value,
                                      std::string documentation)
     {
-      std::map<std::string, CreatorFct>::iterator it = nodeRegistry.find(type);
-      CreatorFct creator                             = nullptr;
+      // Verify that 'ospray_sg' is properly loaded //
+
+      static bool libraryLoaded = false;
+      if (!libraryLoaded) {
+        loadLibrary("ospray_sg");
+        libraryLoaded = true;
+      }
+
+      // Look for the factory function to create the node //
+
+      auto it = nodeRegistry.find(type);
+
+      CreatorFct creator = nullptr;
 
       if (it == nodeRegistry.end()) {
         std::string creatorName = "ospray_create_sg_node__" + type;
-        creator                 = (CreatorFct)getSymbol(creatorName);
 
+        creator = (CreatorFct)getSymbol(creatorName);
         if (!creator)
-          throw std::runtime_error("unknown OSPRay sg::Node '" + type + "'");
+          throw std::runtime_error("unknown node type '" + type + "'");
 
         nodeRegistry[type] = creator;
       } else {
         creator = it->second;
       }
+
+      // Create the node and return //
 
       std::shared_ptr<sg::Node> newNode(creator());
       newNode->setName(name);

@@ -14,23 +14,13 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-## Build Library ##
+enable_testing()
 
-add_library(ospray_sg SHARED
-  Node.cpp
+add_library(catch_main STATIC catch/catch_main.cpp)
+
+add_executable(test_Node test_Node.cpp)
+target_link_libraries(test_Node
+PRIVATE
+  ospray_sg
+  catch_main
 )
-
-target_link_libraries(ospray_sg
-PUBLIC
-  ospray::ospray
-  ospray::ospray_common
-)
-
-target_include_directories(ospray_sg
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
-)
-
-## Build Tests ##
-
-add_subdirectory(tests)

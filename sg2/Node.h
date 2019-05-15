@@ -112,6 +112,7 @@ namespace ospray {
 
       // Update detection interface ///////////////////////////////////////////
 
+      TimeStamp whenCreated() const;
       TimeStamp lastModified() const;
       TimeStamp lastCommitted() const;
       TimeStamp childrenLastModified() const;
@@ -368,15 +369,8 @@ namespace ospray {
       traverse(std::forward<VISITOR_T>(visitor), ctx);
     }
 
-    /*! \brief registers a internal ospray::<ClassName> renderer under
-      the externally accessible name "external_name"
+    // Node factory function registration /////////////////////////////////////
 
-      \internal This currently works by defining a extern "C" function
-      with a given predefined name that creates a new instance of this
-      renderer. By having this symbol in the shared lib ospray can
-      lateron always get a handle to this fct and create an instance
-      of this renderer.
-    */
 #define OSP_REGISTER_SG_NODE_NAME(InternalClassName, Name)                     \
   extern "C" OSPSG_DLLEXPORT ospray::sg::Node *ospray_create_sg_node__##Name() \
   {                                                                            \
