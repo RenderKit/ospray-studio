@@ -16,7 +16,7 @@
 
 #include "catch/catch.hpp"
 
-#include "sg2/Node.h"
+#include "sg/Node.h"
 using namespace ospray::sg;
 
 TEST_CASE("Test sg::createNode()")

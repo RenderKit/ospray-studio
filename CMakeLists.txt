@@ -73,8 +73,7 @@ include_directories(
   external/imgui
 )
 
-#add_subdirectory(sg)
-add_subdirectory(sg2)
+add_subdirectory(sg)
 
 option(BUILD_APPS "Build OSPRay Studio Apps" ON)
 
