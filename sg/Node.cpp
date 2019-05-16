@@ -59,21 +59,6 @@ namespace ospray {
       return properties.documentation;
     }
 
-    void Node::setName(const std::string &v)
-    {
-      properties.name = v;
-    }
-
-    void Node::setType(const std::string &v)
-    {
-      properties.type = v;
-    }
-
-    void Node::setDocumentation(const std::string &s)
-    {
-      properties.documentation = s;
-    }
-
     size_t Node::uniqueID() const
     {
       return properties.whenCreated;
@@ -110,22 +95,6 @@ namespace ospray {
     TimeStamp Node::childrenLastModified() const
     {
       return properties.childrenMTime;
-    }
-
-    void Node::markAsModified()
-    {
-      properties.lastModified.renew();
-      for (auto &p : properties.parents)
-        p->setChildrenModified(properties.lastModified);
-    }
-
-    void Node::setChildrenModified(TimeStamp t)
-    {
-      if (t > properties.childrenMTime) {
-        properties.childrenMTime = t;
-        for (auto &p : properties.parents)
-          p->setChildrenModified(properties.childrenMTime);
-      }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -262,11 +231,46 @@ namespace ospray {
       return *child;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Private Members ////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
     void Node::removeFromParentList(Node &node)
     {
       auto &p          = properties.parents;
       auto remove_node = [&](NodePtr np) { return np.get() == &node; };
       p.erase(std::remove_if(p.begin(), p.end(), remove_node), p.end());
+    }
+
+    void Node::markAsModified()
+    {
+      properties.lastModified.renew();
+      for (auto &p : properties.parents)
+        p->setChildrenModified(properties.lastModified);
+    }
+
+    void Node::setChildrenModified(TimeStamp t)
+    {
+      if (t > properties.childrenMTime) {
+        properties.childrenMTime = t;
+        for (auto &p : properties.parents)
+          p->setChildrenModified(properties.childrenMTime);
+      }
+    }
+
+    void Node::setName(const std::string &v)
+    {
+      properties.name = v;
+    }
+
+    void Node::setType(const std::string &v)
+    {
+      properties.type = v;
+    }
+
+    void Node::setDocumentation(const std::string &s)
+    {
+      properties.documentation = s;
     }
 
     ///////////////////////////////////////////////////////////////////////////

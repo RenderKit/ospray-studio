@@ -111,9 +111,6 @@ namespace ospray {
       TimeStamp lastCommitted() const;
       TimeStamp childrenLastModified() const;
 
-      void markAsModified();
-      void setChildrenModified(TimeStamp t);
-
       // Parent-child structual interface /////////////////////////////////////
 
       using NodeLink = std::pair<std::string, NodePtr>;
@@ -190,6 +187,9 @@ namespace ospray {
       } properties;
 
       void removeFromParentList(Node &node);
+
+      void markAsModified();
+      void setChildrenModified(TimeStamp t);
 
       void setName(const std::string &v);
       void setType(const std::string &v);
