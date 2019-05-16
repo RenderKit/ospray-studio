@@ -24,6 +24,7 @@
 // ospcommon
 #include "ospcommon/utility/Any.h"
 #include "ospcommon/utility/TimeStamp.h"
+#include "ospcommon/vec.h"
 // ospray
 #include "ospray/ospray.h"
 
@@ -101,8 +102,7 @@ namespace ospray {
       template <typename T>
       void setValue(T val);
 
-      template <typename T>
-      void operator=(T &&val);
+      void operator=(Any val);
 
       // Update detection interface ///////////////////////////////////////////
 
@@ -144,7 +144,6 @@ namespace ospray {
       void remove(NodePtr node);
       void remove(const std::string &name);
 
-      //! just for convenience; add a typed 'setParam' function
       template <typename T>
       Node &createChildWithValue(const std::string &name,
                                  const std::string &type,
@@ -154,6 +153,11 @@ namespace ospray {
                         std::string type          = "Node",
                         Any value                 = Any(),
                         std::string documentation = "");
+
+      template <typename NODE_T>
+      NODE_T &createChild(std::string name,
+                          std::string type          = "Node",
+                          std::string documentation = "");
 
       // Traversal interface //////////////////////////////////////////////////
 
@@ -199,6 +203,39 @@ namespace ospray {
     };
 
     ///////////////////////////////////////////////////////////////////////////
+    // Nodes with a strongly-typed value //////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    template <typename VALUE_T>
+    struct Node_T : public Node
+    {
+      Node_T()                   = default;
+      virtual ~Node_T() override = default;
+
+      const VALUE_T &value() const;
+
+      template <typename OT>
+      void operator=(OT &&val);
+    };
+
+    // Pre-defined parameter nodes ////////////////////////////////////////////
+
+    using StringNode = Node_T<std::string>;
+
+    using BoolNode = Node_T<bool>;
+
+    using FloatNode = Node_T<float>;
+    using Vec2fNode = Node_T<vec2f>;
+    using Vec3fNode = Node_T<vec3f>;
+    using Vec4fNode = Node_T<vec4f>;
+
+    using IntNode   = Node_T<int>;
+    using Vec2iNode = Node_T<vec2i>;
+    using Vec3iNode = Node_T<vec3i>;
+
+    using VoidPtrNode = Node_T<void *>;
+
+    ///////////////////////////////////////////////////////////////////////////
     // Main Node factory function /////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
@@ -206,6 +243,12 @@ namespace ospray {
                                        std::string type          = "Node",
                                        Any var                   = Any(),
                                        std::string documentation = "");
+
+    template <typename NODE_T, typename... Args>
+    inline std::shared_ptr<NODE_T> make_node(Args &&... args)
+    {
+      return std::make_shared<NODE_T>(std::forward<Args>(args)...);
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Node factory function registration /////////////////////////////////////

@@ -19,6 +19,8 @@
 #include "sg/Node.h"
 using namespace ospray::sg;
 
+#include <type_traits>
+
 TEST_CASE("Test sg::createNode()")
 {
   auto node_ptr = createNode("test_node", "Node", 42, "test documentation");
@@ -106,5 +108,40 @@ TEST_CASE("Test sg::Node interface")
       REQUIRE(!node.hasChildren());
       REQUIRE(!child.hasParents());
     }
+  }
+}
+
+TEST_CASE("Test sg::Node_T<> interface")
+{
+  auto floatNode_ptr = make_node<FloatNode>();
+  auto &floatNode    = *floatNode_ptr;
+
+  floatNode = 1.f;
+
+  REQUIRE(floatNode.valueIsType<float>());
+  REQUIRE(!floatNode.valueIsType<int>());
+
+  SECTION("Value type correctness")
+  {
+    auto value = floatNode.value();
+
+    REQUIRE(value == 1.f);
+    static_assert(std::is_same<decltype(value), float>::value);
+  }
+
+  SECTION("Value type conversion from assignment")
+  {
+    floatNode = 2;
+
+    auto value = floatNode.value();
+
+    REQUIRE(value == 2.f);
+    static_assert(std::is_same<decltype(value), float>::value);
+  }
+
+  SECTION("Value type conversion from query")
+  {
+    int value = floatNode.value();
+    REQUIRE(value == 1);
   }
 }

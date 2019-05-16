@@ -20,7 +20,7 @@ namespace ospray {
   namespace sg {
 
     ///////////////////////////////////////////////////////////////////////////
-    // Inlined definitions ////////////////////////////////////////////////////
+    // Inlined Node definitions ///////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
     template <typename T>
@@ -103,10 +103,9 @@ namespace ospray {
       return properties.value.is<T>();
     }
 
-    template <typename T>
-    inline void Node::operator=(T &&v)
+    inline void Node::operator=(Any v)
     {
-      setValue(std::forward<T>(v));
+      setValue(v);
     }
 
     // NOTE(jda) - Specialize valueAs() and operator=() so we don't have to
@@ -125,12 +124,6 @@ namespace ospray {
   inline const a &Node::valueAs() const                  \
   {                                                      \
     return (const a &)properties.value.get<OSPObject>(); \
-  }                                                      \
-                                                         \
-  template <>                                            \
-  inline void Node::operator=(a &&v)                     \
-  {                                                      \
-    setValue((OSPObject)v);                              \
   }                                                      \
                                                          \
   template <>                                            \
@@ -185,6 +178,28 @@ namespace ospray {
     {
       TraversalContext ctx;
       traverse(std::forward<VISITOR_T>(visitor), ctx);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Inlined Node_T<> definitions ///////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    template <typename VALUE_T>
+    inline const VALUE_T &Node_T<VALUE_T>::value() const
+    {
+      return Node::valueAs<VALUE_T>();
+    }
+
+    template <typename VALUE_T>
+    template <typename OT>
+    inline void Node_T<VALUE_T>::operator=(OT &&val)
+    {
+      Node::operator=(static_cast<VALUE_T>(val));
+    }
+
+    template <typename VALUE_T>
+    inline void preCommit()
+    {
     }
 
   }  // namespace sg
