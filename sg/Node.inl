@@ -202,5 +202,11 @@ namespace ospray {
     {
     }
 
+    template <typename VALUE_T>
+    inline Node_T<VALUE_T>::operator VALUE_T()
+    {
+      return value();
+    }
+
   }  // namespace sg
 }  // namespace ospray

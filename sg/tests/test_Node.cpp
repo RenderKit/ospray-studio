@@ -236,5 +236,11 @@ SCENARIO("sg::Node_T<> interface")
       int value = floatNode.value();
       REQUIRE(value == 1);
     }
+
+    THEN("The node implicitly converts to the underlying value type")
+    {
+      float value = floatNode;
+      REQUIRE(value == 1.f);
+    }
   }
 }

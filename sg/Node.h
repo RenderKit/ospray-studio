@@ -220,6 +220,8 @@ namespace ospray {
 
       template <typename OT>
       void operator=(OT &&val);
+
+      operator VALUE_T();
     };
 
     // Pre-defined parameter nodes ////////////////////////////////////////////
