@@ -23,7 +23,7 @@ using namespace ospray::sg;
 
 SCENARIO("sg::createNode()")
 {
-  GIVEN("A node created from sg::createNode()")
+  GIVEN("A generic node created from sg::createNode()")
   {
     auto node_ptr = createNode("test_node", "Node", 42, "test documentation");
     auto &node    = *node_ptr;
@@ -46,6 +46,18 @@ SCENARIO("sg::createNode()")
     THEN("The node's documentation is correct")
     {
       REQUIRE(node.documentation() == "test documentation");
+    }
+  }
+
+  GIVEN("A specific node type to sg::createNode()")
+  {
+    auto node_ptr = createNode("test_node", "float", 4.f, "test documentation");
+    auto &node    = *node_ptr;
+
+    THEN("The node's type is correct")
+    {
+      FloatNode *asFloatNode = dynamic_cast<FloatNode*>(node_ptr.get());
+      REQUIRE(asFloatNode != nullptr);
     }
   }
 }
