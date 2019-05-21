@@ -144,6 +144,10 @@ namespace ospray {
       void remove(NodePtr node);
       void remove(const std::string &name);
 
+      void removeAllParents();
+      void removeAllChildren();
+
+      //! just for convenience; add a typed 'setParam' function
       template <typename T>
       Node &createChildWithValue(const std::string &name,
                                  const std::string &type,

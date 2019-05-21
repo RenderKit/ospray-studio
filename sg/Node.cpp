@@ -188,12 +188,10 @@ namespace ospray {
 
     void Node::remove(Node &node)
     {
-      auto &c = properties.children;
-
-      for (auto &child : c) {
+      for (auto &child : properties.children) {
         if (child.second.get() == &node) {
           child.second->removeFromParentList(*this);
-          c.erase(child.first);
+          properties.children.erase(child.first);
           return;
         }
       }
@@ -208,17 +206,27 @@ namespace ospray {
 
     void Node::remove(const std::string &name)
     {
-      auto &c = properties.children;
-
-      for (auto &child : c) {
+      for (auto &child : properties.children) {
         if (child.first == name) {
           child.second->removeFromParentList(*this);
-          c.erase(child.first);
+          properties.children.erase(child.first);
           return;
         }
       }
 
       markAsModified();
+    }
+
+    void Node::removeAllParents()
+    {
+      for (auto &p : properties.parents)
+        p->remove(*this);
+    }
+
+    void Node::removeAllChildren()
+    {
+      for (auto &c : properties.children)
+        remove(c.first);
     }
 
     Node &Node::createChild(std::string name,

@@ -21,127 +21,208 @@ using namespace ospray::sg;
 
 #include <type_traits>
 
-TEST_CASE("Test sg::createNode()")
+SCENARIO("sg::createNode()")
 {
-  auto node_ptr = createNode("test_node", "Node", 42, "test documentation");
-  auto &node    = *node_ptr;
+  GIVEN("A node created from sg::createNode()")
+  {
+    auto node_ptr = createNode("test_node", "Node", 42, "test documentation");
+    auto &node    = *node_ptr;
 
-  REQUIRE(node.name() == "test_node");
-  REQUIRE(node.valueIsType<int>());
-  REQUIRE(node.valueAs<int>() == 42);
-  REQUIRE(node.documentation() == "test documentation");
+    THEN("The node's name is correct")
+    {
+      REQUIRE(node.name() == "test_node");
+    }
+
+    THEN("The node's value type is correct")
+    {
+      REQUIRE(node.valueIsType<int>());
+    }
+
+    THEN("The node's value is correct")
+    {
+      REQUIRE(node.valueAs<int>() == 42);
+    }
+
+    THEN("The node's documentation is correct")
+    {
+      REQUIRE(node.documentation() == "test documentation");
+    }
+  }
 }
 
-TEST_CASE("Test sg::Node interface")
+SCENARIO("sg::Node interface")
 {
-  auto node_ptr = createNode("test_node");
-  auto &node    = *node_ptr;
-
-  TimeStamp whenCreated = node.whenCreated();
-
-  SECTION("Node values")
+  GIVEN("A freshly created node")
   {
+    auto node_ptr = createNode("test_node");
+    auto &node    = *node_ptr;
+
+    TimeStamp whenCreated = node.whenCreated();
+
     REQUIRE(!node.value().valid());
-
-    node = 1.f;  // set as float
-
-    REQUIRE(node.valueIsType<float>());
-    REQUIRE(!node.valueIsType<int>());
-    REQUIRE(node.valueAs<float>() == 1.f);
-
-    TimeStamp lastModified = node.lastModified();
-    REQUIRE(lastModified > whenCreated);
-
-    node = 1;  // set as int
-
-    REQUIRE(!node.valueIsType<float>());
-    REQUIRE(node.valueIsType<int>());
-    REQUIRE(node.valueAs<int>() == 1);
-    REQUIRE(lastModified < node.lastModified());
-  }
-
-  SECTION("Node parent/child relationships")
-  {
     REQUIRE(!node.hasChildren());
     REQUIRE(!node.hasParents());
 
-    SECTION("Add child from existing node")
+    WHEN("A node is assigned a value")
+    {
+      node = 1.f;
+
+      THEN("It's value type takes the assigned type and value")
+      {
+        REQUIRE(node.valueIsType<float>());
+        REQUIRE(!node.valueIsType<int>());
+        REQUIRE(node.valueAs<float>() == 1.f);
+      }
+
+      THEN("The node is marked modified")
+      {
+        TimeStamp lastModified = node.lastModified();
+        REQUIRE(lastModified > whenCreated);
+      }
+
+      THEN("Assigning a different value/type changes the Node's stored value")
+      {
+        node = 1;
+        REQUIRE(!node.valueIsType<float>());
+        REQUIRE(node.valueIsType<int>());
+        REQUIRE(node.valueAs<int>() == 1);
+      }
+    }
+
+    WHEN("A child is added to the node")
     {
       auto child_ptr = createNode("child");
       auto &child    = *child_ptr;
 
+      TimeStamp initialModified = node.lastModified();
+
       node.add(child);
 
-      REQUIRE(node.hasChildren());
-      REQUIRE(!node.hasParents());
-      REQUIRE(child.hasParents());
-      REQUIRE(!child.hasChildren());
+      THEN("Node modified values are updated")
+      {
+        TimeStamp lastModified     = node.lastModified();
+        TimeStamp childrenModified = node.childrenLastModified();
+        REQUIRE(lastModified > initialModified);
+        REQUIRE(childrenModified > initialModified);
+        REQUIRE(lastModified > childrenModified);
+      }
 
-      REQUIRE(&node["child"] == &child);
-      REQUIRE(&node == &(*child.parents().front()));
+      THEN("The node's children list updates")
+      {
+        REQUIRE(node.hasChildren());
+        REQUIRE(node.children().size() == 1);
+      }
 
-      node.remove("child");
+      THEN("The node's parent list does not change")
+      {
+        REQUIRE(!node.hasParents());
+      }
 
-      REQUIRE(!node.hasChildren());
-      REQUIRE(!child.hasParents());
+      THEN("The child's parent list updates")
+      {
+        REQUIRE(child.hasParents());
+        REQUIRE(child.parents().size() == 1);
+      }
+
+      THEN("The child's child list does not change")
+      {
+        REQUIRE(!child.hasChildren());
+      }
+
+      THEN("The child instance is the same instance of the passed child node")
+      {
+        REQUIRE(&node["child"] == &child);
+        REQUIRE(&node == &(*child.parents().front()));
+      }
+
+      THEN("Removing the child reverses Node::add()")
+      {
+        node.remove("child");
+
+        REQUIRE(!node.hasChildren());
+        REQUIRE(!child.hasParents());
+      }
     }
 
-    SECTION("Add child from createChild()")
+    WHEN("A child is added from Node::createChild()")
     {
       auto &child = node.createChild("child", "Node", 42, "docs");
 
-      REQUIRE(child.name() == "child");
-      REQUIRE(child.valueIsType<int>());
-      REQUIRE(child.valueAs<int>() == 42);
-      REQUIRE(child.documentation() == "docs");
+      THEN("The child's name is correct")
+      {
+        REQUIRE(child.name() == "child");
+      }
 
-      REQUIRE(node.hasChildren());
-      REQUIRE(!node.hasParents());
-      REQUIRE(child.hasParents());
-      REQUIRE(!child.hasChildren());
+      THEN("The child's value is correct")
+      {
+        REQUIRE(child.valueIsType<int>());
+        REQUIRE(child.valueAs<int>() == 42);
+      }
 
-      REQUIRE(&node["child"] == &child);
-      REQUIRE(&node == &(*child.parents().front()));
+      THEN("The child's documentation is correct")
+      {
+        REQUIRE(child.documentation() == "docs");
+      }
 
-      node.remove("child");
+      THEN("The child's structural relationship is correct")
+      {
+        REQUIRE(node.hasChildren());
+        REQUIRE(!node.hasParents());
+        REQUIRE(child.hasParents());
+        REQUIRE(!child.hasChildren());
+      }
 
-      REQUIRE(!node.hasChildren());
-      REQUIRE(!child.hasParents());
+      THEN("The child's instance is correctly returned from createChild()")
+      {
+        REQUIRE(&node["child"] == &child);
+        REQUIRE(&node == &(*child.parents().front()));
+      }
+
+      THEN("Removing the child reverses createChild()")
+      {
+        node.remove("child");
+
+        REQUIRE(!node.hasChildren());
+        REQUIRE(!child.hasParents());
+      }
     }
   }
 }
 
-TEST_CASE("Test sg::Node_T<> interface")
+SCENARIO("sg::Node_T<> interface")
 {
-  auto floatNode_ptr = make_node<FloatNode>();
-  auto &floatNode    = *floatNode_ptr;
-
-  floatNode = 1.f;
-
-  REQUIRE(floatNode.valueIsType<float>());
-  REQUIRE(!floatNode.valueIsType<int>());
-
-  SECTION("Value type correctness")
+  GIVEN("A freshly created sg::FloatNode")
   {
-    auto value = floatNode.value();
+    auto floatNode_ptr = make_node<FloatNode>();
+    auto &floatNode    = *floatNode_ptr;
 
-    REQUIRE(value == 1.f);
-    static_assert(std::is_same<decltype(value), float>::value);
-  }
+    floatNode = 1.f;
 
-  SECTION("Value type conversion from assignment")
-  {
-    floatNode = 2;
+    REQUIRE(floatNode.valueIsType<float>());
+    REQUIRE(!floatNode.valueIsType<int>());
 
-    auto value = floatNode.value();
+    THEN("The node's value() return type is correct")
+    {
+      auto value = floatNode.value();
 
-    REQUIRE(value == 2.f);
-    static_assert(std::is_same<decltype(value), float>::value);
-  }
+      REQUIRE(value == 1.f);
+      static_assert(std::is_same<decltype(value), float>::value);
+    }
 
-  SECTION("Value type conversion from query")
-  {
-    int value = floatNode.value();
-    REQUIRE(value == 1);
+    THEN("Value type is converted on assignment")
+    {
+      floatNode = 2;
+
+      auto value = floatNode.value();
+
+      REQUIRE(value == 2.f);
+      static_assert(std::is_same<decltype(value), float>::value);
+    }
+
+    THEN("Value type conversion happens on query")
+    {
+      int value = floatNode.value();
+      REQUIRE(value == 1);
+    }
   }
 }
