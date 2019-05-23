@@ -166,8 +166,7 @@ namespace ospray {
       template <typename VISITOR_T, typename = is_valid_visitor_t<VISITOR_T>>
       void traverse(VISITOR_T &&visitor);
 
-    protected:
-
+     protected:
       TimeStamp whenCreated() const;
       TimeStamp lastModified() const;
       TimeStamp lastCommitted() const;
@@ -175,6 +174,8 @@ namespace ospray {
 
       void markAsModified();
       void setChildrenModified(TimeStamp t);
+
+      virtual void setOSPRayParam(std::string param, OSPObject handle);
 
      private:
       struct
@@ -220,6 +221,9 @@ namespace ospray {
       void operator=(OT &&val);
 
       operator VALUE_T();
+
+     private:
+      void setOSPRayParam(std::string param, OSPObject handle) override;
     };
 
     // Pre-defined parameter nodes ////////////////////////////////////////////
