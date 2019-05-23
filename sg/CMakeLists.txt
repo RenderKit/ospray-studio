@@ -18,6 +18,9 @@
 
 add_library(ospray_sg SHARED
   Node.cpp
+  Frame.cpp
+
+  fb/FrameBuffer.cpp
 )
 
 target_link_libraries(ospray_sg

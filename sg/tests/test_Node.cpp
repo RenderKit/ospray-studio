@@ -210,7 +210,7 @@ SCENARIO("sg::Node_T<> interface")
 {
   GIVEN("A freshly created sg::FloatNode")
   {
-    auto floatNode_ptr = make_node<FloatNode>();
+    auto floatNode_ptr = createNodeAs<FloatNode>("test float", "float", "test");
     auto &floatNode    = *floatNode_ptr;
 
     floatNode = 1.f;

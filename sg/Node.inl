@@ -41,6 +41,12 @@ namespace ospray {
       return std::dynamic_pointer_cast<T>(shared_from_this());
     }
 
+    template <typename NODE_T>
+    NODE_T &Node::childAs(const std::string &name) const
+    {
+      return *child(name).nodeAs<NODE_T>();
+    }
+
     //! just for convenience; add a typed 'setParam' function
     template <typename T>
     inline Node &Node::createChildWithValue(const std::string &name,
@@ -277,37 +283,42 @@ namespace ospray {
     ///////////////////////////////////////////////////////////////////////////
 
     template <typename HANDLE_T>
-    inline OSPNode<HANDLE_T>::~OSPNode()
+    inline OSPNode<HANDLE_T>::OSPNode()
     {
-      auto handle = value();
-      if (handle)
-        ospRelease(value());
+      setHandle(nullptr);
     }
 
     template <typename HANDLE_T>
-    inline const HANDLE_T &OSPNode<HANDLE_T>::value() const
+    inline OSPNode<HANDLE_T>::~OSPNode()
+    {
+      auto h = handle();
+      if (h)
+        ospRelease(handle());
+    }
+
+    template <typename HANDLE_T>
+    inline const HANDLE_T &OSPNode<HANDLE_T>::handle() const
     {
       return Node::valueAs<HANDLE_T>();
     }
 
     template <typename HANDLE_T>
-    template <typename OT>
-    inline void OSPNode<HANDLE_T>::operator=(OT &&val)
+    inline void OSPNode<HANDLE_T>::setHandle(HANDLE_T handle)
     {
-      Node::operator=(static_cast<HANDLE_T>(val));
+      setValue(handle);
     }
 
     template <typename HANDLE_T>
     inline OSPNode<HANDLE_T>::operator HANDLE_T()
     {
-      return value();
+      return handle();
     }
 
     template <typename HANDLE_T>
     inline void OSPNode<HANDLE_T>::setOSPRayParam(std::string param,
-                                                  OSPObject handle)
+                                                  OSPObject obj)
     {
-      ospSetObject(handle, param.c_str(), value());
+      ospSetObject(obj, param.c_str(), handle());
     }
 
   }  // namespace sg

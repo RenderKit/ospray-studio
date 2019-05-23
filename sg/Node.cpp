@@ -148,7 +148,7 @@ namespace ospray {
       return !properties.children.empty();
     }
 
-    const std::vector<NodePtr> &Node::parents() const
+    const std::vector<Node*> &Node::parents() const
     {
       return properties.parents;
     }
@@ -176,7 +176,7 @@ namespace ospray {
     void Node::add(NodePtr node, const std::string &name)
     {
       properties.children[name] = node;
-      node->properties.parents.push_back(shared_from_this());
+      node->properties.parents.push_back(this);
       markAsModified();
     }
 
@@ -240,7 +240,7 @@ namespace ospray {
     void Node::removeFromParentList(Node &node)
     {
       auto &p          = properties.parents;
-      auto remove_node = [&](NodePtr np) { return np.get() == &node; };
+      auto remove_node = [&](auto np) { return np == &node; };
       p.erase(std::remove_if(p.begin(), p.end(), remove_node), p.end());
     }
 
