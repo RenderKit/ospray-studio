@@ -16,7 +16,12 @@
 
 #include "catch/catch.hpp"
 
+#define private public
+#define protected public
 #include "sg/Node.h"
+#undef private
+#undef protected
+
 using namespace ospray::sg;
 
 #include <type_traits>

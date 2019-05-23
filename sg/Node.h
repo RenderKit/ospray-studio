@@ -104,13 +104,6 @@ namespace ospray {
 
       void operator=(Any val);
 
-      // Update detection interface ///////////////////////////////////////////
-
-      TimeStamp whenCreated() const;
-      TimeStamp lastModified() const;
-      TimeStamp lastCommitted() const;
-      TimeStamp childrenLastModified() const;
-
       // Parent-child structual interface /////////////////////////////////////
 
       using NodeLink = std::pair<std::string, NodePtr>;
@@ -173,7 +166,15 @@ namespace ospray {
       template <typename VISITOR_T, typename = is_valid_visitor_t<VISITOR_T>>
       void traverse(VISITOR_T &&visitor);
 
-      // Private Members //////////////////////////////////////////////////////
+    protected:
+
+      TimeStamp whenCreated() const;
+      TimeStamp lastModified() const;
+      TimeStamp lastCommitted() const;
+      TimeStamp childrenLastModified() const;
+
+      void markAsModified();
+      void setChildrenModified(TimeStamp t);
 
      private:
       struct
@@ -195,9 +196,6 @@ namespace ospray {
       } properties;
 
       void removeFromParentList(Node &node);
-
-      void markAsModified();
-      void setChildrenModified(TimeStamp t);
 
       void setName(const std::string &v);
       void setType(const std::string &v);
