@@ -60,7 +60,7 @@ namespace ospray {
     struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
     {
       Node();
-      virtual ~Node();
+      virtual ~Node() = default;
 
       // NOTE: Nodes are not copyable nor movable! The operator=() will be used
       //       to assign a Node's _value_, which is different than the
@@ -242,6 +242,27 @@ namespace ospray {
     using Vec3iNode = Node_T<vec3i>;
 
     using VoidPtrNode = Node_T<void *>;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // OSPRay Object Nodes ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    template <typename HANDLE_T = OSPObject>
+    struct OSPNode : public Node
+    {
+      OSPNode() = default;
+      virtual ~OSPNode() override;
+
+      const HANDLE_T &value() const;
+
+      template <typename OT>
+      void operator=(OT &&val);
+
+      operator HANDLE_T();
+
+     private:
+      void setOSPRayParam(std::string param, OSPObject handle) override;
+    };
 
     ///////////////////////////////////////////////////////////////////////////
     // Main Node factory function /////////////////////////////////////////////

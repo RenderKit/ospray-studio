@@ -200,11 +200,6 @@ namespace ospray {
     }
 
     template <typename VALUE_T>
-    inline void preCommit()
-    {
-    }
-
-    template <typename VALUE_T>
     inline Node_T<VALUE_T>::operator VALUE_T()
     {
       return value();
@@ -275,6 +270,44 @@ namespace ospray {
     inline void VoidPtrNode::setOSPRayParam(std::string param, OSPObject handle)
     {
       ospSetVoidPtr(handle, param.c_str(), value());
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Inlined OSPNode definitions ////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    template <typename HANDLE_T>
+    inline OSPNode<HANDLE_T>::~OSPNode()
+    {
+      auto handle = value();
+      if (handle)
+        ospRelease(value());
+    }
+
+    template <typename HANDLE_T>
+    inline const HANDLE_T &OSPNode<HANDLE_T>::value() const
+    {
+      return Node::valueAs<HANDLE_T>();
+    }
+
+    template <typename HANDLE_T>
+    template <typename OT>
+    inline void OSPNode<HANDLE_T>::operator=(OT &&val)
+    {
+      Node::operator=(static_cast<HANDLE_T>(val));
+    }
+
+    template <typename HANDLE_T>
+    inline OSPNode<HANDLE_T>::operator HANDLE_T()
+    {
+      return value();
+    }
+
+    template <typename HANDLE_T>
+    inline void OSPNode<HANDLE_T>::setOSPRayParam(std::string param,
+                                                  OSPObject handle)
+    {
+      ospSetObject(handle, param.c_str(), value());
     }
 
   }  // namespace sg

@@ -29,12 +29,6 @@ namespace ospray {
       properties.type = "Node";
     }
 
-    Node::~Node()
-    {
-      if (valueIsType<OSPObject>())
-        ospRelease(valueAs<OSPObject>());
-    }
-
     std::string Node::toString() const
     {
       return "ospray::sg::Node";
