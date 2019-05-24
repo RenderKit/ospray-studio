@@ -21,8 +21,8 @@ namespace ospray {
 
     FrameBuffer::FrameBuffer()
     {
-      createChild("size", "vec2i", vec2i(1024, 768));
-      createChild("colorFormat", "string", std::string("sRGB"));
+      createChild("size", "vec2i", "FrameBuffer dimensions", vec2i(1024, 768));
+      createChild("colorFormat", "string", "Pixel format", std::string("sRGB"));
 
       updateHandle();
     }

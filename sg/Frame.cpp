@@ -25,9 +25,9 @@ namespace ospray {
 
     Frame::Frame()
     {
-      createChild("frameBuffer", "FrameBuffer");
-      createChild("camera", "PerspectiveCamera");
-      createChild("renderer", "Renderer_testFrame");
+      createChild("frameBuffer", "FrameBuffer", "current FrameBuffer");
+      createChild("camera", "PerspectiveCamera", "current Camera");
+      createChild("renderer", "Renderer_testFrame", "current Renderer");
     }
 
     void Frame::startNewFrame()

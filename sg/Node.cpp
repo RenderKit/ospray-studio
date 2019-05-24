@@ -223,10 +223,10 @@ namespace ospray {
 
     Node &Node::createChild(std::string name,
                             std::string type,
-                            Any value,
-                            std::string documentation)
+                            std::string documentation,
+                            Any value)
     {
-      auto child = createNode(name, type, value, documentation);
+      auto child = createNode(name, type, documentation, value);
       add(child);
       return *child;
     }
@@ -318,8 +318,8 @@ namespace ospray {
 
     std::shared_ptr<Node> createNode(std::string name,
                                      std::string type,
-                                     Any value,
-                                     std::string documentation)
+                                     std::string documentation,
+                                     Any value)
     {
       // Verify that 'ospray_sg' is properly loaded //
 

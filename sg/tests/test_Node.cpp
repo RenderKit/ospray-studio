@@ -30,7 +30,7 @@ SCENARIO("sg::createNode()")
 {
   GIVEN("A generic node created from sg::createNode()")
   {
-    auto node_ptr = createNode("test_node", "Node", 42, "test documentation");
+    auto node_ptr = createNode("test_node", "Node", "test documentation", 42);
     auto &node    = *node_ptr;
 
     THEN("The node's name is correct")
@@ -56,7 +56,7 @@ SCENARIO("sg::createNode()")
 
   GIVEN("A specific node type to sg::createNode()")
   {
-    auto node_ptr = createNode("test_node", "float", 4.f, "test documentation");
+    auto node_ptr = createNode("test_node", "float", "test documentation", 4.f);
     auto &node    = *node_ptr;
 
     THEN("The node's type is correct")
@@ -163,7 +163,7 @@ SCENARIO("sg::Node interface")
 
     WHEN("A child is added from Node::createChild()")
     {
-      auto &child = node.createChild("child", "Node", 42, "docs");
+      auto &child = node.createChild("child", "Node", "docs", 42);
 
       THEN("The child's name is correct")
       {

@@ -26,8 +26,8 @@ namespace ospray {
 
     PerspectiveCamera::PerspectiveCamera() : Camera("perspective")
     {
-      createChild("fovy", "float", 60.f, "Field-of-view (degrees)");
-      createChild("aspect", "float", 1.f, "Aspect ratio");
+      createChild("fovy", "float", "Field-of-view (degrees)", 60.f);
+      createChild("aspect", "float", "Aspect ratio", 1.f);
     }
 
     OSP_REGISTER_SG_NODE(PerspectiveCamera);

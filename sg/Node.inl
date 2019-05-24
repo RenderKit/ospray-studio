@@ -47,23 +47,6 @@ namespace ospray {
       return *child(name).nodeAs<NODE_T>();
     }
 
-    //! just for convenience; add a typed 'setParam' function
-    template <typename T>
-    inline Node &Node::createChildWithValue(const std::string &name,
-                                            const std::string &type,
-                                            const T &t)
-    {
-      if (hasChild(name)) {
-        auto &c = child(name);
-        c.setValue(t);
-        return c;
-      } else {
-        auto node = createNode(name, type, t);
-        add(node);
-        return *node;
-      }
-    }
-
     template <typename T>
     inline void Node::setValue(T _val)
     {
@@ -113,49 +96,6 @@ namespace ospray {
     {
       setValue(v);
     }
-
-    // NOTE(jda) - Specialize valueAs() and operator=() so we don't have to
-    //             convert to/from OSPObject manually, must trust the user to
-    //             store/get the right type of OSPObject. This is because
-    //             ospcommon::utility::Any<> cannot do implicit conversion...
-
-#define DECLARE_VALUEAS_SPECIALIZATION(a)                \
-  template <>                                            \
-  inline a &Node::valueAs()                              \
-  {                                                      \
-    return (a &)properties.value.get<OSPObject>();       \
-  }                                                      \
-                                                         \
-  template <>                                            \
-  inline const a &Node::valueAs() const                  \
-  {                                                      \
-    return (const a &)properties.value.get<OSPObject>(); \
-  }                                                      \
-                                                         \
-  template <>                                            \
-  inline void Node::setValue(a val)                      \
-  {                                                      \
-    setValue((OSPObject)val);                            \
-  }
-
-    DECLARE_VALUEAS_SPECIALIZATION(OSPDevice)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPFrameBuffer)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPRenderer)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPCamera)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPWorld)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPData)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPGeometry)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPGeometryInstance)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPMaterial)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPLight)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPVolume)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPVolumeInstance)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPTransferFunction)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPTexture)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPPixelOp)
-    DECLARE_VALUEAS_SPECIALIZATION(OSPFuture)
-
-#undef DECLARE_VALUEAS_SPECIALIZATION
 
     template <typename VISITOR_T, typename>
     inline void Node::traverse(VISITOR_T &&visitor, TraversalContext &ctx)

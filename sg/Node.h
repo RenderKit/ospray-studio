@@ -141,16 +141,10 @@ namespace ospray {
       void removeAllParents();
       void removeAllChildren();
 
-      //! just for convenience; add a typed 'setParam' function
-      template <typename T>
-      Node &createChildWithValue(const std::string &name,
-                                 const std::string &type,
-                                 const T &t);
-
       Node &createChild(std::string name,
                         std::string type          = "Node",
-                        Any value                 = Any(),
-                        std::string documentation = "");
+                        std::string documentation = "",
+                        Any value                 = Any());
 
       template <typename NODE_T>
       NODE_T &createChild(std::string name,
@@ -210,7 +204,7 @@ namespace ospray {
       void setType(const std::string &v);
       void setDocumentation(const std::string &s);
 
-      friend NodePtr createNode(std::string, std::string, Any, std::string);
+      friend NodePtr createNode(std::string, std::string, std::string, Any);
 
       friend struct CommitVisitor;
     };
@@ -282,15 +276,15 @@ namespace ospray {
 
     OSPSG_INTERFACE NodePtr createNode(std::string name,
                                        std::string type          = "Node",
-                                       Any val                   = Any(),
-                                       std::string documentation = "");
+                                       std::string documentation = "",
+                                       Any val                   = Any());
 
     template <typename NODE_T>
     inline std::shared_ptr<NODE_T> createNodeAs(std::string name,
                                                 std::string type,
                                                 std::string documentation)
     {
-      return createNode(name, type, Any(), documentation)->nodeAs<NODE_T>();
+      return createNode(name, type, documentation, Any())->nodeAs<NODE_T>();
     }
 
     ///////////////////////////////////////////////////////////////////////////

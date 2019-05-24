@@ -24,14 +24,14 @@ namespace ospray {
       auto handle = ospNewCamera(type.c_str());
       setHandle(handle);
 
-      createChild("pos", "vec3f", vec3f(0.f), "Camera position");
-      createChild("dir", "vec3f", vec3f(1.f), "Camera 'look' direction");
-      createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f), "Camera 'up' direction");
+      createChild("pos", "vec3f", "Camera position", vec3f(0.f));
+      createChild("dir", "vec3f", "Camera 'look' direction", vec3f(1.f));
+      createChild("up", "vec3f", "Camera 'up' direction", vec3f(0.f, 1.f, 0.f));
 
-      createChild("nearClip", "float", 0.f, "Near clip distance");
+      createChild("nearClip", "float", "Near clip distance", 0.f);
 
-      createChild("imageStart", "vec2f", vec2f(0.f), "Start of image region");
-      createChild("imageEnd", "vec2f", vec2f(1.f), "End of image region");
+      createChild("imageStart", "vec2f", "Start of image region", vec2f(0.f));
+      createChild("imageEnd", "vec2f", "End of image region", vec2f(1.f));
     }
 
   }  // namespace sg
