@@ -24,6 +24,8 @@ add_library(ospray_sg SHARED
   camera/PerspectiveCamera.cpp
 
   fb/FrameBuffer.cpp
+
+  renderer/Renderer.cpp
 )
 
 target_link_libraries(ospray_sg
