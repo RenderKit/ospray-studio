@@ -70,8 +70,6 @@ namespace ospray {
       Node &operator=(const Node &) = delete;
       Node &operator=(Node &&) = delete;
 
-      virtual std::string toString() const;
-
       template <typename T>
       std::shared_ptr<T> nodeAs();  // static cast (faster, but not safe!)
 
@@ -124,7 +122,7 @@ namespace ospray {
 
       // Parents //
 
-      const std::vector<Node*> &parents() const;
+      const std::vector<Node *> &parents() const;
 
       bool hasParents() const;
 
@@ -169,7 +167,14 @@ namespace ospray {
       template <typename VISITOR_T, typename = is_valid_visitor_t<VISITOR_T>>
       void traverse(VISITOR_T &&visitor);
 
+      void commit();
+
+      virtual void setOSPRayParam(std::string param, OSPObject handle);
+
      protected:
+      virtual void preCommit();
+      virtual void postCommit();
+
       TimeStamp whenCreated() const;
       TimeStamp lastModified() const;
       TimeStamp lastCommitted() const;
@@ -178,7 +183,7 @@ namespace ospray {
       void markAsModified();
       void setChildrenModified(TimeStamp t);
 
-      virtual void setOSPRayParam(std::string param, OSPObject handle);
+      bool subtreeModifiedButNotCommitted() const;
 
      private:
       struct
@@ -190,7 +195,7 @@ namespace ospray {
         Any value;
 
         std::map<std::string, NodePtr> children;
-        std::vector<Node*> parents;
+        std::vector<Node *> parents;
 
         TimeStamp whenCreated;
         TimeStamp lastModified;
@@ -206,6 +211,8 @@ namespace ospray {
       void setDocumentation(const std::string &s);
 
       friend NodePtr createNode(std::string, std::string, Any, std::string);
+
+      friend struct CommitVisitor;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -225,7 +232,7 @@ namespace ospray {
 
       operator VALUE_T();
 
-     private:
+     protected:
       void setOSPRayParam(std::string param, OSPObject handle) override;
     };
 
@@ -262,7 +269,10 @@ namespace ospray {
 
       operator HANDLE_T();
 
-     private:
+     protected:
+      virtual void preCommit() override;
+      virtual void postCommit() override;
+
       void setOSPRayParam(std::string param, OSPObject handle) override;
     };
 

@@ -20,6 +20,9 @@ add_library(ospray_sg SHARED
   Node.cpp
   Frame.cpp
 
+  camera/Camera.cpp
+  camera/PerspectiveCamera.cpp
+
   fb/FrameBuffer.cpp
 )
 

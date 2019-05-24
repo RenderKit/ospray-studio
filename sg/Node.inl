@@ -186,7 +186,11 @@ namespace ospray {
       traverse(std::forward<VISITOR_T>(visitor), ctx);
     }
 
-    inline void Node::setOSPRayParam(std::string, OSPObject) {}
+    inline bool Node::subtreeModifiedButNotCommitted() const
+    {
+      return (lastModified() > lastCommitted()) ||
+             (childrenLastModified() > lastCommitted());
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Inlined Node_T<> definitions ///////////////////////////////////////////
@@ -312,6 +316,20 @@ namespace ospray {
     inline OSPNode<HANDLE_T>::operator HANDLE_T()
     {
       return handle();
+    }
+
+    template <typename HANDLE_T>
+    inline void OSPNode<HANDLE_T>::preCommit()
+    {
+      for (auto &c : children())
+        c.second->setOSPRayParam(c.first, handle());
+    }
+
+    template <typename HANDLE_T>
+    inline void OSPNode<HANDLE_T>::postCommit()
+    {
+      std::cout << "committing " << name() << std::endl;
+      ospCommit(handle());
     }
 
     template <typename HANDLE_T>

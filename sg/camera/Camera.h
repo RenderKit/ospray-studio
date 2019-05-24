@@ -16,30 +16,15 @@
 
 #pragma once
 
-#include "Node.h"
+#include "sg/Node.h"
 
 namespace ospray {
   namespace sg {
 
-    struct Frame : public OSPNode<OSPFuture>
+    struct OSPSG_INTERFACE Camera : public OSPNode<OSPCamera>
     {
-      Frame();
-      ~Frame() override = default;
-
-      void startNewFrame();
-
-      bool frameIsReady();
-      float frameProgress();
-      void waitOnFrame();
-      void cancelFrame();
-
-      const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
-      void unmapFrame(void *mem);
-
-    private:
-
-      void preCommit() override;
-      void postCommit() override;
+      Camera(std::string type);
+      virtual ~Camera() override = default;
     };
 
   }  // namespace sg

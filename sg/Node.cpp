@@ -22,16 +22,38 @@
 namespace ospray {
   namespace sg {
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Helper types ///////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    struct CommitVisitor : public Visitor
+    {
+      bool operator()(Node &node, TraversalContext &) override
+      {
+        if (node.subtreeModifiedButNotCommitted()) {
+          node.preCommit();
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      void postChildren(Node &node, TraversalContext &) override
+      {
+        if (node.subtreeModifiedButNotCommitted()) {
+          node.postCommit();
+          node.properties.lastCommitted.renew();
+        }
+      }
+    };
+
+    ///////////////////////////////////////////////////////////////////////////
+
     Node::Node()
     {
       // NOTE(jda) - can't do default member initializers due to MSVC...
       properties.name = "NULL";
       properties.type = "Node";
-    }
-
-    std::string Node::toString() const
-    {
-      return "ospray::sg::Node";
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -65,30 +87,6 @@ namespace ospray {
     Any Node::value()
     {
       return properties.value;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Update detection interface /////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
-
-    TimeStamp Node::whenCreated() const
-    {
-      return properties.whenCreated;
-    }
-
-    TimeStamp Node::lastModified() const
-    {
-      return properties.lastModified;
-    }
-
-    TimeStamp Node::lastCommitted() const
-    {
-      return properties.lastCommitted;
-    }
-
-    TimeStamp Node::childrenLastModified() const
-    {
-      return properties.childrenMTime;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -130,9 +128,9 @@ namespace ospray {
       });
 
       if (itr == properties.children.end()) {
-        throw std::runtime_error("in node " + toString() +
-                                 " : could not find sg child node with name '" +
-                                 name + "'");
+        throw std::runtime_error(
+            "in " + type() + " node '" + this->name() + "'" +
+            ": could not find sg child node with name '" + name + "'");
       } else {
         return *itr->second;
       }
@@ -148,7 +146,7 @@ namespace ospray {
       return !properties.children.empty();
     }
 
-    const std::vector<Node*> &Node::parents() const
+    const std::vector<Node *> &Node::parents() const
     {
       return properties.parents;
     }
@@ -234,8 +232,41 @@ namespace ospray {
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    // Traveral Interface /////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    void Node::commit()
+    {
+      traverse(CommitVisitor());
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
     // Private Members ////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+
+    void Node::preCommit() {}
+
+    void Node::postCommit() {}
+
+    TimeStamp Node::whenCreated() const
+    {
+      return properties.whenCreated;
+    }
+
+    TimeStamp Node::lastModified() const
+    {
+      return properties.lastModified;
+    }
+
+    TimeStamp Node::lastCommitted() const
+    {
+      return properties.lastCommitted;
+    }
+
+    TimeStamp Node::childrenLastModified() const
+    {
+      return properties.childrenMTime;
+    }
 
     void Node::removeFromParentList(Node &node)
     {
@@ -274,6 +305,8 @@ namespace ospray {
     {
       properties.documentation = s;
     }
+
+    void Node::setOSPRayParam(std::string, OSPObject) {}
 
     ///////////////////////////////////////////////////////////////////////////
     // Global Stuff ///////////////////////////////////////////////////////////

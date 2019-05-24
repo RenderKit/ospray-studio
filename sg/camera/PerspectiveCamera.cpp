@@ -14,33 +14,23 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "Node.h"
+#include "Camera.h"
 
 namespace ospray {
   namespace sg {
 
-    struct Frame : public OSPNode<OSPFuture>
+    struct PerspectiveCamera : public Camera
     {
-      Frame();
-      ~Frame() override = default;
-
-      void startNewFrame();
-
-      bool frameIsReady();
-      float frameProgress();
-      void waitOnFrame();
-      void cancelFrame();
-
-      const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
-      void unmapFrame(void *mem);
-
-    private:
-
-      void preCommit() override;
-      void postCommit() override;
+      PerspectiveCamera();
     };
+
+    PerspectiveCamera::PerspectiveCamera() : Camera("perspective")
+    {
+      createChild("fovy", "float", 60.f, "Field-of-view (degrees)");
+      createChild("aspect", "float", 1.f, "Aspect ratio");
+    }
+
+    OSP_REGISTER_SG_NODE(PerspectiveCamera);
 
   }  // namespace sg
 }  // namespace ospray

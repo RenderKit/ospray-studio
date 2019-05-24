@@ -14,33 +14,25 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "Node.h"
+#include "Camera.h"
 
 namespace ospray {
   namespace sg {
 
-    struct Frame : public OSPNode<OSPFuture>
+    Camera::Camera(std::string type)
     {
-      Frame();
-      ~Frame() override = default;
+      auto handle = ospNewCamera(type.c_str());
+      setHandle(handle);
 
-      void startNewFrame();
+      createChild("pos", "vec3f", vec3f(0.f), "Camera position");
+      createChild("dir", "vec3f", vec3f(1.f), "Camera 'look' direction");
+      createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f), "Camera 'up' direction");
 
-      bool frameIsReady();
-      float frameProgress();
-      void waitOnFrame();
-      void cancelFrame();
+      createChild("nearClip", "float", 0.f, "Near clip distance");
 
-      const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
-      void unmapFrame(void *mem);
-
-    private:
-
-      void preCommit() override;
-      void postCommit() override;
-    };
+      createChild("imageStart", "vec2f", vec2f(0.f), "Start of image region");
+      createChild("imageEnd", "vec2f", vec2f(1.f), "End of image region");
+    }
 
   }  // namespace sg
 }  // namespace ospray
