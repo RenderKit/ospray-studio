@@ -362,6 +362,8 @@ namespace ospray {
 
     OSP_REGISTER_SG_NODE(Node);
 
+    // Node_T<> type names
+
     OSP_REGISTER_SG_NODE_NAME(StringNode, string);
     OSP_REGISTER_SG_NODE_NAME(BoolNode, bool);
     OSP_REGISTER_SG_NODE_NAME(FloatNode, float);
@@ -372,6 +374,13 @@ namespace ospray {
     OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
     OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
     OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
+
+    OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
+    OSP_REGISTER_SG_NODE_NAME(Box3iNode, box3i);
+    OSP_REGISTER_SG_NODE_NAME(Range1fNode, range1f);
+
+    OSP_REGISTER_SG_NODE_NAME(RGBNode, rgb);
+    OSP_REGISTER_SG_NODE_NAME(RGBANode, rgba);
 
   }  // namespace sg
 }  // namespace ospray

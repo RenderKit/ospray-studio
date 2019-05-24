@@ -29,7 +29,7 @@ namespace ospray {
                   "float",
                   "Stop rendering when variance < threshold",
                   0.f);
-      createChild("bgColor", "vec4f", "Background color", vec4f(1.f));
+      createChild("bgColor", "rgba", "Background color", rgba(1.f));
     }
 
     OSP_REGISTER_SG_NODE_NAME(Renderer("testFrame"), Renderer_testFrame);

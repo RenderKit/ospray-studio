@@ -22,6 +22,7 @@
 #include <memory>
 #include <vector>
 // ospcommon
+#include "ospcommon/box.h"
 #include "ospcommon/utility/Any.h"
 #include "ospcommon/utility/TimeStamp.h"
 #include "ospcommon/vec.h"
@@ -49,6 +50,9 @@ namespace ospray {
 
     using Any       = utility::Any;
     using TimeStamp = utility::TimeStamp;
+
+    using rgb  = vec3f;
+    using rgba = vec4f;
 
     ///////////////////////////////////////////////////////////////////////////
     // Generic Node class definition //////////////////////////////////////////
@@ -232,20 +236,27 @@ namespace ospray {
 
     // Pre-defined parameter nodes ////////////////////////////////////////////
 
-    using StringNode = Node_T<std::string>;
+    // OSPRay known parameter types //
 
-    using BoolNode = Node_T<bool>;
-
-    using FloatNode = Node_T<float>;
-    using Vec2fNode = Node_T<vec2f>;
-    using Vec3fNode = Node_T<vec3f>;
-    using Vec4fNode = Node_T<vec4f>;
-
-    using IntNode   = Node_T<int>;
-    using Vec2iNode = Node_T<vec2i>;
-    using Vec3iNode = Node_T<vec3i>;
-
+    using StringNode  = Node_T<std::string>;
+    using BoolNode    = Node_T<bool>;
+    using FloatNode   = Node_T<float>;
+    using Vec2fNode   = Node_T<vec2f>;
+    using Vec3fNode   = Node_T<vec3f>;
+    using Vec4fNode   = Node_T<vec4f>;
+    using IntNode     = Node_T<int>;
+    using Vec2iNode   = Node_T<vec2i>;
+    using Vec3iNode   = Node_T<vec3i>;
     using VoidPtrNode = Node_T<void *>;
+
+    // Extra aliases //
+
+    using Box3fNode   = Node_T<box3f>;
+    using Box3iNode   = Node_T<box3i>;
+    using Range1fNode = Node_T<range1f>;
+
+    using RGBNode  = Node_T<rgb>;
+    using RGBANode = Node_T<rgba>;
 
     ///////////////////////////////////////////////////////////////////////////
     // OSPRay Object Nodes ////////////////////////////////////////////////////
