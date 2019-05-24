@@ -22,10 +22,10 @@
 #include <memory>
 #include <vector>
 // ospcommon
-#include "ospcommon/box.h"
+#include "ospcommon/math/box.h"
+#include "ospcommon/math/vec.h"
 #include "ospcommon/utility/Any.h"
 #include "ospcommon/utility/TimeStamp.h"
-#include "ospcommon/vec.h"
 // ospray
 #include "ospray/ospray.h"
 
@@ -47,6 +47,7 @@ namespace ospray {
   namespace sg {
 
     using namespace ospcommon;
+    using namespace ospcommon::math;
 
     using Any       = utility::Any;
     using TimeStamp = utility::TimeStamp;

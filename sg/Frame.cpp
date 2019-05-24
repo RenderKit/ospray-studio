@@ -19,6 +19,7 @@
 #include "sg/camera/Camera.h"
 #include "sg/fb/FrameBuffer.h"
 #include "sg/renderer/Renderer.h"
+#include "sg/scene/World.h"
 
 namespace ospray {
   namespace sg {
@@ -28,6 +29,7 @@ namespace ospray {
       createChild("frameBuffer", "FrameBuffer", "current FrameBuffer");
       createChild("camera", "PerspectiveCamera", "current Camera");
       createChild("renderer", "Renderer_rayDir", "current Renderer");
+      createChild("world", "World", "current World");
     }
 
     void Frame::startNewFrame()
@@ -43,13 +45,10 @@ namespace ospray {
       auto &fb       = childAs<FrameBuffer>("frameBuffer");
       auto &camera   = childAs<Camera>("camera");
       auto &renderer = childAs<Renderer>("renderer");
-
-      auto world = ospNewWorld();
-
-      ospCommit(world);
+      auto &world    = childAs<World>("world");
 
       future = ospRenderFrameAsync(
-          fb.handle(), renderer.handle(), camera.handle(), world);
+          fb.handle(), renderer.handle(), camera.handle(), world.handle());
       setHandle(future);
     }
 

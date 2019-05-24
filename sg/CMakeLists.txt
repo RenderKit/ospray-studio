@@ -26,12 +26,14 @@ add_library(ospray_sg SHARED
   fb/FrameBuffer.cpp
 
   renderer/Renderer.cpp
+
+  scene/World.cpp
 )
 
 target_link_libraries(ospray_sg
 PUBLIC
+  ospcommon::ospcommon
   ospray::ospray
-  ospray::ospray_common
 )
 
 target_include_directories(ospray_sg

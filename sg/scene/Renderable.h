@@ -14,37 +14,43 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include <iostream>
+#pragma once
 
-#include "sg/Frame.h"
-using namespace ospray::sg;
+#include "sg/Node.h"
 
-#include "ospcommon/utility/SaveImage.h"
+namespace ospray {
+  namespace sg {
 
-int main()
-{
-  ospInit(nullptr, nullptr); // TODO: ospray should provide default arg vals...
+    template <typename HANDLE_T>
+    struct OSPSG_INTERFACE Renderable : public OSPNode<HANDLE_T>
+    {
+      Renderable();
+      virtual ~Renderable() override = default;
 
-  std::cout << "Rendering a test frame..." << std::endl;
+      virtual void preRender();
+      virtual void postRender();
+    };
 
-  auto frame_ptr = createNodeAs<Frame>("frame", "Frame", "test frame");
-  auto &frame    = *frame_ptr;
+    // Inlined definitions ////////////////////////////////////////////////////
 
-  frame.startNewFrame();
+    template <typename HANDLE_T>
+    inline Renderable<HANDLE_T>::Renderable()
+    {
+      Node::createChild("bounds",
+                        "box3f",
+                        "Bounding box of this node and its children",
+                        box3f());
+    }
 
-  std::cout << "...finished!" << std::endl;
+    template <typename HANDLE_T>
+    inline void Renderable<HANDLE_T>::preRender()
+    {
+    }
 
-  auto size    = frame["frameBuffer"]["size"].valueAs<vec2i>();
-  auto *pixels = (uint32_t *)frame.mapFrame();
+    template <typename HANDLE_T>
+    inline void Renderable<HANDLE_T>::postRender()
+    {
+    }
 
-  ospcommon::utility::writePPM("test_Frame.ppm", size.x, size.y, pixels);
-
-  frame.unmapFrame(pixels);
-
-  std::cout << "\nresult saved to 'test_Frame.ppm'" << std::endl;
-
-  frame_ptr.reset();
-  ospShutdown();
-
-  return 0;
-}
+  }  // namespace sg
+}  // namespace ospray

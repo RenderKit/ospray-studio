@@ -51,7 +51,8 @@ namespace ospray {
       auto size           = child("size").valueAs<vec2i>();
       auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
-      fb = ospNewFrameBuffer((osp::vec2i &)size,
+      fb = ospNewFrameBuffer(size.x,
+                             size.y,
                              colorFormats[colorFormatStr],
                              OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE);
 

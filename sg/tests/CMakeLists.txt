@@ -17,6 +17,7 @@
 enable_testing()
 
 add_library(catch_main STATIC catch/catch_main.cpp)
+target_link_libraries(catch_main PRIVATE ospray::ospray)
 
 add_executable(test_Node test_Node.cpp)
 target_link_libraries(test_Node PRIVATE ospray_sg catch_main)

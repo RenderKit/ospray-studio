@@ -171,49 +171,49 @@ namespace ospray {
     template <>
     inline void BoolNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSet1b(handle, param.c_str(), value());
+      ospSetBool(handle, param.c_str(), value());
     }
 
     template <>
     inline void FloatNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSet1f(handle, param.c_str(), value());
+      ospSetFloat(handle, param.c_str(), value());
     }
 
     template <>
     inline void Vec2fNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSet2fv(handle, param.c_str(), &value().x);
+      ospSetVec2fv(handle, param.c_str(), &value().x);
     }
 
     template <>
     inline void Vec3fNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSet3fv(handle, param.c_str(), &value().x);
+      ospSetVec3fv(handle, param.c_str(), &value().x);
     }
 
     template <>
     inline void Vec4fNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSet4fv(handle, param.c_str(), &value().x);
+      ospSetVec4fv(handle, param.c_str(), &value().x);
     }
 
     template <>
     inline void IntNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSet1i(handle, param.c_str(), value());
+      ospSetInt(handle, param.c_str(), value());
     }
 
     template <>
     inline void Vec2iNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSet2iv(handle, param.c_str(), &value().x);
+      ospSetVec2iv(handle, param.c_str(), &value().x);
     }
 
     template <>
     inline void Vec3iNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSet3iv(handle, param.c_str(), &value().x);
+      ospSetVec3iv(handle, param.c_str(), &value().x);
     }
 
     template <>
@@ -268,7 +268,6 @@ namespace ospray {
     template <typename HANDLE_T>
     inline void OSPNode<HANDLE_T>::postCommit()
     {
-      std::cout << "committing " << name() << std::endl;
       ospCommit(handle());
     }
 

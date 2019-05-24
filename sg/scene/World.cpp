@@ -14,37 +14,18 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include <iostream>
+#include "World.h"
 
-#include "sg/Frame.h"
-using namespace ospray::sg;
+namespace ospray {
+  namespace sg {
 
-#include "ospcommon/utility/SaveImage.h"
+    World::World()
+    {
+      auto handle = ospNewWorld();
+      setHandle(handle);
+    }
 
-int main()
-{
-  ospInit(nullptr, nullptr); // TODO: ospray should provide default arg vals...
+    OSP_REGISTER_SG_NODE(World);
 
-  std::cout << "Rendering a test frame..." << std::endl;
-
-  auto frame_ptr = createNodeAs<Frame>("frame", "Frame", "test frame");
-  auto &frame    = *frame_ptr;
-
-  frame.startNewFrame();
-
-  std::cout << "...finished!" << std::endl;
-
-  auto size    = frame["frameBuffer"]["size"].valueAs<vec2i>();
-  auto *pixels = (uint32_t *)frame.mapFrame();
-
-  ospcommon::utility::writePPM("test_Frame.ppm", size.x, size.y, pixels);
-
-  frame.unmapFrame(pixels);
-
-  std::cout << "\nresult saved to 'test_Frame.ppm'" << std::endl;
-
-  frame_ptr.reset();
-  ospShutdown();
-
-  return 0;
-}
+  }  // namespace sg
+}  // namespace ospray

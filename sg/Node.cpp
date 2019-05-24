@@ -16,7 +16,7 @@
 
 #include "Node.h"
 // ospcommon
-#include "ospcommon/library.h"
+#include "ospcommon/os/library.h"
 #include "ospcommon/utility/StringManip.h"
 
 namespace ospray {

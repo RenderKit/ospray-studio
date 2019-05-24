@@ -49,9 +49,7 @@ endif()
 set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL 2 REQUIRED)
 find_package(glfw3 REQUIRED)
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE) # for gcc6
-find_package(Threads REQUIRED)
+find_package(ospcommon REQUIRED)
 find_package(ospray 2.0.0 REQUIRED)
 
 # Prevent OSX 10.14+ OGL deprecation warnings
@@ -59,19 +57,11 @@ if(APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
 endif()
 
-include(${OSPRAY_USE_FILE})
-
-ospray_configure_tasking_system()
-
 ## Build application ##
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
-include_directories(
-  ${OSPRAY_INCLUDE_DIRS}
-  external/
-  external/imgui
-)
+include_directories(external/ external/imgui)
 
 add_subdirectory(sg)
 

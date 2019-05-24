@@ -14,5 +14,18 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#define CATCH_CONFIG_MAIN
+#define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
+
+#include "ospray/ospray.h"
+
+int main(int argc, char *argv[])
+{
+  ospInit(nullptr, nullptr);
+
+  int result = Catch::Session().run(argc, argv);
+
+  ospShutdown();
+
+  return result;
+}
