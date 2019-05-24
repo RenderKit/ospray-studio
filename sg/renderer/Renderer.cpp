@@ -32,7 +32,18 @@ namespace ospray {
       createChild("bgColor", "rgba", "Background color", rgba(1.f));
     }
 
+    // Register OSPRay's debug renderers //
+
     OSP_REGISTER_SG_NODE_NAME(Renderer("testFrame"), Renderer_testFrame);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("rayDir"), Renderer_rayDir);
+
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast"), Renderer_raycast);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("primID"), Renderer_primID);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("geomID"), Renderer_geomID);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("instID"), Renderer_instID);
+
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_volume"),
+                              Renderer_raycast_volume);
 
   }  // namespace sg
 }  // namespace ospray
