@@ -73,7 +73,7 @@ static void parseCommandLine(int &ac, const char **&av)
 {
   for (int i = 1; i < ac; i++) {
     const std::string arg = av[i];
-    if (arg == "--fullscreen") {
+    if (arg == "--fullscreen" || arg == "-f") {
       fullscreen = true;
       removeArgs(ac, av, i, 1);
       --i;
