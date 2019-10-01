@@ -183,19 +183,19 @@ namespace ospray {
     template <>
     inline void Vec2fNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSetVec2fv(handle, param.c_str(), &value().x);
+      ospSetVec2f(handle, param.c_str(), value().x, value().y);
     }
 
     template <>
     inline void Vec3fNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSetVec3fv(handle, param.c_str(), &value().x);
+      ospSetVec3f(handle, param.c_str(), value().x, value().y, value().z);
     }
 
     template <>
     inline void Vec4fNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSetVec4fv(handle, param.c_str(), &value().x);
+      ospSetVec4f(handle, param.c_str(), value().x, value().y, value().z, value().w);
     }
 
     template <>
@@ -207,20 +207,22 @@ namespace ospray {
     template <>
     inline void Vec2iNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSetVec2iv(handle, param.c_str(), &value().x);
+      ospSetVec2i(handle, param.c_str(), value().x, value().y);
     }
 
     template <>
     inline void Vec3iNode::setOSPRayParam(std::string param, OSPObject handle)
     {
-      ospSetVec3iv(handle, param.c_str(), &value().x);
+      ospSetVec3i(handle, param.c_str(), value().x, value().y, value().z);
     }
 
+#if 0
     template <>
     inline void VoidPtrNode::setOSPRayParam(std::string param, OSPObject handle)
     {
       ospSetVoidPtr(handle, param.c_str(), value());
     }
+#endif
 
     ///////////////////////////////////////////////////////////////////////////
     // Inlined OSPNode definitions ////////////////////////////////////////////

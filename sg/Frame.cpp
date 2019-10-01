@@ -47,7 +47,7 @@ namespace ospray {
       auto &renderer = childAs<Renderer>("renderer");
       auto &world    = childAs<World>("world");
 
-      future = ospRenderFrameAsync(
+      future = ospRenderFrame(
           fb.handle(), renderer.handle(), camera.handle(), world.handle());
       setHandle(future);
     }

@@ -28,6 +28,7 @@
 #include "ospcommon/utility/TimeStamp.h"
 // ospray
 #include "ospray/ospray.h"
+#include "ospray/ospray_util.h"
 
 #ifndef OSPSG_INTERFACE
 #ifdef _WIN32
