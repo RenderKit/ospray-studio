@@ -93,41 +93,39 @@ namespace ospray {
     // Parent-child structual interface ///////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    const std::map<std::string, std::shared_ptr<Node>> &Node::children() const
+    const FlatMap<std::string, NodePtr> &Node::children() const
     {
       return properties.children;
     }
 
     bool Node::hasChild(const std::string &name) const
     {
-      auto itr = properties.children.find(name);
-      if (itr != properties.children.end())
+      auto &c = properties.children;
+      if (c.contains(name))
         return true;
 
       std::string name_lower = utility::lowerCase(name);
 
-      auto &c = properties.children;
-      itr     = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
+      auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
         return utility::lowerCase(n.first) == name_lower;
       });
 
       return itr != properties.children.end();
     }
 
-    Node &Node::child(const std::string &name) const
+    Node &Node::child(const std::string &name)
     {
-      auto itr = properties.children.find(name);
-      if (itr != properties.children.end())
-        return *itr->second;
+      auto &c = properties.children;
+      if (c.contains(name))
+        return *c[name];
 
       std::string name_lower = utility::lowerCase(name);
 
-      auto &c = properties.children;
-      itr     = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
+      auto itr = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
         return utility::lowerCase(n.first) == name_lower;
       });
 
-      if (itr == properties.children.end()) {
+      if (itr == properties.children.cend()) {
         throw std::runtime_error(
             "in " + type() + " node '" + this->name() + "'" +
             ": could not find sg child node with name '" + name + "'");
@@ -136,7 +134,7 @@ namespace ospray {
       }
     }
 
-    Node &Node::operator[](const std::string &c) const
+    Node &Node::operator[](const std::string &c)
     {
       return child(c);
     }

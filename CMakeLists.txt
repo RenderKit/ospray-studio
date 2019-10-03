@@ -49,7 +49,7 @@ endif()
 set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL 2 REQUIRED)
 find_package(glfw3 REQUIRED)
-find_package(ospcommon REQUIRED)
+find_package(ospcommon 1.1.0 REQUIRED)
 find_package(ospray 2.0.0 REQUIRED)
 
 # Prevent OSX 10.14+ OGL deprecation warnings

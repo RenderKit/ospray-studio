@@ -22,12 +22,12 @@
 #include <memory>
 #include <vector>
 // ospcommon
+#include "ospcommon/containers/FlatMap.h"
 #include "ospcommon/math/box.h"
 #include "ospcommon/math/vec.h"
 #include "ospcommon/utility/Any.h"
 #include "ospcommon/utility/TimeStamp.h"
 // ospray
-#include "ospray/ospray.h"
 #include "ospray/ospray_util.h"
 
 #ifndef OSPSG_INTERFACE
@@ -52,6 +52,9 @@ namespace ospray {
 
     using Any       = utility::Any;
     using TimeStamp = utility::TimeStamp;
+
+    template <typename K, typename V>
+    using FlatMap = ospcommon::containers::FlatMap<K, V>;
 
     using rgb  = vec3f;
     using rgba = vec4f;
@@ -114,17 +117,17 @@ namespace ospray {
 
       // Children //
 
-      const std::map<std::string, NodePtr> &children() const;
+      const FlatMap<std::string, NodePtr> &children() const;
 
       bool hasChildren() const;
 
       bool hasChild(const std::string &name) const;
 
-      Node &child(const std::string &name) const;
-      Node &operator[](const std::string &c) const;
+      Node &child(const std::string &name);
+      Node &operator[](const std::string &c);
 
       template <typename NODE_T>
-      NODE_T &childAs(const std::string &name) const;
+      NODE_T &childAs(const std::string &name);
 
       // Parents //
 
@@ -194,7 +197,7 @@ namespace ospray {
 
         Any value;
 
-        std::map<std::string, NodePtr> children;
+        FlatMap<std::string, NodePtr> children;
         std::vector<Node *> parents;
 
         TimeStamp whenCreated;
@@ -249,6 +252,7 @@ namespace ospray {
     using IntNode     = Node_T<int>;
     using Vec2iNode   = Node_T<vec2i>;
     using Vec3iNode   = Node_T<vec3i>;
+    using Vec4iNode   = Node_T<vec4i>;
     using VoidPtrNode = Node_T<void *>;
 
     // Extra aliases //

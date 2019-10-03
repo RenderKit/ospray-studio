@@ -21,9 +21,9 @@ using namespace ospray::sg;
 
 #include "ospcommon/utility/SaveImage.h"
 
-int main()
+int main(int argc, const char *argv[])
 {
-  ospInit(nullptr, nullptr); // TODO: ospray should provide default arg vals...
+  ospInit(&argc, argv);
 
   std::cout << "Rendering a test frame..." << std::endl;
 
@@ -31,6 +31,7 @@ int main()
   auto &frame    = *frame_ptr;
 
   frame.startNewFrame();
+  frame.waitOnFrame();
 
   std::cout << "...finished!" << std::endl;
 

@@ -42,7 +42,7 @@ namespace ospray {
     }
 
     template <typename NODE_T>
-    NODE_T &Node::childAs(const std::string &name) const
+    NODE_T &Node::childAs(const std::string &name)
     {
       return *child(name).nodeAs<NODE_T>();
     }
