@@ -31,7 +31,8 @@ namespace ospray {
     void removePlugin(const std::string &name);
 
     // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
-    PanelList getAllPanelsFromPlugins(std::shared_ptr<sg::Frame> scenegraph);
+    PanelList getAllPanelsFromPlugins(
+        std::shared_ptr<sg::Frame> scenegraph) const;
 
    private:
     // Helper types //

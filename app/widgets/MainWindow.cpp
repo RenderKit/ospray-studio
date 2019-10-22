@@ -53,7 +53,7 @@ namespace ospray {
   MainWindow *MainWindow::g_instance = nullptr;
 
   MainWindow::MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
-                         const std::vector<std::string> &pluginsToLoad,
+                         const PluginManager &pluginManager,
                          const std::vector<std::string> &tfnsToLoad)
       : ImGui3DWidget(ImGui3DWidget::RESIZE_KEEPFOVY),
         scenegraph(scenegraph),
@@ -88,11 +88,6 @@ namespace ospray {
     scenegraph->child("frameAccumulationLimit") = accumulationLimit;
 
     ospSetProgressFunc(&ospray::MainWindow::progressCallbackWrapper, this);
-
-    // load plugins //
-
-    for (auto &p : pluginsToLoad)
-      pluginManager.loadPlugin(p);
 
     // create panels //
 

@@ -65,7 +65,7 @@ namespace ospray {
   }
 
   PanelList PluginManager::getAllPanelsFromPlugins(
-      std::shared_ptr<sg::Frame> scenegraph)
+      std::shared_ptr<sg::Frame> scenegraph) const
   {
     PanelList allPanels;
 

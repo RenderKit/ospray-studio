@@ -38,7 +38,7 @@ namespace ospray {
     static MainWindow *g_instance;
 
     MainWindow(const std::shared_ptr<sg::Frame> &scenegraph,
-               const std::vector<std::string> &pluginsToLoad,
+               const PluginManager &pluginManager,
                const std::vector<std::string> &tfnsToLoad);
 
     ~MainWindow();
@@ -109,10 +109,6 @@ namespace ospray {
     std::vector<std::unique_ptr<Panel>> advancedPanels;
 
     std::unique_ptr<Panel> aboutPanel;
-
-    // Plugins //
-
-    PluginManager pluginManager;
 
     // Not-yet-categorized data //
 

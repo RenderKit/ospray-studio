@@ -55,6 +55,11 @@ find_package(Threads REQUIRED)
 find_package(ospray 1.8.5 EXACT REQUIRED)
 find_package(OpenImageDenoise)
 
+# Prevent OSX 10.14+ OGL deprecation warnings
+if(APPLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
+endif()
+
 include(${OSPRAY_USE_FILE})
 
 ospray_configure_tasking_system()

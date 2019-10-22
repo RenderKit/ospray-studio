@@ -416,11 +416,17 @@ int main(int argc, const char **argv)
   if (!initialRendererType.empty())
     renderer["rendererType"] = initialRendererType;
 
+  // load plugins //
+  PluginManager pluginManager;
+
+  for (auto &p : pluginsToLoad)
+    pluginManager.loadPlugin(p);
+
   importFilesFromCommandLine(*root);
   setupLights(*root);
   setupCamera(*root);
 
-  MainWindow window(root, pluginsToLoad, tfnsToLoad);
+  MainWindow window(root, pluginManager, tfnsToLoad);
 
   replaceAllTFsWithMasterTF(*root);
 
