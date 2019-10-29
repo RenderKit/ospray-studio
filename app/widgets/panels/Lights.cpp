@@ -81,6 +81,10 @@ namespace ospray {
         case 3:
           type = "AmbientLight";
           break;
+        case 4:
+          type = "HDRILight";
+          break;
+
         default:
           std::cerr << "WAAAAT" << std::endl;
         }

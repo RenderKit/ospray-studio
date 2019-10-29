@@ -29,6 +29,10 @@
 #include "widgets/MainWindow.h"
 
 #include <ospray/ospcommon/utility/StringManip.h>
+#include "common/RenderContext.h"
+#include "ospcommon/FileName.h"
+#include "ospray/sg/texture/Texture2D.h"
+#include "ospcommon/utility/getEnvVar.h"
 
 using namespace ospcommon;
 using namespace ospray;
@@ -39,9 +43,47 @@ static int width       = 1200;
 static int height      = 800;
 static bool fullscreen = false;
 
+// TODO: move to ospStudioMain.h
+template <class T>
+class CmdLineParam
+{
+ public:
+  CmdLineParam(T defaultValue) { value = defaultValue; }
+  T getValue() { return value; }
+
+  CmdLineParam &operator=(const CmdLineParam &other)
+  {
+    value = other.value;
+    overridden = true;
+    return *this;
+  }
+
+  bool isOverridden() { return overridden; }
+
+ private:
+  T value;
+  bool overridden = false;
+};
+
 static std::vector<std::string> filesToImport;
 static std::vector<std::string> pluginsToLoad;
 static std::vector<std::string> tfnsToLoad;
+
+CmdLineParam<vec3f> up = CmdLineParam<vec3f>({ 0, 1, 0 });
+CmdLineParam<vec3f> pos = CmdLineParam<vec3f>({ 0, 0, -1 });
+CmdLineParam<vec3f> gaze = CmdLineParam<vec3f>({ 0, 0, 0 });
+CmdLineParam<float> apertureRadius = CmdLineParam<float>(0.f);
+CmdLineParam<float> fovy = CmdLineParam<float>(60.f);
+
+std::string hdriLightFile;
+bool addDefaultLights = false;
+bool noDefaultLights = false;
+box3f bboxWithoutPlane;
+
+bool fast =
+    ospcommon::utility::getEnvVar<int>("OSPRAY_APPS_FAST_MODE").value_or(0);
+std::string initialRendererType;
+
 
 // Helper functions ///////////////////////////////////////////////////////////
 
@@ -76,6 +118,59 @@ static void parseCommandLine(int &ac, const char **&av)
     if (arg == "--fullscreen" || arg == "-f") {
       fullscreen = true;
       removeArgs(ac, av, i, 1);
+      --i;
+    } else if (arg == "-r" || arg == "--renderer") {
+      initialRendererType = av[i + 1];
+      removeArgs(ac, av, i, 2);
+      --i;
+    } else if (arg == "-vp") {
+      vec3f posVec;
+      posVec.x = atof(av[i + 1]);
+      posVec.y = atof(av[i + 2]);
+      posVec.z = atof(av[i + 3]);
+      removeArgs(ac, av, i, 4);
+      --i;
+      pos = posVec;
+    } else if (arg == "-vu") {
+      vec3f upVec;
+      upVec.x = atof(av[i + 1]);
+      upVec.y = atof(av[i + 2]);
+      upVec.z = atof(av[i + 3]);
+      removeArgs(ac, av, i, 4);
+      --i;
+      up = upVec;
+    } else if (arg == "-vi") {
+      vec3f gazeVec;
+      gazeVec.x = atof(av[i + 1]);
+      gazeVec.y = atof(av[i + 2]);
+      gazeVec.z = atof(av[i + 3]);
+      removeArgs(ac, av, i, 4);
+      --i;
+      gaze = gazeVec;
+    } else if (arg == "--fast" || arg == "-f") {
+      fast = true;
+    } else if (arg == "--no-fast" || arg == "-nf") {
+      fast = false;
+    } else if (arg == "--no-lights") {
+      noDefaultLights = true;
+      removeArgs(ac, av, i, 1);
+      --i;
+    } else if (arg == "--add-lights") {
+      addDefaultLights = true;
+      removeArgs(ac, av, i, 1);
+        --i;
+    } else if (arg == "-fv") {
+      fovy = atof(av[i + 1]);
+      removeArgs(ac, av, i, 2);
+      --i;
+    } else if (arg == "-ar") {
+        apertureRadius = atof(av[i + 1]);
+        removeArgs(ac, av, i, 2);
+        --i;
+      }
+    else if (arg == "--hdri-light") {
+      hdriLightFile = av[i + 1];
+      removeArgs(ac, av, i, 2);
       --i;
     } else if (arg == "-m" || arg == "--module") {
       ospLoadModule(av[i + 1]);
@@ -267,12 +362,78 @@ static void importFilesFromCommandLine(const sg::Frame &root)
 }
 
 static void setupLights(const sg::Frame &root)
-{
-  // TODO: this should be easy to add via the UI!
+{}
   auto &lights         = root.child("renderer").child("lights");
-  auto &ambient        = lights.createChild("ambient", "AmbientLight");
-  ambient["intensity"] = 1.25f;
-  ambient["color"]     = vec3f(1.f);
+  auto &renderer = root.child("renderer");
+  if (noDefaultLights == false &&
+      (lights.numChildren() <= 0 || addDefaultLights == true)) {
+    if (!fast) {
+        auto &sun = lights.createChild("sun", "DirectionalLight");
+        sun["color"] = vec3f(1.f, 247.f / 255.f, 201.f / 255.f);
+        sun["direction"] = vec3f(0.462f, -1.f, -.1f);
+        sun["intensity"] = 3.0f;
+        sun["angularDiameter"] = 0.53f;
+
+        auto &bounce = lights.createChild("bounce", "DirectionalLight");
+        bounce["color"] = vec3f(202.f / 255.f, 216.f / 255.f, 255.f / 255.f);
+        bounce["direction"] = vec3f(-.93, -.54f, -.605f);
+        bounce["intensity"] = 1.25f;
+        bounce["angularDiameter"] = 3.0f;
+      }
+
+    if (hdriLightFile == "") {
+      auto &ambient = lights.createChild("ambient", "AmbientLight");
+      ambient["intensity"] = fast ? 1.25f : 0.9f;
+      ambient["color"] = fast ?
+          vec3f(1.f) : vec3f(217.f / 255.f, 230.f / 255.f, 255.f / 255.f);
+    }
+  }
+
+  if (hdriLightFile != "") {
+    auto tex = sg::Texture2D::load(hdriLightFile, false);
+    tex->setName("map");
+    auto &hdri = lights.createChild("hdri", "HDRILight");
+    hdri.add(tex);
+    renderer.verify(); //TODO: this should not be necessary
+    sg::Texture2D::clearTextureCache();
+  }
+
+}
+
+void setupCamera(sg::Node &root)
+{
+  auto &renderer = root.child("renderer");
+  auto &world = renderer.child("world");
+  auto bbox = bboxWithoutPlane;
+  if (bbox.empty())
+    bbox = world.bounds();
+  vec3f diag = bbox.size();
+  diag = max(diag, vec3f(0.3f * length(diag)));
+  if (!gaze.isOverridden())
+    gaze = ospcommon::center(bbox);
+
+  if (!pos.isOverridden())
+    pos = gaze.getValue() -
+          .75f * vec3f(-.6 * diag.x, -1.2f * diag.y, .8f * diag.z);
+  if (!up.isOverridden())
+    up = vec3f(0.f, 1.f, 0.f);
+
+  auto &camera = root.child("camera");
+  camera["pos"] = pos.getValue();
+  camera["dir"] = normalize(gaze.getValue() - pos.getValue());
+  camera["up"] = up.getValue();
+
+  // XXX hack: consumed and removed in constructor of ImGuiViewer
+//  camera.createChild("gaze", "vec3f", gaze.getValue());
+
+  if (camera.hasChild("fovy") && fovy.isOverridden())
+    camera["fovy"] = fovy.getValue();
+  if (camera.hasChild("apertureRadius") && apertureRadius.isOverridden())
+    camera["apertureRadius"] = apertureRadius.getValue();
+  if (camera.hasChild("focusDistance"))
+    camera["focusDistance"] = length(pos.getValue() - gaze.getValue());
+  if (camera.hasChild("aspect"))
+    camera["aspect"] = width / (float)height;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -293,9 +454,15 @@ int main(int argc, const char **argv)
   parseCommandLine(argc, argv);
 
   auto root = sg::createNode("ROOT", "Frame")->nodeAs<sg::Frame>();
+  auto &rootVal     = *root;
+  auto &renderer = rootVal["renderer"];
+
+  if (!initialRendererType.empty())
+    renderer["rendererType"] = initialRendererType;
 
   importFilesFromCommandLine(*root);
   setupLights(*root);
+  // setupCamera(*root);
 
   MainWindow window(root, pluginsToLoad, tfnsToLoad);
 
@@ -310,7 +477,7 @@ int main(int argc, const char **argv)
   AsyncRenderEngine::g_instance->flushScheduledOps();
 
   parseCommandLineSG(argc, argv, *root);
-
+  
   imgui3D::run();
 
   return 0;

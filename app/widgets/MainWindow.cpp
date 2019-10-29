@@ -283,8 +283,8 @@ namespace ospray {
     if (viewPort.modified) {
       auto &camera = scenegraph->child("camera");
       auto dir     = viewPort.at - viewPort.from;
-      if (camera.hasChild("focusdistance"))
-        camera["focusdistance"] = length(dir);
+      if (camera.hasChild("focusDistance"))
+        camera["focusDistance"] = length(dir);
       dir           = normalize(dir);
       camera["dir"] = dir;
       camera["pos"] = viewPort.from;
