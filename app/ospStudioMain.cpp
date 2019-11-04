@@ -362,7 +362,7 @@ static void importFilesFromCommandLine(const sg::Frame &root)
 }
 
 static void setupLights(const sg::Frame &root)
-{}
+{
   auto &lights         = root.child("renderer").child("lights");
   auto &renderer = root.child("renderer");
   if (noDefaultLights == false &&
