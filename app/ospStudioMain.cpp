@@ -41,8 +41,7 @@ static bool noDefaultLights = false;
 static box3f bboxWithoutPlane;
 
 static std::string initialRendererType;
-static bool fast =
-    ospcommon::utility::getEnvVar<int>("OSPRAY_APPS_FAST_MODE").value_or(0);
+static bool fast = utility::getEnvVar<int>("OSPRAY_APPS_FAST_MODE").value_or(0);
 
 // Helper functions ///////////////////////////////////////////////////////////
 
