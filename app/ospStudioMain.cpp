@@ -14,25 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "ospray/sg/SceneGraph.h"
-#include "ospray/sg/geometry/TriangleMesh.h"
-#include "ospray/sg/visitor/GatherNodesByName.h"
-#include "ospray/sg/visitor/MarkAllAsModified.h"
-
-#include "sg_utility/utility.h"
-
-// custom visitors
-#include "sg_visitors/GetVoxelRangeOfAllVolumes.h"
-#include "sg_visitors/RecomputeBounds.h"
-#include "sg_visitors/ReplaceAllTFs.h"
-
-#include "widgets/MainWindow.h"
-
-#include <ospray/ospcommon/utility/StringManip.h>
-#include "common/RenderContext.h"
-#include "ospcommon/FileName.h"
-#include "ospray/sg/texture/Texture2D.h"
-#include "ospcommon/utility/getEnvVar.h"
+#include "ospStudioMain.h"
 
 using namespace ospcommon;
 using namespace ospray;
@@ -43,47 +25,24 @@ static int width       = 1200;
 static int height      = 800;
 static bool fullscreen = false;
 
-// TODO: move to ospStudioMain.h
-template <class T>
-class CmdLineParam
-{
- public:
-  CmdLineParam(T defaultValue) { value = defaultValue; }
-  T getValue() { return value; }
-
-  CmdLineParam &operator=(const CmdLineParam &other)
-  {
-    value = other.value;
-    overridden = true;
-    return *this;
-  }
-
-  bool isOverridden() { return overridden; }
-
- private:
-  T value;
-  bool overridden = false;
-};
-
 static std::vector<std::string> filesToImport;
 static std::vector<std::string> pluginsToLoad;
 static std::vector<std::string> tfnsToLoad;
 
-CmdLineParam<vec3f> up = CmdLineParam<vec3f>({ 0, 1, 0 });
-CmdLineParam<vec3f> pos = CmdLineParam<vec3f>({ 0, 0, -1 });
-CmdLineParam<vec3f> gaze = CmdLineParam<vec3f>({ 0, 0, 0 });
-CmdLineParam<float> apertureRadius = CmdLineParam<float>(0.f);
-CmdLineParam<float> fovy = CmdLineParam<float>(60.f);
+static CmdLineParam<vec3f> up = CmdLineParam<vec3f>({ 0, 1, 0 });
+static CmdLineParam<vec3f> pos = CmdLineParam<vec3f>({ 0, 0, -1 });
+static CmdLineParam<vec3f> gaze = CmdLineParam<vec3f>({ 0, 0, 0 });
+static CmdLineParam<float> apertureRadius = CmdLineParam<float>(0.f);
+static CmdLineParam<float> fovy = CmdLineParam<float>(60.f);
 
-std::string hdriLightFile;
-bool addDefaultLights = false;
-bool noDefaultLights = false;
-box3f bboxWithoutPlane;
+static std::string hdriLightFile;
+static bool addDefaultLights = false;
+static bool noDefaultLights = false;
+static box3f bboxWithoutPlane;
 
-bool fast =
+static std::string initialRendererType;
+static bool fast =
     ospcommon::utility::getEnvVar<int>("OSPRAY_APPS_FAST_MODE").value_or(0);
-std::string initialRendererType;
-
 
 // Helper functions ///////////////////////////////////////////////////////////
 
