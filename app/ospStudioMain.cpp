@@ -394,6 +394,10 @@ static void setupLights(const sg::Frame &root)
     tex->setName("map");
     auto &hdri = lights.createChild("hdri", "HDRILight");
     hdri.add(tex);
+
+    // disable the backplate if there's an HDRI
+    renderer["useBackplate"] = false;
+
     renderer.verify(); //TODO: this should not be necessary
     sg::Texture2D::clearTextureCache();
   }
@@ -462,7 +466,7 @@ int main(int argc, const char **argv)
 
   importFilesFromCommandLine(*root);
   setupLights(*root);
-  // setupCamera(*root);
+  setupCamera(*root);
 
   MainWindow window(root, pluginsToLoad, tfnsToLoad);
 
