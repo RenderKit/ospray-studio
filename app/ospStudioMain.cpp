@@ -29,15 +29,15 @@ static std::vector<std::string> filesToImport;
 static std::vector<std::string> pluginsToLoad;
 static std::vector<std::string> tfnsToLoad;
 
-static CmdLineParam<vec3f> up = CmdLineParam<vec3f>({ 0, 1, 0 });
-static CmdLineParam<vec3f> pos = CmdLineParam<vec3f>({ 0, 0, -1 });
-static CmdLineParam<vec3f> gaze = CmdLineParam<vec3f>({ 0, 0, 0 });
+static CmdLineParam<vec3f> up             = CmdLineParam<vec3f>({0, 1, 0});
+static CmdLineParam<vec3f> pos            = CmdLineParam<vec3f>({0, 0, -1});
+static CmdLineParam<vec3f> gaze           = CmdLineParam<vec3f>({0, 0, 0});
 static CmdLineParam<float> apertureRadius = CmdLineParam<float>(0.f);
-static CmdLineParam<float> fovy = CmdLineParam<float>(60.f);
+static CmdLineParam<float> fovy           = CmdLineParam<float>(60.f);
 
 static std::string hdriLightFile;
 static bool addDefaultLights = false;
-static bool noDefaultLights = false;
+static bool noDefaultLights  = false;
 static box3f bboxWithoutPlane;
 
 static std::string initialRendererType;
@@ -116,17 +116,16 @@ static void parseCommandLine(int &ac, const char **&av)
     } else if (arg == "--add-lights") {
       addDefaultLights = true;
       removeArgs(ac, av, i, 1);
-        --i;
+      --i;
     } else if (arg == "-fv") {
       fovy = atof(av[i + 1]);
       removeArgs(ac, av, i, 2);
       --i;
     } else if (arg == "-ar") {
-        apertureRadius = atof(av[i + 1]);
-        removeArgs(ac, av, i, 2);
-        --i;
-      }
-    else if (arg == "--hdri-light") {
+      apertureRadius = atof(av[i + 1]);
+      removeArgs(ac, av, i, 2);
+      --i;
+    } else if (arg == "--hdri-light") {
       hdriLightFile = av[i + 1];
       removeArgs(ac, av, i, 2);
       --i;
@@ -321,29 +320,28 @@ static void importFilesFromCommandLine(const sg::Frame &root)
 
 static void setupLights(const sg::Frame &root)
 {
-  auto &lights         = root.child("renderer").child("lights");
+  auto &lights   = root.child("renderer").child("lights");
   auto &renderer = root.child("renderer");
   if (noDefaultLights == false &&
       (lights.numChildren() <= 0 || addDefaultLights == true)) {
     if (!fast) {
-        auto &sun = lights.createChild("sun", "DirectionalLight");
-        sun["color"] = vec3f(255.f, 247.f, 201.f) / 255.f;
-        sun["direction"] = vec3f(0.462f, -1.f, -.1f);
-        sun["intensity"] = 3.0f;
-        sun["angularDiameter"] = 0.53f;
+      auto &sun              = lights.createChild("sun", "DirectionalLight");
+      sun["color"]           = vec3f(255.f, 247.f, 201.f) / 255.f;
+      sun["direction"]       = vec3f(0.462f, -1.f, -.1f);
+      sun["intensity"]       = 3.0f;
+      sun["angularDiameter"] = 0.53f;
 
-        auto &bounce = lights.createChild("bounce", "DirectionalLight");
-        bounce["color"] = vec3f(202.f, 216.f, 255.f) / 255.f;
-        bounce["direction"] = vec3f(-.93, -.54f, -.605f);
-        bounce["intensity"] = 1.25f;
-        bounce["angularDiameter"] = 3.0f;
-      }
+      auto &bounce        = lights.createChild("bounce", "DirectionalLight");
+      bounce["color"]     = vec3f(202.f, 216.f, 255.f) / 255.f;
+      bounce["direction"] = vec3f(-.93, -.54f, -.605f);
+      bounce["intensity"] = 1.25f;
+      bounce["angularDiameter"] = 3.0f;
+    }
 
     if (hdriLightFile == "") {
-      auto &ambient = lights.createChild("ambient", "AmbientLight");
+      auto &ambient        = lights.createChild("ambient", "AmbientLight");
       ambient["intensity"] = fast ? 1.25f : 0.9f;
-      ambient["color"] = fast ?
-          vec3f(1.f) : vec3f(217.f, 230.f, 255.f ) / 255.f;
+      ambient["color"] = fast ? vec3f(1.f) : vec3f(217.f, 230.f, 255.f) / 255.f;
     }
   }
 
@@ -356,18 +354,17 @@ static void setupLights(const sg::Frame &root)
     // disable the backplate if there's an HDRI
     renderer["useBackplate"] = false;
   }
-
 }
 
 void setupCamera(sg::Node &root)
 {
   auto &renderer = root.child("renderer");
-  auto &world = renderer.child("world");
-  auto bbox = bboxWithoutPlane;
+  auto &world    = renderer.child("world");
+  auto bbox      = bboxWithoutPlane;
   if (bbox.empty())
     bbox = world.bounds();
   vec3f diag = bbox.size();
-  diag = max(diag, vec3f(0.3f * length(diag)));
+  diag       = max(diag, vec3f(0.3f * length(diag)));
   if (!gaze.isOverridden())
     gaze = ospcommon::center(bbox);
 
@@ -377,13 +374,13 @@ void setupCamera(sg::Node &root)
   if (!up.isOverridden())
     up = vec3f(0.f, 1.f, 0.f);
 
-  auto &camera = root.child("camera");
+  auto &camera  = root.child("camera");
   camera["pos"] = pos.getValue();
   camera["dir"] = normalize(gaze.getValue() - pos.getValue());
-  camera["up"] = up.getValue();
+  camera["up"]  = up.getValue();
 
   // XXX hack: consumed and removed in constructor of ImGuiViewer
-//  camera.createChild("gaze", "vec3f", gaze.getValue());
+  //  camera.createChild("gaze", "vec3f", gaze.getValue());
 
   if (camera.hasChild("fovy") && fovy.isOverridden())
     camera["fovy"] = fovy.getValue();
@@ -412,8 +409,8 @@ int main(int argc, const char **argv)
 
   parseCommandLine(argc, argv);
 
-  auto root = sg::createNode("ROOT", "Frame")->nodeAs<sg::Frame>();
-  auto &rootVal     = *root;
+  auto root      = sg::createNode("ROOT", "Frame")->nodeAs<sg::Frame>();
+  auto &rootVal  = *root;
   auto &renderer = rootVal["renderer"];
 
   if (!initialRendererType.empty())
@@ -436,7 +433,7 @@ int main(int argc, const char **argv)
   AsyncRenderEngine::g_instance->flushScheduledOps();
 
   parseCommandLineSG(argc, argv, *root);
-  
+
   imgui3D::run();
 
   return 0;
