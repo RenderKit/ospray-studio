@@ -327,13 +327,13 @@ static void setupLights(const sg::Frame &root)
       (lights.numChildren() <= 0 || addDefaultLights == true)) {
     if (!fast) {
         auto &sun = lights.createChild("sun", "DirectionalLight");
-        sun["color"] = vec3f(1.f, 247.f / 255.f, 201.f / 255.f);
+        sun["color"] = vec3f(255.f, 247.f, 201.f) / 255.f;
         sun["direction"] = vec3f(0.462f, -1.f, -.1f);
         sun["intensity"] = 3.0f;
         sun["angularDiameter"] = 0.53f;
 
         auto &bounce = lights.createChild("bounce", "DirectionalLight");
-        bounce["color"] = vec3f(202.f / 255.f, 216.f / 255.f, 255.f / 255.f);
+        bounce["color"] = vec3f(202.f, 216.f, 255.f) / 255.f;
         bounce["direction"] = vec3f(-.93, -.54f, -.605f);
         bounce["intensity"] = 1.25f;
         bounce["angularDiameter"] = 3.0f;
@@ -343,7 +343,7 @@ static void setupLights(const sg::Frame &root)
       auto &ambient = lights.createChild("ambient", "AmbientLight");
       ambient["intensity"] = fast ? 1.25f : 0.9f;
       ambient["color"] = fast ?
-          vec3f(1.f) : vec3f(217.f / 255.f, 230.f / 255.f, 255.f / 255.f);
+          vec3f(1.f) : vec3f(217.f, 230.f, 255.f ) / 255.f;
     }
   }
 
