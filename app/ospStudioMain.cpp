@@ -355,9 +355,6 @@ static void setupLights(const sg::Frame &root)
 
     // disable the backplate if there's an HDRI
     renderer["useBackplate"] = false;
-
-    renderer.verify(); //TODO: this should not be necessary
-    sg::Texture2D::clearTextureCache();
   }
 
 }
