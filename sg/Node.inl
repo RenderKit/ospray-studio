@@ -156,73 +156,11 @@ namespace ospray {
     }
 
     template <typename VALUE_T>
-    inline void Node_T<VALUE_T>::setOSPRayParam(std::string, OSPObject)
+    inline void Node_T<VALUE_T>::setOSPRayParam(std::string param,
+                                                OSPObject handle)
     {
+      ospSetParam(handle, param.c_str(), OSPTypeFor<VALUE_T>::value, &value());
     }
-
-    // Specializations //
-
-    template <>
-    inline void StringNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetString(handle, param.c_str(), value().c_str());
-    }
-
-    template <>
-    inline void BoolNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetBool(handle, param.c_str(), value());
-    }
-
-    template <>
-    inline void FloatNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetFloat(handle, param.c_str(), value());
-    }
-
-    template <>
-    inline void Vec2fNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetVec2f(handle, param.c_str(), value().x, value().y);
-    }
-
-    template <>
-    inline void Vec3fNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetVec3f(handle, param.c_str(), value().x, value().y, value().z);
-    }
-
-    template <>
-    inline void Vec4fNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetVec4f(handle, param.c_str(), value().x, value().y, value().z, value().w);
-    }
-
-    template <>
-    inline void IntNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetInt(handle, param.c_str(), value());
-    }
-
-    template <>
-    inline void Vec2iNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetVec2i(handle, param.c_str(), value().x, value().y);
-    }
-
-    template <>
-    inline void Vec3iNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetVec3i(handle, param.c_str(), value().x, value().y, value().z);
-    }
-
-#if 0
-    template <>
-    inline void VoidPtrNode::setOSPRayParam(std::string param, OSPObject handle)
-    {
-      ospSetVoidPtr(handle, param.c_str(), value());
-    }
-#endif
 
     ///////////////////////////////////////////////////////////////////////////
     // Inlined OSPNode definitions ////////////////////////////////////////////
