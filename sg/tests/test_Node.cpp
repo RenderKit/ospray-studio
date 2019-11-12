@@ -30,7 +30,7 @@ SCENARIO("sg::createNode()")
 {
   GIVEN("A generic node created from sg::createNode()")
   {
-    auto node_ptr = createNode("test_node", "Node", "test documentation", 42);
+    auto node_ptr = createNode("test_node", "Node", "test description", 42);
     auto &node    = *node_ptr;
 
     THEN("The node's name is correct")
@@ -48,20 +48,20 @@ SCENARIO("sg::createNode()")
       REQUIRE(node.valueAs<int>() == 42);
     }
 
-    THEN("The node's documentation is correct")
+    THEN("The node's description is correct")
     {
-      REQUIRE(node.documentation() == "test documentation");
+      REQUIRE(node.description() == "test description");
     }
   }
 
   GIVEN("A specific node type to sg::createNode()")
   {
-    auto node_ptr = createNode("test_node", "float", "test documentation", 4.f);
+    auto node_ptr = createNode("test_node", "float", "test description", 4.f);
     auto &node    = *node_ptr;
 
     THEN("The node's type is correct")
     {
-      FloatNode *asFloatNode = dynamic_cast<FloatNode*>(node_ptr.get());
+      FloatNode *asFloatNode = dynamic_cast<FloatNode *>(node_ptr.get());
       REQUIRE(asFloatNode != nullptr);
     }
   }
@@ -176,9 +176,9 @@ SCENARIO("sg::Node interface")
         REQUIRE(child.valueAs<int>() == 42);
       }
 
-      THEN("The child's documentation is correct")
+      THEN("The child's description is correct")
       {
-        REQUIRE(child.documentation() == "docs");
+        REQUIRE(child.description() == "docs");
       }
 
       THEN("The child's structural relationship is correct")

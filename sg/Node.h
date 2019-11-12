@@ -89,7 +89,7 @@ namespace ospray {
 
       std::string name() const;
       std::string type() const;
-      std::string documentation() const;
+      std::string description() const;
 
       size_t uniqueID() const;
 
@@ -151,14 +151,14 @@ namespace ospray {
       void removeAllChildren();
 
       Node &createChild(std::string name,
-                        std::string type          = "Node",
-                        std::string documentation = "",
-                        Any value                 = Any());
+                        std::string type        = "Node",
+                        std::string description = "<no description>",
+                        Any value               = Any());
 
       template <typename NODE_T>
       NODE_T &createChild(std::string name,
-                          std::string type          = "Node",
-                          std::string documentation = "");
+                          std::string type        = "Node",
+                          std::string description = "<no description>");
 
       // Traversal interface //////////////////////////////////////////////////
 
@@ -193,7 +193,7 @@ namespace ospray {
       {
         std::string name;
         std::string type;
-        std::string documentation;
+        std::string description;
 
         Any value;
 
@@ -292,16 +292,16 @@ namespace ospray {
     ///////////////////////////////////////////////////////////////////////////
 
     OSPSG_INTERFACE NodePtr createNode(std::string name,
-                                       std::string type          = "Node",
-                                       std::string documentation = "",
-                                       Any val                   = Any());
+                                       std::string type        = "Node",
+                                       std::string description = "",
+                                       Any val                 = Any());
 
     template <typename NODE_T>
     inline std::shared_ptr<NODE_T> createNodeAs(std::string name,
                                                 std::string type,
-                                                std::string documentation)
+                                                std::string description)
     {
-      return createNode(name, type, documentation, Any())->nodeAs<NODE_T>();
+      return createNode(name, type, description, Any())->nodeAs<NODE_T>();
     }
 
     ///////////////////////////////////////////////////////////////////////////

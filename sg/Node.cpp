@@ -70,9 +70,9 @@ namespace ospray {
       return properties.type;
     }
 
-    std::string Node::documentation() const
+    std::string Node::description() const
     {
-      return properties.documentation;
+      return properties.description;
     }
 
     size_t Node::uniqueID() const
@@ -221,10 +221,10 @@ namespace ospray {
 
     Node &Node::createChild(std::string name,
                             std::string type,
-                            std::string documentation,
+                            std::string description,
                             Any value)
     {
-      auto child = createNode(name, type, documentation, value);
+      auto child = createNode(name, type, description, value);
       add(child);
       return *child;
     }
@@ -301,7 +301,7 @@ namespace ospray {
 
     void Node::setDocumentation(const std::string &s)
     {
-      properties.documentation = s;
+      properties.description = s;
     }
 
     void Node::setOSPRayParam(std::string, OSPObject) {}
@@ -316,7 +316,7 @@ namespace ospray {
 
     std::shared_ptr<Node> createNode(std::string name,
                                      std::string type,
-                                     std::string documentation,
+                                     std::string description,
                                      Any value)
     {
       // Verify that 'ospray_sg' is properly loaded //
@@ -350,7 +350,7 @@ namespace ospray {
       std::shared_ptr<sg::Node> newNode(creator());
       newNode->setName(name);
       newNode->setType(type);
-      newNode->setDocumentation(documentation);
+      newNode->setDocumentation(description);
 
       if (value.valid())
         newNode->setValue(value);
