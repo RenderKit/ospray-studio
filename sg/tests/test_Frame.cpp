@@ -25,26 +25,27 @@ int main(int argc, const char *argv[])
 {
   ospInit(&argc, argv);
 
-  std::cout << "Rendering a test frame..." << std::endl;
+  {
+    std::cout << "Rendering a test frame..." << std::endl;
 
-  auto frame_ptr = createNodeAs<Frame>("frame", "Frame", "test frame");
-  auto &frame    = *frame_ptr;
+    auto frame_ptr = createNodeAs<Frame>("frame", "Frame", "test frame");
+    auto &frame    = *frame_ptr;
 
-  frame.startNewFrame();
-  frame.waitOnFrame();
+    frame.startNewFrame();
+    frame.waitOnFrame();
 
-  std::cout << "...finished!" << std::endl;
+    std::cout << "...finished!" << std::endl;
 
-  auto size    = frame["frameBuffer"]["size"].valueAs<vec2i>();
-  auto *pixels = (uint32_t *)frame.mapFrame();
+    auto size    = frame["frameBuffer"]["size"].valueAs<vec2i>();
+    auto *pixels = (uint32_t *)frame.mapFrame();
 
-  ospcommon::utility::writePPM("test_Frame.ppm", size.x, size.y, pixels);
+    ospcommon::utility::writePPM("test_Frame.ppm", size.x, size.y, pixels);
 
-  frame.unmapFrame(pixels);
+    frame.unmapFrame(pixels);
 
-  std::cout << "\nresult saved to 'test_Frame.ppm'" << std::endl;
+    std::cout << "\nresult saved to 'test_Frame.ppm'" << std::endl;
+  }
 
-  frame_ptr.reset();
   ospShutdown();
 
   return 0;
