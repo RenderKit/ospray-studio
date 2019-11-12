@@ -17,6 +17,7 @@
 ## Build Library ##
 
 add_library(ospray_sg SHARED
+  Data.cpp
   Node.cpp
   Frame.cpp
 

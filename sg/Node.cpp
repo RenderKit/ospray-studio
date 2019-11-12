@@ -371,6 +371,7 @@ namespace ospray {
     OSP_REGISTER_SG_NODE_NAME(IntNode, int);
     OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
     OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
+    OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec4i);
     OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
 
     OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
