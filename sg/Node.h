@@ -29,6 +29,8 @@
 #include "ospcommon/utility/TimeStamp.h"
 // ospray
 #include "ospray/ospray_cpp.h"
+// ospray_sg
+#include "NodeType.h"
 
 #ifndef OSPSG_INTERFACE
 #ifdef _WIN32
@@ -76,6 +78,7 @@ namespace ospray {
       //       parent/child structure of the Node itself.
       Node(const Node &) = delete;
       Node(Node &&)      = delete;
+
       Node &operator=(const Node &) = delete;
       Node &operator=(Node &&) = delete;
 
@@ -88,7 +91,8 @@ namespace ospray {
       // Properties ///////////////////////////////////////////////////////////
 
       std::string name() const;
-      std::string type() const;
+      virtual NodeType type() const;
+      std::string subType() const;
       std::string description() const;
 
       size_t uniqueID() const;
@@ -192,7 +196,8 @@ namespace ospray {
       struct
       {
         std::string name;
-        std::string type;
+        NodeType type;
+        std::string subType;
         std::string description;
 
         Any value;
@@ -208,10 +213,6 @@ namespace ospray {
       } properties;
 
       void removeFromParentList(Node &node);
-
-      void setName(const std::string &v);
-      void setType(const std::string &v);
-      void setDocumentation(const std::string &s);
 
       friend NodePtr createNode(std::string, std::string, std::string, Any);
 
@@ -291,10 +292,11 @@ namespace ospray {
     // Main Node factory function /////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    OSPSG_INTERFACE NodePtr createNode(std::string name,
-                                       std::string type        = "Node",
-                                       std::string description = "",
-                                       Any val                 = Any());
+    OSPSG_INTERFACE NodePtr
+    createNode(std::string name,
+               std::string type        = "Node",
+               std::string description = "<no description>",
+               Any val                 = Any());
 
     template <typename NODE_T>
     inline std::shared_ptr<NODE_T> createNodeAs(std::string name,

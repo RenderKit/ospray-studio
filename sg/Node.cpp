@@ -52,8 +52,10 @@ namespace ospray {
     Node::Node()
     {
       // NOTE(jda) - can't do default member initializers due to MSVC...
-      properties.name = "NULL";
-      properties.type = "Node";
+      properties.name        = "NULL";
+      properties.type        = NodeType::GENERIC;
+      properties.subType     = "Node";
+      properties.description = "<no description>";
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -65,9 +67,14 @@ namespace ospray {
       return properties.name;
     }
 
-    std::string Node::type() const
+    NodeType Node::type() const
     {
       return properties.type;
+    }
+
+    std::string Node::subType() const
+    {
+      return properties.subType;
     }
 
     std::string Node::description() const
@@ -127,7 +134,7 @@ namespace ospray {
 
       if (itr == properties.children.cend()) {
         throw std::runtime_error(
-            "in " + type() + " node '" + this->name() + "'" +
+            "in " + subType() + " node '" + this->name() + "'" +
             ": could not find sg child node with name '" + name + "'");
       } else {
         return *itr->second;
@@ -289,21 +296,6 @@ namespace ospray {
       }
     }
 
-    void Node::setName(const std::string &v)
-    {
-      properties.name = v;
-    }
-
-    void Node::setType(const std::string &v)
-    {
-      properties.type = v;
-    }
-
-    void Node::setDocumentation(const std::string &s)
-    {
-      properties.description = s;
-    }
-
     void Node::setOSPRayParam(std::string, OSPObject) {}
 
     ///////////////////////////////////////////////////////////////////////////
@@ -348,9 +340,10 @@ namespace ospray {
       // Create the node and return //
 
       std::shared_ptr<sg::Node> newNode(creator());
-      newNode->setName(name);
-      newNode->setType(type);
-      newNode->setDocumentation(description);
+      newNode->properties.name        = name;
+      newNode->properties.subType     = type;
+      newNode->properties.type        = newNode->type();
+      newNode->properties.description = description;
 
       if (value.valid())
         newNode->setValue(value);
