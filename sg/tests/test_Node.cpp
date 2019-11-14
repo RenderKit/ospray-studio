@@ -48,6 +48,11 @@ SCENARIO("sg::createNode()")
       REQUIRE(node.valueAs<int>() == 42);
     }
 
+    THEN("The node's type is NodeType::GENERIC")
+    {
+      REQUIRE(node.type() == NodeType::GENERIC);
+    }
+
     THEN("The node's description is correct")
     {
       REQUIRE(node.description() == "test description");
@@ -217,6 +222,7 @@ SCENARIO("sg::Node_T<> interface")
 
     REQUIRE(floatNode.valueIsType<float>());
     REQUIRE(!floatNode.valueIsType<int>());
+    REQUIRE(floatNode.type() == NodeType::PARAMETER);
 
     THEN("The node's value() return type is correct")
     {

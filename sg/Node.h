@@ -229,6 +229,8 @@ namespace ospray {
       Node_T()                   = default;
       virtual ~Node_T() override = default;
 
+      NodeType type() const override;
+
       const VALUE_T &value() const;
 
       template <typename OT>
@@ -274,6 +276,8 @@ namespace ospray {
     {
       OSPNode();
       virtual ~OSPNode() override;
+
+      NodeType type() const override;
 
       const HANDLE_T &handle() const;
 

@@ -32,6 +32,11 @@ namespace ospray {
       createChild("world", "World", "current World");
     }
 
+    NodeType Frame::type() const
+    {
+      return NodeType::FRAME;
+    }
+
     void Frame::startNewFrame()
     {
       auto future = handle();

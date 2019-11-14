@@ -27,6 +27,11 @@ namespace ospray {
       updateHandle();
     }
 
+    NodeType FrameBuffer::type() const
+    {
+      return NodeType::FRAME_BUFFER;
+    }
+
     const void *FrameBuffer::map(OSPFrameBufferChannel channel)
     {
       return ospMapFrameBuffer(handle(), channel);

@@ -25,6 +25,8 @@ namespace ospray {
     {
       Camera(std::string type);
       virtual ~Camera() override = default;
+
+      NodeType type() const override;
     };
 
   }  // namespace sg

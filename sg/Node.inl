@@ -137,6 +137,12 @@ namespace ospray {
     ///////////////////////////////////////////////////////////////////////////
 
     template <typename VALUE_T>
+    inline NodeType Node_T<VALUE_T>::type() const
+    {
+      return NodeType::PARAMETER;
+    }
+
+    template <typename VALUE_T>
     inline const VALUE_T &Node_T<VALUE_T>::value() const
     {
       return Node::valueAs<VALUE_T>();
@@ -178,6 +184,12 @@ namespace ospray {
       auto h = handle();
       if (h)
         ospRelease(handle());
+    }
+
+    template <typename HANDLE_T>
+    inline NodeType OSPNode<HANDLE_T>::type() const
+    {
+      return NodeType::PARAMETER;
     }
 
     template <typename HANDLE_T>

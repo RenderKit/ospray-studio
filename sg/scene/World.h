@@ -25,6 +25,8 @@ namespace ospray {
     {
       World();
       ~World() override = default;
+
+      NodeType type() const override;
     };
 
   }  // namespace sg

@@ -26,6 +26,8 @@ namespace ospray {
       FrameBuffer();
       ~FrameBuffer() override = default;
 
+      NodeType type() const override;
+
       const void *map(OSPFrameBufferChannel = OSP_FB_COLOR);
       void unmap(const void *mem);
 

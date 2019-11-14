@@ -26,6 +26,8 @@ namespace ospray {
       Frame();
       ~Frame() override = default;
 
+      NodeType type() const override;
+
       void startNewFrame();
 
       bool frameIsReady();

@@ -34,5 +34,10 @@ namespace ospray {
       createChild("imageEnd", "vec2f", "End of image region", vec2f(1.f));
     }
 
+    NodeType Camera::type() const
+    {
+      return NodeType::CAMERA;
+    }
+
   }  // namespace sg
 }  // namespace ospray
