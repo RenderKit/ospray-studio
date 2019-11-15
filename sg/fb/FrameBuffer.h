@@ -21,7 +21,7 @@
 namespace ospray {
   namespace sg {
 
-    struct OSPSG_INTERFACE FrameBuffer : public OSPNode<OSPFrameBuffer>
+    struct OSPSG_INTERFACE FrameBuffer : public OSPNode<cpp::FrameBuffer>
     {
       FrameBuffer();
       ~FrameBuffer() override = default;

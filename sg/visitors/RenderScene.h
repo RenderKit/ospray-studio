@@ -21,34 +21,53 @@
 namespace ospray {
   namespace sg {
 
-    template <typename HANDLE_T>
-    struct OSPSG_INTERFACE Renderable : public OSPNode<HANDLE_T>
+    struct RenderScene : public Visitor
     {
-      Renderable();
-      virtual ~Renderable() override = default;
+      RenderScene() = default;
 
-      virtual void preRender();
-      virtual void postRender();
+      bool operator()(Node &node, TraversalContext &ctx) override;
+
+     private:
+      // Helper Functions //
+
+      void createGeometry(Node &node);
+
+      // Data //
+
+      struct
+      {
+        affine3f transform;
+        cpp::Group group;
+        // Apperance information:
+        //     - Material
+        //     - TransferFunction
+        //     - ...others?
+        cpp::Material material{nullptr};
+        cpp::TransferFunction transferFunction{nullptr};
+      } current;
     };
 
     // Inlined definitions ////////////////////////////////////////////////////
 
-    template <typename HANDLE_T>
-    inline Renderable<HANDLE_T>::Renderable()
+    inline bool RenderScene::operator()(Node &node, TraversalContext &ctx)
     {
-      Node::createChild("bounds",
-                        "box3f",
-                        "Bounding box of this node and its children",
-                        box3f());
+      auto type = node.type();
+
+      bool traverseChildren = false;
+
+      switch (type) {
+      case NodeType::GEOMETRY:
+        createGeometry(node);
+        break;
+      default:
+        traverseChildren = true;
+        break;
+      }
+
+      return traverseChildren;
     }
 
-    template <typename HANDLE_T>
-    inline void Renderable<HANDLE_T>::preRender()
-    {
-    }
-
-    template <typename HANDLE_T>
-    inline void Renderable<HANDLE_T>::postRender()
+    void RenderScene::createGeometry(Node &node)
     {
     }
 

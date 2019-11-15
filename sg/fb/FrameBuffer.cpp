@@ -34,32 +34,27 @@ namespace ospray {
 
     const void *FrameBuffer::map(OSPFrameBufferChannel channel)
     {
-      return ospMapFrameBuffer(handle(), channel);
+      return handle().map(channel);
     }
 
     void FrameBuffer::unmap(const void *mem)
     {
-      ospUnmapFrameBuffer(mem, handle());
+      handle().unmap(const_cast<void *>(mem));
     }
 
     void FrameBuffer::resetAccumulation()
     {
-      ospResetAccumulation(handle());
+      handle().clear();
     }
 
     void FrameBuffer::updateHandle()
     {
-      auto fb = handle();
-      if (fb)
-        ospRelease(fb);
-
       auto size           = child("size").valueAs<vec2i>();
       auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
-      fb = ospNewFrameBuffer(size.x,
-                             size.y,
-                             colorFormats[colorFormatStr],
-                             OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE);
+      auto fb = cpp::FrameBuffer(size,
+                                 colorFormats[colorFormatStr],
+                                 OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE);
 
       setHandle(fb);
     }

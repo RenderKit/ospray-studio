@@ -174,6 +174,7 @@ namespace ospray {
       void traverse(Args &&... args);
 
       void commit();
+      void render();
 
       virtual void setOSPRayParam(std::string param, OSPObject handle);
 
@@ -192,7 +193,6 @@ namespace ospray {
       bool subtreeModifiedButNotCommitted() const;
 
      private:
-
       //! Use a custom provided node visitor to visit each node
       template <typename VISITOR_T>
       void traverse(VISITOR_T &&visitor, TraversalContext &ctx);
@@ -243,7 +243,7 @@ namespace ospray {
       operator VALUE_T();
 
      protected:
-      void setOSPRayParam(std::string param, OSPObject handle) override;
+      void setOSPRayParam(std::string param, OSPObject obj) override;
     };
 
     // Pre-defined parameter nodes ////////////////////////////////////////////
@@ -275,11 +275,11 @@ namespace ospray {
     // OSPRay Object Nodes ////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    template <typename HANDLE_T = OSPObject>
+    template <typename HANDLE_T = cpp::ManagedObject<>>
     struct OSPNode : public Node
     {
-      OSPNode();
-      virtual ~OSPNode() override;
+      OSPNode() = default;
+      virtual ~OSPNode() override = default;
 
       NodeType type() const override;
 
@@ -293,7 +293,7 @@ namespace ospray {
       virtual void preCommit() override;
       virtual void postCommit() override;
 
-      void setOSPRayParam(std::string param, OSPObject handle) override;
+      void setOSPRayParam(std::string param, OSPObject obj) override;
     };
 
     ///////////////////////////////////////////////////////////////////////////

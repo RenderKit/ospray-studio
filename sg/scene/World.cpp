@@ -21,8 +21,7 @@ namespace ospray {
 
     World::World()
     {
-      auto handle = ospNewWorld();
-      setHandle(handle);
+      setHandle(cpp::World());
     }
 
     NodeType World::type() const

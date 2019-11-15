@@ -21,7 +21,7 @@
 namespace ospray {
   namespace sg {
 
-    struct Data : public OSPNode<OSPData>
+    struct Data : public OSPNode<cpp::Data>
     {
       Data()           = default;
       ~Data() override = default;

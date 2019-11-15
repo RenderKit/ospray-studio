@@ -39,21 +39,14 @@ namespace ospray {
 
     void Frame::startNewFrame()
     {
-      auto future = handle();
-      if (future) {
-        ospWait(future);
-        ospRelease(future);
-      }
-
       this->commit();
 
-      auto &fb       = childAs<FrameBuffer>("frameBuffer");
-      auto &camera   = childAs<Camera>("camera");
-      auto &renderer = childAs<Renderer>("renderer");
-      auto &world    = childAs<World>("world");
+      auto fb       = childAs<FrameBuffer>("frameBuffer").handle();
+      auto camera   = childAs<Camera>("camera").handle();
+      auto renderer = childAs<Renderer>("renderer").handle();
+      auto world    = childAs<World>("world").handle();
 
-      future = ospRenderFrame(
-          fb.handle(), renderer.handle(), camera.handle(), world.handle());
+      auto future = fb.renderFrame(renderer, camera, world);
       setHandle(future);
     }
 
@@ -61,7 +54,7 @@ namespace ospray {
     {
       auto future = handle();
       if (future)
-        return ospIsReady(future);
+        return future.isReady();
       else
         return false;
     }
@@ -70,7 +63,7 @@ namespace ospray {
     {
       auto future = handle();
       if (future)
-        return ospGetProgress(future);
+        return future.progress();
       else
         return 1.f;
     }
@@ -79,14 +72,14 @@ namespace ospray {
     {
       auto future = handle();
       if (future)
-        ospWait(future);
+        future.wait();
     }
 
     void Frame::cancelFrame()
     {
       auto future = handle();
       if (future)
-        ospCancel(future);
+        future.cancel();
     }
 
     const void *Frame::mapFrame(OSPFrameBufferChannel channel)

@@ -132,7 +132,6 @@ namespace ospray {
       visitor.postChildren(*this, ctx);
     }
 
-
     inline bool Node::subtreeModifiedButNotCommitted() const
     {
       return (lastModified() > lastCommitted()) ||
@@ -170,28 +169,14 @@ namespace ospray {
 
     template <typename VALUE_T>
     inline void Node_T<VALUE_T>::setOSPRayParam(std::string param,
-                                                OSPObject handle)
+                                                OSPObject obj)
     {
-      ospSetParam(handle, param.c_str(), OSPTypeFor<VALUE_T>::value, &value());
+      ospSetParam(obj, param.c_str(), OSPTypeFor<VALUE_T>::value, &value());
     }
 
     ///////////////////////////////////////////////////////////////////////////
     // Inlined OSPNode definitions ////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-
-    template <typename HANDLE_T>
-    inline OSPNode<HANDLE_T>::OSPNode()
-    {
-      setHandle(nullptr);
-    }
-
-    template <typename HANDLE_T>
-    inline OSPNode<HANDLE_T>::~OSPNode()
-    {
-      auto h = handle();
-      if (h)
-        ospRelease(handle());
-    }
 
     template <typename HANDLE_T>
     inline NodeType OSPNode<HANDLE_T>::type() const
@@ -221,20 +206,21 @@ namespace ospray {
     inline void OSPNode<HANDLE_T>::preCommit()
     {
       for (auto &c : children())
-        c.second->setOSPRayParam(c.first, handle());
+        c.second->setOSPRayParam(c.first, handle().handle());
     }
 
     template <typename HANDLE_T>
     inline void OSPNode<HANDLE_T>::postCommit()
     {
-      ospCommit(handle());
+      handle().commit();
     }
 
     template <typename HANDLE_T>
     inline void OSPNode<HANDLE_T>::setOSPRayParam(std::string param,
                                                   OSPObject obj)
     {
-      ospSetObject(obj, param.c_str(), handle());
+      ospSetParam(
+          obj, param.c_str(), OSPTypeFor<HANDLE_T>::value, handle().handle());
     }
 
   }  // namespace sg

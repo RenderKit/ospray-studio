@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "Node.h"
+#include "visitors/RenderScene.h"
 // ospcommon
 #include "ospcommon/os/library.h"
 #include "ospcommon/utility/StringManip.h"
@@ -242,7 +243,12 @@ namespace ospray {
 
     void Node::commit()
     {
-      traverse(CommitVisitor());
+      traverse<CommitVisitor>();
+    }
+
+    void Node::render()
+    {
+      traverse<RenderScene>();
     }
 
     ///////////////////////////////////////////////////////////////////////////

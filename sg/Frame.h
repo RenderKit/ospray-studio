@@ -21,7 +21,7 @@
 namespace ospray {
   namespace sg {
 
-    struct Frame : public OSPNode<OSPFuture>
+    struct Frame : public OSPNode<cpp::Future>
     {
       Frame();
       ~Frame() override = default;

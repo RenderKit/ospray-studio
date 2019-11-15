@@ -16,12 +16,12 @@
 
 #pragma once
 
-#include "Renderable.h"
+#include "../Node.h"
 
 namespace ospray {
   namespace sg {
 
-    struct OSPSG_INTERFACE World : public Renderable<OSPWorld>
+    struct OSPSG_INTERFACE World : public OSPNode<cpp::World>
     {
       World();
       ~World() override = default;
