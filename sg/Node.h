@@ -166,13 +166,12 @@ namespace ospray {
 
       // Traversal interface //////////////////////////////////////////////////
 
-      //! Use a custom provided node visitor to visit each node
-      template <typename VISITOR_T, typename = is_valid_visitor_t<VISITOR_T>>
-      void traverse(VISITOR_T &&visitor, TraversalContext &ctx);
-
       //! Helper overload to traverse with a default constructed TravesalContext
-      template <typename VISITOR_T, typename = is_valid_visitor_t<VISITOR_T>>
+      template <typename VISITOR_T>
       void traverse(VISITOR_T &&visitor);
+
+      template <typename VISITOR_T, typename... Args>
+      void traverse(Args &&... args);
 
       void commit();
 
@@ -193,6 +192,11 @@ namespace ospray {
       bool subtreeModifiedButNotCommitted() const;
 
      private:
+
+      //! Use a custom provided node visitor to visit each node
+      template <typename VISITOR_T>
+      void traverse(VISITOR_T &&visitor, TraversalContext &ctx);
+
       struct
       {
         std::string name;

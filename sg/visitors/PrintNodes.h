@@ -14,43 +14,29 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include <iostream>
+#pragma once
 
-#include "sg/Frame.h"
-#include "sg/visitors/PrintNodes.h"
-using namespace ospray::sg;
+#include "../Node.h"
 
-#include "ospcommon/utility/SaveImage.h"
+namespace ospray {
+  namespace sg {
 
-int main(int argc, const char *argv[])
-{
-  ospInit(&argc, argv);
+    struct PrintNodes : public Visitor
+    {
+      PrintNodes() = default;
 
-  {
-    std::cout << "Rendering a test frame..." << std::endl;
+      bool operator()(Node &node, TraversalContext &ctx) override;
+    };
 
-    auto frame_ptr = createNodeAs<Frame>("frame", "Frame", "test frame");
-    auto &frame    = *frame_ptr;
+    // Inlined definitions ////////////////////////////////////////////////////
 
-    frame.startNewFrame();
-    frame.waitOnFrame();
+    inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
+    {
+      for (int i = 0; i < ctx.level; i++)
+        std::cout << "  ";
+      std::cout << node.name() << " : " << node.subType() << '\n';
+      return true;
+    }
 
-    std::cout << "...finished!" << std::endl;
-
-    auto size    = frame["frameBuffer"]["size"].valueAs<vec2i>();
-    auto *pixels = (uint32_t *)frame.mapFrame();
-
-    ospcommon::utility::writePPM("test_Frame.ppm", size.x, size.y, pixels);
-
-    frame.unmapFrame(pixels);
-
-    std::cout << "\nresult saved to 'test_Frame.ppm'" << std::endl;
-
-    std::cout << "\n**** tree structure **** \n\n";
-    frame.traverse<PrintNodes>();
-  }
-
-  ospShutdown();
-
-  return 0;
-}
+  } // ::ospray::sg
+} // ::ospray

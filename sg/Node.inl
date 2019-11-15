@@ -97,7 +97,20 @@ namespace ospray {
       setValue(v);
     }
 
-    template <typename VISITOR_T, typename>
+    template <typename VISITOR_T>
+    inline void Node::traverse(VISITOR_T &&visitor)
+    {
+      TraversalContext ctx;
+      traverse(std::forward<VISITOR_T>(visitor), ctx);
+    }
+
+    template <typename VISITOR_T, typename... Args>
+    inline void Node::traverse(Args &&... args)
+    {
+      traverse(VISITOR_T(std::forward<Args>(args)...));
+    }
+
+    template <typename VISITOR_T>
     inline void Node::traverse(VISITOR_T &&visitor, TraversalContext &ctx)
     {
       static_assert(is_valid_visitor<VISITOR_T>::value,
@@ -119,12 +132,6 @@ namespace ospray {
       visitor.postChildren(*this, ctx);
     }
 
-    template <typename VISITOR_T, typename>
-    inline void Node::traverse(VISITOR_T &&visitor)
-    {
-      TraversalContext ctx;
-      traverse(std::forward<VISITOR_T>(visitor), ctx);
-    }
 
     inline bool Node::subtreeModifiedButNotCommitted() const
     {
