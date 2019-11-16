@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include "Data.h"
+
 namespace ospray {
   namespace sg {
 
@@ -97,6 +99,15 @@ namespace ospray {
       setValue(v);
     }
 
+    template <typename... Args>
+    inline void Node::createChildData(std::string name, Args &&... args)
+    {
+      auto data = std::make_shared<Data>(std::forward<Args>(args)...);
+      data->properties.name    = name;
+      data->properties.subType = "Data";
+      add(data);
+    }
+
     template <typename VISITOR_T>
     inline void Node::traverse(VISITOR_T &&visitor)
     {
@@ -171,56 +182,68 @@ namespace ospray {
     inline void Node_T<VALUE_T>::setOSPRayParam(std::string param,
                                                 OSPObject obj)
     {
+      static_assert(OSPTypeFor<VALUE_T>::value != OSP_UNKNOWN);
       ospSetParam(obj, param.c_str(), OSPTypeFor<VALUE_T>::value, &value());
+    }
+
+    template <>
+    inline void Node_T<std::string>::setOSPRayParam(std::string param,
+                                                    OSPObject obj)
+    {
+      auto *c_str = value().c_str();
+      ospSetParam(obj, param.c_str(), OSP_STRING, &c_str);
     }
 
     ///////////////////////////////////////////////////////////////////////////
     // Inlined OSPNode definitions ////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    template <typename HANDLE_T>
-    inline NodeType OSPNode<HANDLE_T>::type() const
+    template <typename HANDLE_T, NodeType TYPE>
+    inline NodeType OSPNode<HANDLE_T, TYPE>::type() const
     {
-      return NodeType::PARAMETER;
+      return TYPE;
     }
 
-    template <typename HANDLE_T>
-    inline const HANDLE_T &OSPNode<HANDLE_T>::handle() const
+    template <typename HANDLE_T, NodeType TYPE>
+    inline const HANDLE_T &OSPNode<HANDLE_T, TYPE>::handle() const
     {
       return Node::valueAs<HANDLE_T>();
     }
 
-    template <typename HANDLE_T>
-    inline void OSPNode<HANDLE_T>::setHandle(HANDLE_T handle)
+    template <typename HANDLE_T, NodeType TYPE>
+    inline void OSPNode<HANDLE_T, TYPE>::setHandle(HANDLE_T handle)
     {
       setValue(handle);
     }
 
-    template <typename HANDLE_T>
-    inline OSPNode<HANDLE_T>::operator HANDLE_T()
+    template <typename HANDLE_T, NodeType TYPE>
+    inline OSPNode<HANDLE_T, TYPE>::operator HANDLE_T()
     {
       return handle();
     }
 
-    template <typename HANDLE_T>
-    inline void OSPNode<HANDLE_T>::preCommit()
+    template <typename HANDLE_T, NodeType TYPE>
+    inline void OSPNode<HANDLE_T, TYPE>::preCommit()
     {
-      for (auto &c : children())
-        c.second->setOSPRayParam(c.first, handle().handle());
+      for (auto &c : children()) {
+        if (c.second->type() == NodeType::PARAMETER)
+          c.second->setOSPRayParam(c.first, handle().handle());
+      }
     }
 
-    template <typename HANDLE_T>
-    inline void OSPNode<HANDLE_T>::postCommit()
+    template <typename HANDLE_T, NodeType TYPE>
+    inline void OSPNode<HANDLE_T, TYPE>::postCommit()
     {
       handle().commit();
     }
 
-    template <typename HANDLE_T>
-    inline void OSPNode<HANDLE_T>::setOSPRayParam(std::string param,
-                                                  OSPObject obj)
+    template <typename HANDLE_T, NodeType TYPE>
+    inline void OSPNode<HANDLE_T, TYPE>::setOSPRayParam(std::string param,
+                                                        OSPObject obj)
     {
-      ospSetParam(
-          obj, param.c_str(), OSPTypeFor<HANDLE_T>::value, handle().handle());
+      static_assert(OSPTypeFor<HANDLE_T>::value != OSP_UNKNOWN);
+      auto h = handle().handle();
+      ospSetParam(obj, param.c_str(), OSPTypeFor<HANDLE_T>::value, &h);
     }
 
   }  // namespace sg

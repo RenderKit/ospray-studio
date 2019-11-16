@@ -21,7 +21,8 @@
 namespace ospray {
   namespace sg {
 
-    struct OSPSG_INTERFACE Renderer : public OSPNode<cpp::Renderer>
+    struct OSPSG_INTERFACE Renderer
+        : public OSPNode<cpp::Renderer, NodeType::RENDERER>
     {
       Renderer(std::string type);
       virtual ~Renderer() override = default;

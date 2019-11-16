@@ -21,7 +21,7 @@
 namespace ospray {
   namespace sg {
 
-    struct Data : public OSPNode<cpp::Data>
+    struct Data : public OSPNode<cpp::Data, NodeType::PARAMETER>
     {
       Data()           = default;
       ~Data() override = default;
@@ -138,15 +138,13 @@ namespace ospray {
 
       auto ospObject = tmp;
 
-      if (isShared) {
-        ospObject = tmp;
-      } else {
+      if (!isShared) {
         ospObject = ospNewData(format, numItems.x, numItems.y, numItems.z);
         ospCopyData(tmp, ospObject);
         ospRelease(tmp);
       }
 
-      setValue(ospObject);
+      setValue(cpp::Data(ospObject));
     }
 
     template <typename T, std::size_t N>

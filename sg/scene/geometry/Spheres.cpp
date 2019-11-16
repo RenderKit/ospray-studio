@@ -14,29 +14,24 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Camera.h"
+#include "Geometry.h"
 
 namespace ospray {
   namespace sg {
 
-    Camera::Camera(std::string type)
+    struct OSPSG_INTERFACE Spheres : public Geometry
     {
-      auto handle = ospNewCamera(type.c_str());
-      setHandle(handle);
+      Spheres();
+      virtual ~Spheres() override = default;
+    };
 
-      createChild("position", "vec3f", "Camera position", vec3f(0.f));
-      createChild("direction", "vec3f", "Camera 'look' direction", vec3f(1.f));
-      createChild("up", "vec3f", "Camera 'up' direction", vec3f(0.f, 1.f, 0.f));
+    OSP_REGISTER_SG_NODE(Spheres);
 
-      createChild("nearClip", "float", "Near clip distance", 0.f);
+    // Spheres definitions ////////////////////////////////////////////////////
 
-      createChild("imageStart", "vec2f", "Start of image region", vec2f(0.f));
-      createChild("imageEnd", "vec2f", "End of image region", vec2f(1.f));
-    }
-
-    NodeType Camera::type() const
+    Spheres::Spheres() : Geometry("spheres")
     {
-      return NodeType::CAMERA;
+      createChild("radius", "float", "global radius for this geometry", 1.f);
     }
 
   }  // namespace sg

@@ -23,39 +23,52 @@ namespace ospray {
 
     struct RenderScene : public Visitor
     {
-      RenderScene() = default;
+      RenderScene();
 
       bool operator()(Node &node, TraversalContext &ctx) override;
+      void postChildren(Node &node, TraversalContext &) override;
 
      private:
       // Helper Functions //
 
       void createGeometry(Node &node);
+      void addGeometriesToGroup();
+      void createInstanceFromGroup();
+      void placeInstancesInWorld();
 
       // Data //
 
       struct
       {
-        affine3f transform;
+        std::vector<cpp::GeometricModel> geometries;
+        std::vector<cpp::Instance> instances;
+        cpp::World world;
         cpp::Group group;
+        affine3f xfm;
         // Apperance information:
         //     - Material
         //     - TransferFunction
         //     - ...others?
-        cpp::Material material{nullptr};
-        cpp::TransferFunction transferFunction{nullptr};
       } current;
     };
 
     // Inlined definitions ////////////////////////////////////////////////////
 
-    inline bool RenderScene::operator()(Node &node, TraversalContext &ctx)
+    inline RenderScene::RenderScene()
     {
-      auto type = node.type();
+      current.group = cpp::Group();
+      current.xfm   = ospcommon::math::one;
+    }
 
+    inline bool RenderScene::operator()(Node &node, TraversalContext &)
+    {
       bool traverseChildren = false;
 
-      switch (type) {
+      switch (node.type()) {
+      case NodeType::WORLD:
+        current.world    = node.valueAs<cpp::World>();
+        traverseChildren = true;
+        break;
       case NodeType::GEOMETRY:
         createGeometry(node);
         break;
@@ -67,8 +80,51 @@ namespace ospray {
       return traverseChildren;
     }
 
-    void RenderScene::createGeometry(Node &node)
+    inline void RenderScene::postChildren(Node &node, TraversalContext &)
     {
+      switch (node.type()) {
+      case NodeType::WORLD:
+        if (!current.geometries.empty()) {
+          addGeometriesToGroup();
+          createInstanceFromGroup();
+        }
+        placeInstancesInWorld();
+        current.world.commit();
+        break;
+      default:
+        // Nothing
+        break;
+      }
+    }
+
+    inline void RenderScene::createGeometry(Node &node)
+    {
+      auto geom = node.valueAs<cpp::Geometry>();
+      cpp::GeometricModel model(geom);
+      // TODO: add material/color information
+      model.commit();
+      current.geometries.push_back(model);
+    }
+
+    inline void RenderScene::addGeometriesToGroup()
+    {
+      if (!current.geometries.empty())
+        current.group.setParam("geometry", cpp::Data(current.geometries));
+      current.group.commit();
+    }
+
+    inline void RenderScene::createInstanceFromGroup()
+    {
+      cpp::Instance inst(current.group);
+      inst.setParam("xfm", current.xfm);
+      inst.commit();
+      current.instances.push_back(inst);
+    }
+
+    inline void RenderScene::placeInstancesInWorld()
+    {
+      if (!current.instances.empty())
+        current.world.setParam("instance", cpp::Data(current.instances));
     }
 
   }  // namespace sg

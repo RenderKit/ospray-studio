@@ -29,6 +29,10 @@ add_library(ospray_sg SHARED
   renderer/Renderer.cpp
 
   scene/World.cpp
+
+  scene/geometry/Geometry.cpp
+  scene/geometry/Spheres.cpp
+  scene/geometry/Triangles.cpp
 )
 
 target_link_libraries(ospray_sg

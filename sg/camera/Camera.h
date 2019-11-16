@@ -21,7 +21,8 @@
 namespace ospray {
   namespace sg {
 
-    struct OSPSG_INTERFACE Camera : public OSPNode<cpp::Camera>
+    struct OSPSG_INTERFACE Camera
+        : public OSPNode<cpp::Camera, NodeType::CAMERA>
     {
       Camera(std::string type);
       virtual ~Camera() override = default;

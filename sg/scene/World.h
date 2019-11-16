@@ -21,12 +21,10 @@
 namespace ospray {
   namespace sg {
 
-    struct OSPSG_INTERFACE World : public OSPNode<cpp::World>
+    struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
     {
       World();
       ~World() override = default;
-
-      NodeType type() const override;
     };
 
   }  // namespace sg

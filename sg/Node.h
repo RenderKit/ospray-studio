@@ -68,6 +68,8 @@ namespace ospray {
     struct Node;
     using NodePtr = std::shared_ptr<Node>;
 
+    struct Data;
+
     struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
     {
       Node();
@@ -163,6 +165,9 @@ namespace ospray {
       NODE_T &createChild(std::string name,
                           std::string type        = "Node",
                           std::string description = "<no description>");
+
+      template <typename... Args>
+      void createChildData(std::string name, Args &&... args);
 
       // Traversal interface //////////////////////////////////////////////////
 
@@ -275,10 +280,11 @@ namespace ospray {
     // OSPRay Object Nodes ////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    template <typename HANDLE_T = cpp::ManagedObject<>>
+    template <typename HANDLE_T = cpp::ManagedObject<>,
+              NodeType TYPE     = NodeType::GENERIC>
     struct OSPNode : public Node
     {
-      OSPNode() = default;
+      OSPNode()                   = default;
       virtual ~OSPNode() override = default;
 
       NodeType type() const override;

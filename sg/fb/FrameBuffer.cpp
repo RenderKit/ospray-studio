@@ -47,6 +47,11 @@ namespace ospray {
       handle().clear();
     }
 
+    void FrameBuffer::postCommit()
+    {
+      updateHandle();
+    }
+
     void FrameBuffer::updateHandle()
     {
       auto size           = child("size").valueAs<vec2i>();

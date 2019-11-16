@@ -24,3 +24,6 @@ target_link_libraries(test_Node PRIVATE ospray_sg catch_main)
 
 add_executable(test_Frame test_Frame.cpp)
 target_link_libraries(test_Frame PRIVATE ospray_sg)
+
+add_executable(test_sgTutorial test_sgTutorial.cpp)
+target_link_libraries(test_sgTutorial PRIVATE ospray_sg)

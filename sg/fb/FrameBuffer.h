@@ -21,7 +21,8 @@
 namespace ospray {
   namespace sg {
 
-    struct OSPSG_INTERFACE FrameBuffer : public OSPNode<cpp::FrameBuffer>
+    struct OSPSG_INTERFACE FrameBuffer
+        : public OSPNode<cpp::FrameBuffer, NodeType::FRAME_BUFFER>
     {
       FrameBuffer();
       ~FrameBuffer() override = default;
@@ -34,6 +35,8 @@ namespace ospray {
       void resetAccumulation();
 
      private:
+      void postCommit() override;
+
       void updateHandle();
 
       std::map<std::string, OSPFrameBufferFormat> colorFormats{

@@ -14,29 +14,40 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Camera.h"
+#pragma once
+
+#include "../Node.h"
 
 namespace ospray {
   namespace sg {
 
-    Camera::Camera(std::string type)
+    struct CommitVisitor : public Visitor
     {
-      auto handle = ospNewCamera(type.c_str());
-      setHandle(handle);
+      CommitVisitor() = default;
+      ~CommitVisitor() override = default;
 
-      createChild("position", "vec3f", "Camera position", vec3f(0.f));
-      createChild("direction", "vec3f", "Camera 'look' direction", vec3f(1.f));
-      createChild("up", "vec3f", "Camera 'up' direction", vec3f(0.f, 1.f, 0.f));
+      bool operator()(Node &node, TraversalContext &) override;
+      void postChildren(Node &node, TraversalContext &) override;
+    };
 
-      createChild("nearClip", "float", "Near clip distance", 0.f);
+    // Inlined definitions ////////////////////////////////////////////////////
 
-      createChild("imageStart", "vec2f", "Start of image region", vec2f(0.f));
-      createChild("imageEnd", "vec2f", "End of image region", vec2f(1.f));
+    inline bool CommitVisitor::operator()(Node &node, TraversalContext &)
+    {
+      if (node.subtreeModifiedButNotCommitted()) {
+        node.preCommit();
+        return true;
+      } else {
+        return false;
+      }
     }
 
-    NodeType Camera::type() const
+    void CommitVisitor::postChildren(Node &node, TraversalContext &)
     {
-      return NodeType::CAMERA;
+      if (node.subtreeModifiedButNotCommitted()) {
+        node.postCommit();
+        node.properties.lastCommitted.renew();
+      }
     }
 
   }  // namespace sg

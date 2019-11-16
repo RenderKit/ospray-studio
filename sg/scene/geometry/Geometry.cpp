@@ -14,29 +14,19 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Camera.h"
+#include "Geometry.h"
 
 namespace ospray {
   namespace sg {
 
-    Camera::Camera(std::string type)
+    Geometry::Geometry(const std::string &osp_type)
     {
-      auto handle = ospNewCamera(type.c_str());
-      setHandle(handle);
-
-      createChild("position", "vec3f", "Camera position", vec3f(0.f));
-      createChild("direction", "vec3f", "Camera 'look' direction", vec3f(1.f));
-      createChild("up", "vec3f", "Camera 'up' direction", vec3f(0.f, 1.f, 0.f));
-
-      createChild("nearClip", "float", "Near clip distance", 0.f);
-
-      createChild("imageStart", "vec2f", "Start of image region", vec2f(0.f));
-      createChild("imageEnd", "vec2f", "End of image region", vec2f(1.f));
+      setValue(cpp::Geometry(osp_type));
     }
 
-    NodeType Camera::type() const
+    NodeType Geometry::type() const
     {
-      return NodeType::CAMERA;
+      return NodeType::GEOMETRY;
     }
 
   }  // namespace sg

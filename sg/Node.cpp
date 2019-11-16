@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "Node.h"
+#include "visitors/Commit.h"
 #include "visitors/RenderScene.h"
 // ospcommon
 #include "ospcommon/os/library.h"
@@ -22,31 +23,6 @@
 
 namespace ospray {
   namespace sg {
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Helper types ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
-
-    struct CommitVisitor : public Visitor
-    {
-      bool operator()(Node &node, TraversalContext &) override
-      {
-        if (node.subtreeModifiedButNotCommitted()) {
-          node.preCommit();
-          return true;
-        } else {
-          return false;
-        }
-      }
-
-      void postChildren(Node &node, TraversalContext &) override
-      {
-        if (node.subtreeModifiedButNotCommitted()) {
-          node.postCommit();
-          node.properties.lastCommitted.renew();
-        }
-      }
-    };
 
     ///////////////////////////////////////////////////////////////////////////
 
