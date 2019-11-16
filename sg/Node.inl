@@ -159,6 +159,12 @@ namespace ospray {
       return NodeType::PARAMETER;
     }
 
+    template <>
+    inline NodeType Transform::type() const
+    {
+      return NodeType::TRANSFORM;
+    }
+
     template <typename VALUE_T>
     inline const VALUE_T &Node_T<VALUE_T>::value() const
     {

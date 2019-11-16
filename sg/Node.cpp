@@ -356,5 +356,8 @@ namespace ospray {
     OSP_REGISTER_SG_NODE_NAME(RGBNode, rgb);
     OSP_REGISTER_SG_NODE_NAME(RGBANode, rgba);
 
+    OSP_REGISTER_SG_NODE(Transform);
+    OSP_REGISTER_SG_NODE_NAME(Transform, transform);
+
   }  // namespace sg
 }  // namespace ospray

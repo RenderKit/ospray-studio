@@ -73,6 +73,11 @@ int main(int argc, const char *argv[])
     frame["camera"]["direction"] = cam_view;
     frame["camera"]["up"]        = cam_up;
 
+    auto xfm = createNode("xfm",
+                          "Transform",
+                          "affine transformation",
+                          affine3f::translate(vec3f(0.1f)));
+
     // create and setup model and mesh
     auto mesh = createNode("mesh", "Triangles", "triangle mesh");
 
@@ -80,7 +85,9 @@ int main(int argc, const char *argv[])
     mesh->createChildData("vertex.color", color);
     mesh->createChildData("index", index);
 
-    frame["world"].add(mesh);
+    xfm->add(mesh);
+
+    frame["world"].add(xfm);
 
     frame.commit();
     frame["world"].render();

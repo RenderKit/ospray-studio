@@ -16,7 +16,9 @@
 
 #pragma once
 
-#include "sg/Node.h"
+#include "../Node.h"
+// std
+#include <stack>
 
 namespace ospray {
   namespace sg {
@@ -41,39 +43,41 @@ namespace ospray {
       struct
       {
         std::vector<cpp::GeometricModel> geometries;
-        std::vector<cpp::Instance> instances;
-        cpp::World world;
         cpp::Group group;
-        affine3f xfm;
         // Apperance information:
         //     - Material
         //     - TransferFunction
         //     - ...others?
       } current;
+
+      cpp::World world;
+      std::vector<cpp::Instance> instances;
+      std::stack<affine3f> xfms;
     };
 
     // Inlined definitions ////////////////////////////////////////////////////
 
     inline RenderScene::RenderScene()
     {
-      current.group = cpp::Group();
-      current.xfm   = ospcommon::math::one;
+      xfms.emplace(math::one);
     }
 
     inline bool RenderScene::operator()(Node &node, TraversalContext &)
     {
-      bool traverseChildren = false;
+      bool traverseChildren = true;
 
       switch (node.type()) {
       case NodeType::WORLD:
-        current.world    = node.valueAs<cpp::World>();
-        traverseChildren = true;
+        world = node.valueAs<cpp::World>();
         break;
       case NodeType::GEOMETRY:
         createGeometry(node);
+        traverseChildren = false;
+        break;
+      case NodeType::TRANSFORM:
+        xfms.push(xfms.top() * node.valueAs<affine3f>());
         break;
       default:
-        traverseChildren = true;
         break;
       }
 
@@ -84,12 +88,15 @@ namespace ospray {
     {
       switch (node.type()) {
       case NodeType::WORLD:
+        placeInstancesInWorld();
+        world.commit();
+        break;
+      case NodeType::TRANSFORM:
         if (!current.geometries.empty()) {
           addGeometriesToGroup();
           createInstanceFromGroup();
         }
-        placeInstancesInWorld();
-        current.world.commit();
+        xfms.pop();
         break;
       default:
         // Nothing
@@ -116,15 +123,15 @@ namespace ospray {
     inline void RenderScene::createInstanceFromGroup()
     {
       cpp::Instance inst(current.group);
-      inst.setParam("xfm", current.xfm);
+      inst.setParam("xfm", xfms.top());
       inst.commit();
-      current.instances.push_back(inst);
+      instances.push_back(inst);
     }
 
     inline void RenderScene::placeInstancesInWorld()
     {
-      if (!current.instances.empty())
-        current.world.setParam("instance", cpp::Data(current.instances));
+      if (!instances.empty())
+        world.setParam("instance", cpp::Data(instances));
     }
 
   }  // namespace sg
