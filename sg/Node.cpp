@@ -224,6 +224,7 @@ namespace ospray {
 
     void Node::render()
     {
+      commit();
       traverse<RenderScene>();
     }
 

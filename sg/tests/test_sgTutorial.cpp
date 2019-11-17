@@ -89,8 +89,7 @@ int main(int argc, const char *argv[])
 
     frame["world"].add(xfm);
 
-    frame.commit();
-    frame["world"].render();
+    frame.render();
 
     for (int i = 0; i < 10; ++i)
       frame.startNewFrame(true);
