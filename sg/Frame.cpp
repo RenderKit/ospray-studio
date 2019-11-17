@@ -27,7 +27,7 @@ namespace ospray {
     Frame::Frame()
     {
       createChild("frameBuffer", "FrameBuffer", "current FrameBuffer");
-      createChild("camera", "PerspectiveCamera", "current Camera");
+      createChild("camera", "Camera_perspective", "current Camera");
       createChild("renderer", "Renderer_rayDir", "current Renderer");
       createChild("world", "World", "current World");
     }

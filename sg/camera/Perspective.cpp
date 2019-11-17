@@ -19,18 +19,19 @@
 namespace ospray {
   namespace sg {
 
-    struct PerspectiveCamera : public Camera
+    struct Perspective : public Camera
     {
-      PerspectiveCamera();
+      Perspective();
     };
 
-    PerspectiveCamera::PerspectiveCamera() : Camera("perspective")
+    Perspective::Perspective() : Camera("perspective")
     {
       createChild("fovy", "float", "Field-of-view (degrees)", 60.f);
       createChild("aspect", "float", "Aspect ratio", 1.f);
     }
 
-    OSP_REGISTER_SG_NODE(PerspectiveCamera);
+    OSP_REGISTER_SG_NODE_NAME(Perspective, Camera_perspective);
+    OSP_REGISTER_SG_NODE_NAME(Perspective, Camera_Perspective);
 
   }  // namespace sg
 }  // namespace ospray

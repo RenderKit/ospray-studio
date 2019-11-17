@@ -25,7 +25,8 @@ namespace ospray {
       virtual ~Spheres() override = default;
     };
 
-    OSP_REGISTER_SG_NODE(Spheres);
+    OSP_REGISTER_SG_NODE_NAME(Spheres, Geometry_spheres);
+    OSP_REGISTER_SG_NODE_NAME(Spheres, Geometry_Spheres);
 
     // Spheres definitions ////////////////////////////////////////////////////
 

@@ -79,7 +79,7 @@ int main(int argc, const char *argv[])
                           affine3f::translate(vec3f(0.1f)));
 
     // create and setup model and mesh
-    auto mesh = createNode("mesh", "Triangles", "triangle mesh");
+    auto mesh = createNode("mesh", "Geometry_triangles", "triangle mesh");
 
     mesh->createChildData("vertex.position", vertex);
     mesh->createChildData("vertex.color", color);

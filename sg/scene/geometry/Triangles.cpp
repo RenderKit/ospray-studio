@@ -25,7 +25,8 @@ namespace ospray {
       virtual ~Triangles() override = default;
     };
 
-    OSP_REGISTER_SG_NODE(Triangles);
+    OSP_REGISTER_SG_NODE_NAME(Triangles, Geometry_Triangles);
+    OSP_REGISTER_SG_NODE_NAME(Triangles, Geometry_triangles);
 
     // Triangles definitions ////////////////////////////////////////////////////
 
