@@ -22,11 +22,13 @@ add_library(ospray_sg SHARED
   Frame.cpp
 
   camera/Camera.cpp
-  camera/PerspectiveCamera.cpp
+  camera/Perspective.cpp
 
   fb/FrameBuffer.cpp
 
+  renderer/PathTracer.cpp
   renderer/Renderer.cpp
+  renderer/SciVis.cpp
 
   scene/World.cpp
 

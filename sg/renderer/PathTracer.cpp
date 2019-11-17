@@ -14,35 +14,26 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "Node.h"
+#include "Renderer.h"
 
 namespace ospray {
   namespace sg {
 
-    struct Frame : public OSPNode<cpp::Future, NodeType::FRAME>
+    struct OSPSG_INTERFACE PathTracer : public Renderer
     {
-      Frame();
-      ~Frame() override = default;
-
-      NodeType type() const override;
-
-      void startNewFrame(bool immediatelyWait = false);
-
-      bool frameIsReady();
-      float frameProgress();
-      void waitOnFrame();
-      void cancelFrame();
-
-      const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
-      void unmapFrame(void *mem);
-
-    private:
-
-      void preCommit() override;
-      void postCommit() override;
+      PathTracer();
+      virtual ~PathTracer() override = default;
     };
+
+    OSP_REGISTER_SG_NODE_NAME(PathTracer, Renderer_pathtracer);
+    OSP_REGISTER_SG_NODE_NAME(PathTracer, Renderer_PathTracer);
+
+    // PathTracer definitions ////////////////////////////////////////////////////
+
+    PathTracer::PathTracer() : Renderer("pathtracer")
+    {
+      createChild("rouletteDepth", "int", "path roulette depth", 5);
+    }
 
   }  // namespace sg
 }  // namespace ospray

@@ -66,7 +66,7 @@ int main(int argc, const char *argv[])
     auto frame_ptr = createNodeAs<Frame>("frame", "Frame", "test frame");
     auto &frame    = *frame_ptr;
 
-    frame.createChild("renderer", "Renderer_raycast", "current Renderer");
+    frame.createChild("renderer", "Renderer_scivis", "current Renderer");
 
     frame["camera"]["aspect"]    = imgSize.x / (float)imgSize.y;
     frame["camera"]["position"]  = cam_pos;
@@ -92,8 +92,8 @@ int main(int argc, const char *argv[])
     frame.commit();
     frame["world"].render();
 
-    frame.startNewFrame();
-    frame.waitOnFrame();
+    for (int i = 0; i < 10; ++i)
+      frame.startNewFrame(true);
 
     std::cout << "...finished!" << std::endl;
 

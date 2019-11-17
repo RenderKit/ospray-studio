@@ -14,35 +14,28 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "Node.h"
+#include "Renderer.h"
 
 namespace ospray {
   namespace sg {
 
-    struct Frame : public OSPNode<cpp::Future, NodeType::FRAME>
+    struct OSPSG_INTERFACE SciVis : public Renderer
     {
-      Frame();
-      ~Frame() override = default;
-
-      NodeType type() const override;
-
-      void startNewFrame(bool immediatelyWait = false);
-
-      bool frameIsReady();
-      float frameProgress();
-      void waitOnFrame();
-      void cancelFrame();
-
-      const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
-      void unmapFrame(void *mem);
-
-    private:
-
-      void preCommit() override;
-      void postCommit() override;
+      SciVis();
+      virtual ~SciVis() override = default;
     };
+
+    OSP_REGISTER_SG_NODE_NAME(SciVis, Renderer_scivis);
+    OSP_REGISTER_SG_NODE_NAME(SciVis, Renderer_SciVis);
+
+    // SciVis definitions ////////////////////////////////////////////////////
+
+    SciVis::SciVis() : Renderer("scivis")
+    {
+      createChild("aoSamples", "int", "# AO samples", 1);
+      createChild("aoDistance", "float", "AO ray length", 1e20f);
+      createChild("aoIntensity", "float", "AO shading weight", 1.f);
+    }
 
   }  // namespace sg
 }  // namespace ospray

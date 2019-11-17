@@ -37,7 +37,7 @@ namespace ospray {
       return NodeType::FRAME;
     }
 
-    void Frame::startNewFrame()
+    void Frame::startNewFrame(bool immediatelyWait)
     {
       this->commit();
 
@@ -48,6 +48,9 @@ namespace ospray {
 
       auto future = fb.renderFrame(renderer, camera, world);
       setHandle(future);
+
+      if (immediatelyWait)
+        waitOnFrame();
     }
 
     bool Frame::frameIsReady()
