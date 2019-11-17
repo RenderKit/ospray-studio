@@ -105,6 +105,10 @@ int main(int argc, const char *argv[])
 
     std::cout << "\nresult saved to 'test_sgTutorial.ppm'" << std::endl;
 
+    std::cout << "\n**** world bounds **** \n\n";
+
+    std::cout << frame["world"].bounds() << std::endl;
+
     std::cout << "\n**** tree structure **** \n\n";
     frame.traverse<PrintNodes>();
   }

@@ -28,7 +28,7 @@ namespace ospray {
     OSP_REGISTER_SG_NODE_NAME(PathTracer, Renderer_pathtracer);
     OSP_REGISTER_SG_NODE_NAME(PathTracer, Renderer_PathTracer);
 
-    // PathTracer definitions ////////////////////////////////////////////////////
+    // PathTracer definitions /////////////////////////////////////////////////
 
     PathTracer::PathTracer() : Renderer("pathtracer")
     {
