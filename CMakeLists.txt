@@ -61,14 +61,11 @@ endif()
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
-include_directories(external/ external/imgui)
-
-add_subdirectory(sg)
+subdirs(external sg sg_examples)
 
 option(BUILD_APPS "Build OSPRay Studio Apps" OFF)
 
 if (BUILD_APPS)
-  add_subdirectory(external)
   add_subdirectory(app)
 endif()
 

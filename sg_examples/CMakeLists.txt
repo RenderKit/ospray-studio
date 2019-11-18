@@ -1,5 +1,5 @@
 ## ======================================================================== ##
-## Copyright 2009-2018 Intel Corporation                                    ##
+## Copyright 2018-2019 Intel Corporation                                    ##
 ##                                                                          ##
 ## Licensed under the Apache License, Version 2.0 (the "License");          ##
 ## you may not use this file except in compliance with the License.         ##
@@ -14,16 +14,26 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-add_library(imgui
-  imgui.cpp
-  imgui_draw.cpp
-  imgui_demo.cpp
-  # imguifilesystem/imguifilesystem.cpp
+add_executable(sgExamples
+  ArcballCamera.cpp
+  GLFWSgWindow.cpp
+  imgui_impl_glfw_gl3.cpp
+  sgExamples.cpp
 )
 
-target_link_libraries(imgui PUBLIC ${OPENGL_LIBRARIES} ospcommon::ospcommon)
+if (APPLE)
+  set_source_files_properties(imgui_impl_glfw_gl3.cpp GLFWSgWindow.cpp
+    PROPERTIES COMPILE_FLAGS -w)
+endif()
 
-target_include_directories(imgui
-PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+target_link_libraries(sgExamples
+PRIVATE
+  glfw
+  imgui
+  ospray_sg
+)
+
+install(TARGETS sgExamples
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
+  COMPONENT apps
 )
