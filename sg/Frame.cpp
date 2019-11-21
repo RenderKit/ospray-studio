@@ -39,17 +39,15 @@ namespace ospray {
 
     void Frame::startNewFrame(bool immediatelyWait)
     {
-      bool resetAccum = this->subtreeModifiedButNotCommitted();
-
-      this->commit();
-
       auto &fb       = childAs<FrameBuffer>("frameBuffer");
       auto &camera   = childAs<Camera>("camera");
       auto &renderer = childAs<Renderer>("renderer");
       auto &world    = childAs<World>("world");
 
-      if (resetAccum)
+      if (this->anyChildModified())
         fb.resetAccumulation();
+
+      this->commit();
 
       auto future = fb.handle().renderFrame(
           renderer.handle(), camera.handle(), world.handle());

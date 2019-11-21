@@ -149,6 +149,16 @@ namespace ospray {
              (childrenLastModified() > lastCommitted());
     }
 
+    inline bool Node::anyChildModified() const
+    {
+      for (auto &child : properties.children) {
+        if (child.second->subtreeModifiedButNotCommitted())
+          return true;
+      }
+
+      return false;
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Inlined Node_T<> definitions ///////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

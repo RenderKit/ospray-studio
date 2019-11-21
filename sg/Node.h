@@ -198,6 +198,7 @@ namespace ospray {
       void markChildrenModified();
 
       bool subtreeModifiedButNotCommitted() const;
+      bool anyChildModified() const;
 
      private:
       //! Use a custom provided node visitor to visit each node
