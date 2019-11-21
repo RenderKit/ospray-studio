@@ -272,16 +272,14 @@ namespace ospray {
     {
       properties.lastModified.renew();
       for (auto &p : properties.parents)
-        p->setChildrenModified(properties.lastModified);
+        p->markChildrenModified();
     }
 
-    void Node::setChildrenModified(TimeStamp t)
+    void Node::markChildrenModified()
     {
-      if (t > properties.childrenMTime) {
-        properties.childrenMTime = t;
-        for (auto &p : properties.parents)
-          p->setChildrenModified(properties.childrenMTime);
-      }
+      properties.childrenMTime.renew();
+      for (auto &p : properties.parents)
+        p->markChildrenModified();
     }
 
     void Node::setOSPRayParam(std::string, OSPObject) {}

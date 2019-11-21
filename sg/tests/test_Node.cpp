@@ -211,6 +211,59 @@ SCENARIO("sg::Node interface")
   }
 }
 
+SCENARIO("sg::Node structural updates")
+{
+  GIVEN("A node that has a child and is committed")
+  {
+    auto parent_ptr = createNode("parent_node");
+    auto &parent    = *parent_ptr;
+    auto &child     = parent.createChild("child_node");
+
+    parent.commit();
+
+    TimeStamp initialModifiedParent = parent.lastModified();
+    TimeStamp initialModifiedChild  = child.lastModified();
+
+    WHEN("Assigning a value to the parent")
+    {
+      parent = 4;
+
+      THEN("Time stamps are correct")
+      {
+        REQUIRE(parent.lastModified() > parent.lastCommitted());
+        REQUIRE(parent.lastModified() > initialModifiedParent);
+        REQUIRE(parent.lastModified() > initialModifiedChild);
+        REQUIRE(parent.childrenLastModified() < parent.lastModified());
+      }
+    }
+
+    WHEN("Assigning a value to the child")
+    {
+      child = 5;
+
+      THEN("Time stamps are correct")
+      {
+        REQUIRE(parent.lastModified() == initialModifiedParent);
+        REQUIRE(parent.childrenLastModified() > initialModifiedParent);
+        REQUIRE(parent.lastModified() < parent.childrenLastModified());
+      }
+
+      WHEN("...and the parent is committed")
+      {
+        auto parentPreCommit = parent.lastCommitted();
+        parent.commit();
+
+        THEN("Time stamps are correct")
+        {
+          REQUIRE(parentPreCommit < parent.lastCommitted());
+          REQUIRE(parent.lastModified() < parent.lastCommitted());
+          REQUIRE(child.lastModified() < child.lastCommitted());
+        }
+      }
+    }
+  }
+}
+
 SCENARIO("sg::Node_T<> interface")
 {
   GIVEN("A freshly created sg::FloatNode")

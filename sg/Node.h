@@ -195,7 +195,7 @@ namespace ospray {
       TimeStamp childrenLastModified() const;
 
       void markAsModified();
-      void setChildrenModified(TimeStamp t);
+      void markChildrenModified();
 
       bool subtreeModifiedButNotCommitted() const;
 
