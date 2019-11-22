@@ -28,6 +28,7 @@ add_library(ospray_sg SHARED
 
   generator/Generator.cpp
   generator/RandomSpheres.cpp
+  generator/TutorialScene.cpp
 
   renderer/PathTracer.cpp
   renderer/Renderer.cpp

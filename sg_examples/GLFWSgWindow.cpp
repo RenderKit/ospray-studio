@@ -27,19 +27,10 @@
 
 static bool g_quitNextFrame = false;
 
-static const std::vector<std::string> g_scenes = {"boxes",
-                                                  "cornell_box",
-                                                  "curves",
-                                                  "cylinders",
-                                                  "gravity_spheres_volume",
-                                                  "perlin_noise_volumes",
-                                                  "random_spheres",
-                                                  "streamlines",
-                                                  "subdivision_cube",
-                                                  "unstructured_volume"};
+static const std::vector<std::string> g_scenes = {"tutorialScene",
+                                                  "randomSpheres"};
 
-static const std::vector<std::string> g_renderers = {
-    "scivis", "pathtracer", "raycast"};
+static const std::vector<std::string> g_renderers = {"scivis", "raycast"};
 
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
@@ -365,7 +356,6 @@ void GLFWSgWindow::buildUI()
   ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize;
   ImGui::Begin("press 'g' to hide/show UI", nullptr, flags);
 
-#if 0
   static int whichScene = 0;
   if (ImGui::Combo("scene##whichScene",
                    &whichScene,
@@ -395,6 +385,7 @@ void GLFWSgWindow::buildUI()
   ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
   ImGui::Checkbox("show albedo", &showAlbedo);
 
+#if 0
   ImGui::Separator();
 
   static int spp = 1;
@@ -452,52 +443,18 @@ void GLFWSgWindow::buildUI()
 
 void GLFWSgWindow::refreshScene(bool resetCamera)
 {
-  /////////////////////////////////////////////////////////////////////////////
-  // From test_sgTutorial /////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
+  auto world = sg::createNode("world", "World", "Entire Scene");
 
-#if 1
-  auto &g = frame->child("world").createChildAs<sg::Generator>(
-      "generator", "Generator_randomSpheres");
+  auto &g = world->createChildAs<sg::Generator>(
+      "generator", "Generator_" + scene);
   g.generateData();
-#else
-  // triangle mesh data
-  std::vector<vec3f> vertex = {vec3f(-1.0f, -1.0f, 3.0f),
-                               vec3f(-1.0f, 1.0f, 3.0f),
-                               vec3f(1.0f, -1.0f, 3.0f),
-                               vec3f(0.1f, 0.1f, 0.3f)};
 
-  std::vector<vec4f> color = {vec4f(0.9f, 0.5f, 0.5f, 1.0f),
-                              vec4f(0.8f, 0.8f, 0.8f, 1.0f),
-                              vec4f(0.8f, 0.8f, 0.8f, 1.0f),
-                              vec4f(0.5f, 0.9f, 0.5f, 1.0f)};
+  world->render();
 
-  std::vector<vec3ui> index = {vec3ui(0, 1, 2), vec3ui(1, 2, 3)};
+  frame->add(world);
 
-  auto xfm = sg::createNode("xfm",
-                            "Transform",
-                            "affine transformation",
-                            affine3f::translate(vec3f(0.1f)));
-
-  // create and setup model and mesh
-  auto mesh = sg::createNode("mesh", "Geometry_triangles", "triangle mesh");
-
-  mesh->createChildData("vertex.position", vertex);
-  mesh->createChildData("vertex.color", color);
-  mesh->createChildData("index", index);
-
-  xfm->add(mesh);
-
-  frame->child("world").add(xfm);
-#endif
-
-  frame->createChild("renderer", "Renderer_scivis", "current Renderer");
-
-  /////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-
-  frame->render();
+  frame->createChild(
+      "renderer", "Renderer_" + rendererTypeStr, "current Renderer");
 
   if (resetCamera) {
     arcballCamera.reset(

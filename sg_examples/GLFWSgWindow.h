@@ -72,6 +72,11 @@ class GLFWSgWindow
   bool showAlbedo{false};
   bool cancelFrameOnInteraction{false};
 
+  std::string scene{"tutorialScene"};
+
+  OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
+  std::string rendererTypeStr{"scivis"};
+
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;
 
@@ -87,7 +92,7 @@ class GLFWSgWindow
   std::function<void(GLFWSgWindow *)> displayCallback;
 
   // toggles display of ImGui UI, if an ImGui callback is provided
-  bool showUi = false;
+  bool showUi = true;
 
   // optional registered ImGui callback, called during every frame to build UI
   std::function<void()> uiCallback;
