@@ -16,28 +16,19 @@
 
 #pragma once
 
+#include "../Node.h"
+
 namespace ospray {
   namespace sg {
 
-    enum class NodeType
+    struct OSPSG_INTERFACE Generator : public Node
     {
-      GENERIC,
-      PARAMETER,
-      FRAME,
-      FRAME_BUFFER,
-      RENDERER,
-      CAMERA,
-      WORLD,
-      TRANSFORM,
-      TRANSFER_FUNCTION,
-      MATERIAL,
-      TEXTURE,
-      LIGHT,
-      GEOMETRY,
-      VOLUME,
-      GENERATOR,
-      IMPORTER,
-      UNKNOWN = 9999
+      Generator()          = default;
+      virtual ~Generator() = default;
+
+      NodeType type() const override;
+
+      virtual void generateData() = 0;
     };
 
   }  // namespace sg

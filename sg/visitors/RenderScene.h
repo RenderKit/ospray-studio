@@ -119,6 +119,8 @@ namespace ospray {
       if (!current.geometries.empty())
         current.group.setParam("geometry", cpp::Data(current.geometries));
 
+      current.geometries.clear();
+
       // TODO: volumes
 
       current.group.commit();

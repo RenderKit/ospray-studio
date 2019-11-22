@@ -14,31 +14,49 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+#include "Generator.h"
+// std
+#include <random>
 
 namespace ospray {
   namespace sg {
 
-    enum class NodeType
+    struct RandomSpheres : public Generator
     {
-      GENERIC,
-      PARAMETER,
-      FRAME,
-      FRAME_BUFFER,
-      RENDERER,
-      CAMERA,
-      WORLD,
-      TRANSFORM,
-      TRANSFER_FUNCTION,
-      MATERIAL,
-      TEXTURE,
-      LIGHT,
-      GEOMETRY,
-      VOLUME,
-      GENERATOR,
-      IMPORTER,
-      UNKNOWN = 9999
+      RandomSpheres()           = default;
+      ~RandomSpheres() override = default;
+
+      void generateData() override;
     };
+
+    OSP_REGISTER_SG_NODE_NAME(RandomSpheres, Generator_randomSpheres);
+    OSP_REGISTER_SG_NODE_NAME(RandomSpheres, Generator_RandomSpheres);
+
+    // RandomSpheres definitions //////////////////////////////////////////////
+
+    void RandomSpheres::generateData()
+    {
+      removeAllChildren();
+
+      const int numSpheres = 1e6;
+      const float radius   = 0.002f;
+
+      auto spheres =
+          sg::createNode("spheres", "Geometry_spheres", "spheres geometry");
+
+      std::mt19937 rng(0);
+      std::uniform_real_distribution<float> dist(-1.f + radius, 1.f - radius);
+
+      std::vector<vec3f> centers;
+
+      for (int i = 0; i < numSpheres; ++i)
+        centers.push_back(vec3f(dist(rng), dist(rng), dist(rng)));
+
+      spheres->createChildData("sphere.position", centers);
+      spheres->child("radius") = radius;
+
+      this->add(spheres);
+    }
 
   }  // namespace sg
 }  // namespace ospray

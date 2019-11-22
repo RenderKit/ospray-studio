@@ -162,9 +162,10 @@ namespace ospray {
                         Any value               = Any());
 
       template <typename NODE_T>
-      NODE_T &createChild(std::string name,
-                          std::string type        = "Node",
-                          std::string description = "<no description>");
+      NODE_T &createChildAs(std::string name,
+                            std::string type        = "Node",
+                            std::string description = "<no description>",
+                            Any value               = Any());
 
       template <typename... Args>
       void createChildData(std::string name, Args &&... args);

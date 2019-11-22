@@ -26,6 +26,9 @@ add_library(ospray_sg SHARED
 
   fb/FrameBuffer.cpp
 
+  generator/Generator.cpp
+  generator/RandomSpheres.cpp
+
   renderer/PathTracer.cpp
   renderer/Renderer.cpp
   renderer/SciVis.cpp

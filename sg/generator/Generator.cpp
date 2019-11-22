@@ -14,31 +14,15 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+#include "Generator.h"
 
 namespace ospray {
   namespace sg {
 
-    enum class NodeType
+    NodeType Generator::type() const
     {
-      GENERIC,
-      PARAMETER,
-      FRAME,
-      FRAME_BUFFER,
-      RENDERER,
-      CAMERA,
-      WORLD,
-      TRANSFORM,
-      TRANSFER_FUNCTION,
-      MATERIAL,
-      TEXTURE,
-      LIGHT,
-      GEOMETRY,
-      VOLUME,
-      GENERATOR,
-      IMPORTER,
-      UNKNOWN = 9999
-    };
+      return NodeType::GENERATOR;
+    }
 
   }  // namespace sg
 }  // namespace ospray

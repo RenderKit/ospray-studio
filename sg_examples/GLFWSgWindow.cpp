@@ -20,9 +20,9 @@
 #include "imgui.h"
 // std
 #include <iostream>
-#include <random>
 #include <stdexcept>
 // ospray_sg
+#include "sg/generator/Generator.h"
 #include "sg/visitors/PrintNodes.h"
 
 static bool g_quitNextFrame = false;
@@ -457,24 +457,9 @@ void GLFWSgWindow::refreshScene(bool resetCamera)
   /////////////////////////////////////////////////////////////////////////////
 
 #if 1
-  const int numSpheres = 1e6;
-  const float radius   = 0.002f;
-
-  auto spheres =
-      sg::createNode("spheres", "Geometry_spheres", "spheres geometry");
-
-  std::mt19937 rng(0);
-  std::uniform_real_distribution<float> dist(-1.f + radius, 1.f - radius);
-
-  std::vector<vec3f> centers;
-
-  for (int i = 0; i < numSpheres; ++i)
-    centers.push_back(vec3f(dist(rng), dist(rng), dist(rng)));
-
-  spheres->createChildData("sphere.position", centers);
-  spheres->child("radius") = radius;
-
-  frame->child("world").add(spheres);
+  auto &g = frame->child("world").createChildAs<sg::Generator>(
+      "generator", "Generator_randomSpheres");
+  g.generateData();
 #else
   // triangle mesh data
   std::vector<vec3f> vertex = {vec3f(-1.0f, -1.0f, 3.0f),
