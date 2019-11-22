@@ -29,7 +29,7 @@ namespace ospray {
                   "float",
                   "Stop rendering when variance < threshold",
                   0.f);
-      createChild("bgColor", "rgba", "Background color", rgba(1.f));
+      createChild("bgColor", "rgba", "Background color", rgba(0.1f));
     }
 
     NodeType Renderer::type() const

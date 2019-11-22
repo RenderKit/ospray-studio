@@ -88,14 +88,12 @@ namespace ospray {
     {
       switch (node.type()) {
       case NodeType::WORLD:
+        createInstanceFromGroup();
         placeInstancesInWorld();
         world.commit();
         break;
       case NodeType::TRANSFORM:
-        if (!current.geometries.empty()) {
-          addGeometriesToGroup();
-          createInstanceFromGroup();
-        }
+        createInstanceFromGroup();
         xfms.pop();
         break;
       default:
@@ -113,15 +111,18 @@ namespace ospray {
       current.geometries.push_back(model);
     }
 
-    inline void RenderScene::addGeometriesToGroup()
-    {
-      if (!current.geometries.empty())
-        current.group.setParam("geometry", cpp::Data(current.geometries));
-      current.group.commit();
-    }
-
     inline void RenderScene::createInstanceFromGroup()
     {
+      if (current.geometries.empty())
+        return;
+
+      if (!current.geometries.empty())
+        current.group.setParam("geometry", cpp::Data(current.geometries));
+
+      // TODO: volumes
+
+      current.group.commit();
+
       cpp::Instance inst(current.group);
       inst.setParam("xfm", xfms.top());
       inst.commit();

@@ -20,7 +20,10 @@
 #include "imgui.h"
 // std
 #include <iostream>
+#include <random>
 #include <stdexcept>
+// ospray_sg
+#include "sg/visitors/PrintNodes.h"
 
 static bool g_quitNextFrame = false;
 
@@ -114,6 +117,12 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize)
                            break;
                          case GLFW_KEY_Q:
                            g_quitNextFrame = true;
+                           break;
+                         case GLFW_KEY_P:
+                           activeWindow->frame->traverse<sg::PrintNodes>();
+                           break;
+                         case GLFW_KEY_B:
+                           PRINT(activeWindow->frame->child("world").bounds());
                            break;
                          }
                        }
@@ -447,6 +456,26 @@ void GLFWSgWindow::refreshScene(bool resetCamera)
   // From test_sgTutorial /////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
 
+#if 1
+  const int numSpheres = 1e6;
+  const float radius   = 0.002f;
+
+  auto spheres =
+      sg::createNode("spheres", "Geometry_spheres", "spheres geometry");
+
+  std::mt19937 rng(0);
+  std::uniform_real_distribution<float> dist(-1.f, 1.f);
+
+  std::vector<vec3f> centers;
+
+  for (int i = 0; i < numSpheres; ++i)
+    centers.push_back(vec3f(dist(rng), dist(rng), dist(rng)));
+
+  spheres->createChildData("sphere.position", centers);
+  spheres->child("radius") = radius;
+
+  frame->child("world").add(spheres);
+#else
   // triangle mesh data
   std::vector<vec3f> vertex = {vec3f(-1.0f, -1.0f, 3.0f),
                                vec3f(-1.0f, 1.0f, 3.0f),
@@ -475,6 +504,7 @@ void GLFWSgWindow::refreshScene(bool resetCamera)
   xfm->add(mesh);
 
   frame->child("world").add(xfm);
+#endif
 
   frame->createChild("renderer", "Renderer_scivis", "current Renderer");
 
@@ -485,11 +515,8 @@ void GLFWSgWindow::refreshScene(bool resetCamera)
   frame->render();
 
   if (resetCamera) {
-    // create the arcball camera model
     arcballCamera.reset(
         new ArcballCamera(frame->child("world").bounds(), windowSize));
-
-    // init camera
     updateCamera();
   }
 }
