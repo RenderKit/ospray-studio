@@ -16,6 +16,7 @@
 
 #include "Node.h"
 #include "visitors/Commit.h"
+#include "visitors/GetBounds.h"
 #include "visitors/RenderScene.h"
 // ospcommon
 #include "ospcommon/os/library.h"
@@ -62,11 +63,6 @@ namespace ospray {
     size_t Node::uniqueID() const
     {
       return properties.whenCreated;
-    }
-
-    box3f Node::bounds() const
-    {
-      return box3f(math::empty);
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -231,6 +227,13 @@ namespace ospray {
     {
       commit();
       traverse<RenderScene>();
+    }
+
+    box3f Node::bounds()
+    {
+      GetBounds visitor;
+      traverse(visitor);
+      return visitor.bounds;
     }
 
     ///////////////////////////////////////////////////////////////////////////

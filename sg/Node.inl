@@ -239,12 +239,6 @@ namespace ospray {
     }
 
     template <typename HANDLE_T, NodeType TYPE>
-    inline box3f OSPNode<HANDLE_T, TYPE>::bounds() const
-    {
-      return handle().getBounds();
-    }
-
-    template <typename HANDLE_T, NodeType TYPE>
     inline void OSPNode<HANDLE_T, TYPE>::preCommit()
     {
       for (auto &c : children()) {

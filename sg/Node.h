@@ -99,8 +99,6 @@ namespace ospray {
 
       size_t uniqueID() const;
 
-      virtual box3f bounds() const;
-
       // Node stored value (data) interface ///////////////////////////////////
 
       Any value();
@@ -182,6 +180,7 @@ namespace ospray {
 
       void commit();
       void render();
+      box3f bounds();
 
       virtual void setOSPRayParam(std::string param, OSPObject handle);
 
@@ -299,8 +298,6 @@ namespace ospray {
       void setHandle(HANDLE_T handle);
 
       operator HANDLE_T();
-
-      box3f bounds() const override;
 
      protected:
       virtual void preCommit() override;

@@ -122,7 +122,7 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize)
                            activeWindow->frame->traverse<sg::PrintNodes>();
                            break;
                          case GLFW_KEY_B:
-                           PRINT(activeWindow->frame->child("world").bounds());
+                           PRINT(activeWindow->frame->bounds());
                            break;
                          }
                        }
@@ -464,7 +464,7 @@ void GLFWSgWindow::refreshScene(bool resetCamera)
       sg::createNode("spheres", "Geometry_spheres", "spheres geometry");
 
   std::mt19937 rng(0);
-  std::uniform_real_distribution<float> dist(-1.f, 1.f);
+  std::uniform_real_distribution<float> dist(-1.f + radius, 1.f - radius);
 
   std::vector<vec3f> centers;
 
