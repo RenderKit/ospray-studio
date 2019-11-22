@@ -43,6 +43,19 @@ namespace ospray {
     OSP_REGISTER_SG_NODE_NAME(Renderer("rayDir"), Renderer_rayDir);
 
     OSP_REGISTER_SG_NODE_NAME(Renderer("raycast"), Renderer_raycast);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_vertexColor"),
+                              Renderer_raycast_vertexColor);
+
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPds"), Renderer_raycast_dPds);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPdt"), Renderer_raycast_dPdt);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ng"), Renderer_raycast_Ng);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ns"), Renderer_raycast_Ns);
+
+    OSP_REGISTER_SG_NODE_NAME(Renderer("backfacing_Ng"),
+                              Renderer_backfacing_Ng);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("backfacing_Ns"),
+                              Renderer_backfacing_Ns);
+
     OSP_REGISTER_SG_NODE_NAME(Renderer("primID"), Renderer_primID);
     OSP_REGISTER_SG_NODE_NAME(Renderer("geomID"), Renderer_geomID);
     OSP_REGISTER_SG_NODE_NAME(Renderer("instID"), Renderer_instID);

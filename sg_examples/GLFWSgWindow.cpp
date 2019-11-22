@@ -30,7 +30,20 @@ static bool g_quitNextFrame = false;
 static const std::vector<std::string> g_scenes = {"tutorialScene",
                                                   "randomSpheres"};
 
-static const std::vector<std::string> g_renderers = {"scivis", "raycast"};
+static const std::vector<std::string> g_renderers = {
+    "scivis",
+    "raycast",
+    "raycast_vertexColor",
+    "primID",
+    "geomID",
+    "instID",
+    "raycast_dPds",
+    "raycast_dPdt",
+    "raycast_Ng",
+    "raycast_Ns",
+    "backfacing_Ng",
+    "backfacing_Ns"
+};
 
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
@@ -445,8 +458,8 @@ void GLFWSgWindow::refreshScene(bool resetCamera)
 {
   auto world = sg::createNode("world", "World", "Entire Scene");
 
-  auto &g = world->createChildAs<sg::Generator>(
-      "generator", "Generator_" + scene);
+  auto &g =
+      world->createChildAs<sg::Generator>("generator", "Generator_" + scene);
   g.generateData();
 
   world->render();
