@@ -30,7 +30,7 @@ namespace ospray {
 
     // Triangles definitions ////////////////////////////////////////////////////
 
-    Triangles::Triangles() : Geometry("triangles")
+    Triangles::Triangles() : Geometry("mesh")
     {
     }
 
