@@ -405,58 +405,44 @@ void GLFWSgWindow::buildUI()
   ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
   ImGui::Checkbox("show albedo", &showAlbedo);
 
-#if 0
   ImGui::Separator();
 
+  auto &renderer = frame->child("renderer");
+
   static int spp = 1;
-  if (ImGui::SliderInt("spp", &spp, 1, 64)) {
-    renderer.setParam("spp", spp);
-    addObjectToCommit(renderer.handle());
-  }
+  if (ImGui::SliderInt("spp", &spp, 1, 64))
+    renderer["spp"] = spp;
 
   if (rendererType == OSPRayRendererType::PATHTRACER) {
     static int maxDepth = 20;
-    if (ImGui::SliderInt("maxDepth", &maxDepth, 1, 64)) {
-      renderer.setParam("maxDepth", maxDepth);
-      addObjectToCommit(renderer.handle());
-    }
+    if (ImGui::SliderInt("maxDepth", &maxDepth, 1, 64))
+      renderer["maxDepth"] = maxDepth;
 
     static int rouletteDepth = 1;
-    if (ImGui::SliderInt("rouletteDepth", &rouletteDepth, 1, 64)) {
-      renderer.setParam("rouletteDepth", rouletteDepth);
-      addObjectToCommit(renderer.handle());
-    }
+    if (ImGui::SliderInt("rouletteDepth", &rouletteDepth, 1, 64))
+      renderer["rouletteDepth"] = rouletteDepth;
 
     static float minContribution = 0.001f;
-    if (ImGui::SliderFloat("minContribution", &minContribution, 0.f, 1.f)) {
-      renderer.setParam("minContribution", minContribution);
-      addObjectToCommit(renderer.handle());
-    }
+    if (ImGui::SliderFloat("minContribution", &minContribution, 0.f, 1.f))
+      renderer["minContribution"] = minContribution;
   } else if (rendererType == OSPRayRendererType::SCIVIS) {
-    static vec3f bgColor(0.f);
-    if (ImGui::ColorEdit3("bgColor", bgColor)) {
-      renderer.setParam("bgColor", bgColor);
-      addObjectToCommit(renderer.handle());
-    }
+    static sg::rgba bgColor = renderer["bgColor"].valueAs<sg::rgba>();
+    if (ImGui::ColorEdit4("bgColor", bgColor))
+      renderer["bgColor"] = bgColor;
 
     static int aoSamples = 1;
-    if (ImGui::SliderInt("aoSamples", &aoSamples, 0, 64)) {
-      renderer.setParam("aoSamples", aoSamples);
-      addObjectToCommit(renderer.handle());
-    }
+    if (ImGui::SliderInt("aoSamples", &aoSamples, 0, 64))
+      renderer["aoSamples"] = aoSamples;
 
     static float aoIntensity = 1.f;
-    if (ImGui::SliderFloat("aoIntensity", &aoIntensity, 0.f, 1.f)) {
-      renderer.setParam("aoIntensity", aoIntensity);
-      addObjectToCommit(renderer.handle());
-    }
+    if (ImGui::SliderFloat("aoIntensity", &aoIntensity, 0.f, 1.f))
+      renderer["aoIntensity"] = aoIntensity;
   }
 
   if (uiCallback) {
     ImGui::Separator();
     uiCallback();
   }
-#endif
 
   ImGui::End();
 }
