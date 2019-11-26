@@ -128,7 +128,13 @@ namespace ospray {
     {
       auto vol = node.valueAs<cpp::Volume>();
       cpp::VolumetricModel model(vol);
-      model.setParam("transferFunction", tfns.top());
+      if (node.hasChild("transfer_function")) {
+        model.setParam(
+            "transfer_function",
+            node["transfer_function"].valueAs<cpp::TransferFunction>());
+      } else {
+        model.setParam("transferFunction", tfns.top());
+      }
       model.commit();
       current.volumes.push_back(model);
     }

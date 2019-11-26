@@ -107,9 +107,7 @@ namespace ospray {
 
       // Create sg subtree
 
-      auto &tf =
-          this->createChild("transfer function", "transfer_function_cloud");
-
+      auto &tf = createChild("transfer_function", "transfer_function_cloud");
       auto &volume = tf.createChild("wavelet", "volume_structured", "volume");
 
       volume["voxelType"]   = int(OSP_FLOAT);
