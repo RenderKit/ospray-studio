@@ -99,14 +99,19 @@ namespace ospray {
       setValue(v);
     }
 
-    template <typename NODE_T>
-    inline NODE_T &Node::createChildAs(std::string name,
-                                       std::string type,
-                                       std::string description,
-                                       Any value)
+    template <typename... Args>
+    inline Node &Node::createChild(Args &&... args)
     {
-      auto child = createChild(name, type, description, value).nodeAs<NODE_T>();
+      auto child = createNode(std::forward<Args>(args)...);
+      add(child);
       return *child;
+    }
+
+    template <typename NODE_T, typename... Args>
+    inline NODE_T &Node::createChildAs(Args &&... args)
+    {
+      auto &child = createChild(std::forward<Args>(args)...);
+      return *child.template nodeAs<NODE_T>();
     }
 
     template <typename... Args>

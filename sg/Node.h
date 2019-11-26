@@ -156,16 +156,11 @@ namespace ospray {
       void removeAllParents();
       void removeAllChildren();
 
-      Node &createChild(std::string name,
-                        std::string type        = "Node",
-                        std::string description = "<no description>",
-                        Any value               = Any());
+      template <typename... Args>
+      Node &createChild(Args &&... args);
 
-      template <typename NODE_T>
-      NODE_T &createChildAs(std::string name,
-                            std::string type        = "Node",
-                            std::string description = "<no description>",
-                            Any value               = Any());
+      template <typename NODE_T, typename... Args>
+      NODE_T &createChildAs(Args &&... args);
 
       template <typename... Args>
       void createChildData(std::string name, Args &&... args);
@@ -311,18 +306,24 @@ namespace ospray {
     // Main Node factory function /////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
-    OSPSG_INTERFACE NodePtr
-    createNode(std::string name,
-               std::string type        = "Node",
-               std::string description = "<no description>",
-               Any val                 = Any());
+    OSPSG_INTERFACE NodePtr createNode(std::string name,
+                                       std::string subtype,
+                                       std::string description,
+                                       Any val);
 
-    template <typename NODE_T>
-    inline std::shared_ptr<NODE_T> createNodeAs(std::string name,
-                                                std::string type,
-                                                std::string description)
+    OSPSG_INTERFACE NodePtr createNode(std::string name);
+
+    OSPSG_INTERFACE NodePtr createNode(std::string name, std::string subtype);
+
+    OSPSG_INTERFACE NodePtr createNode(std::string name,
+                                       std::string subtype,
+                                       Any value);
+
+    template <typename NODE_T, typename... Args>
+    inline std::shared_ptr<NODE_T> createNodeAs(Args &&... args)
     {
-      return createNode(name, type, description, Any())->nodeAs<NODE_T>();
+      auto node = createNode(std::forward<Args>(args)...);
+      return node->template nodeAs<NODE_T>();
     }
 
     ///////////////////////////////////////////////////////////////////////////

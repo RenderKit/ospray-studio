@@ -24,12 +24,12 @@ namespace ospray {
       auto handle = ospNewRenderer(type.c_str());
       setHandle(handle);
 
-      createChild("spp", "int", "Samples-per-pixel", 1);
+      createChild("spp", "int", "samples-per-pixel", 1);
       createChild("varianceThreshold",
                   "float",
-                  "Stop rendering when variance < threshold",
+                  "stop rendering when variance < threshold",
                   0.f);
-      createChild("bgColor", "rgba", "Background color", rgba(0.1f));
+      createChild("bgColor", "rgba", rgba(0.1f));
     }
 
     NodeType Renderer::type() const

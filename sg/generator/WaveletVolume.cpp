@@ -68,12 +68,9 @@ namespace ospray {
     {
       auto &parameters = child("parameters");
 
-      parameters.createChild(
-          "dimensions", "vec3i", "volume dimensions", vec3i(128));
-      parameters.createChild(
-          "gridOrigin", "vec3f", "volume dimensions", vec3f(-1.f));
-      parameters.createChild(
-          "gridSpacing", "vec3f", "volume dimensions", vec3f(2.f / 100));
+      parameters.createChild("dimensions", "vec3i", vec3i(128));
+      parameters.createChild("gridOrigin", "vec3f", vec3f(-1.f));
+      parameters.createChild("gridSpacing", "vec3f", vec3f(2.f / 100));
     }
 
     void WaveletVolume::generateData()
@@ -108,7 +105,7 @@ namespace ospray {
       // Create sg subtree
 
       auto &tf = createChild("transfer_function", "transfer_function_cloud");
-      auto &volume = tf.createChild("wavelet", "volume_structured", "volume");
+      auto &volume = tf.createChild("wavelet", "volume_structured");
 
       volume["voxelType"]   = int(OSP_FLOAT);
       volume["gridOrigin"]  = gridOrigin;

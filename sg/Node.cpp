@@ -204,16 +204,6 @@ namespace ospray {
         remove(c.first);
     }
 
-    Node &Node::createChild(std::string name,
-                            std::string type,
-                            std::string description,
-                            Any value)
-    {
-      auto child = createNode(name, type, description, value);
-      add(child);
-      return *child;
-    }
-
     ///////////////////////////////////////////////////////////////////////////
     // Traveral Interface /////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -296,7 +286,7 @@ namespace ospray {
     static std::map<std::string, CreatorFct> nodeRegistry;
 
     std::shared_ptr<Node> createNode(std::string name,
-                                     std::string type,
+                                     std::string subtype,
                                      std::string description,
                                      Any value)
     {
@@ -310,18 +300,18 @@ namespace ospray {
 
       // Look for the factory function to create the node //
 
-      auto it = nodeRegistry.find(type);
+      auto it = nodeRegistry.find(subtype);
 
       CreatorFct creator = nullptr;
 
       if (it == nodeRegistry.end()) {
-        std::string creatorName = "ospray_create_sg_node__" + type;
+        std::string creatorName = "ospray_create_sg_node__" + subtype;
 
         creator = (CreatorFct)getSymbol(creatorName);
         if (!creator)
-          throw std::runtime_error("unknown node type '" + type + "'");
+          throw std::runtime_error("unknown node type '" + subtype + "'");
 
-        nodeRegistry[type] = creator;
+        nodeRegistry[subtype] = creator;
       } else {
         creator = it->second;
       }
@@ -330,7 +320,7 @@ namespace ospray {
 
       std::shared_ptr<sg::Node> newNode(creator());
       newNode->properties.name        = name;
-      newNode->properties.subType     = type;
+      newNode->properties.subType     = subtype;
       newNode->properties.type        = newNode->type();
       newNode->properties.description = description;
 
@@ -338,6 +328,21 @@ namespace ospray {
         newNode->setValue(value);
 
       return newNode;
+    }
+
+    NodePtr createNode(std::string name)
+    {
+      return createNode(name, "Node");
+    }
+
+    NodePtr createNode(std::string name, std::string subtype)
+    {
+      return createNode(name, subtype, "<no description>", Any());
+    }
+
+    NodePtr createNode(std::string name, std::string subtype, Any value)
+    {
+      return createNode(name, subtype, "<no description>", value);
     }
 
     OSP_REGISTER_SG_NODE(Node);

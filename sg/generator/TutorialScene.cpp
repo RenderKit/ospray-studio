@@ -49,14 +49,12 @@ namespace ospray {
 
       std::vector<vec3ui> index = {vec3ui(0, 1, 2), vec3ui(1, 2, 3)};
 
-      auto &xfm = createChild("xfm",
-                              "Transform",
-                              "affine transformation",
-                              affine3f::translate(vec3f(0.1f)));
+      auto &xfm =
+          createChild("xfm", "Transform", affine3f::translate(vec3f(0.1f)));
 
       // create and setup model and mesh
       auto &mesh =
-          xfm.createChild("mesh", "geometry_triangles", "triangle mesh");
+          xfm.createChild("mesh", "geometry_triangles");
 
       mesh.createChildData("vertex.position", vertex);
       mesh.createChildData("vertex.color", color);

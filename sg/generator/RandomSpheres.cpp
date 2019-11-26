@@ -40,8 +40,7 @@ namespace ospray {
       const int numSpheres = 1e6;
       const float radius   = 0.002f;
 
-      auto &spheres =
-          createChild("spheres", "geometry_spheres", "spheres geometry");
+      auto &spheres = createChild("spheres", "geometry_spheres");
 
       std::mt19937 rng(0);
       std::uniform_real_distribution<float> dist(-1.f + radius, 1.f - radius);

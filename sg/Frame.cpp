@@ -26,10 +26,10 @@ namespace ospray {
 
     Frame::Frame()
     {
-      createChild("frameBuffer", "framebuffer", "current FrameBuffer");
-      createChild("camera", "camera_perspective", "current Camera");
-      createChild("renderer", "renderer_rayDir", "current Renderer");
-      createChild("world", "world", "current World");
+      createChild("framebuffer", "framebuffer");
+      createChild("camera", "camera_perspective");
+      createChild("renderer", "renderer_rayDir");
+      createChild("world", "world");
     }
 
     NodeType Frame::type() const
@@ -92,13 +92,13 @@ namespace ospray {
     const void *Frame::mapFrame(OSPFrameBufferChannel channel)
     {
       waitOnFrame();
-      auto &fb = childAs<FrameBuffer>("frameBuffer");
+      auto &fb = childAs<FrameBuffer>("framebuffer");
       return fb.map(channel);
     }
 
     void Frame::unmapFrame(void *mem)
     {
-      auto &fb = childAs<FrameBuffer>("frameBuffer");
+      auto &fb = childAs<FrameBuffer>("framebuffer");
       fb.unmap(mem);
     }
 

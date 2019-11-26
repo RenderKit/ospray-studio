@@ -31,7 +31,7 @@ namespace ospray {
 
     PathTracer::PathTracer() : Renderer("pathtracer")
     {
-      createChild("rouletteDepth", "int", "path roulette depth", 5);
+      createChild("rouletteDepth", "int", 5);
     }
 
   }  // namespace sg

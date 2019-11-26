@@ -27,24 +27,21 @@
 
 static bool g_quitNextFrame = false;
 
-static const std::vector<std::string> g_scenes = {"tutorial_scene",
-                                                  "random_spheres",
-                                                  "wavelet"};
+static const std::vector<std::string> g_scenes = {
+    "tutorial_scene", "random_spheres", "wavelet"};
 
-static const std::vector<std::string> g_renderers = {
-    "scivis",
-    "raycast",
-    "raycast_vertexColor",
-    "primID",
-    "geomID",
-    "instID",
-    "dPds",
-    "dPdt",
-    "Ng",
-    "Ns",
-    "backfacing_Ng",
-    "backfacing_Ns"
-};
+static const std::vector<std::string> g_renderers = {"scivis",
+                                                     "raycast",
+                                                     "raycast_vertexColor",
+                                                     "primID",
+                                                     "geomID",
+                                                     "instID",
+                                                     "dPds",
+                                                     "dPdt",
+                                                     "Ng",
+                                                     "Ns",
+                                                     "backfacing_Ng",
+                                                     "backfacing_Ns"};
 
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
@@ -135,7 +132,7 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
 
   // OSPRay setup //
 
-  frame = sg::createNodeAs<sg::Frame>("main_frame", "frame", "root node");
+  frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
   refreshScene(true);
 
@@ -457,7 +454,7 @@ void GLFWSgWindow::buildUI()
 
 void GLFWSgWindow::refreshScene(bool resetCamera)
 {
-  auto world = sg::createNode("world", "world", "Entire Scene");
+  auto world = sg::createNode("world", "world");
 
   auto &g =
       world->createChildAs<sg::Generator>("generator", "generator_" + scene);
@@ -467,8 +464,7 @@ void GLFWSgWindow::refreshScene(bool resetCamera)
 
   frame->add(world);
 
-  frame->createChild(
-      "renderer", "renderer_" + rendererTypeStr, "current Renderer");
+  frame->createChild("renderer", "renderer_" + rendererTypeStr);
 
   if (resetCamera) {
     arcballCamera.reset(

@@ -31,7 +31,7 @@ namespace ospray {
 
     Spheres::Spheres() : Geometry("spheres")
     {
-      createChild("radius", "float", "global radius for this geometry", 1.f);
+      createChild("radius", "float", 1.f);
     }
 
   }  // namespace sg
