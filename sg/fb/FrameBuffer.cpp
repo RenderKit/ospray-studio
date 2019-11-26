@@ -57,9 +57,10 @@ namespace ospray {
       auto size           = child("size").valueAs<vec2i>();
       auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
-      auto fb = cpp::FrameBuffer(size,
-                                 colorFormats[colorFormatStr],
-                                 OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE);
+      auto fb = cpp::FrameBuffer(
+          size,
+          colorFormats[colorFormatStr],
+          OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO | OSP_FB_VARIANCE);
 
       setHandle(fb);
     }
