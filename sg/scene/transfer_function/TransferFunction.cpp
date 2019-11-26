@@ -14,19 +14,22 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Generator.h"
+#include "TransferFunction.h"
 
 namespace ospray {
   namespace sg {
 
-    Generator::Generator()
+    TransferFunction::TransferFunction(const std::string &osp_type)
     {
-      createChild("parameters");
-    }
+      setValue(cpp::TransferFunction(osp_type));
 
-    NodeType Generator::type() const
-    {
-      return NodeType::GENERATOR;
+      createChild("valueRange", "vec2f", "value range", vec2f(0.f, 1.f));
+
+      std::vector<vec3f> colors = {vec3f(0.f), vec3f(1.f)};
+      createChildData("color", colors);
+
+      std::vector<float> opacities = {0.f, 1.f};
+      createChildData("opacity", opacities);
     }
 
   }  // namespace sg

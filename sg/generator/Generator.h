@@ -23,7 +23,7 @@ namespace ospray {
 
     struct OSPSG_INTERFACE Generator : public Node
     {
-      Generator()          = default;
+      Generator();
       virtual ~Generator() = default;
 
       NodeType type() const override;

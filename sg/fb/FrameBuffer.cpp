@@ -64,7 +64,7 @@ namespace ospray {
       setHandle(fb);
     }
 
-    OSP_REGISTER_SG_NODE(FrameBuffer);
+    OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);
 
   }  // namespace sg
 }  // namespace ospray

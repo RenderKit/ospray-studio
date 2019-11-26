@@ -14,20 +14,19 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Generator.h"
+#pragma once
+
+#include "../../Node.h"
 
 namespace ospray {
   namespace sg {
 
-    Generator::Generator()
+    struct OSPSG_INTERFACE Volume
+        : public OSPNode<cpp::Volume, NodeType::VOLUME>
     {
-      createChild("parameters");
-    }
-
-    NodeType Generator::type() const
-    {
-      return NodeType::GENERATOR;
-    }
+      Volume(const std::string &osp_type);
+      ~Volume() override = default;
+    };
 
   }  // namespace sg
 }  // namespace ospray

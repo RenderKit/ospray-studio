@@ -14,20 +14,27 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Generator.h"
+#include "TransferFunction.h"
 
 namespace ospray {
   namespace sg {
 
-    Generator::Generator()
+    struct OSPSG_INTERFACE Cloud : public TransferFunction
     {
-      createChild("parameters");
-    }
+      Cloud();
+      virtual ~Cloud() override = default;
+    };
 
-    NodeType Generator::type() const
+    OSP_REGISTER_SG_NODE_NAME(Cloud, transfer_function_cloud);
+
+    // Cloud definitions ////////////////////////////////////////////////////
+
+    Cloud::Cloud() : TransferFunction("piecewise_linear")
     {
-      return NodeType::GENERATOR;
+      std::vector<vec3f> colors = {vec3f(1.f)};
+      createChildData("color", colors);
     }
 
   }  // namespace sg
 }  // namespace ospray
+

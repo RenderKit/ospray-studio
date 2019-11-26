@@ -34,6 +34,7 @@ namespace ospray {
       // Helper Functions //
 
       void createGeometry(Node &node);
+      void createVolume(Node &node);
       void addGeometriesToGroup();
       void createInstanceFromGroup();
       void placeInstancesInWorld();
@@ -43,6 +44,7 @@ namespace ospray {
       struct
       {
         std::vector<cpp::GeometricModel> geometries;
+        std::vector<cpp::VolumetricModel> volumes;
         cpp::Group group;
         // Apperance information:
         //     - Material
@@ -53,6 +55,7 @@ namespace ospray {
       cpp::World world;
       std::vector<cpp::Instance> instances;
       std::stack<affine3f> xfms;
+      std::stack<cpp::TransferFunction> tfns;
     };
 
     // Inlined definitions ////////////////////////////////////////////////////
@@ -74,6 +77,13 @@ namespace ospray {
         createGeometry(node);
         traverseChildren = false;
         break;
+      case NodeType::VOLUME:
+        createVolume(node);
+        traverseChildren = false;
+        break;
+      case NodeType::TRANSFER_FUNCTION:
+        tfns.push(node.valueAs<cpp::TransferFunction>());
+        break;
       case NodeType::TRANSFORM:
         xfms.push(xfms.top() * node.valueAs<affine3f>());
         break;
@@ -91,6 +101,9 @@ namespace ospray {
         createInstanceFromGroup();
         placeInstancesInWorld();
         world.commit();
+        break;
+      case NodeType::TRANSFER_FUNCTION:
+        tfns.pop();
         break;
       case NodeType::TRANSFORM:
         createInstanceFromGroup();
@@ -111,17 +124,28 @@ namespace ospray {
       current.geometries.push_back(model);
     }
 
+    inline void RenderScene::createVolume(Node &node)
+    {
+      auto vol = node.valueAs<cpp::Volume>();
+      cpp::VolumetricModel model(vol);
+      model.setParam("transferFunction", tfns.top());
+      model.commit();
+      current.volumes.push_back(model);
+    }
+
     inline void RenderScene::createInstanceFromGroup()
     {
-      if (current.geometries.empty())
+      if (current.geometries.empty() && current.volumes.empty())
         return;
 
       if (!current.geometries.empty())
         current.group.setParam("geometry", cpp::Data(current.geometries));
 
-      current.geometries.clear();
+      if (!current.volumes.empty())
+        current.group.setParam("volume", cpp::Data(current.volumes));
 
-      // TODO: volumes
+      current.geometries.clear();
+      current.volumes.clear();
 
       current.group.commit();
 

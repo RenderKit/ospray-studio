@@ -14,19 +14,27 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Generator.h"
+#include "Volume.h"
 
 namespace ospray {
   namespace sg {
 
-    Generator::Generator()
+    struct OSPSG_INTERFACE StructuredVolume : public Volume
     {
-      createChild("parameters");
-    }
+      StructuredVolume();
+      virtual ~StructuredVolume() override = default;
+    };
 
-    NodeType Generator::type() const
+    OSP_REGISTER_SG_NODE_NAME(StructuredVolume, volume_structured);
+
+    // StructuredVolume definitions ///////////////////////////////////////////
+
+    StructuredVolume::StructuredVolume() : Volume("structured_volume")
     {
-      return NodeType::GENERATOR;
+      createChild("voxelType", "int", "voxel type", int(OSP_FLOAT));
+      createChild("gridOrigin", "vec3f", "", vec3f(0.f));
+      createChild("gridSpacing", "vec3f", "", vec3f(1.f));
+      createChild("dimensions", "vec3i", "", vec3i(1));
     }
 
   }  // namespace sg

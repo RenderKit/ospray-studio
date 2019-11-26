@@ -29,20 +29,19 @@ namespace ospray {
       void generateData() override;
     };
 
-    OSP_REGISTER_SG_NODE_NAME(RandomSpheres, Generator_randomSpheres);
-    OSP_REGISTER_SG_NODE_NAME(RandomSpheres, Generator_RandomSpheres);
+    OSP_REGISTER_SG_NODE_NAME(RandomSpheres, generator_random_spheres);
 
     // RandomSpheres definitions //////////////////////////////////////////////
 
     void RandomSpheres::generateData()
     {
-      removeAllChildren();
+      remove("spheres");
 
       const int numSpheres = 1e6;
       const float radius   = 0.002f;
 
-      auto spheres =
-          sg::createNode("spheres", "Geometry_spheres", "spheres geometry");
+      auto &spheres =
+          createChild("spheres", "geometry_spheres", "spheres geometry");
 
       std::mt19937 rng(0);
       std::uniform_real_distribution<float> dist(-1.f + radius, 1.f - radius);
@@ -52,10 +51,8 @@ namespace ospray {
       for (int i = 0; i < numSpheres; ++i)
         centers.push_back(vec3f(dist(rng), dist(rng), dist(rng)));
 
-      spheres->createChildData("sphere.position", centers);
-      spheres->child("radius") = radius;
-
-      this->add(spheres);
+      spheres.createChildData("sphere.position", centers);
+      spheres.child("radius") = radius;
     }
 
   }  // namespace sg

@@ -25,8 +25,7 @@ namespace ospray {
       virtual ~PathTracer() override = default;
     };
 
-    OSP_REGISTER_SG_NODE_NAME(PathTracer, Renderer_pathtracer);
-    OSP_REGISTER_SG_NODE_NAME(PathTracer, Renderer_PathTracer);
+    OSP_REGISTER_SG_NODE_NAME(PathTracer, renderer_pathtracer);
 
     // PathTracer definitions /////////////////////////////////////////////////
 

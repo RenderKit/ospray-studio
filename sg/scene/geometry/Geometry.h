@@ -26,8 +26,6 @@ namespace ospray {
     {
       Geometry(const std::string &osp_type);
       ~Geometry() override = default;
-
-      NodeType type() const override;
     };
 
   }  // namespace sg

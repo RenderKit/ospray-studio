@@ -24,7 +24,7 @@ namespace ospray {
       setHandle(cpp::World());
     }
 
-    OSP_REGISTER_SG_NODE(World);
+    OSP_REGISTER_SG_NODE_NAME(World, world);
 
   }  // namespace sg
 }  // namespace ospray

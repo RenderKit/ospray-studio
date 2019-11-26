@@ -14,20 +14,35 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Generator.h"
+#include "TransferFunction.h"
 
 namespace ospray {
   namespace sg {
 
-    Generator::Generator()
+    struct OSPSG_INTERFACE Jet : public TransferFunction
     {
-      createChild("parameters");
-    }
+      Jet();
+      virtual ~Jet() override = default;
+    };
 
-    NodeType Generator::type() const
+    OSP_REGISTER_SG_NODE_NAME(Jet, transfer_function_jet);
+
+    // Jet definitions ////////////////////////////////////////////////////
+
+    Jet::Jet() : TransferFunction("piecewise_linear")
     {
-      return NodeType::GENERATOR;
+      std::vector<vec3f> colors;
+      colors.emplace_back(0       , 0, 0.562493);
+      colors.emplace_back(0       , 0, 1       );
+      colors.emplace_back(0       , 1, 1       );
+      colors.emplace_back(0.500008, 1, 0.500008);
+      colors.emplace_back(1       , 1, 0       );
+      colors.emplace_back(1       , 0, 0       );
+      colors.emplace_back(0.500008, 0, 0       );
+
+      createChildData("color", colors);
     }
 
   }  // namespace sg
 }  // namespace ospray
+

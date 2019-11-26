@@ -24,10 +24,5 @@ namespace ospray {
       setValue(cpp::Geometry(osp_type));
     }
 
-    NodeType Geometry::type() const
-    {
-      return NodeType::GEOMETRY;
-    }
-
   }  // namespace sg
 }  // namespace ospray

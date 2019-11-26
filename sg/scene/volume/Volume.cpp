@@ -14,19 +14,14 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "Generator.h"
+#include "Volume.h"
 
 namespace ospray {
   namespace sg {
 
-    Generator::Generator()
+    Volume::Volume(const std::string &osp_type)
     {
-      createChild("parameters");
-    }
-
-    NodeType Generator::type() const
-    {
-      return NodeType::GENERATOR;
+      setValue(cpp::Volume(osp_type));
     }
 
   }  // namespace sg

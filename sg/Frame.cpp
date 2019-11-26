@@ -26,10 +26,10 @@ namespace ospray {
 
     Frame::Frame()
     {
-      createChild("frameBuffer", "FrameBuffer", "current FrameBuffer");
-      createChild("camera", "Camera_perspective", "current Camera");
-      createChild("renderer", "Renderer_rayDir", "current Renderer");
-      createChild("world", "World", "current World");
+      createChild("frameBuffer", "framebuffer", "current FrameBuffer");
+      createChild("camera", "camera_perspective", "current Camera");
+      createChild("renderer", "renderer_rayDir", "current Renderer");
+      createChild("world", "world", "current World");
     }
 
     NodeType Frame::type() const
@@ -106,7 +106,7 @@ namespace ospray {
 
     void Frame::postCommit() {}
 
-    OSP_REGISTER_SG_NODE(Frame);
+    OSP_REGISTER_SG_NODE_NAME(Frame, frame);
 
   }  // namespace sg
 }  // namespace ospray

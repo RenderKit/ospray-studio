@@ -27,8 +27,9 @@
 
 static bool g_quitNextFrame = false;
 
-static const std::vector<std::string> g_scenes = {"tutorialScene",
-                                                  "randomSpheres"};
+static const std::vector<std::string> g_scenes = {"tutorial_scene",
+                                                  "random_spheres",
+                                                  "wavelet"};
 
 static const std::vector<std::string> g_renderers = {
     "scivis",
@@ -37,10 +38,10 @@ static const std::vector<std::string> g_renderers = {
     "primID",
     "geomID",
     "instID",
-    "raycast_dPds",
-    "raycast_dPdt",
-    "raycast_Ng",
-    "raycast_Ns",
+    "dPds",
+    "dPdt",
+    "Ng",
+    "Ns",
     "backfacing_Ng",
     "backfacing_Ns"
 };
@@ -61,7 +62,7 @@ bool rendererUI_callback(void *, int index, const char **out_text)
 
 GLFWSgWindow *GLFWSgWindow::activeWindow = nullptr;
 
-GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize)
+GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
 {
   if (activeWindow != nullptr) {
     throw std::runtime_error("Cannot create more than one GLFWSgWindow!");
@@ -134,7 +135,7 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize)
 
   // OSPRay setup //
 
-  frame = sg::createNodeAs<sg::Frame>("main_frame", "Frame", "root node");
+  frame = sg::createNodeAs<sg::Frame>("main_frame", "frame", "root node");
 
   refreshScene(true);
 
@@ -456,10 +457,10 @@ void GLFWSgWindow::buildUI()
 
 void GLFWSgWindow::refreshScene(bool resetCamera)
 {
-  auto world = sg::createNode("world", "World", "Entire Scene");
+  auto world = sg::createNode("world", "world", "Entire Scene");
 
   auto &g =
-      world->createChildAs<sg::Generator>("generator", "Generator_" + scene);
+      world->createChildAs<sg::Generator>("generator", "generator_" + scene);
   g.generateData();
 
   world->render();
@@ -467,7 +468,7 @@ void GLFWSgWindow::refreshScene(bool resetCamera)
   frame->add(world);
 
   frame->createChild(
-      "renderer", "Renderer_" + rendererTypeStr, "current Renderer");
+      "renderer", "renderer_" + rendererTypeStr, "current Renderer");
 
   if (resetCamera) {
     arcballCamera.reset(

@@ -29,6 +29,7 @@ add_library(ospray_sg SHARED
   generator/Generator.cpp
   generator/RandomSpheres.cpp
   generator/TutorialScene.cpp
+  generator/WaveletVolume.cpp
 
   renderer/PathTracer.cpp
   renderer/Renderer.cpp
@@ -39,6 +40,13 @@ add_library(ospray_sg SHARED
   scene/geometry/Geometry.cpp
   scene/geometry/Spheres.cpp
   scene/geometry/Triangles.cpp
+
+  scene/transfer_function/Cloud.cpp
+  scene/transfer_function/Jet.cpp
+  scene/transfer_function/TransferFunction.cpp
+
+  scene/volume/Structured.cpp
+  scene/volume/Volume.cpp
 )
 
 target_link_libraries(ospray_sg

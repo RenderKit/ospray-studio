@@ -30,8 +30,7 @@ namespace ospray {
       createChild("aspect", "float", "Aspect ratio", 1.f);
     }
 
-    OSP_REGISTER_SG_NODE_NAME(Perspective, Camera_perspective);
-    OSP_REGISTER_SG_NODE_NAME(Perspective, Camera_Perspective);
+    OSP_REGISTER_SG_NODE_NAME(Perspective, camera_perspective);
 
   }  // namespace sg
 }  // namespace ospray

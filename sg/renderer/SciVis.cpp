@@ -25,8 +25,7 @@ namespace ospray {
       virtual ~SciVis() override = default;
     };
 
-    OSP_REGISTER_SG_NODE_NAME(SciVis, Renderer_scivis);
-    OSP_REGISTER_SG_NODE_NAME(SciVis, Renderer_SciVis);
+    OSP_REGISTER_SG_NODE_NAME(SciVis, renderer_scivis);
 
     // SciVis definitions ////////////////////////////////////////////////////
 

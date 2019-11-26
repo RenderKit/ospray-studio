@@ -29,14 +29,13 @@ namespace ospray {
       void generateData() override;
     };
 
-    OSP_REGISTER_SG_NODE_NAME(TutorialScene, Generator_tutorialScene);
-    OSP_REGISTER_SG_NODE_NAME(TutorialScene, Generator_TutorialScene);
+    OSP_REGISTER_SG_NODE_NAME(TutorialScene, generator_tutorial_scene);
 
     // TutorialScene definitions //////////////////////////////////////////////
 
     void TutorialScene::generateData()
     {
-      removeAllChildren();
+      remove("xfm");
 
       std::vector<vec3f> vertex = {vec3f(-1.0f, -1.0f, 3.0f),
                                    vec3f(-1.0f, 1.0f, 3.0f),
@@ -50,21 +49,18 @@ namespace ospray {
 
       std::vector<vec3ui> index = {vec3ui(0, 1, 2), vec3ui(1, 2, 3)};
 
-      auto xfm = sg::createNode("xfm",
-                                "Transform",
-                                "affine transformation",
-                                affine3f::translate(vec3f(0.1f)));
+      auto &xfm = createChild("xfm",
+                              "Transform",
+                              "affine transformation",
+                              affine3f::translate(vec3f(0.1f)));
 
       // create and setup model and mesh
-      auto mesh = sg::createNode("mesh", "Geometry_triangles", "triangle mesh");
+      auto &mesh =
+          xfm.createChild("mesh", "geometry_triangles", "triangle mesh");
 
-      mesh->createChildData("vertex.position", vertex);
-      mesh->createChildData("vertex.color", color);
-      mesh->createChildData("index", index);
-
-      xfm->add(mesh);
-
-      this->add(xfm);
+      mesh.createChildData("vertex.position", vertex);
+      mesh.createChildData("vertex.color", color);
+      mesh.createChildData("index", index);
     }
 
   }  // namespace sg

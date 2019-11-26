@@ -39,29 +39,29 @@ namespace ospray {
 
     // Register OSPRay's debug renderers //
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("testFrame"), Renderer_testFrame);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("rayDir"), Renderer_rayDir);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("testFrame"), renderer_testFrame);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("rayDir"), renderer_rayDir);
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast"), Renderer_raycast);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast"), renderer_raycast);
     OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_vertexColor"),
-                              Renderer_raycast_vertexColor);
+                              renderer_raycast_vertexColor);
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPds"), Renderer_raycast_dPds);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPdt"), Renderer_raycast_dPdt);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ng"), Renderer_raycast_Ng);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ns"), Renderer_raycast_Ns);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPds"), renderer_dPds);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPdt"), renderer_dPdt);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ng"), renderer_Ng);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ns"), renderer_Ns);
 
     OSP_REGISTER_SG_NODE_NAME(Renderer("backfacing_Ng"),
-                              Renderer_backfacing_Ng);
+                              renderer_backfacing_Ng);
     OSP_REGISTER_SG_NODE_NAME(Renderer("backfacing_Ns"),
-                              Renderer_backfacing_Ns);
+                              renderer_backfacing_Ns);
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("primID"), Renderer_primID);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("geomID"), Renderer_geomID);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("instID"), Renderer_instID);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("primID"), renderer_primID);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("geomID"), renderer_geomID);
+    OSP_REGISTER_SG_NODE_NAME(Renderer("instID"), renderer_instID);
 
     OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_volume"),
-                              Renderer_raycast_volume);
+                              renderer_raycast_volume);
 
   }  // namespace sg
 }  // namespace ospray

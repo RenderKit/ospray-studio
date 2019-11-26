@@ -72,7 +72,7 @@ class GLFWSgWindow
   bool showAlbedo{false};
   bool cancelFrameOnInteraction{false};
 
-  std::string scene{"tutorialScene"};
+  std::string scene;
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   std::string rendererTypeStr{"scivis"};
