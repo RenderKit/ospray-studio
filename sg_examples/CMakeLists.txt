@@ -17,7 +17,8 @@
 add_executable(sgExamples
   ArcballCamera.cpp
   GLFWSgWindow.cpp
-  imgui_impl_glfw_gl3.cpp
+  imgui_impl_glfw.cpp
+  imgui_impl_opengl2.cpp
   sgExamples.cpp
 )
 

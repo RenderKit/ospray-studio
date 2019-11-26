@@ -15,9 +15,10 @@
 // ======================================================================== //
 
 #include "GLFWSgWindow.h"
-#include "imgui_impl_glfw_gl3.h"
 // imgui
 #include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl2.h"
 // std
 #include <iostream>
 #include <stdexcept>
@@ -72,6 +73,9 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
     throw std::runtime_error("Failed to initialize GLFW!");
   }
 
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+
   // create GLFW window
   glfwWindow = glfwCreateWindow(
       windowSize.x, windowSize.y, "OSPRay Tutorial", nullptr, nullptr);
@@ -81,10 +85,12 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
     throw std::runtime_error("Failed to create GLFW window!");
   }
 
-  // make the window's context current
   glfwMakeContextCurrent(glfwWindow);
 
-  ImGui_ImplGlfwGL3_Init(glfwWindow, true);
+  ImGui::CreateContext();
+
+  ImGui_ImplGlfw_InitForOpenGL(glfwWindow, true);
+  ImGui_ImplOpenGL2_Init();
 
   // set initial OpenGL state
   glEnable(GL_TEXTURE_2D);
@@ -143,8 +149,9 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
 
 GLFWSgWindow::~GLFWSgWindow()
 {
-  ImGui_ImplGlfwGL3_Shutdown();
-  // cleanly terminate GLFW
+  ImGui_ImplOpenGL2_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
   glfwTerminate();
 }
 
@@ -170,11 +177,12 @@ void GLFWSgWindow::mainLoop()
   startNewOSPRayFrame();
 
   while (!glfwWindowShouldClose(glfwWindow) && !g_quitNextFrame) {
-    ImGui_ImplGlfwGL3_NewFrame();
+    ImGui_ImplOpenGL2_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
     display();
 
-    // poll and process events
     glfwPollEvents();
   }
 
@@ -323,6 +331,7 @@ void GLFWSgWindow::display()
 
   if (showUi) {
     ImGui::Render();
+    ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
   }
 
   // swap buffers
