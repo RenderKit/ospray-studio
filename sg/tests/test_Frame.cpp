@@ -29,7 +29,7 @@ int main(int argc, const char *argv[])
   {
     std::cout << "Rendering a test frame..." << std::endl;
 
-    auto frame_ptr = createNodeAs<Frame>("frame", "Frame", "test frame");
+    auto frame_ptr = createNodeAs<Frame>("frame", "frame");
     auto &frame    = *frame_ptr;
 
     frame.startNewFrame();
@@ -37,7 +37,7 @@ int main(int argc, const char *argv[])
 
     std::cout << "...finished!" << std::endl;
 
-    auto size    = frame["frameBuffer"]["size"].valueAs<vec2i>();
+    auto size    = frame["framebuffer"]["size"].valueAs<vec2i>();
     auto *pixels = (uint32_t *)frame.mapFrame();
 
     ospcommon::utility::writePPM("test_Frame.ppm", size.x, size.y, pixels);

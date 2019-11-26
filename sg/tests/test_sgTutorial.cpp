@@ -63,23 +63,20 @@ int main(int argc, const char *argv[])
   {
     std::cout << "Rendering a test frame..." << std::endl;
 
-    auto frame_ptr = createNodeAs<Frame>("frame", "Frame", "test frame");
+    auto frame_ptr = createNodeAs<Frame>("frame", "frame");
     auto &frame    = *frame_ptr;
 
-    frame.createChild("renderer", "Renderer_scivis", "current Renderer");
+    frame.createChild("renderer", "renderer_scivis");
 
     frame["camera"]["aspect"]    = imgSize.x / (float)imgSize.y;
     frame["camera"]["position"]  = cam_pos;
     frame["camera"]["direction"] = cam_view;
     frame["camera"]["up"]        = cam_up;
 
-    auto xfm = createNode("xfm",
-                          "Transform",
-                          "affine transformation",
-                          affine3f::translate(vec3f(0.1f)));
+    auto xfm = createNode("xfm", "transform", affine3f::translate(vec3f(0.1f)));
 
     // create and setup model and mesh
-    auto mesh = createNode("mesh", "Geometry_triangles", "triangle mesh");
+    auto mesh = createNode("mesh", "geometry_triangles");
 
     mesh->createChildData("vertex.position", vertex);
     mesh->createChildData("vertex.color", color);
@@ -96,7 +93,7 @@ int main(int argc, const char *argv[])
 
     std::cout << "...finished!" << std::endl;
 
-    auto size    = frame["frameBuffer"]["size"].valueAs<vec2i>();
+    auto size    = frame["framebuffer"]["size"].valueAs<vec2i>();
     auto *pixels = (uint32_t *)frame.mapFrame();
 
     ospcommon::utility::writePPM("test_sgTutorial.ppm", size.x, size.y, pixels);
