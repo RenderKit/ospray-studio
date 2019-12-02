@@ -18,8 +18,8 @@
 
 // sg
 #include "SceneGraph.h"
-#include "sg/geometry/TriangleMesh.h"
 #include "sg/geometry/QuadMesh.h"
+#include "sg/geometry/TriangleMesh.h"
 #include "sg/texture/Texture2D.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION  // define this in only *one* .cc
@@ -34,10 +34,11 @@ namespace ospray {
   namespace sg {
 
     std::shared_ptr<Texture2D> loadTexture(const FileName &fullPath,
-                                           const bool preferLinear = false,
+                                           const bool preferLinear  = false,
                                            const bool nearestFilter = false)
     {
-      std::shared_ptr<Texture2D> tex = Texture2D::load(fullPath, preferLinear, nearestFilter);
+      std::shared_ptr<Texture2D> tex =
+          Texture2D::load(fullPath, preferLinear, nearestFilter);
       if (!tex)
         std::cout << "could not load texture " << fullPath.str() << " !\n";
 
@@ -48,11 +49,12 @@ namespace ospray {
                             const std::string &name,
                             const FileName &texName,
                             const FileName &containingPath,
-                            bool preferLinear = false,
+                            bool preferLinear  = false,
                             bool nearestFilter = false)
     {
       if (!texName.str().empty()) {
-        auto tex = loadTexture(containingPath + texName, preferLinear, nearestFilter);
+        auto tex =
+            loadTexture(containingPath + texName, preferLinear, nearestFilter);
         if (tex) {
           tex->setName(name);
           node.setChild(name, tex);
@@ -75,13 +77,13 @@ namespace ospray {
         floats.push_back(val);
 
       if (floats.size() == 1) {
-        paramType = "float";
+        paramType  = "float";
         paramValue = floats[0];
       } else if (floats.size() == 2) {
-        paramType = "vec2f";
+        paramType  = "vec2f";
         paramValue = vec2f(floats[0], floats[1]);
       } else if (floats.size() == 3) {
-        paramType = "vec3f";
+        paramType  = "vec3f";
         paramValue = vec3f(floats[0], floats[1], floats[2]);
       } else {
         // Unknown type.
@@ -96,7 +98,8 @@ namespace ospray {
           createNode("materialList", "MaterialList")->nodeAs<MaterialList>();
 
       if (mats.empty()) {
-        sgMaterials->push_back(createNode("default", "Material")->nodeAs<Material>());
+        sgMaterials->push_back(
+            createNode("default", "Material")->nodeAs<Material>());
         return sgMaterials;
       }
 
@@ -113,26 +116,30 @@ namespace ospray {
           } else {
             std::string paramType;
             ospcommon::utility::Any paramValue;
-            if (param.first.find("Map") != std::string::npos && param.first.find("Map.") == std::string::npos)
-            {
+            if (param.first.find("Map") != std::string::npos &&
+                param.first.find("Map.") == std::string::npos) {
               bool preferLinear = false;
-              bool nearestFilter = (param.first.find("rotation") != std::string::npos) ||
-                                   (param.first.find("Rotation") != std::string::npos);
-              addTextureIfNeeded(matNode, param.first,
-                                 param.second, containingPath, preferLinear, nearestFilter);
-            }
-            else
-            {
+              bool nearestFilter =
+                  (param.first.find("rotation") != std::string::npos) ||
+                  (param.first.find("Rotation") != std::string::npos);
+              addTextureIfNeeded(matNode,
+                                 param.first,
+                                 param.second,
+                                 containingPath,
+                                 preferLinear,
+                                 nearestFilter);
+            } else {
               parseParameterString(param.second, paramType, paramValue);
               try {
-                matNode.createChildWithValue(param.first, paramType, paramValue);
+                matNode.createChildWithValue(
+                    param.first, paramType, paramValue);
               } catch (const std::runtime_error &) {
-                // NOTE(jda) - silently move on if parsed node type doesn't exist
-                // maybe it's a texture, try it
+                // NOTE(jda) - silently move on if parsed node type doesn't
+                // exist maybe it's a texture, try it
                 std::cout << "attempting to load param as texture: "
                           << param.first << " " << param.second << std::endl;
-                addTextureIfNeeded(matNode, param.first,
-                                   param.second, containingPath);
+                addTextureIfNeeded(
+                    matNode, param.first, param.second, containingPath);
               }
             }
           }
@@ -142,7 +149,7 @@ namespace ospray {
           matNode["d"]  = mat.dissolve;
           matNode["Kd"] = vec3f(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
           matNode["Ks"] =
-            vec3f(mat.specular[0], mat.specular[1], mat.specular[2]);
+              vec3f(mat.specular[0], mat.specular[1], mat.specular[2]);
           matNode["Ns"] = mat.shininess;
 
           addTextureIfNeeded(
@@ -150,10 +157,10 @@ namespace ospray {
           addTextureIfNeeded(
               matNode, "map_Ks", mat.specular_texname, containingPath);
           addTextureIfNeeded(matNode,
-              "map_Ns",
-              mat.specular_highlight_texname,
-              containingPath,
-              true);
+                             "map_Ns",
+                             mat.specular_highlight_texname,
+                             containingPath,
+                             true);
           addTextureIfNeeded(
               matNode, "map_bump", mat.bump_texname, containingPath);
           addTextureIfNeeded(
@@ -190,22 +197,22 @@ namespace ospray {
                                containingPath.c_str(),
                                needsReload);  // triangulate meshes if true
 
-        auto numQuads = 0;
+        auto numQuads     = 0;
         auto numTriangles = 0;
-        needsReload = false;
+        needsReload       = false;
         for (auto &shape : shapes) {
           for (auto numVertsInFace : shape.mesh.num_face_vertices) {
             numTriangles += (numVertsInFace == 3);
             numQuads += (numVertsInFace == 4);
 
             if (numVertsInFace < 3) {
-              std::cerr << "Warning: less than 3 verts in face!\n" <<
-                           "         Lines and points not supported.\n";
+              std::cerr << "Warning: less than 3 verts in face!\n"
+                        << "         Lines and points not supported.\n";
               needsReload = true;
             }
             if (numVertsInFace > 4) {
-              std::cerr << "Warning: more than 4 verts in face!\n" <<
-                           "         Polygons not supported.\n";
+              std::cerr << "Warning: more than 4 verts in face!\n"
+                        << "         Polygons not supported.\n";
               needsReload = true;
               break;
             }
@@ -222,12 +229,12 @@ namespace ospray {
           attrib.normals.clear();
           attrib.texcoords.clear();
         } else {
-          std::cout << "... found " << numTriangles << " triangles " <<
-                       "and " << numQuads << " quads.\n";
+          std::cout << "... found " << numTriangles << " triangles "
+                    << "and " << numQuads << " quads.\n";
         }
       } while (needsReload);
 
-#if 0 // NOTE(jda) - enable if you want to see warnings from TinyOBJ
+#if 0  // NOTE(jda) - enable if you want to see warnings from TinyOBJ
       if (!err.empty())
         std::cerr << "#ospsg: obj parsing warning(s)...\n" << err << std::endl;
 #endif
@@ -248,14 +255,13 @@ namespace ospray {
       size_t shapeCounter = 0;
       size_t numShapes    = shapes.size();
       size_t increment    = numShapes / size_t(10);
-      int    incrementer  = 0;
+      int incrementer     = 0;
 
 #if !USE_INSTANCES
       auto objInstance = createNode("instance", "Instance");
       world->add(objInstance);
 #endif
       for (auto &shape : shapes) {
-
         if (shapeCounter++ > (increment * incrementer + 1))
           std::cout << incrementer++ * 10 << "%\n";
 
@@ -269,11 +275,12 @@ namespace ospray {
         auto vi = createNode("index", "DataVector4i")->nodeAs<DataVector4i>();
         vi->v.reserve(numSrcIndices / 4);
 
-        auto vn = createNode("vertex.normal", "DataVector3f")->nodeAs<DataVector3f>();
+        auto vn =
+            createNode("vertex.normal", "DataVector3f")->nodeAs<DataVector3f>();
         vn->v.reserve(numSrcIndices);
 
-        auto vt =
-            createNode("vertex.texcoord", "DataVector2f")->nodeAs<DataVector2f>();
+        auto vt = createNode("vertex.texcoord", "DataVector2f")
+                      ->nodeAs<DataVector2f>();
         vt->v.reserve(numSrcIndices);
 
         // OSPRay doesn't support separate arrays for vertex, normal & texcoord
@@ -318,8 +325,8 @@ namespace ospray {
         if (!vt->empty())
           mesh->add(vt);
 
-        auto pmids = createNode("prim.materialID",
-                                "DataVector1i")->nodeAs<DataVector1i>();
+        auto pmids = createNode("prim.materialID", "DataVector1i")
+                         ->nodeAs<DataVector1i>();
 
         auto numMatIds = shape.mesh.material_ids.size();
         pmids->v.reserve(numMatIds);
@@ -346,7 +353,6 @@ namespace ospray {
 #else
         (*objInstance)["model"].add(mesh);
 #endif
-
       }
 
       std::cout << "...finished import!\n";
@@ -354,5 +360,5 @@ namespace ospray {
 
     OSPSG_REGISTER_IMPORT_FUNCTION(importOBJ, obj);
 
-  }  // ::ospray::sg
-}  // ::ospray
+  }  // namespace sg
+}  // namespace ospray

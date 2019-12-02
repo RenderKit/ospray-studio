@@ -60,7 +60,8 @@ class GLFWSgWindow
   void waitOnOSPRayFrame();
   void updateTitleBar();
   void buildUI();
-  void refreshScene(bool resetCamera = false);
+  void refreshRenderer();
+  void refreshScene();
 
   static GLFWSgWindow *activeWindow;
 

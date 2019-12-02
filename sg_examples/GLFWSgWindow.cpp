@@ -25,12 +25,15 @@
 #include <stdexcept>
 // ospray_sg
 #include "sg/generator/Generator.h"
+#include "sg/importer/Importer.h"
 #include "sg/visitors/PrintNodes.h"
+// ospcommon
+#include "ospcommon/utility/getEnvVar.h"
 
 static bool g_quitNextFrame = false;
 
 static const std::vector<std::string> g_scenes = {
-    "tutorial_scene", "random_spheres", "wavelet"};
+    "tutorial_scene", "random_spheres", "wavelet", "imported"};
 
 static const std::vector<std::string> g_renderers = {"scivis",
                                                      "raycast",
@@ -141,7 +144,8 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
 
   frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
-  refreshScene(true);
+  refreshRenderer();
+  refreshScene();
 
   // trigger window reshape events with current window size
   glfwGetFramebufferSize(glfwWindow, &this->windowSize.x, &this->windowSize.y);
@@ -384,7 +388,7 @@ void GLFWSgWindow::buildUI()
                    nullptr,
                    g_scenes.size())) {
     scene = g_scenes[whichScene];
-    refreshScene(true);
+    refreshScene();
   }
 
   static int whichRenderer = 0;
@@ -400,7 +404,7 @@ void GLFWSgWindow::buildUI()
       rendererType = OSPRayRendererType::PATHTRACER;
     else
       rendererType = OSPRayRendererType::OTHER;
-    refreshScene();
+    refreshRenderer();
   }
 
   ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
@@ -448,23 +452,34 @@ void GLFWSgWindow::buildUI()
   ImGui::End();
 }
 
-void GLFWSgWindow::refreshScene(bool resetCamera)
+void GLFWSgWindow::refreshRenderer()
+{
+  frame->createChild("renderer", "renderer_" + rendererTypeStr);
+}
+
+void GLFWSgWindow::refreshScene()
 {
   auto world = sg::createNode("world", "world");
 
-  auto &g =
-      world->createChildAs<sg::Generator>("generator", "generator_" + scene);
-  g.generateData();
+  if (scene == "imported") {
+    auto FILE = ospcommon::utility::getEnvVar<std::string>("IMPORT_FILE");
+    if (!FILE)
+      std::cout << "WARNING: set 'IMPORT_FILE' env var to import .obj file\n";
+
+    auto &imp = world->createChildAs<sg::Importer>("importer", "importer_obj");
+    imp["file"] = FILE.value_or("<none>");
+    imp.importScene();
+  } else {
+    auto &gen =
+        world->createChildAs<sg::Generator>("generator", "generator_" + scene);
+    gen.generateData();
+  }
 
   world->render();
 
   frame->add(world);
 
-  frame->createChild("renderer", "renderer_" + rendererTypeStr);
-
-  if (resetCamera) {
-    arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), windowSize));
-    updateCamera();
-  }
+  arcballCamera.reset(
+      new ArcballCamera(frame->child("world").bounds(), windowSize));
+  updateCamera();
 }

@@ -1,5 +1,5 @@
 ## ======================================================================== ##
-## Copyright 2009-2019 Intel Corporation                                    ##
+## Copyright 2009-2018 Intel Corporation                                    ##
 ##                                                                          ##
 ## Licensed under the Apache License, Version 2.0 (the "License");          ##
 ## you may not use this file except in compliance with the License.         ##
@@ -14,57 +14,9 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-## Build Library ##
+add_library(tiny_obj_loader INTERFACE)
 
-add_library(ospray_sg SHARED
-  Data.cpp
-  Node.cpp
-  Frame.cpp
-
-  camera/Camera.cpp
-  camera/Perspective.cpp
-
-  fb/FrameBuffer.cpp
-
-  generator/Generator.cpp
-  generator/RandomSpheres.cpp
-  generator/TutorialScene.cpp
-  generator/WaveletVolume.cpp
-
-  importer/Importer.cpp
-  importer/OBJ.cpp
-
-  renderer/PathTracer.cpp
-  renderer/Renderer.cpp
-  renderer/SciVis.cpp
-
-  scene/World.cpp
-
-  scene/geometry/Geometry.cpp
-  scene/geometry/Spheres.cpp
-  scene/geometry/Triangles.cpp
-
-  scene/transfer_function/Cloud.cpp
-  scene/transfer_function/Jet.cpp
-  scene/transfer_function/TransferFunction.cpp
-
-  scene/volume/Structured.cpp
-  scene/volume/Volume.cpp
+target_include_directories(tiny_obj_loader
+INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
 )
-
-target_link_libraries(ospray_sg
-PUBLIC
-  ospcommon::ospcommon
-  ospray::ospray
-PRIVATE
-  tiny_obj_loader
-)
-
-target_include_directories(ospray_sg
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
-)
-
-## Build Tests ##
-
-add_subdirectory(tests)
