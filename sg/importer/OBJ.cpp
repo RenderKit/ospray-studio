@@ -93,8 +93,10 @@ namespace ospray::sg {
         std::cout << "... found " << numTriangles << " triangles "
                   << "and " << numQuads << " quads.\n";
 
-      if (!err.empty())
-        std::cerr << "#ospsg: obj parsing warning(s)...\n" << err << std::endl;
+        if (!err.empty()) {
+          std::cerr << "#ospsg: obj parsing warning(s)...\n"
+                    << err << std::endl;
+        }
         return retval;
       }
     } while (needsReload);
@@ -149,21 +151,14 @@ namespace ospray::sg {
       for (size_t i = 0; i < numSrcIndices; i++) {
         auto idx = shape.mesh.indices[i];
 
-        v.emplace_back(attrib.vertices[idx.vertex_index * 3 + 0],
-                       attrib.vertices[idx.vertex_index * 3 + 1],
-                       attrib.vertices[idx.vertex_index * 3 + 2]);
+        v.emplace_back(&attrib.vertices[idx.vertex_index * 3]);
 
         // TODO create missing normals&texcoords if only some faces have them
-        if (!attrib.normals.empty() && idx.normal_index != -1) {
-          vn.emplace_back(attrib.normals[idx.normal_index * 3 + 0],
-                          attrib.normals[idx.normal_index * 3 + 1],
-                          attrib.normals[idx.normal_index * 3 + 2]);
-        }
+        if (!attrib.normals.empty() && idx.normal_index != -1)
+          vn.emplace_back(&attrib.normals[idx.normal_index * 3]);
 
-        if (!attrib.texcoords.empty() && idx.texcoord_index != -1) {
-          vt.emplace_back(attrib.texcoords[idx.texcoord_index * 2 + 0],
-                          attrib.texcoords[idx.texcoord_index * 2 + 1]);
-        }
+        if (!attrib.texcoords.empty() && idx.texcoord_index != -1)
+          vt.emplace_back(&attrib.texcoords[idx.texcoord_index * 2]);
       }
 
       mesh.createChildData("vertex.position", v);
