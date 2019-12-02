@@ -33,6 +33,7 @@ add_library(ospray_sg SHARED
 
   importer/Importer.cpp
   importer/OBJ.cpp
+  importer/OBJ/tiny_obj_loader_impl.cpp
 
   renderer/PathTracer.cpp
   renderer/Renderer.cpp

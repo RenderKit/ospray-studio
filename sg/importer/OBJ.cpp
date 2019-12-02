@@ -16,7 +16,6 @@
 
 #include "Importer.h"
 // tiny_obj_loader
-#define TINYOBJLOADER_IMPLEMENTATION  // define this in only *one* .cc
 #include "tiny_obj_loader.h"
 // ospcommon
 #include "ospcommon/os/FileName.h"
@@ -94,10 +93,8 @@ namespace ospray::sg {
         std::cout << "... found " << numTriangles << " triangles "
                   << "and " << numQuads << " quads.\n";
 
-#if 0  // NOTE(jda) - enable if you want to see warnings from TinyOBJ
       if (!err.empty())
         std::cerr << "#ospsg: obj parsing warning(s)...\n" << err << std::endl;
-#endif
         return retval;
       }
     } while (needsReload);
