@@ -16,29 +16,27 @@
 
 #pragma once
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    enum class NodeType
-    {
-      GENERIC,
-      PARAMETER,
-      FRAME,
-      FRAME_BUFFER,
-      RENDERER,
-      CAMERA,
-      WORLD,
-      TRANSFORM,
-      TRANSFER_FUNCTION,
-      MATERIAL,
-      TEXTURE,
-      LIGHT,
-      GEOMETRY,
-      VOLUME,
-      GENERATOR,
-      IMPORTER,
-      UNKNOWN = 9999
-    };
+  enum class NodeType
+  {
+    GENERIC,
+    PARAMETER,
+    FRAME,
+    FRAME_BUFFER,
+    RENDERER,
+    CAMERA,
+    WORLD,
+    TRANSFORM,
+    TRANSFER_FUNCTION,
+    MATERIAL,
+    TEXTURE,
+    LIGHT,
+    GEOMETRY,
+    VOLUME,
+    GENERATOR,
+    IMPORTER,
+    UNKNOWN = 9999
+  };
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

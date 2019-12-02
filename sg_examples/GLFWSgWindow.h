@@ -21,8 +21,6 @@
 #include "GLFW/glfw3.h"
 // ospray
 #include "sg/Frame.h"
-// ospcommon
-#include "ospcommon/containers/TransactionalBuffer.h"
 // std
 #include <functional>
 

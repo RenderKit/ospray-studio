@@ -16,26 +16,24 @@
 
 #include "Volume.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE StructuredVolume : public Volume
-    {
-      StructuredVolume();
-      virtual ~StructuredVolume() override = default;
-    };
+  struct OSPSG_INTERFACE StructuredVolume : public Volume
+  {
+    StructuredVolume();
+    virtual ~StructuredVolume() override = default;
+  };
 
-    OSP_REGISTER_SG_NODE_NAME(StructuredVolume, volume_structured);
+  OSP_REGISTER_SG_NODE_NAME(StructuredVolume, volume_structured);
 
-    // StructuredVolume definitions ///////////////////////////////////////////
+  // StructuredVolume definitions /////////////////////////////////////////////
 
-    StructuredVolume::StructuredVolume() : Volume("structured_volume")
-    {
-      createChild("voxelType", "int", int(OSP_FLOAT));
-      createChild("gridOrigin", "vec3f", vec3f(0.f));
-      createChild("gridSpacing", "vec3f", vec3f(1.f));
-      createChild("dimensions", "vec3i", vec3i(1));
-    }
+  StructuredVolume::StructuredVolume() : Volume("structured_volume")
+  {
+    createChild("voxelType", "int", int(OSP_FLOAT));
+    createChild("gridOrigin", "vec3f", vec3f(0.f));
+    createChild("gridSpacing", "vec3f", vec3f(1.f));
+    createChild("dimensions", "vec3i", vec3i(1));
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

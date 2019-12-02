@@ -18,41 +18,39 @@
 // std
 #include <random>
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct RandomSpheres : public Generator
-    {
-      RandomSpheres()           = default;
-      ~RandomSpheres() override = default;
+  struct RandomSpheres : public Generator
+  {
+    RandomSpheres()           = default;
+    ~RandomSpheres() override = default;
 
-      void generateData() override;
-    };
+    void generateData() override;
+  };
 
-    OSP_REGISTER_SG_NODE_NAME(RandomSpheres, generator_random_spheres);
+  OSP_REGISTER_SG_NODE_NAME(RandomSpheres, generator_random_spheres);
 
-    // RandomSpheres definitions //////////////////////////////////////////////
+  // RandomSpheres definitions ////////////////////////////////////////////////
 
-    void RandomSpheres::generateData()
-    {
-      remove("spheres");
+  void RandomSpheres::generateData()
+  {
+    remove("spheres");
 
-      const int numSpheres = 1e6;
-      const float radius   = 0.002f;
+    const int numSpheres = 1e6;
+    const float radius   = 0.002f;
 
-      auto &spheres = createChild("spheres", "geometry_spheres");
+    auto &spheres = createChild("spheres", "geometry_spheres");
 
-      std::mt19937 rng(0);
-      std::uniform_real_distribution<float> dist(-1.f + radius, 1.f - radius);
+    std::mt19937 rng(0);
+    std::uniform_real_distribution<float> dist(-1.f + radius, 1.f - radius);
 
-      std::vector<vec3f> centers;
+    std::vector<vec3f> centers;
 
-      for (int i = 0; i < numSpheres; ++i)
-        centers.push_back(vec3f(dist(rng), dist(rng), dist(rng)));
+    for (int i = 0; i < numSpheres; ++i)
+      centers.push_back(vec3f(dist(rng), dist(rng), dist(rng)));
 
-      spheres.createChildData("sphere.position", centers);
-      spheres.child("radius") = radius;
-    }
+    spheres.createChildData("sphere.position", centers);
+    spheres.child("radius") = radius;
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

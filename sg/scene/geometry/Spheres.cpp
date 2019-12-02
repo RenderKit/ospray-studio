@@ -16,23 +16,21 @@
 
 #include "Geometry.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE Spheres : public Geometry
-    {
-      Spheres();
-      virtual ~Spheres() override = default;
-    };
+  struct OSPSG_INTERFACE Spheres : public Geometry
+  {
+    Spheres();
+    virtual ~Spheres() override = default;
+  };
 
-    OSP_REGISTER_SG_NODE_NAME(Spheres, geometry_spheres);
+  OSP_REGISTER_SG_NODE_NAME(Spheres, geometry_spheres);
 
-    // Spheres definitions ////////////////////////////////////////////////////
+  // Spheres definitions //////////////////////////////////////////////////////
 
-    Spheres::Spheres() : Geometry("spheres")
-    {
-      createChild("radius", "float", 1.f);
-    }
+  Spheres::Spheres() : Geometry("spheres")
+  {
+    createChild("radius", "float", 1.f);
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

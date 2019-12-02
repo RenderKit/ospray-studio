@@ -21,92 +21,90 @@
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/World.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    Frame::Frame()
-    {
-      createChild("framebuffer", "framebuffer");
-      createChild("camera", "camera_perspective");
-      createChild("renderer", "renderer_rayDir");
-      createChild("world", "world");
-    }
+  Frame::Frame()
+  {
+    createChild("framebuffer", "framebuffer");
+    createChild("camera", "camera_perspective");
+    createChild("renderer", "renderer_rayDir");
+    createChild("world", "world");
+  }
 
-    NodeType Frame::type() const
-    {
-      return NodeType::FRAME;
-    }
+  NodeType Frame::type() const
+  {
+    return NodeType::FRAME;
+  }
 
-    void Frame::startNewFrame(bool immediatelyWait)
-    {
-      auto &fb       = childAs<FrameBuffer>("frameBuffer");
-      auto &camera   = childAs<Camera>("camera");
-      auto &renderer = childAs<Renderer>("renderer");
-      auto &world    = childAs<World>("world");
+  void Frame::startNewFrame(bool immediatelyWait)
+  {
+    auto &fb       = childAs<FrameBuffer>("frameBuffer");
+    auto &camera   = childAs<Camera>("camera");
+    auto &renderer = childAs<Renderer>("renderer");
+    auto &world    = childAs<World>("world");
 
-      if (this->anyChildModified())
-        fb.resetAccumulation();
+    if (this->anyChildModified())
+      fb.resetAccumulation();
 
-      this->commit();
+    this->commit();
 
-      auto future = fb.handle().renderFrame(
-          renderer.handle(), camera.handle(), world.handle());
-      setHandle(future);
+    auto future = fb.handle().renderFrame(
+        renderer.handle(), camera.handle(), world.handle());
+    setHandle(future);
 
-      if (immediatelyWait)
-        waitOnFrame();
-    }
-
-    bool Frame::frameIsReady()
-    {
-      auto future = handle();
-      if (future)
-        return future.isReady();
-      else
-        return false;
-    }
-
-    float Frame::frameProgress()
-    {
-      auto future = handle();
-      if (future)
-        return future.progress();
-      else
-        return 1.f;
-    }
-
-    void Frame::waitOnFrame()
-    {
-      auto future = handle();
-      if (future)
-        future.wait();
-    }
-
-    void Frame::cancelFrame()
-    {
-      auto future = handle();
-      if (future)
-        future.cancel();
-    }
-
-    const void *Frame::mapFrame(OSPFrameBufferChannel channel)
-    {
+    if (immediatelyWait)
       waitOnFrame();
-      auto &fb = childAs<FrameBuffer>("framebuffer");
-      return fb.map(channel);
-    }
+  }
 
-    void Frame::unmapFrame(void *mem)
-    {
-      auto &fb = childAs<FrameBuffer>("framebuffer");
-      fb.unmap(mem);
-    }
+  bool Frame::frameIsReady()
+  {
+    auto future = handle();
+    if (future)
+      return future.isReady();
+    else
+      return false;
+  }
 
-    void Frame::preCommit() {}
+  float Frame::frameProgress()
+  {
+    auto future = handle();
+    if (future)
+      return future.progress();
+    else
+      return 1.f;
+  }
 
-    void Frame::postCommit() {}
+  void Frame::waitOnFrame()
+  {
+    auto future = handle();
+    if (future)
+      future.wait();
+  }
 
-    OSP_REGISTER_SG_NODE_NAME(Frame, frame);
+  void Frame::cancelFrame()
+  {
+    auto future = handle();
+    if (future)
+      future.cancel();
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+  const void *Frame::mapFrame(OSPFrameBufferChannel channel)
+  {
+    waitOnFrame();
+    auto &fb = childAs<FrameBuffer>("framebuffer");
+    return fb.map(channel);
+  }
+
+  void Frame::unmapFrame(void *mem)
+  {
+    auto &fb = childAs<FrameBuffer>("framebuffer");
+    fb.unmap(mem);
+  }
+
+  void Frame::preCommit() {}
+
+  void Frame::postCommit() {}
+
+  OSP_REGISTER_SG_NODE_NAME(Frame, frame);
+
+}  // namespace ospray::sg

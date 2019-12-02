@@ -18,37 +18,35 @@
 
 #include "../Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct CommitVisitor : public Visitor
-    {
-      CommitVisitor() = default;
-      ~CommitVisitor() override = default;
+  struct CommitVisitor : public Visitor
+  {
+    CommitVisitor()           = default;
+    ~CommitVisitor() override = default;
 
-      bool operator()(Node &node, TraversalContext &) override;
-      void postChildren(Node &node, TraversalContext &) override;
-    };
+    bool operator()(Node &node, TraversalContext &) override;
+    void postChildren(Node &node, TraversalContext &) override;
+  };
 
-    // Inlined definitions ////////////////////////////////////////////////////
+  // Inlined definitions //////////////////////////////////////////////////////
 
-    inline bool CommitVisitor::operator()(Node &node, TraversalContext &)
-    {
-      if (node.subtreeModifiedButNotCommitted()) {
-        node.preCommit();
-        return true;
-      } else {
-        return false;
-      }
+  inline bool CommitVisitor::operator()(Node &node, TraversalContext &)
+  {
+    if (node.subtreeModifiedButNotCommitted()) {
+      node.preCommit();
+      return true;
+    } else {
+      return false;
     }
+  }
 
-    void CommitVisitor::postChildren(Node &node, TraversalContext &)
-    {
-      if (node.subtreeModifiedButNotCommitted()) {
-        node.postCommit();
-        node.properties.lastCommitted.renew();
-      }
+  void CommitVisitor::postChildren(Node &node, TraversalContext &)
+  {
+    if (node.subtreeModifiedButNotCommitted()) {
+      node.postCommit();
+      node.properties.lastCommitted.renew();
     }
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

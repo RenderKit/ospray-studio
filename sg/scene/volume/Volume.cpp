@@ -16,13 +16,11 @@
 
 #include "Volume.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    Volume::Volume(const std::string &osp_type)
-    {
-      setValue(cpp::Volume(osp_type));
-    }
+  Volume::Volume(const std::string &osp_type)
+  {
+    setValue(cpp::Volume(osp_type));
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

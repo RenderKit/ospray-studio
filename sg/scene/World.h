@@ -18,14 +18,12 @@
 
 #include "../Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
-    {
-      World();
-      ~World() override = default;
-    };
+  struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
+  {
+    World();
+    ~World() override = default;
+  };
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

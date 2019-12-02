@@ -20,152 +20,150 @@
 // std
 #include <stack>
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct RenderScene : public Visitor
+  struct RenderScene : public Visitor
+  {
+    RenderScene();
+
+    bool operator()(Node &node, TraversalContext &ctx) override;
+    void postChildren(Node &node, TraversalContext &) override;
+
+   private:
+    // Helper Functions //
+
+    void createGeometry(Node &node);
+    void createVolume(Node &node);
+    void addGeometriesToGroup();
+    void createInstanceFromGroup();
+    void placeInstancesInWorld();
+
+    // Data //
+
+    struct
     {
-      RenderScene();
+      std::vector<cpp::GeometricModel> geometries;
+      std::vector<cpp::VolumetricModel> volumes;
+      cpp::Group group;
+      // Apperance information:
+      //     - Material
+      //     - TransferFunction
+      //     - ...others?
+    } current;
 
-      bool operator()(Node &node, TraversalContext &ctx) override;
-      void postChildren(Node &node, TraversalContext &) override;
+    cpp::World world;
+    std::vector<cpp::Instance> instances;
+    std::stack<affine3f> xfms;
+    std::stack<cpp::TransferFunction> tfns;
+  };
 
-     private:
-      // Helper Functions //
+  // Inlined definitions //////////////////////////////////////////////////////
 
-      void createGeometry(Node &node);
-      void createVolume(Node &node);
-      void addGeometriesToGroup();
-      void createInstanceFromGroup();
-      void placeInstancesInWorld();
+  inline RenderScene::RenderScene()
+  {
+    xfms.emplace(math::one);
+  }
 
-      // Data //
+  inline bool RenderScene::operator()(Node &node, TraversalContext &)
+  {
+    bool traverseChildren = true;
 
-      struct
-      {
-        std::vector<cpp::GeometricModel> geometries;
-        std::vector<cpp::VolumetricModel> volumes;
-        cpp::Group group;
-        // Apperance information:
-        //     - Material
-        //     - TransferFunction
-        //     - ...others?
-      } current;
-
-      cpp::World world;
-      std::vector<cpp::Instance> instances;
-      std::stack<affine3f> xfms;
-      std::stack<cpp::TransferFunction> tfns;
-    };
-
-    // Inlined definitions ////////////////////////////////////////////////////
-
-    inline RenderScene::RenderScene()
-    {
-      xfms.emplace(math::one);
+    switch (node.type()) {
+    case NodeType::WORLD:
+      world = node.valueAs<cpp::World>();
+      break;
+    case NodeType::GEOMETRY:
+      createGeometry(node);
+      traverseChildren = false;
+      break;
+    case NodeType::VOLUME:
+      createVolume(node);
+      traverseChildren = false;
+      break;
+    case NodeType::TRANSFER_FUNCTION:
+      tfns.push(node.valueAs<cpp::TransferFunction>());
+      break;
+    case NodeType::TRANSFORM:
+      xfms.push(xfms.top() * node.valueAs<affine3f>());
+      break;
+    default:
+      break;
     }
 
-    inline bool RenderScene::operator()(Node &node, TraversalContext &)
-    {
-      bool traverseChildren = true;
+    return traverseChildren;
+  }
 
-      switch (node.type()) {
-      case NodeType::WORLD:
-        world = node.valueAs<cpp::World>();
-        break;
-      case NodeType::GEOMETRY:
-        createGeometry(node);
-        traverseChildren = false;
-        break;
-      case NodeType::VOLUME:
-        createVolume(node);
-        traverseChildren = false;
-        break;
-      case NodeType::TRANSFER_FUNCTION:
-        tfns.push(node.valueAs<cpp::TransferFunction>());
-        break;
-      case NodeType::TRANSFORM:
-        xfms.push(xfms.top() * node.valueAs<affine3f>());
-        break;
-      default:
-        break;
-      }
-
-      return traverseChildren;
+  inline void RenderScene::postChildren(Node &node, TraversalContext &)
+  {
+    switch (node.type()) {
+    case NodeType::WORLD:
+      createInstanceFromGroup();
+      placeInstancesInWorld();
+      world.commit();
+      break;
+    case NodeType::TRANSFER_FUNCTION:
+      tfns.pop();
+      break;
+    case NodeType::TRANSFORM:
+      createInstanceFromGroup();
+      xfms.pop();
+      break;
+    default:
+      // Nothing
+      break;
     }
+  }
 
-    inline void RenderScene::postChildren(Node &node, TraversalContext &)
-    {
-      switch (node.type()) {
-      case NodeType::WORLD:
-        createInstanceFromGroup();
-        placeInstancesInWorld();
-        world.commit();
-        break;
-      case NodeType::TRANSFER_FUNCTION:
-        tfns.pop();
-        break;
-      case NodeType::TRANSFORM:
-        createInstanceFromGroup();
-        xfms.pop();
-        break;
-      default:
-        // Nothing
-        break;
-      }
+  inline void RenderScene::createGeometry(Node &node)
+  {
+    auto geom = node.valueAs<cpp::Geometry>();
+    cpp::GeometricModel model(geom);
+    // TODO: add material/color information
+    model.commit();
+    current.geometries.push_back(model);
+  }
+
+  inline void RenderScene::createVolume(Node &node)
+  {
+    auto vol = node.valueAs<cpp::Volume>();
+    cpp::VolumetricModel model(vol);
+    if (node.hasChild("transfer_function")) {
+      model.setParam(
+          "transfer_function",
+          node["transfer_function"].valueAs<cpp::TransferFunction>());
+    } else {
+      model.setParam("transferFunction", tfns.top());
     }
+    model.commit();
+    current.volumes.push_back(model);
+  }
 
-    inline void RenderScene::createGeometry(Node &node)
-    {
-      auto geom = node.valueAs<cpp::Geometry>();
-      cpp::GeometricModel model(geom);
-      // TODO: add material/color information
-      model.commit();
-      current.geometries.push_back(model);
-    }
+  inline void RenderScene::createInstanceFromGroup()
+  {
+    if (current.geometries.empty() && current.volumes.empty())
+      return;
 
-    inline void RenderScene::createVolume(Node &node)
-    {
-      auto vol = node.valueAs<cpp::Volume>();
-      cpp::VolumetricModel model(vol);
-      if (node.hasChild("transfer_function")) {
-        model.setParam(
-            "transfer_function",
-            node["transfer_function"].valueAs<cpp::TransferFunction>());
-      } else {
-        model.setParam("transferFunction", tfns.top());
-      }
-      model.commit();
-      current.volumes.push_back(model);
-    }
+    if (!current.geometries.empty())
+      current.group.setParam("geometry", cpp::Data(current.geometries));
 
-    inline void RenderScene::createInstanceFromGroup()
-    {
-      if (current.geometries.empty() && current.volumes.empty())
-        return;
+    if (!current.volumes.empty())
+      current.group.setParam("volume", cpp::Data(current.volumes));
 
-      if (!current.geometries.empty())
-        current.group.setParam("geometry", cpp::Data(current.geometries));
+    current.geometries.clear();
+    current.volumes.clear();
 
-      if (!current.volumes.empty())
-        current.group.setParam("volume", cpp::Data(current.volumes));
+    current.group.commit();
 
-      current.geometries.clear();
-      current.volumes.clear();
+    cpp::Instance inst(current.group);
+    inst.setParam("xfm", xfms.top());
+    inst.commit();
+    instances.push_back(inst);
+  }
 
-      current.group.commit();
+  inline void RenderScene::placeInstancesInWorld()
+  {
+    if (!instances.empty())
+      world.setParam("instance", cpp::Data(instances));
+  }
 
-      cpp::Instance inst(current.group);
-      inst.setParam("xfm", xfms.top());
-      inst.commit();
-      instances.push_back(inst);
-    }
-
-    inline void RenderScene::placeInstancesInWorld()
-    {
-      if (!instances.empty())
-        world.setParam("instance", cpp::Data(instances));
-    }
-
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

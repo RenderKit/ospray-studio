@@ -16,10 +16,8 @@
 
 #include "Data.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    OSP_REGISTER_SG_NODE(Data);
+  OSP_REGISTER_SG_NODE(Data);
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

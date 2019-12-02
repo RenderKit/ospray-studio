@@ -18,31 +18,28 @@
 
 #include "Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct Frame : public OSPNode<cpp::Future, NodeType::FRAME>
-    {
-      Frame();
-      ~Frame() override = default;
+  struct Frame : public OSPNode<cpp::Future, NodeType::FRAME>
+  {
+    Frame();
+    ~Frame() override = default;
 
-      NodeType type() const override;
+    NodeType type() const override;
 
-      void startNewFrame(bool immediatelyWait = false);
+    void startNewFrame(bool immediatelyWait = false);
 
-      bool frameIsReady();
-      float frameProgress();
-      void waitOnFrame();
-      void cancelFrame();
+    bool frameIsReady();
+    float frameProgress();
+    void waitOnFrame();
+    void cancelFrame();
 
-      const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
-      void unmapFrame(void *mem);
+    const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
+    void unmapFrame(void *mem);
 
-    private:
+   private:
+    void preCommit() override;
+    void postCommit() override;
+  };
 
-      void preCommit() override;
-      void postCommit() override;
-    };
-
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

@@ -18,15 +18,13 @@
 
 #include "../../Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE Geometry
-        : public OSPNode<cpp::Geometry, NodeType::GEOMETRY>
-    {
-      Geometry(const std::string &osp_type);
-      ~Geometry() override = default;
-    };
+  struct OSPSG_INTERFACE Geometry
+      : public OSPNode<cpp::Geometry, NodeType::GEOMETRY>
+  {
+    Geometry(const std::string &osp_type);
+    ~Geometry() override = default;
+  };
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

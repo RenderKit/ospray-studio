@@ -22,354 +22,352 @@
 #include "ospcommon/os/library.h"
 #include "ospcommon/utility/StringManip.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    ///////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-    Node::Node()
-    {
-      // NOTE(jda) - can't do default member initializers due to MSVC...
-      properties.name        = "NULL";
-      properties.type        = NodeType::GENERIC;
-      properties.subType     = "Node";
-      properties.description = "<no description>";
+  Node::Node()
+  {
+    // NOTE(jda) - can't do default member initializers due to MSVC...
+    properties.name        = "NULL";
+    properties.type        = NodeType::GENERIC;
+    properties.subType     = "Node";
+    properties.description = "<no description>";
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Properties ///////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  std::string Node::name() const
+  {
+    return properties.name;
+  }
+
+  NodeType Node::type() const
+  {
+    return properties.type;
+  }
+
+  std::string Node::subType() const
+  {
+    return properties.subType;
+  }
+
+  std::string Node::description() const
+  {
+    return properties.description;
+  }
+
+  size_t Node::uniqueID() const
+  {
+    return properties.whenCreated;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Node stored value (data) interface ///////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  Any Node::value()
+  {
+    return properties.value;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Parent-child structual interface /////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  const FlatMap<std::string, NodePtr> &Node::children() const
+  {
+    return properties.children;
+  }
+
+  bool Node::hasChild(const std::string &name) const
+  {
+    auto &c = properties.children;
+    if (c.contains(name))
+      return true;
+
+    std::string name_lower = utility::lowerCase(name);
+
+    auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
+      return utility::lowerCase(n.first) == name_lower;
+    });
+
+    return itr != properties.children.end();
+  }
+
+  Node &Node::child(const std::string &name)
+  {
+    auto &c = properties.children;
+    if (c.contains(name))
+      return *c[name];
+
+    std::string name_lower = utility::lowerCase(name);
+
+    auto itr = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
+      return utility::lowerCase(n.first) == name_lower;
+    });
+
+    if (itr == properties.children.cend()) {
+      throw std::runtime_error(
+          "in " + subType() + " node '" + this->name() + "'" +
+          ": could not find sg child node with name '" + name + "'");
+    } else {
+      return *itr->second;
     }
+  }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Properties /////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
+  Node &Node::operator[](const std::string &c)
+  {
+    return child(c);
+  }
 
-    std::string Node::name() const
-    {
-      return properties.name;
-    }
+  bool Node::hasChildren() const
+  {
+    return !properties.children.empty();
+  }
 
-    NodeType Node::type() const
-    {
-      return properties.type;
-    }
+  const std::vector<Node *> &Node::parents() const
+  {
+    return properties.parents;
+  }
 
-    std::string Node::subType() const
-    {
-      return properties.subType;
-    }
+  bool Node::hasParents() const
+  {
+    return !properties.parents.empty();
+  }
 
-    std::string Node::description() const
-    {
-      return properties.description;
-    }
+  void Node::add(Node &node)
+  {
+    add(node.shared_from_this());
+  }
 
-    size_t Node::uniqueID() const
-    {
-      return properties.whenCreated;
-    }
+  void Node::add(Node &node, const std::string &name)
+  {
+    add(node.shared_from_this(), name);
+  }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Node stored value (data) interface /////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
+  void Node::add(NodePtr node)
+  {
+    add(node, node->name());
+  }
 
-    Any Node::value()
-    {
-      return properties.value;
-    }
+  void Node::add(NodePtr node, const std::string &name)
+  {
+    properties.children[name] = node;
+    node->properties.parents.push_back(this);
+    markAsModified();
+  }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Parent-child structual interface ///////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
-
-    const FlatMap<std::string, NodePtr> &Node::children() const
-    {
-      return properties.children;
-    }
-
-    bool Node::hasChild(const std::string &name) const
-    {
-      auto &c = properties.children;
-      if (c.contains(name))
-        return true;
-
-      std::string name_lower = utility::lowerCase(name);
-
-      auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
-        return utility::lowerCase(n.first) == name_lower;
-      });
-
-      return itr != properties.children.end();
-    }
-
-    Node &Node::child(const std::string &name)
-    {
-      auto &c = properties.children;
-      if (c.contains(name))
-        return *c[name];
-
-      std::string name_lower = utility::lowerCase(name);
-
-      auto itr = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
-        return utility::lowerCase(n.first) == name_lower;
-      });
-
-      if (itr == properties.children.cend()) {
-        throw std::runtime_error(
-            "in " + subType() + " node '" + this->name() + "'" +
-            ": could not find sg child node with name '" + name + "'");
-      } else {
-        return *itr->second;
+  void Node::remove(Node &node)
+  {
+    for (auto &child : properties.children) {
+      if (child.second.get() == &node) {
+        child.second->removeFromParentList(*this);
+        properties.children.erase(child.first);
+        return;
       }
     }
 
-    Node &Node::operator[](const std::string &c)
-    {
-      return child(c);
-    }
+    markAsModified();
+  }
 
-    bool Node::hasChildren() const
-    {
-      return !properties.children.empty();
-    }
+  void Node::remove(NodePtr node)
+  {
+    remove(*node);
+  }
 
-    const std::vector<Node *> &Node::parents() const
-    {
-      return properties.parents;
-    }
-
-    bool Node::hasParents() const
-    {
-      return !properties.parents.empty();
-    }
-
-    void Node::add(Node &node)
-    {
-      add(node.shared_from_this());
-    }
-
-    void Node::add(Node &node, const std::string &name)
-    {
-      add(node.shared_from_this(), name);
-    }
-
-    void Node::add(NodePtr node)
-    {
-      add(node, node->name());
-    }
-
-    void Node::add(NodePtr node, const std::string &name)
-    {
-      properties.children[name] = node;
-      node->properties.parents.push_back(this);
-      markAsModified();
-    }
-
-    void Node::remove(Node &node)
-    {
-      for (auto &child : properties.children) {
-        if (child.second.get() == &node) {
-          child.second->removeFromParentList(*this);
-          properties.children.erase(child.first);
-          return;
-        }
+  void Node::remove(const std::string &name)
+  {
+    for (auto &child : properties.children) {
+      if (child.first == name) {
+        child.second->removeFromParentList(*this);
+        properties.children.erase(child.first);
+        return;
       }
-
-      markAsModified();
     }
 
-    void Node::remove(NodePtr node)
-    {
-      remove(*node);
+    markAsModified();
+  }
+
+  void Node::removeAllParents()
+  {
+    for (auto &p : properties.parents)
+      p->remove(*this);
+  }
+
+  void Node::removeAllChildren()
+  {
+    for (auto &c : properties.children)
+      remove(c.first);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Traveral Interface ///////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  void Node::commit()
+  {
+    traverse<CommitVisitor>();
+  }
+
+  void Node::render()
+  {
+    commit();
+    traverse<RenderScene>();
+  }
+
+  box3f Node::bounds()
+  {
+    GetBounds visitor;
+    traverse(visitor);
+    return visitor.bounds;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Private Members //////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  void Node::preCommit() {}
+
+  void Node::postCommit() {}
+
+  TimeStamp Node::whenCreated() const
+  {
+    return properties.whenCreated;
+  }
+
+  TimeStamp Node::lastModified() const
+  {
+    return properties.lastModified;
+  }
+
+  TimeStamp Node::lastCommitted() const
+  {
+    return properties.lastCommitted;
+  }
+
+  TimeStamp Node::childrenLastModified() const
+  {
+    return properties.childrenMTime;
+  }
+
+  void Node::removeFromParentList(Node &node)
+  {
+    auto &p          = properties.parents;
+    auto remove_node = [&](auto np) { return np == &node; };
+    p.erase(std::remove_if(p.begin(), p.end(), remove_node), p.end());
+  }
+
+  void Node::markAsModified()
+  {
+    properties.lastModified.renew();
+    for (auto &p : properties.parents)
+      p->markChildrenModified();
+  }
+
+  void Node::markChildrenModified()
+  {
+    properties.childrenMTime.renew();
+    for (auto &p : properties.parents)
+      p->markChildrenModified();
+  }
+
+  void Node::setOSPRayParam(std::string, OSPObject) {}
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Global Stuff /////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  using CreatorFct = Node *(*)();
+
+  static std::map<std::string, CreatorFct> nodeRegistry;
+
+  std::shared_ptr<Node> createNode(std::string name,
+                                   std::string subtype,
+                                   std::string description,
+                                   Any value)
+  {
+    // Verify that 'ospray_sg' is properly loaded //
+
+    static bool libraryLoaded = false;
+    if (!libraryLoaded) {
+      loadLibrary("ospray_sg");
+      libraryLoaded = true;
     }
 
-    void Node::remove(const std::string &name)
-    {
-      for (auto &child : properties.children) {
-        if (child.first == name) {
-          child.second->removeFromParentList(*this);
-          properties.children.erase(child.first);
-          return;
-        }
-      }
+    // Look for the factory function to create the node //
 
-      markAsModified();
+    auto it = nodeRegistry.find(subtype);
+
+    CreatorFct creator = nullptr;
+
+    if (it == nodeRegistry.end()) {
+      std::string creatorName = "ospray_create_sg_node__" + subtype;
+
+      creator = (CreatorFct)getSymbol(creatorName);
+      if (!creator)
+        throw std::runtime_error("unknown node type '" + subtype + "'");
+
+      nodeRegistry[subtype] = creator;
+    } else {
+      creator = it->second;
     }
 
-    void Node::removeAllParents()
-    {
-      for (auto &p : properties.parents)
-        p->remove(*this);
-    }
+    // Create the node and return //
 
-    void Node::removeAllChildren()
-    {
-      for (auto &c : properties.children)
-        remove(c.first);
-    }
+    std::shared_ptr<sg::Node> newNode(creator());
+    newNode->properties.name        = name;
+    newNode->properties.subType     = subtype;
+    newNode->properties.type        = newNode->type();
+    newNode->properties.description = description;
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Traveral Interface /////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
+    if (value.valid())
+      newNode->setValue(value);
 
-    void Node::commit()
-    {
-      traverse<CommitVisitor>();
-    }
+    return newNode;
+  }
 
-    void Node::render()
-    {
-      commit();
-      traverse<RenderScene>();
-    }
+  NodePtr createNode(std::string name)
+  {
+    return createNode(name, "Node");
+  }
 
-    box3f Node::bounds()
-    {
-      GetBounds visitor;
-      traverse(visitor);
-      return visitor.bounds;
-    }
+  NodePtr createNode(std::string name, std::string subtype)
+  {
+    return createNode(name, subtype, "<no description>", Any());
+  }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Private Members ////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
+  NodePtr createNode(std::string name, std::string subtype, Any value)
+  {
+    return createNode(name, subtype, "<no description>", value);
+  }
 
-    void Node::preCommit() {}
+  OSP_REGISTER_SG_NODE(Node);
 
-    void Node::postCommit() {}
+  // Node_T<> type names
 
-    TimeStamp Node::whenCreated() const
-    {
-      return properties.whenCreated;
-    }
+  OSP_REGISTER_SG_NODE_NAME(StringNode, string);
+  OSP_REGISTER_SG_NODE_NAME(BoolNode, bool);
+  OSP_REGISTER_SG_NODE_NAME(FloatNode, float);
+  OSP_REGISTER_SG_NODE_NAME(Vec2fNode, vec2f);
+  OSP_REGISTER_SG_NODE_NAME(Vec3fNode, vec3f);
+  OSP_REGISTER_SG_NODE_NAME(Vec4fNode, vec4f);
+  OSP_REGISTER_SG_NODE_NAME(IntNode, int);
+  OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
+  OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
+  OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec4i);
+  OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
 
-    TimeStamp Node::lastModified() const
-    {
-      return properties.lastModified;
-    }
+  OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
+  OSP_REGISTER_SG_NODE_NAME(Box3iNode, box3i);
+  OSP_REGISTER_SG_NODE_NAME(Range1fNode, range1f);
 
-    TimeStamp Node::lastCommitted() const
-    {
-      return properties.lastCommitted;
-    }
+  OSP_REGISTER_SG_NODE_NAME(RGBNode, rgb);
+  OSP_REGISTER_SG_NODE_NAME(RGBANode, rgba);
 
-    TimeStamp Node::childrenLastModified() const
-    {
-      return properties.childrenMTime;
-    }
+  OSP_REGISTER_SG_NODE(Transform);
+  OSP_REGISTER_SG_NODE_NAME(Transform, transform);
 
-    void Node::removeFromParentList(Node &node)
-    {
-      auto &p          = properties.parents;
-      auto remove_node = [&](auto np) { return np == &node; };
-      p.erase(std::remove_if(p.begin(), p.end(), remove_node), p.end());
-    }
-
-    void Node::markAsModified()
-    {
-      properties.lastModified.renew();
-      for (auto &p : properties.parents)
-        p->markChildrenModified();
-    }
-
-    void Node::markChildrenModified()
-    {
-      properties.childrenMTime.renew();
-      for (auto &p : properties.parents)
-        p->markChildrenModified();
-    }
-
-    void Node::setOSPRayParam(std::string, OSPObject) {}
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Global Stuff ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
-
-    using CreatorFct = Node *(*)();
-
-    static std::map<std::string, CreatorFct> nodeRegistry;
-
-    std::shared_ptr<Node> createNode(std::string name,
-                                     std::string subtype,
-                                     std::string description,
-                                     Any value)
-    {
-      // Verify that 'ospray_sg' is properly loaded //
-
-      static bool libraryLoaded = false;
-      if (!libraryLoaded) {
-        loadLibrary("ospray_sg");
-        libraryLoaded = true;
-      }
-
-      // Look for the factory function to create the node //
-
-      auto it = nodeRegistry.find(subtype);
-
-      CreatorFct creator = nullptr;
-
-      if (it == nodeRegistry.end()) {
-        std::string creatorName = "ospray_create_sg_node__" + subtype;
-
-        creator = (CreatorFct)getSymbol(creatorName);
-        if (!creator)
-          throw std::runtime_error("unknown node type '" + subtype + "'");
-
-        nodeRegistry[subtype] = creator;
-      } else {
-        creator = it->second;
-      }
-
-      // Create the node and return //
-
-      std::shared_ptr<sg::Node> newNode(creator());
-      newNode->properties.name        = name;
-      newNode->properties.subType     = subtype;
-      newNode->properties.type        = newNode->type();
-      newNode->properties.description = description;
-
-      if (value.valid())
-        newNode->setValue(value);
-
-      return newNode;
-    }
-
-    NodePtr createNode(std::string name)
-    {
-      return createNode(name, "Node");
-    }
-
-    NodePtr createNode(std::string name, std::string subtype)
-    {
-      return createNode(name, subtype, "<no description>", Any());
-    }
-
-    NodePtr createNode(std::string name, std::string subtype, Any value)
-    {
-      return createNode(name, subtype, "<no description>", value);
-    }
-
-    OSP_REGISTER_SG_NODE(Node);
-
-    // Node_T<> type names
-
-    OSP_REGISTER_SG_NODE_NAME(StringNode, string);
-    OSP_REGISTER_SG_NODE_NAME(BoolNode, bool);
-    OSP_REGISTER_SG_NODE_NAME(FloatNode, float);
-    OSP_REGISTER_SG_NODE_NAME(Vec2fNode, vec2f);
-    OSP_REGISTER_SG_NODE_NAME(Vec3fNode, vec3f);
-    OSP_REGISTER_SG_NODE_NAME(Vec4fNode, vec4f);
-    OSP_REGISTER_SG_NODE_NAME(IntNode, int);
-    OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
-    OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
-    OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec4i);
-    OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
-
-    OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
-    OSP_REGISTER_SG_NODE_NAME(Box3iNode, box3i);
-    OSP_REGISTER_SG_NODE_NAME(Range1fNode, range1f);
-
-    OSP_REGISTER_SG_NODE_NAME(RGBNode, rgb);
-    OSP_REGISTER_SG_NODE_NAME(RGBANode, rgba);
-
-    OSP_REGISTER_SG_NODE(Transform);
-    OSP_REGISTER_SG_NODE_NAME(Transform, transform);
-
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

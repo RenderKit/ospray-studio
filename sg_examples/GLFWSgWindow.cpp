@@ -20,6 +20,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
 // std
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 // ospray_sg

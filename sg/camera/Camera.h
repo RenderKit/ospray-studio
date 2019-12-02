@@ -18,17 +18,14 @@
 
 #include "sg/Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE Camera
-        : public OSPNode<cpp::Camera, NodeType::CAMERA>
-    {
-      Camera(std::string type);
-      virtual ~Camera() override = default;
+  struct OSPSG_INTERFACE Camera : public OSPNode<cpp::Camera, NodeType::CAMERA>
+  {
+    Camera(std::string type);
+    virtual ~Camera() override = default;
 
-      NodeType type() const override;
-    };
+    NodeType type() const override;
+  };
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

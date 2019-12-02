@@ -16,52 +16,48 @@
 
 #include "Renderer.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    Renderer::Renderer(std::string type)
-    {
-      auto handle = ospNewRenderer(type.c_str());
-      setHandle(handle);
+  Renderer::Renderer(std::string type)
+  {
+    auto handle = ospNewRenderer(type.c_str());
+    setHandle(handle);
 
-      createChild("spp", "int", "samples-per-pixel", 1);
-      createChild("varianceThreshold",
-                  "float",
-                  "stop rendering when variance < threshold",
-                  0.f);
-      createChild("bgColor", "rgba", rgba(0.1f));
-    }
+    createChild("spp", "int", "samples-per-pixel", 1);
+    createChild("varianceThreshold",
+                "float",
+                "stop rendering when variance < threshold",
+                0.f);
+    createChild("bgColor", "rgba", rgba(0.1f));
+  }
 
-    NodeType Renderer::type() const
-    {
-      return NodeType::RENDERER;
-    }
+  NodeType Renderer::type() const
+  {
+    return NodeType::RENDERER;
+  }
 
-    // Register OSPRay's debug renderers //
+  // Register OSPRay's debug renderers //
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("testFrame"), renderer_testFrame);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("rayDir"), renderer_rayDir);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("testFrame"), renderer_testFrame);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("rayDir"), renderer_rayDir);
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast"), renderer_raycast);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_vertexColor"),
-                              renderer_raycast_vertexColor);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("raycast"), renderer_raycast);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_vertexColor"),
+                            renderer_raycast_vertexColor);
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPds"), renderer_dPds);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPdt"), renderer_dPdt);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ng"), renderer_Ng);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ns"), renderer_Ns);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPds"), renderer_dPds);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_dPdt"), renderer_dPdt);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ng"), renderer_Ng);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_Ns"), renderer_Ns);
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("backfacing_Ng"),
-                              renderer_backfacing_Ng);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("backfacing_Ns"),
-                              renderer_backfacing_Ns);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("backfacing_Ng"), renderer_backfacing_Ng);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("backfacing_Ns"), renderer_backfacing_Ns);
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("primID"), renderer_primID);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("geomID"), renderer_geomID);
-    OSP_REGISTER_SG_NODE_NAME(Renderer("instID"), renderer_instID);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("primID"), renderer_primID);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("geomID"), renderer_geomID);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("instID"), renderer_instID);
 
-    OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_volume"),
-                              renderer_raycast_volume);
+  OSP_REGISTER_SG_NODE_NAME(Renderer("raycast_volume"),
+                            renderer_raycast_volume);
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

@@ -18,33 +18,31 @@
 
 #include "sg/Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE FrameBuffer
-        : public OSPNode<cpp::FrameBuffer, NodeType::FRAME_BUFFER>
-    {
-      FrameBuffer();
-      ~FrameBuffer() override = default;
+  struct OSPSG_INTERFACE FrameBuffer
+      : public OSPNode<cpp::FrameBuffer, NodeType::FRAME_BUFFER>
+  {
+    FrameBuffer();
+    ~FrameBuffer() override = default;
 
-      NodeType type() const override;
+    NodeType type() const override;
 
-      const void *map(OSPFrameBufferChannel = OSP_FB_COLOR);
-      void unmap(const void *mem);
+    const void *map(OSPFrameBufferChannel = OSP_FB_COLOR);
+    void unmap(const void *mem);
 
-      void resetAccumulation();
+    void resetAccumulation();
 
-     private:
-      void postCommit() override;
+   private:
+    void postCommit() override;
 
-      void updateHandle();
+    void updateHandle();
 
-      std::map<std::string, OSPFrameBufferFormat> colorFormats{
-          {"sRGB", OSP_FB_SRGBA},
-          {"RGBA8", OSP_FB_RGBA8},
-          {"float", OSP_FB_RGBA32F},
-          {"none", OSP_FB_NONE}};
-    };
+    std::map<std::string, OSPFrameBufferFormat> colorFormats{
+        {"sRGB", OSP_FB_SRGBA},
+        {"RGBA8", OSP_FB_RGBA8},
+        {"float", OSP_FB_RGBA32F},
+        {"none", OSP_FB_NONE}};
+  };
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

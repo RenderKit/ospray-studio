@@ -16,21 +16,19 @@
 
 #include "Camera.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct Perspective : public Camera
-    {
-      Perspective();
-    };
+  struct Perspective : public Camera
+  {
+    Perspective();
+  };
 
-    Perspective::Perspective() : Camera("perspective")
-    {
-      createChild("fovy", "float", "Field-of-view in degrees", 60.f);
-      createChild("aspect", "float", 1.f);
-    }
+  Perspective::Perspective() : Camera("perspective")
+  {
+    createChild("fovy", "float", "Field-of-view in degrees", 60.f);
+    createChild("aspect", "float", 1.f);
+  }
 
-    OSP_REGISTER_SG_NODE_NAME(Perspective, camera_perspective);
+  OSP_REGISTER_SG_NODE_NAME(Perspective, camera_perspective);
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

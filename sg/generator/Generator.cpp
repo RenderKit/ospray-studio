@@ -16,18 +16,16 @@
 
 #include "Generator.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    Generator::Generator()
-    {
-      createChild("parameters");
-    }
+  Generator::Generator()
+  {
+    createChild("parameters");
+  }
 
-    NodeType Generator::type() const
-    {
-      return NodeType::GENERATOR;
-    }
+  NodeType Generator::type() const
+  {
+    return NodeType::GENERATOR;
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

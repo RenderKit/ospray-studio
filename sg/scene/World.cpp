@@ -16,15 +16,13 @@
 
 #include "World.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    World::World()
-    {
-      setHandle(cpp::World());
-    }
+  World::World()
+  {
+    setHandle(cpp::World());
+  }
 
-    OSP_REGISTER_SG_NODE_NAME(World, world);
+  OSP_REGISTER_SG_NODE_NAME(World, world);
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

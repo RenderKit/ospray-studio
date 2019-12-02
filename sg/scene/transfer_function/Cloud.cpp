@@ -16,25 +16,22 @@
 
 #include "TransferFunction.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE Cloud : public TransferFunction
-    {
-      Cloud();
-      virtual ~Cloud() override = default;
-    };
+  struct OSPSG_INTERFACE Cloud : public TransferFunction
+  {
+    Cloud();
+    virtual ~Cloud() override = default;
+  };
 
-    OSP_REGISTER_SG_NODE_NAME(Cloud, transfer_function_cloud);
+  OSP_REGISTER_SG_NODE_NAME(Cloud, transfer_function_cloud);
 
-    // Cloud definitions ////////////////////////////////////////////////////
+  // Cloud definitions ////////////////////////////////////////////////////////
 
-    Cloud::Cloud() : TransferFunction("piecewise_linear")
-    {
-      std::vector<vec3f> colors = {vec3f(1.f)};
-      createChildData("color", colors);
-    }
+  Cloud::Cloud() : TransferFunction("piecewise_linear")
+  {
+    std::vector<vec3f> colors = {vec3f(1.f)};
+    createChildData("color", colors);
+  }
 
-  }  // namespace sg
-}  // namespace ospray
-
+}  // namespace ospray::sg

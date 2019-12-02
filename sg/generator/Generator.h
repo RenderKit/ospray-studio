@@ -18,18 +18,16 @@
 
 #include "../Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE Generator : public Node
-    {
-      Generator();
-      virtual ~Generator() = default;
+  struct OSPSG_INTERFACE Generator : public Node
+  {
+    Generator();
+    virtual ~Generator() = default;
 
-      NodeType type() const override;
+    NodeType type() const override;
 
-      virtual void generateData() = 0;
-    };
+    virtual void generateData() = 0;
+  };
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

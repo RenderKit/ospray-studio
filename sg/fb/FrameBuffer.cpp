@@ -16,56 +16,54 @@
 
 #include "FrameBuffer.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    FrameBuffer::FrameBuffer()
-    {
-      createChild("size", "vec2i", vec2i(1024, 768));
-      createChild("colorFormat", "string", std::string("sRGB"));
+  FrameBuffer::FrameBuffer()
+  {
+    createChild("size", "vec2i", vec2i(1024, 768));
+    createChild("colorFormat", "string", std::string("sRGB"));
 
-      updateHandle();
-    }
+    updateHandle();
+  }
 
-    NodeType FrameBuffer::type() const
-    {
-      return NodeType::FRAME_BUFFER;
-    }
+  NodeType FrameBuffer::type() const
+  {
+    return NodeType::FRAME_BUFFER;
+  }
 
-    const void *FrameBuffer::map(OSPFrameBufferChannel channel)
-    {
-      return handle().map(channel);
-    }
+  const void *FrameBuffer::map(OSPFrameBufferChannel channel)
+  {
+    return handle().map(channel);
+  }
 
-    void FrameBuffer::unmap(const void *mem)
-    {
-      handle().unmap(const_cast<void *>(mem));
-    }
+  void FrameBuffer::unmap(const void *mem)
+  {
+    handle().unmap(const_cast<void *>(mem));
+  }
 
-    void FrameBuffer::resetAccumulation()
-    {
-      handle().clear();
-    }
+  void FrameBuffer::resetAccumulation()
+  {
+    handle().clear();
+  }
 
-    void FrameBuffer::postCommit()
-    {
-      updateHandle();
-    }
+  void FrameBuffer::postCommit()
+  {
+    updateHandle();
+  }
 
-    void FrameBuffer::updateHandle()
-    {
-      auto size           = child("size").valueAs<vec2i>();
-      auto colorFormatStr = child("colorFormat").valueAs<std::string>();
+  void FrameBuffer::updateHandle()
+  {
+    auto size           = child("size").valueAs<vec2i>();
+    auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
-      auto fb = cpp::FrameBuffer(
-          size,
-          colorFormats[colorFormatStr],
-          OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO | OSP_FB_VARIANCE);
+    auto fb = cpp::FrameBuffer(
+        size,
+        colorFormats[colorFormatStr],
+        OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO | OSP_FB_VARIANCE);
 
-      setHandle(fb);
-    }
+    setHandle(fb);
+  }
 
-    OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);
+  OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

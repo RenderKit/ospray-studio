@@ -16,22 +16,18 @@
 
 #include "Geometry.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE Triangles : public Geometry
-    {
-      Triangles();
-      virtual ~Triangles() override = default;
-    };
+  struct OSPSG_INTERFACE Triangles : public Geometry
+  {
+    Triangles();
+    virtual ~Triangles() override = default;
+  };
 
-    OSP_REGISTER_SG_NODE_NAME(Triangles, geometry_triangles);
+  OSP_REGISTER_SG_NODE_NAME(Triangles, geometry_triangles);
 
-    // Triangles definitions ////////////////////////////////////////////////////
+  // Triangles definitions ////////////////////////////////////////////////////
 
-    Triangles::Triangles() : Geometry("mesh")
-    {
-    }
+  Triangles::Triangles() : Geometry("mesh") {}
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

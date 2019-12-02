@@ -18,15 +18,13 @@
 
 #include "../../Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE TransferFunction
-        : public OSPNode<cpp::TransferFunction, NodeType::TRANSFER_FUNCTION>
-    {
-      TransferFunction(const std::string &osp_type);
-      ~TransferFunction() override = default;
-    };
+  struct OSPSG_INTERFACE TransferFunction
+      : public OSPNode<cpp::TransferFunction, NodeType::TRANSFER_FUNCTION>
+  {
+    TransferFunction(const std::string &osp_type);
+    ~TransferFunction() override = default;
+  };
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

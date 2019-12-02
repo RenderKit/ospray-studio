@@ -16,13 +16,11 @@
 
 #include "Geometry.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    Geometry::Geometry(const std::string &osp_type)
-    {
-      setValue(cpp::Geometry(osp_type));
-    }
+  Geometry::Geometry(const std::string &osp_type)
+  {
+    setValue(cpp::Geometry(osp_type));
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

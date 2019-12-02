@@ -16,23 +16,21 @@
 
 #include "Renderer.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE PathTracer : public Renderer
-    {
-      PathTracer();
-      virtual ~PathTracer() override = default;
-    };
+  struct OSPSG_INTERFACE PathTracer : public Renderer
+  {
+    PathTracer();
+    virtual ~PathTracer() override = default;
+  };
 
-    OSP_REGISTER_SG_NODE_NAME(PathTracer, renderer_pathtracer);
+  OSP_REGISTER_SG_NODE_NAME(PathTracer, renderer_pathtracer);
 
-    // PathTracer definitions /////////////////////////////////////////////////
+  // PathTracer definitions ///////////////////////////////////////////////////
 
-    PathTracer::PathTracer() : Renderer("pathtracer")
-    {
-      createChild("rouletteDepth", "int", 5);
-    }
+  PathTracer::PathTracer() : Renderer("pathtracer")
+  {
+    createChild("rouletteDepth", "int", 5);
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

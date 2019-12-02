@@ -18,37 +18,35 @@
 
 #include "../Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct GetBounds : public Visitor
-    {
-      GetBounds() = default;
+  struct GetBounds : public Visitor
+  {
+    GetBounds() = default;
 
-      bool operator()(Node &node, TraversalContext &ctx) override;
+    bool operator()(Node &node, TraversalContext &ctx) override;
 
-      box3f bounds;
-    };
+    box3f bounds;
+  };
 
-    // Inlined definitions ////////////////////////////////////////////////////
+  // Inlined definitions //////////////////////////////////////////////////////
 
-    inline bool GetBounds::operator()(Node &node, TraversalContext &ctx)
-    {
-      switch (node.type()) {
-      case NodeType::WORLD: {
-        auto world = node.valueAs<cpp::World>();
-        bounds     = world.getBounds();
-        return false;
-      }
-      case NodeType::GEOMETRY: {
-        auto geom = node.valueAs<cpp::Geometry>();
-        bounds    = geom.getBounds();
-        return false;
-      }
-      default:
-        return true;
-      }
+  inline bool GetBounds::operator()(Node &node, TraversalContext &ctx)
+  {
+    switch (node.type()) {
+    case NodeType::WORLD: {
+      auto world = node.valueAs<cpp::World>();
+      bounds     = world.getBounds();
+      return false;
     }
+    case NodeType::GEOMETRY: {
+      auto geom = node.valueAs<cpp::Geometry>();
+      bounds    = geom.getBounds();
+      return false;
+    }
+    default:
+      return true;
+    }
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

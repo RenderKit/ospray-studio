@@ -16,25 +16,23 @@
 
 #include "Renderer.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE SciVis : public Renderer
-    {
-      SciVis();
-      virtual ~SciVis() override = default;
-    };
+  struct OSPSG_INTERFACE SciVis : public Renderer
+  {
+    SciVis();
+    virtual ~SciVis() override = default;
+  };
 
-    OSP_REGISTER_SG_NODE_NAME(SciVis, renderer_scivis);
+  OSP_REGISTER_SG_NODE_NAME(SciVis, renderer_scivis);
 
-    // SciVis definitions ////////////////////////////////////////////////////
+  // SciVis definitions ///////////////////////////////////////////////////////
 
-    SciVis::SciVis() : Renderer("scivis")
-    {
-      createChild("aoSamples", "int", 1);
-      createChild("aoDistance", "float", 1e20f);
-      createChild("aoIntensity", "float", 1.f);
-    }
+  SciVis::SciVis() : Renderer("scivis")
+  {
+    createChild("aoSamples", "int", 1);
+    createChild("aoDistance", "float", 1e20f);
+    createChild("aoIntensity", "float", 1.f);
+  }
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

@@ -18,25 +18,23 @@
 
 #include "../Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct PrintNodes : public Visitor
-    {
-      PrintNodes() = default;
+  struct PrintNodes : public Visitor
+  {
+    PrintNodes() = default;
 
-      bool operator()(Node &node, TraversalContext &ctx) override;
-    };
+    bool operator()(Node &node, TraversalContext &ctx) override;
+  };
 
-    // Inlined definitions ////////////////////////////////////////////////////
+  // Inlined definitions //////////////////////////////////////////////////////
 
-    inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
-    {
-      for (int i = 0; i < ctx.level; i++)
-        std::cout << "  ";
-      std::cout << node.name() << " : " << node.subType() << '\n';
-      return true;
-    }
+  inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
+  {
+    for (int i = 0; i < ctx.level; i++)
+      std::cout << "  ";
+    std::cout << node.name() << " : " << node.subType() << '\n';
+    return true;
+  }
 
-  } // ::ospray::sg
-} // ::ospray
+}  // namespace ospray::sg
