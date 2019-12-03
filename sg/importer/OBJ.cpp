@@ -118,9 +118,6 @@ namespace ospray::sg {
     std::string baseName = file.name() + '_';
 
     for (auto &shape : objData.shapes) {
-      auto name  = baseName + std::to_string(shapeId++) + '_' + shape.name;
-      auto &mesh = createChild(name, "geometry_triangles");
-
       auto numSrcIndices = shape.mesh.indices.size();
 
       std::vector<vec3f> v;
@@ -161,10 +158,15 @@ namespace ospray::sg {
           vt.emplace_back(&attrib.texcoords[idx.texcoord_index * 2]);
       }
 
+      auto name  = baseName + std::to_string(shapeId++) + '_' + shape.name;
+      auto &mesh = createChild(name, "geometry_triangles");
+
       mesh.createChildData("vertex.position", v);
-      mesh.createChildData("vertex.normal", vn);
-      mesh.createChildData("vertex.texcoord", vt);
       mesh.createChildData("index", vi);
+      if (!vn.empty())
+        mesh.createChildData("vertex.normal", vn);
+      if (!vt.empty())
+        mesh.createChildData("vertex.texcoord", vt);
     }
 
     std::cout << "...finished import!\n";
