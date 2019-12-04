@@ -1,5 +1,5 @@
 ## ======================================================================== ##
-## Copyright 2018-2019 Intel Corporation                                    ##
+## Copyright 2009-2018 Intel Corporation                                    ##
 ##                                                                          ##
 ## Licensed under the Apache License, Version 2.0 (the "License");          ##
 ## you may not use this file except in compliance with the License.         ##
@@ -14,27 +14,42 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-add_executable(sgExamples
-  ArcballCamera.cpp
-  GLFWSgWindow.cpp
+## Build app
+
+add_library(ospray_studio SHARED
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
-  sgExamples.cpp
+  PluginManager.cpp
+
+  app_utility/AsyncRenderEngine.cpp
+  app_utility/CameraManipulator.cpp
+
+  sg_utility/utility.cpp
+
+  widgets/imgui3D.cpp
+  widgets/MainWindow.cpp
+
+  widgets/panels/About.cpp
+  widgets/panels/Lights.cpp
+  widgets/panels/NodeFinder.cpp
+  widgets/panels/RenderingSettings.cpp
+  widgets/panels/SGAdvanced.cpp
+  widgets/panels/SGTreeView.cpp
+  widgets/panels/TransferFunctionEditor.cpp
+
+  widgets/sg_ui/ospray_sg_ui.cpp
+
+  widgets/transfer_function/TransferFunctionWidget.cpp
 )
 
-if (APPLE)
-  set_source_files_properties(imgui_impl_glfw_gl3.cpp GLFWSgWindow.cpp
-    PROPERTIES COMPILE_FLAGS -w)
-endif()
-
-target_link_libraries(sgExamples
-PRIVATE
-  glfw
-  imgui
-  ospray_sg
+target_link_libraries(ospray_studio
+  PUBLIC
+    ospray_sg
+    ospray_tasking
+    imgui
+    tfn_lib
+    glfw
 )
 
-install(TARGETS sgExamples
-  DESTINATION ${CMAKE_INSTALL_BINDIR}
-  COMPONENT apps
-)
+add_executable(ospStudio ospStudioMain.cpp)
+target_link_libraries(ospStudio PRIVATE ospray_studio)

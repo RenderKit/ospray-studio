@@ -61,9 +61,9 @@ endif()
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
-subdirs(external sg sg_examples)
+subdirs(external sg)
 
-option(BUILD_APPS "Build OSPRay Studio Apps" OFF)
+option(BUILD_APPS "Build OSPRay Studio Apps" ON)
 
 if (BUILD_APPS)
   add_subdirectory(app)
