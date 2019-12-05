@@ -356,7 +356,8 @@ void GLFWSgWindow::waitOnOSPRayFrame()
 void GLFWSgWindow::updateTitleBar()
 {
   std::stringstream windowTitle;
-  windowTitle << "OSPRay SG: " << std::setprecision(3) << latestFPS << " fps";
+  windowTitle << "OSPRay Studio: " << std::setprecision(3) << latestFPS
+              << " fps";
   if (latestFPS < 2.f) {
     float progress = frame->frameProgress();
     windowTitle << " | ";

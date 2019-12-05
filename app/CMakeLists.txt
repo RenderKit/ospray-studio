@@ -14,12 +14,12 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-add_executable(sgExamples
+add_executable(ospStudio
   ArcballCamera.cpp
   GLFWSgWindow.cpp
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
-  sgExamples.cpp
+  ospStudio.cpp
 )
 
 if (APPLE)
@@ -27,14 +27,14 @@ if (APPLE)
     PROPERTIES COMPILE_FLAGS -w)
 endif()
 
-target_link_libraries(sgExamples
+target_link_libraries(ospStudio
 PRIVATE
   glfw
   imgui
   ospray_sg
 )
 
-install(TARGETS sgExamples
+install(TARGETS ospStudio
   DESTINATION ${CMAKE_INSTALL_BINDIR}
   COMPONENT apps
 )
