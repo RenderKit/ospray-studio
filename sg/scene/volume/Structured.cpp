@@ -28,7 +28,7 @@ namespace ospray::sg {
 
   // StructuredVolume definitions /////////////////////////////////////////////
 
-  StructuredVolume::StructuredVolume() : Volume("structured_volume")
+  StructuredVolume::StructuredVolume() : Volume("structured_regular")
   {
     createChild("voxelType", "int", int(OSP_FLOAT));
     createChild("gridOrigin", "vec3f", vec3f(0.f));
