@@ -42,13 +42,16 @@ namespace ospray::sg {
                                                   TraversalContext &)
   {
     switch (node.type()) {
-    case NodeType::MATERIAL:
+    case NodeType::MATERIAL: {
       auto &mat = *node.nodeAs<Material>();
-      mat["handles"].createChild(
-          rendererType,
-          "Node",
-          cpp::Material(rendererType, mat.osprayMaterialType()));
+      if (!mat["handles"].hasChild(rendererType)) {
+        mat["handles"].createChild(
+            rendererType,
+            "Node",
+            cpp::Material(rendererType, mat.osprayMaterialType()));
+      }
       return false;
+    }
     default:
       return true;
     }

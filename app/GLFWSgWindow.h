@@ -62,6 +62,7 @@ class GLFWSgWindow
   void buildUI();
   void refreshRenderer();
   void refreshScene();
+  void refreshMaterialRegistry();
 
   static GLFWSgWindow *activeWindow;
 
@@ -83,6 +84,7 @@ class GLFWSgWindow
   std::unique_ptr<ArcballCamera> arcballCamera;
 
   std::shared_ptr<sg::Frame> frame;
+  std::shared_ptr<sg::Node> materialRegistry;
 
   // OpenGL framebuffer texture
   GLuint framebufferTexture = 0;

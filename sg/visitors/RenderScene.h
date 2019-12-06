@@ -54,6 +54,7 @@ namespace ospray::sg {
     cpp::World world;
     std::vector<cpp::Instance> instances;
     std::stack<affine3f> xfms;
+    std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
   };
 
@@ -62,6 +63,7 @@ namespace ospray::sg {
   inline RenderScene::RenderScene()
   {
     xfms.emplace(math::one);
+    materialIDs.push(0);
   }
 
   inline bool RenderScene::operator()(Node &node, TraversalContext &)
@@ -86,6 +88,9 @@ namespace ospray::sg {
     case NodeType::TRANSFORM:
       xfms.push(xfms.top() * node.valueAs<affine3f>());
       break;
+    case NodeType::MATERIAL_REFERENCE:
+      materialIDs.push(node.valueAs<int>());
+      break;
     default:
       break;
     }
@@ -108,6 +113,9 @@ namespace ospray::sg {
       createInstanceFromGroup();
       xfms.pop();
       break;
+    case NodeType::MATERIAL_REFERENCE:
+      materialIDs.pop();
+      break;
     default:
       // Nothing
       break;
@@ -118,7 +126,7 @@ namespace ospray::sg {
   {
     auto geom = node.valueAs<cpp::Geometry>();
     cpp::GeometricModel model(geom);
-    // TODO: add material/color information
+    model.setParam("material", materialIDs.top());
     model.commit();
     current.geometries.push_back(model);
   }

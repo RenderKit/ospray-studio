@@ -27,7 +27,7 @@ namespace ospray::sg {
 
     NodeType type() const override;
 
-    virtual void importScene() = 0;
+    virtual void importScene(Node &materialRegistry) = 0;
   };
 
 }  // namespace ospray::sg

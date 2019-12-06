@@ -14,23 +14,18 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "../Material.h"
+#include "MaterialReference.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE MaterialDefault : public Material
+  MaterialReference::MaterialReference()
   {
-    MaterialDefault();
-    ~MaterialDefault() override = default;
-  };
+    setValue(0);
+  }
 
-  OSP_REGISTER_SG_NODE_NAME(MaterialDefault, material_default);
-
-  // MaterialDefault definitions //////////////////////////////////////////////
-
-  MaterialDefault::MaterialDefault() : Material("default")
+  NodeType MaterialReference::type() const
   {
-    createChild("Kd", "rgb", vec3f(1.f, 0.f, 1.f));
+    return NodeType::MATERIAL_REFERENCE;
   }
 
 }  // namespace ospray::sg

@@ -26,6 +26,7 @@
 // ospray_sg
 #include "sg/generator/Generator.h"
 #include "sg/importer/Importer.h"
+#include "sg/visitors/GenerateOSPRayMaterials.h"
 #include "sg/visitors/PrintNodes.h"
 // ospcommon
 #include "ospcommon/utility/getEnvVar.h"
@@ -35,7 +36,7 @@
 static bool g_quitNextFrame = false;
 
 static const std::vector<std::string> g_scenes = {
-    "tutorial_scene", "random_spheres", "wavelet", "imported"};
+    "tutorial_scene", "random_spheres", "wavelet", "import"};
 
 static const std::vector<std::string> g_renderers = {"scivis",
                                                      "raycast",
@@ -146,6 +147,10 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
 
   frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
+  materialRegistry = sg::createNode("materialRegistry");
+  materialRegistry->createChild("default", "material_default");
+
+  refreshMaterialRegistry();
   refreshRenderer();
   refreshScene();
 
@@ -457,14 +462,28 @@ void GLFWSgWindow::buildUI()
 
 void GLFWSgWindow::refreshRenderer()
 {
-  frame->createChild("renderer", "renderer_" + rendererTypeStr);
+  auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
+
+  if (!(rendererTypeStr == "scivis" || rendererTypeStr == "pathtracer"))
+    return;
+
+  std::vector<cpp::Material> materialHandles;
+
+  auto &mats = materialRegistry->children();
+
+  for (auto &m : mats) {
+    auto &ospHandleNode = m.second->child("handles").child(rendererTypeStr);
+    materialHandles.push_back(ospHandleNode.valueAs<cpp::Material>());
+  }
+
+  r.createChildData("material", materialHandles);
 }
 
 void GLFWSgWindow::refreshScene()
 {
   auto world = sg::createNode("world", "world");
 
-  if (scene == "imported") {
+  if (scene == "import") {
     const char *file = tinyfd_openFileDialog(
         "Import a scene from a file", "", 0, nullptr, nullptr, 0);
 
@@ -472,7 +491,8 @@ void GLFWSgWindow::refreshScene()
       auto &imp =
           world->createChildAs<sg::Importer>("importer", "importer_obj");
       imp["file"] = std::string(file);
-      imp.importScene();
+      imp.importScene(*materialRegistry);
+      refreshMaterialRegistry();
     } else {
       std::cout << "No file selected, nothing to import!\n";
     }
@@ -489,4 +509,12 @@ void GLFWSgWindow::refreshScene()
   arcballCamera.reset(
       new ArcballCamera(frame->child("world").bounds(), windowSize));
   updateCamera();
+}
+
+void GLFWSgWindow::refreshMaterialRegistry()
+{
+  for (auto t : {"scivis", "pathtracer"})
+    materialRegistry->traverse<sg::GenerateOSPRayMaterials>(t);
+
+  materialRegistry->commit();
 }

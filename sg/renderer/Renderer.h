@@ -18,15 +18,13 @@
 
 #include "sg/Node.h"
 
-namespace ospray {
-  namespace sg {
+namespace ospray::sg {
 
-    struct OSPSG_INTERFACE Renderer
-        : public OSPNode<cpp::Renderer, NodeType::RENDERER>
-    {
-      Renderer(std::string type);
-      virtual ~Renderer() override = default;
-    };
+  struct OSPSG_INTERFACE Renderer
+      : public OSPNode<cpp::Renderer, NodeType::RENDERER>
+  {
+    Renderer(std::string type);
+    virtual ~Renderer() override = default;
+  };
 
-  }  // namespace sg
-}  // namespace ospray
+}  // namespace ospray::sg

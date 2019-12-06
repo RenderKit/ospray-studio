@@ -30,6 +30,7 @@ namespace ospray::sg {
     TRANSFORM,
     TRANSFER_FUNCTION,
     MATERIAL,
+    MATERIAL_REFERENCE,
     TEXTURE,
     LIGHT,
     GEOMETRY,

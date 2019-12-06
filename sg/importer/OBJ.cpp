@@ -27,7 +27,7 @@ namespace ospray::sg {
     OBJImporter()           = default;
     ~OBJImporter() override = default;
 
-    void importScene() override;
+    void importScene(Node &materialRegistry) override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(OBJImporter, importer_obj);
@@ -106,7 +106,7 @@ namespace ospray::sg {
 
   // OBJImporter definitions //////////////////////////////////////////////////
 
-  void OBJImporter::importScene()
+  void OBJImporter::importScene(Node &materialRegistry)
   {
     auto file    = FileName(child("file").valueAs<std::string>());
     auto objData = loadFromFile(file);
