@@ -1,5 +1,5 @@
 ## ======================================================================== ##
-## Copyright 2018-2019 Intel Corporation                                    ##
+## Copyright 2019 Intel Corporation                                         ##
 ##                                                                          ##
 ## Licensed under the Apache License, Version 2.0 (the "License");          ##
 ## you may not use this file except in compliance with the License.         ##
@@ -14,28 +14,11 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-add_executable(ospStudio
-  ArcballCamera.cpp
-  GLFWSgWindow.cpp
-  imgui_impl_glfw.cpp
-  imgui_impl_opengl2.cpp
-  ospStudio.cpp
-)
+cmake_minimum_required(VERSION 3.1)
 
-if (APPLE)
-  set_source_files_properties(imgui_impl_glfw_gl3.cpp GLFWSgWindow.cpp
-    PROPERTIES COMPILE_FLAGS -w)
-endif()
+project(tiny_file_dialogs LANGUAGES C)
 
-target_link_libraries(ospStudio
-PRIVATE
-  glfw
-  imgui
-  ospray_sg
-  tiny_file_dialogs
-)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-install(TARGETS ospStudio
-  DESTINATION ${CMAKE_INSTALL_BINDIR}
-  COMPONENT apps
-)
+add_library(${PROJECT_NAME} tinyfiledialogs.c)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR})

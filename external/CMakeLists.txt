@@ -16,4 +16,5 @@
 
 add_subdirectory(imgui)
 #add_subdirectory(tfn_lib)
+add_subdirectory(tiny_file_dialogs)
 add_subdirectory(tiny_obj_loader)

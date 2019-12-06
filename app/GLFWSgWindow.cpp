@@ -29,6 +29,8 @@
 #include "sg/visitors/PrintNodes.h"
 // ospcommon
 #include "ospcommon/utility/getEnvVar.h"
+// tiny_file_dialogs
+#include "tinyfiledialogs.h"
 
 static bool g_quitNextFrame = false;
 
@@ -463,13 +465,17 @@ void GLFWSgWindow::refreshScene()
   auto world = sg::createNode("world", "world");
 
   if (scene == "imported") {
-    auto FILE = ospcommon::utility::getEnvVar<std::string>("IMPORT_FILE");
-    if (!FILE)
-      std::cout << "WARNING: set 'IMPORT_FILE' env var to import .obj file\n";
+    const char *file = tinyfd_openFileDialog(
+        "Import a scene from a file", "", 0, nullptr, nullptr, 0);
 
-    auto &imp = world->createChildAs<sg::Importer>("importer", "importer_obj");
-    imp["file"] = FILE.value_or("<none>");
-    imp.importScene();
+    if (file) {
+      auto &imp =
+          world->createChildAs<sg::Importer>("importer", "importer_obj");
+      imp["file"] = std::string(file);
+      imp.importScene();
+    } else {
+      std::cout << "No file selected, nothing to import!\n";
+    }
   } else {
     auto &gen =
         world->createChildAs<sg::Generator>("generator", "generator_" + scene);
