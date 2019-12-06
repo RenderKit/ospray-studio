@@ -28,4 +28,6 @@ namespace ospray::sg {
     return NodeType::MATERIAL_REFERENCE;
   }
 
+  OSP_REGISTER_SG_NODE_NAME(MaterialReference, reference_to_material);
+
 }  // namespace ospray::sg

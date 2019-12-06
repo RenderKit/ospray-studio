@@ -104,12 +104,38 @@ namespace ospray::sg {
     return {};
   }
 
+  static std::vector<NodePtr> createMaterials(const OBJData &objData)
+  {
+    std::vector<NodePtr> retval;
+
+    for (const auto &m : objData.materials) {
+      auto matNode = createNode(m.name, "material_obj");
+
+      auto &mat = *matNode;
+
+      mat["alpha"] = m.dissolve;
+      mat["Kd"]    = vec3f(m.diffuse);
+      mat["Ks"]    = vec3f(m.specular);
+
+      retval.push_back(matNode);
+    }
+
+    return retval;
+  }
+
   // OBJImporter definitions //////////////////////////////////////////////////
 
   void OBJImporter::importScene(Node &materialRegistry)
   {
     auto file    = FileName(child("file").valueAs<std::string>());
     auto objData = loadFromFile(file);
+
+    auto materialNodes = createMaterials(objData);
+
+    size_t baseMaterialOffset = materialRegistry.children().size();
+
+    for (auto m : materialNodes)
+      materialRegistry.add(m);
 
     auto &attrib = objData.attrib;
 
@@ -158,8 +184,19 @@ namespace ospray::sg {
           vt.emplace_back(&attrib.texcoords[idx.texcoord_index * 2]);
       }
 
-      auto name  = baseName + std::to_string(shapeId++) + '_' + shape.name;
-      auto &mesh = createChild(name, "geometry_triangles");
+      int materialIndex = int(baseMaterialOffset + shape.mesh.material_ids[0]);
+      auto materialName =
+          materialRegistry.children().at_index(materialIndex).first;
+
+      auto materialNodeName = "reference_" + materialName;
+
+      if (!hasChild(materialNodeName))
+        createChild(materialNodeName, "reference_to_material", materialIndex);
+
+      auto &matNode = child(materialNodeName);
+
+      auto name  = std::to_string(shapeId++) + '_' + shape.name;
+      auto &mesh = matNode.createChild(name, "geometry_triangles");
 
       mesh.createChildData("vertex.position", v);
       mesh.createChildData("index", vi);

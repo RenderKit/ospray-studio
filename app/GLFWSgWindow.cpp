@@ -491,8 +491,12 @@ void GLFWSgWindow::refreshScene()
       auto &imp =
           world->createChildAs<sg::Importer>("importer", "importer_obj");
       imp["file"] = std::string(file);
+      auto registrySize = materialRegistry->children().size();
       imp.importScene(*materialRegistry);
       refreshMaterialRegistry();
+
+      if (registrySize != materialRegistry->children().size())
+        refreshRenderer();
     } else {
       std::cout << "No file selected, nothing to import!\n";
     }
