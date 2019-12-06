@@ -18,35 +18,24 @@
 
 #include "../Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
-  struct CommitVisitor : public Visitor
-  {
-    CommitVisitor()           = default;
-    ~CommitVisitor() override = default;
+    struct OSPSG_INTERFACE Material : public Node
+    {
+      Material(std::string type);
+      virtual ~Material() override = default;
 
-    bool operator()(Node &node, TraversalContext &) override;
-    void postChildren(Node &node, TraversalContext &) override;
-  };
+      NodeType type() const override;
 
-  // Inlined definitions //////////////////////////////////////////////////////
+      std::string osprayMaterialType() const;
 
-  inline bool CommitVisitor::operator()(Node &node, TraversalContext &)
-  {
-    if (node.subtreeModifiedButNotCommitted()) {
-      node.preCommit();
-      return true;
-    } else {
-      return false;
-    }
-  }
+    private:
+      void preCommit() override;
+      void postCommit() override;
 
-  inline void CommitVisitor::postChildren(Node &node, TraversalContext &)
-  {
-    if (node.subtreeModifiedButNotCommitted()) {
-      node.postCommit();
-      node.properties.lastCommitted.renew();
-    }
-  }
+      std::string matType;
+    };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+}  // namespace ospray

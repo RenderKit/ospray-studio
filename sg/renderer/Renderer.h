@@ -26,8 +26,6 @@ namespace ospray {
     {
       Renderer(std::string type);
       virtual ~Renderer() override = default;
-
-      NodeType type() const override;
     };
 
   }  // namespace sg

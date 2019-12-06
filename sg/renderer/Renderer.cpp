@@ -31,11 +31,6 @@ namespace ospray::sg {
     createChild("bgColor", "rgba", rgba(0.1f));
   }
 
-  NodeType Renderer::type() const
-  {
-    return NodeType::RENDERER;
-  }
-
   // Register OSPRay's debug renderers //
 
   OSP_REGISTER_SG_NODE_NAME(Renderer("testFrame"), renderer_testFrame);

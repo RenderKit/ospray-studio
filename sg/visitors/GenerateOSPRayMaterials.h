@@ -16,36 +16,41 @@
 
 #pragma once
 
-#include "../Node.h"
+#include "../renderer/Material.h"
 
 namespace ospray::sg {
 
-  struct CommitVisitor : public Visitor
+  struct GenerateOSPRayMaterials : public Visitor
   {
-    CommitVisitor()           = default;
-    ~CommitVisitor() override = default;
+    GenerateOSPRayMaterials(std::string rendererType);
+    ~GenerateOSPRayMaterials() override = default;
 
     bool operator()(Node &node, TraversalContext &) override;
-    void postChildren(Node &node, TraversalContext &) override;
+
+   private:
+    std::string rendererType;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
 
-  inline bool CommitVisitor::operator()(Node &node, TraversalContext &)
+  inline GenerateOSPRayMaterials::GenerateOSPRayMaterials(std::string type)
+      : rendererType(type)
   {
-    if (node.subtreeModifiedButNotCommitted()) {
-      node.preCommit();
-      return true;
-    } else {
-      return false;
-    }
   }
 
-  inline void CommitVisitor::postChildren(Node &node, TraversalContext &)
+  inline bool GenerateOSPRayMaterials::operator()(Node &node,
+                                                  TraversalContext &)
   {
-    if (node.subtreeModifiedButNotCommitted()) {
-      node.postCommit();
-      node.properties.lastCommitted.renew();
+    switch (node.type()) {
+    case NodeType::MATERIAL:
+      auto &mat = *node.nodeAs<Material>();
+      mat["handles"].createChild(
+          rendererType,
+          "Node",
+          cpp::Material(rendererType, mat.osprayMaterialType()));
+      return false;
+    default:
+      return true;
     }
   }
 

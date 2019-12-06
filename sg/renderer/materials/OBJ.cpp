@@ -14,39 +14,25 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
+#include "../Material.h"
 
 namespace ospray::sg {
 
-  struct CommitVisitor : public Visitor
+  struct OSPSG_INTERFACE MaterialOBJ : public Material
   {
-    CommitVisitor()           = default;
-    ~CommitVisitor() override = default;
-
-    bool operator()(Node &node, TraversalContext &) override;
-    void postChildren(Node &node, TraversalContext &) override;
+    MaterialOBJ();
+    ~MaterialOBJ() override = default;
   };
 
-  // Inlined definitions //////////////////////////////////////////////////////
+  OSP_REGISTER_SG_NODE_NAME(MaterialOBJ, material_obj);
 
-  inline bool CommitVisitor::operator()(Node &node, TraversalContext &)
-  {
-    if (node.subtreeModifiedButNotCommitted()) {
-      node.preCommit();
-      return true;
-    } else {
-      return false;
-    }
-  }
+  // MaterialOBJ definitions //////////////////////////////////////////////////
 
-  inline void CommitVisitor::postChildren(Node &node, TraversalContext &)
+  MaterialOBJ::MaterialOBJ() : Material("obj")
   {
-    if (node.subtreeModifiedButNotCommitted()) {
-      node.postCommit();
-      node.properties.lastCommitted.renew();
-    }
+    createChild("alpha", "float", 1.f);
+    createChild("Kd", "rgb", vec3f(0.8f));
+    createChild("Ks", "rgb", vec3f(0.f));
   }
 
 }  // namespace ospray::sg

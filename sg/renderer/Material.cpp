@@ -14,39 +14,48 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
+#include "Material.h"
 
 namespace ospray::sg {
 
-  struct CommitVisitor : public Visitor
+  Material::Material(std::string t) : matType(t)
   {
-    CommitVisitor()           = default;
-    ~CommitVisitor() override = default;
+    createChild("handles");
+  }
 
-    bool operator()(Node &node, TraversalContext &) override;
-    void postChildren(Node &node, TraversalContext &) override;
-  };
-
-  // Inlined definitions //////////////////////////////////////////////////////
-
-  inline bool CommitVisitor::operator()(Node &node, TraversalContext &)
+  NodeType Material::type() const
   {
-    if (node.subtreeModifiedButNotCommitted()) {
-      node.preCommit();
-      return true;
-    } else {
-      return false;
+    return NodeType::MATERIAL;
+  }
+
+  std::string Material::osprayMaterialType() const
+  {
+    return matType;
+  }
+
+  void Material::preCommit()
+  {
+    const auto &c       = children();
+    const auto &handles = child("handles").children();
+
+    if (c.empty() || handles.empty())
+      return;
+
+    for (auto &child : c) {
+      if (child.second->type() == NodeType::PARAMETER) {
+        for (auto &h : handles) {
+          child.second->setOSPRayParam(
+              child.first, h.second->valueAs<cpp::Material>().handle());
+        }
+      }
     }
   }
 
-  inline void CommitVisitor::postChildren(Node &node, TraversalContext &)
+  void Material::postCommit()
   {
-    if (node.subtreeModifiedButNotCommitted()) {
-      node.postCommit();
-      node.properties.lastCommitted.renew();
-    }
+    const auto &handles = child("handles").children();
+    for (auto &h : handles)
+      h.second->valueAs<cpp::Material>().commit();
   }
 
 }  // namespace ospray::sg

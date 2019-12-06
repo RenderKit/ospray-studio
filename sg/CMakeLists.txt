@@ -35,9 +35,13 @@ add_library(ospray_sg SHARED
   importer/OBJ.cpp
   importer/OBJ/tiny_obj_loader_impl.cpp
 
+  renderer/Material.cpp
   renderer/PathTracer.cpp
   renderer/Renderer.cpp
   renderer/SciVis.cpp
+
+  renderer/materials/Default.cpp
+  renderer/materials/OBJ.cpp
 
   scene/World.cpp
 
