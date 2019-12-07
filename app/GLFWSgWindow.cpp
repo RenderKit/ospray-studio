@@ -428,17 +428,13 @@ void GLFWSgWindow::buildUI()
     renderer["spp"] = spp;
 
   if (rendererType == OSPRayRendererType::PATHTRACER) {
-    static int maxDepth = 20;
+    static int maxDepth = 5;
     if (ImGui::SliderInt("maxDepth", &maxDepth, 1, 64))
       renderer["maxDepth"] = maxDepth;
 
     static int rouletteDepth = 1;
     if (ImGui::SliderInt("rouletteDepth", &rouletteDepth, 1, 64))
       renderer["rouletteDepth"] = rouletteDepth;
-
-    static float minContribution = 0.001f;
-    if (ImGui::SliderFloat("minContribution", &minContribution, 0.f, 1.f))
-      renderer["minContribution"] = minContribution;
   } else if (rendererType == OSPRayRendererType::SCIVIS) {
     static sg::rgba bgColor = renderer["bgColor"].valueAs<sg::rgba>();
     if (ImGui::ColorEdit4("bgColor", bgColor))
