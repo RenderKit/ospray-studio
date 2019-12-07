@@ -39,6 +39,7 @@ static const std::vector<std::string> g_scenes = {
     "tutorial_scene", "random_spheres", "wavelet", "import"};
 
 static const std::vector<std::string> g_renderers = {"scivis",
+                                                     "pathtracer",
                                                      "raycast",
                                                      "raycast_vertexColor",
                                                      "primID",
@@ -482,6 +483,11 @@ void GLFWSgWindow::refreshRenderer()
 void GLFWSgWindow::refreshScene()
 {
   auto world = sg::createNode("world", "world");
+
+  cpp::Light defaultLight("ambient");
+  defaultLight.commit();
+
+  world->createChildData("light", defaultLight);
 
   if (scene == "import") {
     const char *file = tinyfd_openFileDialog(
