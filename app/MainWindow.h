@@ -34,17 +34,16 @@ enum class OSPRayRendererType
   OTHER
 };
 
-class GLFWSgWindow
+class MainWindow
 {
  public:
-  GLFWSgWindow(const vec2i &windowSize);
+  MainWindow(const vec2i &windowSize);
 
-  ~GLFWSgWindow();
+  ~MainWindow();
 
-  static GLFWSgWindow *getActiveWindow();
+  static MainWindow *getActiveWindow();
 
-  void registerDisplayCallback(
-      std::function<void(GLFWSgWindow *)> callback);
+  void registerDisplayCallback(std::function<void(MainWindow *)> callback);
 
   void registerImGuiCallback(std::function<void()> callback);
 
@@ -64,7 +63,7 @@ class GLFWSgWindow
   void refreshScene();
   void refreshMaterialRegistry();
 
-  static GLFWSgWindow *activeWindow;
+  static MainWindow *activeWindow;
 
   vec2i windowSize;
   vec2f previousMouse{-1.f};
@@ -90,7 +89,7 @@ class GLFWSgWindow
   GLuint framebufferTexture = 0;
 
   // optional registered display callback, called before every display()
-  std::function<void(GLFWSgWindow *)> displayCallback;
+  std::function<void(MainWindow *)> displayCallback;
 
   // toggles display of ImGui UI, if an ImGui callback is provided
   bool showUi = true;

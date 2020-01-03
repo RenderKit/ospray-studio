@@ -14,7 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "GLFWSgWindow.h"
+#include "MainWindow.h"
 // imgui
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -64,14 +64,14 @@ bool rendererUI_callback(void *, int index, const char **out_text)
   return true;
 }
 
-// GLFWSgWindow definitions ///////////////////////////////////////////////
+// MainWindow definitions ///////////////////////////////////////////////
 
-GLFWSgWindow *GLFWSgWindow::activeWindow = nullptr;
+MainWindow *MainWindow::activeWindow = nullptr;
 
-GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
+MainWindow::MainWindow(const vec2i &windowSize) : scene(g_scenes[0])
 {
   if (activeWindow != nullptr) {
-    throw std::runtime_error("Cannot create more than one GLFWSgWindow!");
+    throw std::runtime_error("Cannot create more than one MainWindow!");
   }
 
   activeWindow = this;
@@ -160,7 +160,7 @@ GLFWSgWindow::GLFWSgWindow(const vec2i &windowSize) : scene(g_scenes[0])
   reshape(this->windowSize);
 }
 
-GLFWSgWindow::~GLFWSgWindow()
+MainWindow::~MainWindow()
 {
   ImGui_ImplOpenGL2_Shutdown();
   ImGui_ImplGlfw_Shutdown();
@@ -168,23 +168,23 @@ GLFWSgWindow::~GLFWSgWindow()
   glfwTerminate();
 }
 
-GLFWSgWindow *GLFWSgWindow::getActiveWindow()
+MainWindow *MainWindow::getActiveWindow()
 {
   return activeWindow;
 }
 
-void GLFWSgWindow::registerDisplayCallback(
-    std::function<void(GLFWSgWindow *)> callback)
+void MainWindow::registerDisplayCallback(
+    std::function<void(MainWindow *)> callback)
 {
   displayCallback = callback;
 }
 
-void GLFWSgWindow::registerImGuiCallback(std::function<void()> callback)
+void MainWindow::registerImGuiCallback(std::function<void()> callback)
 {
   uiCallback = callback;
 }
 
-void GLFWSgWindow::mainLoop()
+void MainWindow::mainLoop()
 {
   // continue until the user closes the window
   startNewOSPRayFrame();
@@ -202,7 +202,7 @@ void GLFWSgWindow::mainLoop()
   waitOnOSPRayFrame();
 }
 
-void GLFWSgWindow::reshape(const vec2i &newWindowSize)
+void MainWindow::reshape(const vec2i &newWindowSize)
 {
   windowSize = newWindowSize;
 
@@ -223,7 +223,7 @@ void GLFWSgWindow::reshape(const vec2i &newWindowSize)
   camera["aspect"] = windowSize.x / float(windowSize.y);
 }
 
-void GLFWSgWindow::updateCamera()
+void MainWindow::updateCamera()
 {
   auto &camera = frame->child("camera");
 
@@ -232,7 +232,7 @@ void GLFWSgWindow::updateCamera()
   camera["up"]        = arcballCamera->upDir();
 }
 
-void GLFWSgWindow::motion(const vec2f &position)
+void MainWindow::motion(const vec2f &position)
 {
   const vec2f mouse(position.x, position.y);
   if (previousMouse != vec2f(-1)) {
@@ -271,7 +271,7 @@ void GLFWSgWindow::motion(const vec2f &position)
   previousMouse = mouse;
 }
 
-void GLFWSgWindow::display()
+void MainWindow::display()
 {
   static auto displayStart = std::chrono::high_resolution_clock::now();
 
@@ -351,17 +351,17 @@ void GLFWSgWindow::display()
   glfwSwapBuffers(glfwWindow);
 }
 
-void GLFWSgWindow::startNewOSPRayFrame()
+void MainWindow::startNewOSPRayFrame()
 {
   frame->startNewFrame();
 }
 
-void GLFWSgWindow::waitOnOSPRayFrame()
+void MainWindow::waitOnOSPRayFrame()
 {
   frame->waitOnFrame();
 }
 
-void GLFWSgWindow::updateTitleBar()
+void MainWindow::updateTitleBar()
 {
   std::stringstream windowTitle;
   windowTitle << "OSPRay Studio: " << std::setprecision(3) << latestFPS
@@ -385,7 +385,7 @@ void GLFWSgWindow::updateTitleBar()
   glfwSetWindowTitle(glfwWindow, windowTitle.str().c_str());
 }
 
-void GLFWSgWindow::buildUI()
+void MainWindow::buildUI()
 {
   ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize;
   ImGui::Begin("press 'g' to hide/show UI", nullptr, flags);
@@ -457,7 +457,7 @@ void GLFWSgWindow::buildUI()
   ImGui::End();
 }
 
-void GLFWSgWindow::refreshRenderer()
+void MainWindow::refreshRenderer()
 {
   auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
 
@@ -476,7 +476,7 @@ void GLFWSgWindow::refreshRenderer()
   r.createChildData("material", materialHandles);
 }
 
-void GLFWSgWindow::refreshScene()
+void MainWindow::refreshScene()
 {
   auto world = sg::createNode("world", "world");
 
@@ -492,7 +492,7 @@ void GLFWSgWindow::refreshScene()
     if (file) {
       auto &imp =
           world->createChildAs<sg::Importer>("importer", "importer_obj");
-      imp["file"] = std::string(file);
+      imp["file"]       = std::string(file);
       auto registrySize = materialRegistry->children().size();
       imp.importScene(*materialRegistry);
       refreshMaterialRegistry();
@@ -517,7 +517,7 @@ void GLFWSgWindow::refreshScene()
   updateCamera();
 }
 
-void GLFWSgWindow::refreshMaterialRegistry()
+void MainWindow::refreshMaterialRegistry()
 {
   for (auto t : {"scivis", "pathtracer"})
     materialRegistry->traverse<sg::GenerateOSPRayMaterials>(t);

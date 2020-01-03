@@ -14,7 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "GLFWSgWindow.h"
+#include "MainWindow.h"
 #include "example_common.h"
 
 using namespace ospray;
@@ -24,7 +24,7 @@ int main(int argc, const char *argv[])
 {
   initializeOSPRay(argc, argv);
 
-  auto window = make_unique<GLFWSgWindow>(vec2i(1024, 768));
+  auto window = make_unique<MainWindow>(vec2i(1024, 768));
   window->mainLoop();
   window.reset();
 

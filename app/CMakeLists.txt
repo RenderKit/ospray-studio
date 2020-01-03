@@ -16,7 +16,7 @@
 
 add_executable(ospStudio
   ArcballCamera.cpp
-  GLFWSgWindow.cpp
+  MainWindow.cpp
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
   ospStudio.cpp
