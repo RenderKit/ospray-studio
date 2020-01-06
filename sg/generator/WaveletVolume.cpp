@@ -110,7 +110,7 @@ namespace ospray::sg {
     volume["gridSpacing"] = gridSpacing;
     volume["dimensions"]  = dimensions;
 
-    volume.createChildData("voxelData", voxels);
+    volume.createChildData("data", voxels);
   }
 
 }  // namespace ospray::sg
