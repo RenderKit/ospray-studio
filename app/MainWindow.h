@@ -66,6 +66,7 @@ class MainWindow
   static MainWindow *activeWindow;
 
   vec2i windowSize;
+  vec2i fbSize;
   vec2f previousMouse{-1.f};
 
   bool showAlbedo{false};

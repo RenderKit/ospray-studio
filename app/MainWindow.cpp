@@ -158,6 +158,7 @@ MainWindow::MainWindow(const vec2i &windowSize) : scene(g_scenes[0])
   // trigger window reshape events with current window size
   glfwGetFramebufferSize(glfwWindow, &this->windowSize.x, &this->windowSize.y);
   reshape(this->windowSize);
+  fbSize = this->windowSize;
 }
 
 MainWindow::~MainWindow()
@@ -284,7 +285,7 @@ void MainWindow::display()
   updateTitleBar();
 
   static bool firstFrame = true;
-  if (firstFrame || frame->frameIsReady()) {
+  if (firstFrame || (frame->frameIsReady() && fbSize == windowSize)) {
     // display frame rate in window title
     auto displayEnd = std::chrono::high_resolution_clock::now();
     auto durationMilliseconds =
@@ -320,6 +321,9 @@ void MainWindow::display()
     displayStart = std::chrono::high_resolution_clock::now();
     startNewOSPRayFrame();
     firstFrame = false;
+  } else if (fbSize != windowSize) {
+    waitOnOSPRayFrame();
+    startNewOSPRayFrame();
   }
 
   // clear current OpenGL color buffer
@@ -354,6 +358,7 @@ void MainWindow::display()
 void MainWindow::startNewOSPRayFrame()
 {
   frame->startNewFrame();
+  fbSize = windowSize;
 }
 
 void MainWindow::waitOnOSPRayFrame()
