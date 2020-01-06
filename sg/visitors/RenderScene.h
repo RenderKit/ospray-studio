@@ -126,7 +126,11 @@ namespace ospray::sg {
   {
     auto geom = node.valueAs<cpp::Geometry>();
     cpp::GeometricModel model(geom);
-    model.setParam("material", materialIDs.top());
+    if (node.hasChild("material")) {
+      model.setParam("material", node["material"].valueAs<cpp::Data>());
+    } else {
+      model.setParam("material", materialIDs.top());
+    }
     model.commit();
     current.geometries.push_back(model);
   }

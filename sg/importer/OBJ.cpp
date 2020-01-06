@@ -132,6 +132,16 @@ namespace ospray::sg {
 
     auto materialNodes = createMaterials(objData);
 
+    ////////////////////////////////////
+    /*
+      Temporarily blow away everything but the default material, this should
+      merge with existing materials in the future.
+    */
+    auto defaultMat = materialRegistry["default"].shared_from_this();
+    materialRegistry.removeAllChildren();
+    materialRegistry.add(defaultMat);
+    ////////////////////////////////////
+
     size_t baseMaterialOffset = materialRegistry.children().size();
 
     for (auto m : materialNodes)
@@ -184,6 +194,9 @@ namespace ospray::sg {
           vt.emplace_back(&attrib.texcoords[idx.texcoord_index * 2]);
       }
 
+      auto name = std::to_string(shapeId++) + '_' + shape.name;
+
+#if 0 // per-object materials (not technically correct)
       int materialIndex = int(baseMaterialOffset + shape.mesh.material_ids[0]);
       auto materialName =
           materialRegistry.children().at_index(materialIndex).first;
@@ -195,8 +208,17 @@ namespace ospray::sg {
 
       auto &matNode = child(materialNodeName);
 
-      auto name  = std::to_string(shapeId++) + '_' + shape.name;
       auto &mesh = matNode.createChild(name, "geometry_triangles");
+#else // per-primitive materials (correct)
+      auto &mesh = createChild(name, "geometry_triangles");
+
+      std::vector<uint32_t> mIDs(shape.mesh.material_ids.size());
+      std::transform(shape.mesh.material_ids.begin(),
+                     shape.mesh.material_ids.end(),
+                     mIDs.begin(),
+                     [](int i) { return i + 1; });
+      mesh.createChildData("material", mIDs);
+#endif
 
       mesh.createChildData("vertex.position", v);
       mesh.createChildData("index", vi);
