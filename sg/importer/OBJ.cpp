@@ -142,6 +142,9 @@ namespace ospray::sg {
     materialRegistry.add(defaultMat);
     ////////////////////////////////////
 
+    defaultMat = createNode("obj_default", "material_obj");
+    materialRegistry.add(defaultMat);
+
     size_t baseMaterialOffset = materialRegistry.children().size();
 
     for (auto m : materialNodes)
@@ -216,7 +219,7 @@ namespace ospray::sg {
       std::transform(shape.mesh.material_ids.begin(),
                      shape.mesh.material_ids.end(),
                      mIDs.begin(),
-                     [](int i) { return i + 1; });
+                     [](int i) { return i + 2; });
       mesh.createChildData("material", mIDs);
 #endif
 
