@@ -14,8 +14,9 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-add_subdirectory(imgui)
-#add_subdirectory(tfn_lib)
-add_subdirectory(tiny_file_dialogs)
-add_subdirectory(tiny_obj_loader)
-add_subdirectory(tiny_gltf)
+add_library(tiny_gltf INTERFACE)
+
+target_include_directories(tiny_gltf
+INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+)

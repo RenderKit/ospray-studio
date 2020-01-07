@@ -54,10 +54,12 @@ find_package(glfw3 REQUIRED)
 find_package(ospcommon 1.1.0 REQUIRED)
 find_package(ospray 2.0.0 REQUIRED)
 
-# Prevent OSX 10.14+ OGL deprecation warnings
-if(APPLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
-endif()
+# imgui (since v1.74) now includes this define, making this
+# redundant
+## Prevent OSX 10.14+ OGL deprecation warnings
+#if(APPLE)
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
+#endif()
 
 ## Build application ##
 
