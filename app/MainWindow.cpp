@@ -38,19 +38,20 @@ static bool g_quitNextFrame = false;
 static const std::vector<std::string> g_scenes = {
     "tutorial_scene", "random_spheres", "wavelet", "import"};
 
-static const std::vector<std::string> g_renderers = {"scivis",
-                                                     "pathtracer",
-                                                     "raycast",
-                                                     "raycast_vertexColor",
-                                                     "primID",
-                                                     "geomID",
-                                                     "instID",
-                                                     "dPds",
-                                                     "dPdt",
-                                                     "Ng",
-                                                     "Ns",
-                                                     "backfacing_Ng",
-                                                     "backfacing_Ns"};
+static const std::vector<std::string> g_renderers = {
+    "scivis", "pathtracer", "debug"};
+
+static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
+                                                              "primID",
+                                                              "geomID",
+                                                              "instID",
+                                                              "Ng",
+                                                              "Ns",
+                                                              "backfacing_Ng",
+                                                              "backfacing_Ns",
+                                                              "dPds",
+                                                              "dPdt",
+                                                              "volume"};
 
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
@@ -61,6 +62,12 @@ bool sceneUI_callback(void *, int index, const char **out_text)
 bool rendererUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_renderers[index].c_str();
+  return true;
+}
+
+bool debugTypeUI_callback(void *, int index, const char **out_text)
+{
+  *out_text = g_debugRendererTypes[index].c_str();
   return true;
 }
 
@@ -405,28 +412,46 @@ void MainWindow::buildUI()
     refreshScene();
   }
 
-  static int whichRenderer = 0;
+  static int whichRenderer     = 0;
+  static int whichDebuggerType = 0;
   if (ImGui::Combo("renderer##whichRenderer",
                    &whichRenderer,
                    rendererUI_callback,
                    nullptr,
                    g_renderers.size())) {
     rendererTypeStr = g_renderers[whichRenderer];
+
+    if (rendererType == OSPRayRendererType::DEBUGGER)
+      whichDebuggerType = 0;  // reset UI if switching away from debug renderer
+
     if (rendererTypeStr == "scivis")
       rendererType = OSPRayRendererType::SCIVIS;
     else if (rendererTypeStr == "pathtracer")
       rendererType = OSPRayRendererType::PATHTRACER;
+    else if (rendererTypeStr == "debug")
+      rendererType = OSPRayRendererType::DEBUGGER;
     else
       rendererType = OSPRayRendererType::OTHER;
+
     refreshRenderer();
+  }
+
+  auto &renderer = frame->child("renderer");
+
+  if (rendererType == OSPRayRendererType::DEBUGGER) {
+    if (ImGui::Combo("debug type##whichDebugType",
+                     &whichDebuggerType,
+                     debugTypeUI_callback,
+                     nullptr,
+                     g_debugRendererTypes.size())) {
+      renderer["method"] = g_debugRendererTypes[whichDebuggerType];
+    }
   }
 
   ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
   ImGui::Checkbox("show albedo", &showAlbedo);
 
   ImGui::Separator();
-
-  auto &renderer = frame->child("renderer");
 
   static int spp = 1;
   if (ImGui::SliderInt("spp", &spp, 1, 64))

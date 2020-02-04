@@ -27,7 +27,7 @@ namespace ospray::sg {
   {
     createChild("framebuffer", "framebuffer");
     createChild("camera", "camera_perspective");
-    createChild("renderer", "renderer_rayDir");
+    createChild("renderer", "renderer_scivis");
     createChild("world", "world");
   }
 

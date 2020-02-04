@@ -220,7 +220,7 @@ namespace ospray::sg {
                                                   OSPObject obj)
   {
     auto *c_str = value().c_str();
-    ospSetParam(obj, param.c_str(), OSP_STRING, &c_str);
+    ospSetParam(obj, param.c_str(), OSP_STRING, c_str);
   }
 
   /////////////////////////////////////////////////////////////////////////////

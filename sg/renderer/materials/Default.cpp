@@ -28,7 +28,7 @@ namespace ospray::sg {
 
   // MaterialDefault definitions //////////////////////////////////////////////
 
-  MaterialDefault::MaterialDefault() : Material("default")
+  MaterialDefault::MaterialDefault() : Material("obj")
   {
     createChild("Kd", "rgb", vec3f(1.f, 0.f, 1.f));
   }
