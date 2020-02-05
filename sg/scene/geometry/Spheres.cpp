@@ -28,7 +28,7 @@ namespace ospray::sg {
 
   // Spheres definitions //////////////////////////////////////////////////////
 
-  Spheres::Spheres() : Geometry("spheres")
+  Spheres::Spheres() : Geometry("sphere")
   {
     createChild("radius", "float", 1.f);
   }
