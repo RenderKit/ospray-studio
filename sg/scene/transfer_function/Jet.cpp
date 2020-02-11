@@ -28,7 +28,7 @@ namespace ospray::sg {
 
   // Jet definitions //////////////////////////////////////////////////////////
 
-  Jet::Jet() : TransferFunction("piecewise_linear")
+  Jet::Jet() : TransferFunction("piecewiseLinear")
   {
     std::vector<vec3f> colors;
     colors.emplace_back(0, 0, 0.562493);

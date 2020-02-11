@@ -36,7 +36,7 @@
 static bool g_quitNextFrame = false;
 
 static const std::vector<std::string> g_scenes = {
-    "tutorial_scene", "random_spheres", "wavelet", "import"};
+    "tutorial_scene", "random_spheres", "wavelet", "import", "unstructured_volume"};
 
 static const std::vector<std::string> g_renderers = {
     "scivis", "pathtracer", "debug"};

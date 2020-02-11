@@ -102,15 +102,13 @@ namespace ospray::sg {
 
     // Create sg subtree
 
-    auto &tf     = createChild("transfer_function", "transfer_function_cloud");
-    auto &volume = tf.createChild("wavelet", "volume_structured");
-
+    auto &tf     = createChild("transfer_function", "transfer_function_jet");
+    auto &volume = tf.createChild("wavelet", "volume_structured");     
     volume["voxelType"]   = int(OSP_FLOAT);
     volume["gridOrigin"]  = gridOrigin;
     volume["gridSpacing"] = gridSpacing;
     volume["dimensions"]  = dimensions;
-
-    volume.createChildData("data", voxels);
+    volume.createChildData("data", dimensions, 0, voxels.data());
   }
 
 }  // namespace ospray::sg

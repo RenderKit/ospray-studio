@@ -1,5 +1,5 @@
 ## ======================================================================== ##
-## Copyright 2009-2019 Intel Corporation                                    ##
+## Copyright 2009-2020 Intel Corporation                                    ##
 ##                                                                          ##
 ## Licensed under the Apache License, Version 2.0 (the "License");          ##
 ## you may not use this file except in compliance with the License.         ##
@@ -30,6 +30,7 @@ add_library(ospray_sg SHARED
   generator/RandomSpheres.cpp
   generator/TutorialScene.cpp
   generator/WaveletVolume.cpp
+  generator/UnstructuredVol.cpp
 
   importer/Importer.cpp
   importer/OBJ.cpp
@@ -55,7 +56,11 @@ add_library(ospray_sg SHARED
   scene/transfer_function/TransferFunction.cpp
 
   scene/volume/Structured.cpp
+  scene/volume/Unstructured.cpp
   scene/volume/Volume.cpp
+
+  scene/lights/Light.cpp
+  scene/lights/Light.h
 )
 
 target_link_libraries(ospray_sg

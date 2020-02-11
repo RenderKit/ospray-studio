@@ -18,22 +18,23 @@
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE StructuredVolume : public Volume
+  struct OSPSG_INTERFACE UnstructuredVolume : public Volume
   {
-    StructuredVolume();
-    virtual ~StructuredVolume() override = default;
+    UnstructuredVolume();
+    virtual ~UnstructuredVolume() override = default;
   };
 
-  OSP_REGISTER_SG_NODE_NAME(StructuredVolume, volume_structured);
+  OSP_REGISTER_SG_NODE_NAME(UnstructuredVolume, volume_unstructured);
 
-  // StructuredVolume definitions /////////////////////////////////////////////
+  // UnstructuredVolume definitions /////////////////////////////////////////////
 
-  StructuredVolume::StructuredVolume() : Volume("structuredRegular")
+  UnstructuredVolume::UnstructuredVolume() : Volume("unstructured")
   {
-    createChild("voxelType", "int");
-    createChild("gridOrigin", "vec3f");
-    createChild("gridSpacing", "vec3f");
-    createChild("dimensions", "vec3i");
+    createChildData("vertex.position");
+    createChildData("index");
+    createChildData("cell.index");
+    createChildData("vertex.data");
+    createChildData("cell.type");
   }
 
 }  // namespace ospray::sg

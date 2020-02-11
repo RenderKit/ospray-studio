@@ -28,7 +28,7 @@ namespace ospray::sg {
 
   // Cloud definitions ////////////////////////////////////////////////////////
 
-  Cloud::Cloud() : TransferFunction("piecewise_linear")
+  Cloud::Cloud() : TransferFunction("piecewiseLinear")
   {
     std::vector<vec3f> colors = {vec3f(1.f)};
     createChildData("color", colors);
