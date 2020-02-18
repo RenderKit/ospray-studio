@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,19 +14,27 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
+#include "Light.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
+  struct OSPSG_INTERFACE SpotLight : public Light
   {
-    World();
-    ~World() override = default;
-
-    virtual void preCommit() override;
-    virtual void postCommit() override;
+    SpotLight();
+    virtual ~SpotLight() override = default;
   };
+
+  OSP_REGISTER_SG_NODE_NAME(SpotLight, spot);
+
+  // SpotLight definitions /////////////////////////////////////////////
+
+  SpotLight::SpotLight() : Light("spot")
+  {
+    createChild("position", "vec3f", vec3f(0.f));   
+    createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
+    createChild("openingAngle", "float", 180.f);
+    createChild("penumbraAngle", "float", 5.f);
+    createChild("radius", "float", 0.f);
+  }
 
 }  // namespace ospray::sg

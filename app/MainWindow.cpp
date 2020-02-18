@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2018-2019 Intel Corporation                                    //
+// Copyright 2018-2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -52,6 +52,11 @@ static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
                                                               "dPds",
                                                               "dPdt",
                                                               "volume"};
+static const std::vector<std::string> g_lightTypes = {"ambient",
+                                                      "distant",
+                                                      "spot",
+                                                      "sphere",
+                                                      "quad"};
 
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
@@ -68,6 +73,12 @@ bool rendererUI_callback(void *, int index, const char **out_text)
 bool debugTypeUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_debugRendererTypes[index].c_str();
+  return true;
+}
+
+bool lightTypeUI_callback(void *, int index, const char **out_text)
+{
+  *out_text = g_lightTypes[index].c_str();
   return true;
 }
 
@@ -414,6 +425,7 @@ void MainWindow::buildUI()
 
   static int whichRenderer     = 0;
   static int whichDebuggerType = 0;
+  static int whichLightType    = 0;
   if (ImGui::Combo("renderer##whichRenderer",
                    &whichRenderer,
                    rendererUI_callback,
@@ -437,7 +449,6 @@ void MainWindow::buildUI()
   }
 
   auto &renderer = frame->child("renderer");
-
   if (rendererType == OSPRayRendererType::DEBUGGER) {
     if (ImGui::Combo("debug type##whichDebugType",
                      &whichDebuggerType,
@@ -445,6 +456,16 @@ void MainWindow::buildUI()
                      nullptr,
                      g_debugRendererTypes.size())) {
       renderer["method"] = g_debugRendererTypes[whichDebuggerType];
+    }
+  }
+  if (rendererType == OSPRayRendererType::PATHTRACER) {
+    if (ImGui::Combo("light type##whichLightType",
+                     &whichLightType,
+                     lightTypeUI_callback,
+                     nullptr,
+                     g_lightTypes.size())) {
+      lightTypeStr = g_lightTypes[whichLightType];
+      refreshLight();
     }
   }
 
@@ -506,14 +527,16 @@ void MainWindow::refreshRenderer()
   r.createChildData("material", materialHandles);
 }
 
+void MainWindow::refreshLight() {
+  auto &world    = frame->child("world");
+  world.createChild("light", lightTypeStr);
+  auto &lights = world.child("light");
+  lights.commit();
+}
+
 void MainWindow::refreshScene()
 {
   auto world = sg::createNode("world", "world");
-
-  cpp::Light defaultLight("ambient");
-  defaultLight.commit();
-
-  world->createChildData("light", defaultLight);
 
   if (scene == "import") {
     const char *file = tinyfd_openFileDialog(
@@ -537,6 +560,7 @@ void MainWindow::refreshScene()
         world->createChildAs<sg::Generator>("generator", "generator_" + scene);
     gen.generateData();
   }
+  world->createChild("light", lightTypeStr);
 
   world->render();
 

@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,19 +14,25 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
+#include "Light.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
+  struct OSPSG_INTERFACE HDRILight : public Light
   {
-    World();
-    ~World() override = default;
-
-    virtual void preCommit() override;
-    virtual void postCommit() override;
+    HDRILight();
+    virtual ~HDRILight() override = default;
   };
+
+  OSP_REGISTER_SG_NODE_NAME(HDRILight, hdri);
+
+  // HDRILight definitions /////////////////////////////////////////////
+
+  HDRILight::HDRILight() : Light("hdri")
+  {
+    createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f));
+    createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
+    createChild("map");
+  }
 
 }  // namespace ospray::sg

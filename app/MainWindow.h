@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2018-2019 Intel Corporation                                    //
+// Copyright 2018-2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -63,6 +63,7 @@ class MainWindow
   void refreshRenderer();
   void refreshScene();
   void refreshMaterialRegistry();
+  void refreshLight();
 
   static MainWindow *activeWindow;
 
@@ -77,6 +78,7 @@ class MainWindow
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   std::string rendererTypeStr{"scivis"};
+  std::string lightTypeStr{"ambient"};
 
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;

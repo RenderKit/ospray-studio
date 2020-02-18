@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,19 +14,24 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
+#include "Light.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
+  Light::Light(std::string type)
   {
-    World();
-    ~World() override = default;
+    auto handle = ospNewLight(type.c_str());
+    setHandle(handle);
+  }
 
-    virtual void preCommit() override;
-    virtual void postCommit() override;
-  };
+  NodeType Light::type() const
+  {
+    return NodeType::LIGHT;
+  }
+
+  void Light::postCommit() {
+    auto lights = valueAs<cpp::Light>();
+    lights.commit();
+  }
 
 }  // namespace ospray::sg

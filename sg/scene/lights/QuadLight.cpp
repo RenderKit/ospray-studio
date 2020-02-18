@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,19 +14,25 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
+#include "Light.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
+  struct OSPSG_INTERFACE QuadLight : public Light
   {
-    World();
-    ~World() override = default;
-
-    virtual void preCommit() override;
-    virtual void postCommit() override;
+    QuadLight();
+    virtual ~QuadLight() override = default;
   };
+
+  OSP_REGISTER_SG_NODE_NAME(QuadLight, quad);
+
+  // QuadLight definitions /////////////////////////////////////////////
+
+  QuadLight::QuadLight() : Light("quad")
+  {
+    createChild("position", "vec3f", vec3f(0.f));
+    createChild("edge1", "vec3f", vec3f(1.f, 0.f, 0.f));
+    createChild("edge2", "vec3f", vec3f(0.f, 1.f, 0.f));
+  }
 
 }  // namespace ospray::sg

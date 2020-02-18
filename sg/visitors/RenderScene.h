@@ -31,7 +31,6 @@ namespace ospray::sg {
 
    private:
     // Helper Functions //
-
     void createGeometry(Node &node);
     void createVolume(Node &node);
     void addGeometriesToGroup();
@@ -50,7 +49,6 @@ namespace ospray::sg {
       //     - TransferFunction
       //     - ...others?
     } current;
-
     cpp::World world;
     std::vector<cpp::Instance> instances;
     std::stack<affine3f> xfms;

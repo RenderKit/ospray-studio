@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
+// Copyright 2009-2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -21,6 +21,18 @@ namespace ospray::sg {
   World::World()
   {
     setHandle(cpp::World());
+    createChild("light");
+  }
+
+  void World::preCommit() {    
+    auto ospWorld = valueAs<cpp::World>();
+    auto &lights = child("light").valueAs<cpp::Light>();
+    ospWorld.setParam("light", (cpp::Data)lights);
+  }
+
+  void World::postCommit() {
+    auto ospWorld = valueAs<cpp::World>();
+    ospWorld.commit();
   }
 
   OSP_REGISTER_SG_NODE_NAME(World, world);

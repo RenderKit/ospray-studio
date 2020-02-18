@@ -58,7 +58,15 @@ add_library(ospray_sg SHARED
   scene/volume/Structured.cpp
   scene/volume/Unstructured.cpp
   scene/volume/Volume.cpp
-)
+
+  scene/lights/Light.cpp
+  scene/lights/DirectionalLight.cpp
+  scene/lights/AmbientLight.cpp
+  scene/lights/SpotLight.cpp
+  scene/lights/PointLight.cpp
+  scene/lights/QuadLight.cpp
+  scene/lights/HDRILight.cpp
+  )
 
 target_link_libraries(ospray_sg
 PUBLIC

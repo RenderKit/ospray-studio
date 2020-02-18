@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,19 +14,24 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
+#include "Light.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
+  struct OSPSG_INTERFACE DirectionalLight : public Light
   {
-    World();
-    ~World() override = default;
-
-    virtual void preCommit() override;
-    virtual void postCommit() override;
+    DirectionalLight();
+    virtual ~DirectionalLight() override = default;
   };
+
+  OSP_REGISTER_SG_NODE_NAME(DirectionalLight, distant);
+
+  // DirectionalLight definitions /////////////////////////////////////////////
+
+  DirectionalLight::DirectionalLight() : Light("distant")
+  {
+    createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
+    createChild("angularDiameter", "float", 0.f);
+  }
 
 }  // namespace ospray::sg
