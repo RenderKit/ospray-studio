@@ -35,8 +35,11 @@
 
 static bool g_quitNextFrame = false;
 
-static const std::vector<std::string> g_scenes = {
-    "tutorial_scene", "random_spheres", "wavelet", "import", "unstructured_volume"};
+static const std::vector<std::string> g_scenes = {"tutorial_scene",
+                                                  "random_spheres",
+                                                  "wavelet",
+                                                  "import",
+                                                  "unstructured_volume"};
 
 static const std::vector<std::string> g_renderers = {
     "scivis", "pathtracer", "debug"};
@@ -52,11 +55,9 @@ static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
                                                               "dPds",
                                                               "dPdt",
                                                               "volume"};
-static const std::vector<std::string> g_lightTypes = {"ambient",
-                                                      "distant",
-                                                      "spot",
-                                                      "sphere",
-                                                      "quad"};
+
+static const std::vector<std::string> g_lightTypes = {
+    "ambient", "distant", "spot", "sphere", "quad"};
 
 std::vector<std::string> g_matTypes = {
     "material_default", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
@@ -547,8 +548,9 @@ void MainWindow::refreshRenderer()
   } 
 }
 
-void MainWindow::refreshLight() {
-  auto &world    = frame->child("world");
+void MainWindow::refreshLight()
+{
+  auto &world = frame->child("world");
   world.createChild("light", lightTypeStr);
 }
 
@@ -590,6 +592,57 @@ void MainWindow::refreshScene()
   } else {
       auto &gen = world->createChildAs<sg::Generator>("generator", "generator_" + scene);
       gen.generateData();
+  }
+  world->createChild("light", lightTypeStr);
+
+  world->render();
+
+  frame->add(world);
+
+  arcballCamera.reset(
+      new ArcballCamera(frame->child("world").bounds(), windowSize));
+  updateCamera();
+}
+
+void MainWindow::parseCommandLine(int &ac, const char **&av)
+{
+  for (int i = 1; i < ac; i++) {
+    const std::string arg = av[i];
+
+    filesToImport.push_back(arg);
+  }
+
+  if (!filesToImport.empty()) {
+    importFiles();
+  }
+}
+
+void MainWindow::importFiles()
+{
+  auto world = sg::createNode("world", "world");
+
+  for (auto file : filesToImport) {
+    try {
+      std::cout << "Importing: " << file << std::endl;
+
+      auto &imp =
+          world->createChildAs<sg::Importer>("importer", "importer_obj");
+      imp["file"]       = std::string(file);
+      auto registrySize = mr.children().size();
+      imp.importScene(mr);
+      if (mr.importedMatNames.size() != 0) {
+        for (auto &newMat : mr.importedMatNames)
+          g_matTypes.insert(g_matTypes.begin(), newMat);
+      }
+
+      if (registrySize != mr.children().size()) {
+        std::cout << "registry size less than new size" << std::endl;
+         refreshRenderer();
+      }
+
+    } catch (...) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
+    }
   }
   world->createChild("light", lightTypeStr);
 

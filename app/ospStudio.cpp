@@ -25,6 +25,7 @@ int main(int argc, const char *argv[])
   initializeOSPRay(argc, argv);
 
   auto window = make_unique<MainWindow>(vec2i(1024, 768));
+  window->parseCommandLine(argc, argv);
   window->mainLoop();
   window.reset();
 

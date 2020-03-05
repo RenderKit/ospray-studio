@@ -51,6 +51,9 @@ class MainWindow
 
   void mainLoop();
 
+  void parseCommandLine(int &ac, const char **&av);
+  void importFiles();
+
  protected:
   void updateCamera();
 
@@ -78,6 +81,7 @@ class MainWindow
   bool cancelFrameOnInteraction{false};
 
   std::string scene;
+  std::vector<std::string> filesToImport;
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   std::string rendererTypeStr{"scivis"};
