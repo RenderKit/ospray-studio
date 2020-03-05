@@ -17,6 +17,7 @@
 #pragma once
 
 #include "../Node.h"
+#include "sg/renderer/MaterialRegistry.h"
 
 namespace ospray::sg {
 
@@ -27,7 +28,7 @@ namespace ospray::sg {
 
     NodeType type() const override;
 
-    virtual void importScene(Node &materialRegistry) = 0;
+    virtual void importScene(MaterialRegistry &materialRegistry) = 0;
   };
 
 }  // namespace ospray::sg

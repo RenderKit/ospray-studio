@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -16,15 +16,26 @@
 
 #pragma once
 
-#include "../../Node.h"
+#include "../Node.h"
+#include <stack>
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
-  struct OSPSG_INTERFACE Geometry
-      : public OSPNode<cpp::Geometry, NodeType::GEOMETRY>
-  {
-    Geometry(const std::string &osp_type);
-    ~Geometry() override = default;
-  };
+    struct OSPSG_INTERFACE Instance : public OSPNode<cpp::Instance, NodeType::INSTANCE>
+    {
+      Instance();
+      virtual ~Instance() override = default;
 
-}  // namespace ospray::sg
+      NodeType type() const override;
+
+      void preCommit() override;
+      void postCommit() override;
+
+      std::stack<affine3f> xfms;
+      cpp::Group group;
+      std::stack<uint32_t> materialIDs;
+    };
+
+  }  // namespace sg
+}  // namespace ospray

@@ -27,6 +27,7 @@ namespace ospray::sg {
     RENDERER,
     CAMERA,
     WORLD,
+    INSTANCE,
     TRANSFORM,
     TRANSFER_FUNCTION,
     MATERIAL,

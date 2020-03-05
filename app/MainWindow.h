@@ -23,6 +23,7 @@
 #include "sg/Frame.h"
 // std
 #include <functional>
+#include "sg/renderer/MaterialRegistry.h"
 
 using namespace ospcommon::math;
 using namespace ospray;
@@ -64,6 +65,8 @@ class MainWindow
   void refreshScene();
   void refreshMaterialRegistry();
   void refreshLight();
+  void refreshMaterial();
+  void addPTMaterials();
 
   static MainWindow *activeWindow;
 
@@ -79,6 +82,7 @@ class MainWindow
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   std::string rendererTypeStr{"scivis"};
   std::string lightTypeStr{"ambient"};
+  std::string matTypeStr{"material_default"};
 
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;
@@ -87,7 +91,7 @@ class MainWindow
   std::unique_ptr<ArcballCamera> arcballCamera;
 
   std::shared_ptr<sg::Frame> frame;
-  std::shared_ptr<sg::Node> materialRegistry;
+  sg::MaterialRegistry mr;
 
   // OpenGL framebuffer texture
   GLuint framebufferTexture = 0;

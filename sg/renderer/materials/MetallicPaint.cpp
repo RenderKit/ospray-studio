@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,17 +14,23 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../../Node.h"
+#include "../Material.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Geometry
-      : public OSPNode<cpp::Geometry, NodeType::GEOMETRY>
+  struct OSPSG_INTERFACE MetallicPaint : public Material
   {
-    Geometry(const std::string &osp_type);
-    ~Geometry() override = default;
+    MetallicPaint();
+    ~MetallicPaint() override = default;
   };
+
+  OSP_REGISTER_SG_NODE_NAME(MetallicPaint, metallicPaint);
+
+  // MetallicPaint definitions //////////////////////////////////////////////////
+
+  MetallicPaint::MetallicPaint() : Material("metallicPaint")
+  {
+
+  }
 
 }  // namespace ospray::sg

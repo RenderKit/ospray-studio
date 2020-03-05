@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
+// Copyright 2009-2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -62,7 +62,6 @@ namespace ospray::sg {
   inline RenderScene::RenderScene()
   {
     xfms.emplace(math::one);
-    materialIDs.push(0);
   }
 
   inline bool RenderScene::operator()(Node &node, TraversalContext &)
@@ -72,6 +71,9 @@ namespace ospray::sg {
     switch (node.type()) {
     case NodeType::WORLD:
       world = node.valueAs<cpp::World>();
+      break;
+    case NodeType::MATERIAL_REFERENCE:
+      materialIDs.push(node.valueAs<int>());
       break;
     case NodeType::GEOMETRY:
       createGeometry(node);
@@ -86,9 +88,6 @@ namespace ospray::sg {
       break;
     case NodeType::TRANSFORM:
       xfms.push(xfms.top() * node.valueAs<affine3f>());
-      break;
-    case NodeType::MATERIAL_REFERENCE:
-      materialIDs.push(node.valueAs<int>());
       break;
     case NodeType::LIGHT:
       addLightToWorld(node);
@@ -116,7 +115,7 @@ namespace ospray::sg {
       xfms.pop();
       break;
     case NodeType::MATERIAL_REFERENCE:
-      materialIDs.pop();
+      // materialIDs.pop();
       break;
     case NodeType::LIGHT:
       world.commit();
@@ -187,5 +186,11 @@ namespace ospray::sg {
     if (!instances.empty())
       world.setParam("instance", cpp::Data(instances));
   }
+
+  // inline void RenderScene::placeInstanceInWorld(Node &node)
+  // {
+  //   auto &inst = node.valueAs<cpp::Instance>();
+  //   world.setParam("instance", cpp::Data(inst));
+  // }
 
 }  // namespace ospray::sg

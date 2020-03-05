@@ -27,7 +27,7 @@ namespace ospray::sg {
     OBJImporter()           = default;
     ~OBJImporter() override = default;
 
-    void importScene(Node &materialRegistry) override;
+    void importScene(MaterialRegistry &materialRegistry) override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(OBJImporter, importer_obj);
@@ -113,9 +113,9 @@ namespace ospray::sg {
 
       auto &mat = *matNode;
 
-      mat["alpha"] = m.dissolve;
-      mat["Kd"]    = vec3f(m.diffuse);
-      mat["Ks"]    = vec3f(m.specular);
+      mat["kd"].setValue(vec3f(m.diffuse));
+      mat["ks"].setValue(vec3f(m.specular));
+      mat["ns"].setValue( m.shininess);
 
       retval.push_back(matNode);
     }
@@ -125,7 +125,7 @@ namespace ospray::sg {
 
   // OBJImporter definitions //////////////////////////////////////////////////
 
-  void OBJImporter::importScene(Node &materialRegistry)
+  void OBJImporter::importScene(MaterialRegistry &materialRegistry)
   {
     auto file    = FileName(child("file").valueAs<std::string>());
     auto objData = loadFromFile(file);
@@ -137,18 +137,20 @@ namespace ospray::sg {
       Temporarily blow away everything but the default material, this should
       merge with existing materials in the future.
     */
-    auto defaultMat = materialRegistry["default"].shared_from_this();
-    materialRegistry.removeAllChildren();
-    materialRegistry.add(defaultMat);
+    // auto defaultMat = materialRegistry["default"].shared_from_this();
+    // materialRegistry.removeAllChildren();
+    // materialRegistry.add(defaultMat);
     ////////////////////////////////////
 
-    defaultMat = createNode("obj_default", "material_obj");
-    materialRegistry.add(defaultMat);
+    // defaultMat = createNode("obj_default", "material_obj");
+    // materialRegistry.add(defaultMat);
 
-    size_t baseMaterialOffset = materialRegistry.children().size();
+    size_t baseMaterialOffset = materialRegistry.valueAs<sg::NodePtr>()->children().size();
 
-    for (auto m : materialNodes)
-      materialRegistry.add(m);
+    for (auto m : materialNodes) {
+      materialRegistry.valueAs<sg::NodePtr>()->add(m);
+      materialRegistry.importedMatNames.push_back(m->name());
+    }
 
     auto &attrib = objData.attrib;
 
@@ -219,8 +221,9 @@ namespace ospray::sg {
       std::transform(shape.mesh.material_ids.begin(),
                      shape.mesh.material_ids.end(),
                      mIDs.begin(),
-                     [](int i) { return i + 2; });
+                     [&](int i) { return i + baseMaterialOffset; });
       mesh.createChildData("material", mIDs);
+
 #endif
 
       mesh.createChildData("vertex.position", v);

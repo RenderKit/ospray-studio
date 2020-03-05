@@ -30,9 +30,9 @@ namespace ospray::sg {
 
   MaterialOBJ::MaterialOBJ() : Material("obj")
   {
-    createChild("alpha", "float", 1.f);
-    createChild("Kd", "rgb", vec3f(0.8f));
-    createChild("Ks", "rgb", vec3f(0.f));
+    createChild("kd", "rgb", vec3f(0.f));
+    createChild("ks", "rgb", vec3f(0.8f));
+    createChild("ns", "float", 0.f);
   }
 
 }  // namespace ospray::sg

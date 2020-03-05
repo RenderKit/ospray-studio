@@ -58,6 +58,9 @@ static const std::vector<std::string> g_lightTypes = {"ambient",
                                                       "sphere",
                                                       "quad"};
 
+std::vector<std::string> g_matTypes = {
+    "material_default", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
+
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_scenes[index].c_str();
@@ -79,6 +82,12 @@ bool debugTypeUI_callback(void *, int index, const char **out_text)
 bool lightTypeUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_lightTypes[index].c_str();
+  return true;
+}
+
+bool matTypeUI_callback(void *, int index, const char **out_text)
+{
+  *out_text = g_matTypes[index].c_str();
   return true;
 }
 
@@ -166,10 +175,10 @@ MainWindow::MainWindow(const vec2i &windowSize) : scene(g_scenes[0])
 
   frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
-  materialRegistry = sg::createNode("materialRegistry");
-  materialRegistry->createChild("default", "material_default");
+  for(auto mat : g_matTypes) {
+    mr.addNewOSPMaterial(mat);
+  }
 
-  refreshMaterialRegistry();
   refreshRenderer();
   refreshScene();
 
@@ -420,12 +429,17 @@ void MainWindow::buildUI()
                    nullptr,
                    g_scenes.size())) {
     scene = g_scenes[whichScene];
+    auto numImportedMats = mr.importedMatNames.size();
+    mr.removeImportedMats(rendererTypeStr);
+    g_matTypes.erase(g_matTypes.begin(), g_matTypes.begin() + numImportedMats);
     refreshScene();
   }
 
   static int whichRenderer     = 0;
   static int whichDebuggerType = 0;
   static int whichLightType    = 0;
+  static int whichMatType    = 0;
+
   if (ImGui::Combo("renderer##whichRenderer",
                    &whichRenderer,
                    rendererUI_callback,
@@ -466,6 +480,14 @@ void MainWindow::buildUI()
                      g_lightTypes.size())) {
       lightTypeStr = g_lightTypes[whichLightType];
       refreshLight();
+    }
+    if (ImGui::Combo("material type##whichMatType",
+                     &whichMatType,
+                     matTypeUI_callback,
+                     nullptr,
+                     g_matTypes.size())) {
+      matTypeStr = g_matTypes[whichMatType];
+      refreshMaterial();
     }
   }
 
@@ -510,21 +532,19 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
-  auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
+  if (rendererTypeStr == "pathtracer") {
 
-  if (!(rendererTypeStr == "scivis" || rendererTypeStr == "pathtracer"))
-    return;
+    auto &r = frame->createChild("renderer", "renderer_pathtracer");
+    mr.updateMaterialList(rendererTypeStr);
+    r.createChildData("material", mr.materialList);
 
-  std::vector<cpp::Material> materialHandles;
-
-  auto &mats = materialRegistry->children();
-
-  for (auto &m : mats) {
-    auto &ospHandleNode = m.second->child("handles").child(rendererTypeStr);
-    materialHandles.push_back(ospHandleNode.valueAs<cpp::Material>());
-  }
-
-  r.createChildData("material", materialHandles);
+  } else if (rendererTypeStr == "scivis") {
+    
+    auto &r = frame->createChild("renderer", "renderer_scivis");
+    mr.updateMaterialList(rendererTypeStr);
+    r.createChildData("material", mr.materialList);
+ 
+  } 
 }
 
 void MainWindow::refreshLight() {
@@ -532,9 +552,17 @@ void MainWindow::refreshLight() {
   world.createChild("light", lightTypeStr);
 }
 
+void MainWindow::refreshMaterial() {
+    mr.refreshMaterialList(matTypeStr, rendererTypeStr);
+    auto &r = frame->child("renderer");
+    r.createChildData("material", mr.materialList);
+}
+
 void MainWindow::refreshScene()
-{
+{ 
   auto world = sg::createNode("world", "world");
+
+  world->createChild("materialref", "reference_to_material", 0);
 
   if (scene == "import") {
     const char *file = tinyfd_openFileDialog(
@@ -544,19 +572,24 @@ void MainWindow::refreshScene()
       auto &imp =
           world->createChildAs<sg::Importer>("importer", "importer_obj");
       imp["file"]       = std::string(file);
-      auto registrySize = materialRegistry->children().size();
-      imp.importScene(*materialRegistry);
-      refreshMaterialRegistry();
+      auto registrySize = mr.children().size();
+      imp.importScene(mr);
+      if (mr.importedMatNames.size() != 0) {
+        for (auto &newMat : mr.importedMatNames)
+          g_matTypes.insert(g_matTypes.begin(), newMat);
+      }
 
-      if (registrySize != materialRegistry->children().size())
-        refreshRenderer();
+      if (registrySize != mr.children().size()) {
+        std::cout << "registry size less than new size" << std::endl;
+         refreshRenderer();
+      }
+
     } else {
       std::cout << "No file selected, nothing to import!\n";
     }
   } else {
-    auto &gen =
-        world->createChildAs<sg::Generator>("generator", "generator_" + scene);
-    gen.generateData();
+      auto &gen = world->createChildAs<sg::Generator>("generator", "generator_" + scene);
+      gen.generateData();
   }
   world->createChild("light", lightTypeStr);
 
@@ -567,12 +600,4 @@ void MainWindow::refreshScene()
   arcballCamera.reset(
       new ArcballCamera(frame->child("world").bounds(), windowSize));
   updateCamera();
-}
-
-void MainWindow::refreshMaterialRegistry()
-{
-  for (auto t : {"scivis", "pathtracer"})
-    materialRegistry->traverse<sg::GenerateOSPRayMaterials>(t);
-
-  materialRegistry->commit();
 }

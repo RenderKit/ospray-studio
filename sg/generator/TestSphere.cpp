@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2009-2019 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,17 +14,31 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../../Node.h"
+#include "Generator.h"
+// std
+#include <random>
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Geometry
-      : public OSPNode<cpp::Geometry, NodeType::GEOMETRY>
+  struct Sphere : public Generator
   {
-    Geometry(const std::string &osp_type);
-    ~Geometry() override = default;
+    Sphere()           = default;
+    ~Sphere() override = default;
+
+    void generateData() override;
   };
+
+  OSP_REGISTER_SG_NODE_NAME(Sphere, generator_sphere);
+
+  // Sphere definitions ////////////////////////////////////////////////
+
+  void Sphere::generateData()
+  {
+    auto &spheres = createChild("geometry", "geometry_spheres");
+    vec3f center = vec3f{1.f, 1.f, 1.f};
+    float radius = 1.f;
+    spheres.createChildData("sphere.position", center);
+    spheres.child("radius") = radius;
+  }
 
 }  // namespace ospray::sg

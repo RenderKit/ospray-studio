@@ -31,6 +31,7 @@ add_library(ospray_sg SHARED
   generator/TutorialScene.cpp
   generator/WaveletVolume.cpp
   generator/UnstructuredVol.cpp
+  generator/TestSphere.cpp
 
   importer/Importer.cpp
   importer/OBJ.cpp
@@ -41,9 +42,19 @@ add_library(ospray_sg SHARED
   renderer/PathTracer.cpp
   renderer/Renderer.cpp
   renderer/SciVis.cpp
+  renderer/MaterialRegistry.cpp
 
   renderer/materials/Default.cpp
   renderer/materials/OBJ.cpp
+  renderer/materials/Alloy.cpp
+  renderer/materials/Glass.cpp
+  renderer/materials/CarPaint.cpp
+  renderer/materials/Luminous.cpp
+  renderer/materials/Metal.cpp
+  renderer/materials/MetallicPaint.cpp
+  renderer/materials/Mix.cpp
+  renderer/materials/Plastic.cpp
+  renderer/materials/ThinGlass.cpp
 
   scene/World.cpp
 

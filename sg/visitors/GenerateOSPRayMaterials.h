@@ -44,11 +44,18 @@ namespace ospray::sg {
     switch (node.type()) {
     case NodeType::MATERIAL: {
       auto &mat = *node.nodeAs<Material>();
-      if (!mat["handles"].hasChild(rendererType)) {
-        mat["handles"].createChild(
+      if (mat.osprayMaterialType() == "obj") {
+        if(!mat["handles"].hasChild(rendererType))
+          mat["handles"].createChild(
             rendererType,
             "Node",
             cpp::Material(rendererType, mat.osprayMaterialType()));
+      } else {
+        if(!mat["handles"].hasChild("pathtracer"))
+          mat["handles"].createChild(
+              "pathtracer",
+              "Node",
+              cpp::Material("pathtracer", mat.osprayMaterialType()));
       }
       return false;
     }

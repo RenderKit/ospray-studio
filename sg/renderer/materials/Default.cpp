@@ -30,7 +30,7 @@ namespace ospray::sg {
 
   MaterialDefault::MaterialDefault() : Material("obj")
   {
-    createChild("Kd", "rgb", vec3f(1.f, 0.f, 1.f));
+    createChild("kd", "rgb", vec3f(1.f, 0.f, 1.f));
   }
 
 }  // namespace ospray::sg

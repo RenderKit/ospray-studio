@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2020 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -15,16 +15,34 @@
 // ======================================================================== //
 
 #pragma once
-
-#include "../../Node.h"
+#include <vector>
+#include "../Node.h"
+#include "../visitors/GenerateOSPRayMaterials.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Geometry
-      : public OSPNode<cpp::Geometry, NodeType::GEOMETRY>
+  struct MaterialRegistry : public Node
   {
-    Geometry(const std::string &osp_type);
-    ~Geometry() override = default;
+    MaterialRegistry();
+    MaterialRegistry(const std::vector<std::string> g_matTypes);
+    ~MaterialRegistry() override = default;
+
+    void addNewOSPMaterial(std::string matType);
+
+    void updateMaterialRegistry(const std::string &rType);
+
+    void updateMaterialList(const std::string &rType);
+
+    void refreshMaterialList(const std::string &matType, const std::string &rType);
+
+    void removeImportedMats(const std::string &rType);
+
+    std::vector<std::string> importedMatNames;
+
+    std::vector<cpp::Material> materialList;
+
+    std::vector<std::shared_ptr<sg::Material>> materialMap;
+
   };
 
 }  // namespace ospray::sg
