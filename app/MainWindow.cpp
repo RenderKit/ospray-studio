@@ -29,6 +29,7 @@
 #include "sg/visitors/GenerateOSPRayMaterials.h"
 #include "sg/visitors/PrintNodes.h"
 // ospcommon
+#include "ospcommon/os/FileName.h"
 #include "ospcommon/utility/getEnvVar.h"
 // tiny_file_dialogs
 #include "tinyfiledialogs.h"
@@ -623,10 +624,12 @@ void MainWindow::importFiles()
 
   for (auto file : filesToImport) {
     try {
+      ospcommon::FileName fileName = file;
+      std::string nodeName         = "importer" + fileName.base();
+
       std::cout << "Importing: " << file << std::endl;
 
-      auto &imp =
-          world->createChildAs<sg::Importer>("importer", "importer_obj");
+      auto &imp = world->createChildAs<sg::Importer>(nodeName, "importer_obj");
       imp["file"]       = std::string(file);
       auto registrySize = mr.children().size();
       imp.importScene(mr);
