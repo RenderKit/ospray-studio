@@ -36,6 +36,7 @@ namespace ospray::sg {
     void addGeometriesToGroup();
     void createInstanceFromGroup();
     void placeInstancesInWorld();
+    void addLightToWorld(Node &node);
 
     // Data //
 
@@ -89,6 +90,9 @@ namespace ospray::sg {
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
       break;
+    case NodeType::LIGHT:
+      addLightToWorld(node);
+      break;
     default:
       break;
     }
@@ -114,6 +118,8 @@ namespace ospray::sg {
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.pop();
       break;
+    case NodeType::LIGHT:
+      world.commit();
     default:
       // Nothing
       break;
@@ -168,6 +174,12 @@ namespace ospray::sg {
     inst.setParam("xfm", xfms.top());
     inst.commit();
     instances.push_back(inst);
+  }
+
+  inline void RenderScene::addLightToWorld(Node &node)
+  {
+    auto &light = node.valueAs<cpp::Light>();
+    world.setParam("light", (cpp::Data)light);
   }
 
   inline void RenderScene::placeInstancesInWorld()

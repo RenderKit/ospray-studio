@@ -30,7 +30,7 @@ namespace ospray::sg {
   }
 
   void Light::postCommit() {
-    auto lights = valueAs<cpp::Light>();
+    auto &lights = valueAs<cpp::Light>();
     lights.commit();
   }
 
