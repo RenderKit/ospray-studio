@@ -260,6 +260,16 @@ SCENARIO("sg::Node structural updates")
           REQUIRE(child.lastModified() < child.lastCommitted());
         }
       }
+      WHEN("...and the parent is NOT committed") 
+      {
+        THEN("Time stamps are correct")
+        {
+          REQUIRE(child.lastModified() > initialModifiedChild);
+          REQUIRE(child.lastModified() > parent.lastModified());
+          REQUIRE(child.lastModified() > parent.lastCommitted());
+          REQUIRE(child.lastModified() > child.lastCommitted());
+        }
+      }
     }
   }
 }
