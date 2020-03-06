@@ -530,8 +530,6 @@ void MainWindow::refreshRenderer()
 void MainWindow::refreshLight() {
   auto &world    = frame->child("world");
   world.createChild("light", lightTypeStr);
-  auto &lights = world.child("light");
-  lights.commit();
 }
 
 void MainWindow::refreshScene()

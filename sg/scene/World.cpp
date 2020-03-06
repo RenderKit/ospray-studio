@@ -21,13 +21,14 @@ namespace ospray::sg {
   World::World()
   {
     setHandle(cpp::World());
-    createChild("light");
   }
 
   void World::preCommit() {    
     auto ospWorld = valueAs<cpp::World>();
-    auto &lights = child("light").valueAs<cpp::Light>();
-    ospWorld.setParam("light", (cpp::Data)lights);
+    if(hasChild("light")) {
+      auto &lights = child("light").valueAs<cpp::Light>();
+      ospWorld.setParam("light", (cpp::Data)lights);
+    }
   }
 
   void World::postCommit() {
