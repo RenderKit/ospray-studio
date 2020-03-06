@@ -43,6 +43,53 @@ namespace ospray::sg {
 
   // Helper functions /////////////////////////////////////////////////////////
 
+    static inline void parseParameterString(std::string typeAndValueString,
+                                            std::string &paramType,
+                                            ospcommon::utility::Any &paramValue)
+    {
+      std::stringstream typeAndValueStream(typeAndValueString);
+      std::string paramValueString;
+      getline(typeAndValueStream, paramValueString);
+
+      std::vector<float> floats;
+      std::stringstream valueStream(typeAndValueString);
+      float val;
+      while (valueStream >> val)
+        floats.push_back(val);
+
+      if (floats.size() == 1) {
+        paramType  = "float";
+        paramValue = floats[0];
+      } else if (floats.size() == 2) {
+        paramType  = "vec2f";
+        paramValue = vec2f(floats[0], floats[1]);
+      } else if (floats.size() == 3) {
+        paramType  = "vec3f";
+        paramValue = vec3f(floats[0], floats[1], floats[2]);
+      } else {
+        // Unknown type.
+        paramValue = typeAndValueString;
+      }
+    }
+
+    std::shared_ptr<sg::Texture2D> createSGTex(const std::string &map_name,
+                                               const FileName &texName,
+                                               const FileName &containingPath,
+                                               const bool preferLinear  = false,
+                                               const bool nearestFilter = false)
+    {
+      std::shared_ptr<sg::Texture2D> sgTex =
+          std::static_pointer_cast<sg::Texture2D>(
+              sg::createNode(map_name, "texture_2d"));
+
+      auto &tex2D = *sgTex;
+      tex2D["name"].setValue(texName);
+
+      sgTex->load(containingPath + texName, preferLinear, nearestFilter);
+
+      return sgTex;
+    }
+
   static OBJData loadFromFile(FileName fileName)
   {
     const std::string containingPath = fileName.path();
@@ -104,21 +151,104 @@ namespace ospray::sg {
     return {};
   }
 
-  static std::vector<NodePtr> createMaterials(const OBJData &objData)
+  static std::vector<NodePtr> createMaterials(const OBJData &objData, FileName fileName)
   {
     std::vector<NodePtr> retval;
+    const std::string containingPath = fileName.path();
+    std::vector<NodePtr> paramNodes;
 
     for (const auto &m : objData.materials) {
-      auto matNode = createNode(m.name, "material_obj");
+      std::string matType{"obj"};
+      for (auto &param : m.unknown_parameter) {
+        if (param.first == "type") {
+          if (param.second != "obj" &&
+              param.second != "obj")
+            matType = param.second;
 
-      auto &mat = *matNode;
+        } else {
+          std::string paramType;
+          ospcommon::utility::Any paramValue;
+          if (param.first.find("Map") != std::string::npos &&
+              param.first.find("Map.") == std::string::npos) {
+            bool preferLinear = false;
+            bool nearestFilter =
+                (param.first.find("rotation") != std::string::npos) ||
+                (param.first.find("Rotation") != std::string::npos);
 
-      mat["kd"].setValue(vec3f(m.diffuse));
-      mat["ks"].setValue(vec3f(m.specular));
-      mat["ns"].setValue( m.shininess);
-      mat["d"]  = m.dissolve;
+            auto map_misc = createSGTex(param.first,
+                                         param.second,
+                                         containingPath,
+                                         preferLinear,
+                                         nearestFilter);
+            paramNodes.push_back(map_misc);
 
-      retval.push_back(matNode);
+          } else {
+            parseParameterString(param.second, paramType, paramValue);
+            try {
+              // matNode.createChildWithValue(param.first, paramType,
+              // paramValue);
+              auto newParam = createNode(param.first, paramType, paramValue);
+              paramNodes.push_back(newParam);
+            } catch (const std::runtime_error &) {
+              // NOTE(jda) - silently move on if parsed node type doesn't
+              // exist maybe it's a texture, try it
+              std::cout << "attempting to load param as texture: "
+                        << param.first << " " << param.second << std::endl;
+              auto map_misc = createSGTex(param.first,
+                                         param.second,
+                                         containingPath);
+              paramNodes.push_back(map_misc);
+            }
+          }
+        }
+      }
+
+      if (matType == "obj") {
+        auto objMatNode = createNode(m.name, "obj");
+        auto &mat       = *objMatNode;
+
+        mat["kd"].setValue(vec3f(m.diffuse));
+        mat["ks"].setValue(vec3f(m.specular));
+        mat["ns"].setValue(m.shininess);
+        mat["d"].setValue(m.dissolve);
+
+        // keeping texture names consistent with ospray's; lowercase snakecase
+        // ospray documentation inconsistent
+        if (!m.diffuse_texname.empty()) {
+          mat.add(
+              createSGTex("map_kd", m.diffuse_texname, containingPath, true));
+        }
+
+        if (!m.specular_texname.empty()) {
+          mat.add(
+              createSGTex("map_ks", m.specular_texname, containingPath, true));
+        }
+
+        if (!m.specular_highlight_texname.empty()) {
+          mat.add(
+              createSGTex("map_ns", m.specular_highlight_texname, containingPath, true));
+        }
+
+        if (!m.bump_texname.empty()) {
+          mat.add(
+              createSGTex("map_bump", m.bump_texname, containingPath, true));
+        }
+
+        if (!m.alpha_texname.empty()) {
+          mat.add(
+              createSGTex("map_d", m.alpha_texname, containingPath, true));
+        }
+        for (auto &param : paramNodes)
+          mat.add(param);
+
+        retval.push_back(objMatNode);
+      } else {
+        auto matNode = createNode(m.name, matType);
+        auto &mat    = *matNode;
+        for (auto &param : paramNodes)
+          mat.add(param);
+        retval.push_back(matNode);
+      }
     }
 
     return retval;
@@ -131,20 +261,7 @@ namespace ospray::sg {
     auto file    = FileName(child("file").valueAs<std::string>());
     auto objData = loadFromFile(file);
 
-    auto materialNodes = createMaterials(objData);
-
-    ////////////////////////////////////
-    /*
-      Temporarily blow away everything but the default material, this should
-      merge with existing materials in the future.
-    */
-    // auto defaultMat = materialRegistry["default"].shared_from_this();
-    // materialRegistry.removeAllChildren();
-    // materialRegistry.add(defaultMat);
-    ////////////////////////////////////
-
-    // defaultMat = createNode("obj_default", "material_obj");
-    // materialRegistry.add(defaultMat);
+    auto materialNodes = createMaterials(objData, file);
 
     size_t baseMaterialOffset = materialRegistry->children().size();
 

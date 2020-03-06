@@ -16,20 +16,40 @@
 
 #pragma once
 
-#include "../Node.h"
-#include "sg/renderer/MaterialRegistry.h"
-#include  "sg/texture/Texture2D.h"
+// sg
+#include "../Data.h"
+#include "Texture.h"
+// ospcommon
+#include "ospcommon/os/FileName.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Importer : public Node
+  struct OSPSG_INTERFACE Texture2D : public Texture
   {
-    Importer();
-    virtual ~Importer() = default;
+    Texture2D();
+    virtual ~Texture2D() override = default;
 
-    NodeType type() const override;
+    //! \brief load texture from given file.
+    /*! \detailed if file does not exist, or cannot be loaded for
+        some reason, return NULL. Multiple loads from the same file
+        will return the *same* texture object */
+    // TODO: verify textureCache works
+    void load(const FileName &fileName,
+              const bool preferLinear  = false,
+              const bool nearestFilter = false);
+    static void clearTextureCache();
 
-    virtual void importScene(std::shared_ptr<sg::MaterialRegistry> materialRegistry) = 0;
+   private:
+     //! texture size, in pixels
+    vec2i size {-1};
+    int channels{0};
+    int depth{0};
+    bool preferLinear{false};
+    bool nearestFilter{false};   
+
+    bool committed{false};
+
+    static std::map<std::string, std::shared_ptr<Texture2D>> textureCache;
   };
 
 }  // namespace ospray::sg

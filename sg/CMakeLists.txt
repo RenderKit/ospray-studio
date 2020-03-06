@@ -44,7 +44,6 @@ add_library(ospray_sg SHARED
   renderer/SciVis.cpp
   renderer/MaterialRegistry.cpp
 
-  renderer/materials/Default.cpp
   renderer/materials/OBJ.cpp
   renderer/materials/Alloy.cpp
   renderer/materials/Glass.cpp
@@ -77,6 +76,9 @@ add_library(ospray_sg SHARED
   scene/lights/PointLight.cpp
   scene/lights/QuadLight.cpp
   scene/lights/HDRILight.cpp
+
+  texture/Texture.cpp
+  texture/Texture2D.cpp
   )
 
 target_link_libraries(ospray_sg

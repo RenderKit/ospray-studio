@@ -64,38 +64,49 @@ namespace ospray::sg {
     matImportsList.clear();
   }
 
-  void MaterialRegistry::updateMaterialList(const std::string &rType) {
+  void MaterialRegistry::updateMaterialList(const std::string &rType) 
+  {
     updateMaterialRegistry(rType);
     sgMaterialList.clear();
     cppMaterialList.clear();
     auto &mats = this->children();
 
+    std::cout << "children size should be 7 initially :: "
+              << this->children().size() << std::endl;
+
     for (auto &m : mats) {
-      auto &matHandle = m.second->child("handles");
+      if (rType == "scivis") {
+        if (m.second->nodeAs<Material>()->osprayMaterialType() == "obj") {
+          std::cout << "##### renderer type for creating new sg and cpp "
+                       "material lists::"
+                    << rType << std::endl;
+          auto &matHandle = m.second->child("handles");
+          std::cout << "material gonna be added to the lists " << m.first
+                    << std::endl;
 
-      if (!matHandle.hasChild(rType))
-        return;
-      auto sgMaterial      = m.second->nodeAs<sg::Material>();
-      auto &ospHandleNode = matHandle.child(rType);
-      auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
-      sgMaterialList.push_back(sgMaterial);
-      cppMaterialList.push_back(cppMaterial);
-    }
-
-      if (matImportsList.size() != 0) {
-        for (auto newMat : matImportsList) {
-          auto &matChild  = this->child(newMat);
-          auto &matHandle = matChild.child("handles");
-          if (!matHandle.hasChild(rType))
-            return;
-          auto sgMaterial      = matChild.nodeAs<sg::Material>();
+          auto sgMaterial     = m.second->nodeAs<sg::Material>();
           auto &ospHandleNode = matHandle.child(rType);
           auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
-          sgMaterialList.insert(sgMaterialList.begin(), sgMaterial);
-          cppMaterialList.insert(cppMaterialList.begin(), cppMaterial);
+          sgMaterialList.push_back(sgMaterial);
+          cppMaterialList.push_back(cppMaterial);
         }
+      } else {
+        std::cout << "###### renderer type for creating new sg and cpp "
+                     "material lists::"
+                  << rType << std::endl;
+        auto &matHandle = m.second->child("handles");
+
+        std::cout << "material gonna be added to the list " << m.first
+                  << std::endl;
+
+        auto sgMaterial     = m.second->nodeAs<sg::Material>();
+        auto &ospHandleNode = matHandle.child(rType);
+        auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
+        sgMaterialList.push_back(sgMaterial);
+        cppMaterialList.push_back(cppMaterial);
       }
-    } 
+    }
+  } 
 
     OSP_REGISTER_SG_NODE_NAME(MaterialRegistry, materialRegistry);
 

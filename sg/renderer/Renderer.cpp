@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "Renderer.h"
+#include "sg/texture/Texture2D.h"
 
 namespace ospray::sg {
 

@@ -14,23 +14,24 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "../Material.h"
+#pragma once
+
+// sg
+#include "../Node.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE MaterialDefault : public Material
+  struct OSPSG_INTERFACE Texture : public OSPNode<cpp::Texture, NodeType::TEXTURE>
   {
-    MaterialDefault();
-    ~MaterialDefault() override = default;
+    Texture(const std::string &type);
+    virtual ~Texture() override = default;
+
+    NodeType type() const;
+
+   private:
+    void preCommit() override;
+    void postCommit() override;
+    // std::string textureType{"texture_2d"};
   };
-
-  OSP_REGISTER_SG_NODE_NAME(MaterialDefault, material_default);
-
-  // MaterialDefault definitions //////////////////////////////////////////////
-
-  MaterialDefault::MaterialDefault() : Material("obj")
-  {
-    createChild("kd", "rgb", vec3f(1.f, 0.f, 1.f));
-  }
 
 }  // namespace ospray::sg

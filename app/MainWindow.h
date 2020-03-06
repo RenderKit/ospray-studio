@@ -86,7 +86,9 @@ class MainWindow
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   std::string rendererTypeStr{"scivis"};
   std::string lightTypeStr{"ambient"};
-  std::string matTypeStr{"material_default"};
+  std::string matTypeStr{"obj"};
+  bool useTestTex = false;
+  bool useImportedTex = false;
 
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;

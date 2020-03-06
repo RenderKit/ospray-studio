@@ -14,22 +14,39 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
-#include "sg/renderer/MaterialRegistry.h"
-#include  "sg/texture/Texture2D.h"
+#include "Texture.h"
+#include "Texture2D.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Importer : public Node
+  Texture::Texture(const std::string &type)
   {
-    Importer();
-    virtual ~Importer() = default;
+    auto handle = ospNewTexture(type.c_str());
+    setHandle(handle);
+    createChild("name", "string", "");
+  }
 
-    NodeType type() const override;
+  NodeType Texture::type() const
+  {
+    return NodeType::TEXTURE;
+  }
 
-    virtual void importScene(std::shared_ptr<sg::MaterialRegistry> materialRegistry) = 0;
-  };
+  void Texture::preCommit(){
+    const auto &c             = children();
+    auto &cppTex = handle();
+    if (c.empty())
+      return;
+    for (auto &child : c) {
+      if (child.second->type() == NodeType::PARAMETER && child.first != "name") {
+        child.second->setOSPRayParam(child.first, cppTex.handle());
+      }
+    }
+  }
+
+  void Texture::postCommit()
+  {
+    auto &cppTex = handle();
+    cppTex.commit();
+  }
 
 }  // namespace ospray::sg

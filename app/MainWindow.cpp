@@ -26,7 +26,7 @@
 // ospray_sg
 #include "sg/generator/Generator.h"
 #include "sg/importer/Importer.h"
-#include "sg/visitors/GenerateOSPRayMaterials.h"
+
 #include "sg/visitors/PrintNodes.h"
 // ospcommon
 #include "ospcommon/os/FileName.h"
@@ -61,7 +61,7 @@ static const std::vector<std::string> g_lightTypes = {
     "ambient", "distant", "spot", "sphere", "quad"};
 
 std::vector<std::string> g_matTypes = {
-    "material_default", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
+    "obj", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
 
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
@@ -472,38 +472,6 @@ void MainWindow::buildUI()
   }
 
   auto &renderer = frame->child("renderer");
-  if (rendererType == OSPRayRendererType::DEBUGGER) {
-    if (ImGui::Combo("debug type##whichDebugType",
-                     &whichDebuggerType,
-                     debugTypeUI_callback,
-                     nullptr,
-                     g_debugRendererTypes.size())) {
-      renderer["method"] = g_debugRendererTypes[whichDebuggerType];
-    }
-  }
-  if (rendererType == OSPRayRendererType::PATHTRACER) {
-    if (ImGui::Combo("light type##whichLightType",
-                     &whichLightType,
-                     lightTypeUI_callback,
-                     nullptr,
-                     g_lightTypes.size())) {
-      lightTypeStr = g_lightTypes[whichLightType];
-      refreshLight();
-    }
-    if (ImGui::Combo("material type##whichMatType",
-                     &whichMatType,
-                     matTypeUI_callback,
-                     nullptr,
-                     g_matTypes.size())) {
-      matTypeStr = g_matTypes[whichMatType];
-      refreshMaterial();
-    }
-  }
-
-  ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
-  ImGui::Checkbox("show albedo", &showAlbedo);
-
-  ImGui::Separator();
 
   int spp = renderer["pixelSamples"].valueAs<int>();
   if (ImGui::SliderInt("pixelSamples", &spp, 1, 64))
@@ -531,6 +499,43 @@ void MainWindow::buildUI()
       renderer["aoIntensity"] = aoIntensity;
   }
 
+  if (rendererType == OSPRayRendererType::DEBUGGER) {
+    if (ImGui::Combo("debug type##whichDebugType",
+                     &whichDebuggerType,
+                     debugTypeUI_callback,
+                     nullptr,
+                     g_debugRendererTypes.size())) {
+      renderer["method"] = g_debugRendererTypes[whichDebuggerType];
+    }
+  } else if (rendererType == OSPRayRendererType::PATHTRACER) {
+    if (ImGui::Combo("light type##whichLightType",
+                     &whichLightType,
+                     lightTypeUI_callback,
+                     nullptr,
+                     g_lightTypes.size())) {
+      lightTypeStr = g_lightTypes[whichLightType];
+      refreshLight();
+    }
+    if (ImGui::Combo("material type##whichMatType",
+                     &whichMatType,
+                     matTypeUI_callback,
+                     nullptr,
+                     g_matTypes.size())) {
+      matTypeStr = g_matTypes[whichMatType];
+      refreshMaterial();
+    }
+  } else if (rendererType == OSPRayRendererType::SCIVIS) {
+    if (ImGui::Checkbox("backplate texture", &useTestTex) ||
+        ImGui::Checkbox("import backplate texture", &useImportedTex)) {
+      refreshRenderer();
+    }
+  }
+
+  ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
+  ImGui::Checkbox("show albedo", &showAlbedo);
+
+  ImGui::Separator();
+
   if (uiCallback) {
     ImGui::Separator();
     uiCallback();
@@ -545,6 +550,30 @@ void MainWindow::refreshRenderer()
   if (rendererTypeStr != "debug") {
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
     r.createChildData("material", baseMaterialRegistry->cppMaterialList);
+  }
+  // backplate does not work without renderer pre/post commit 
+  // which cause issues with material textures
+  // uncomment scivis pre/post commit to see this working
+  // TODO:: fix this issue
+  if (rendererTypeStr == "scivis") {
+    if (useTestTex) {
+      auto &backplateTex = r.createChild("map_backplate", "texture_2d");
+      std::vector<vec4f> backplate;
+      backplate.push_back(vec4f(0.8f, 0.2f, 0.2f, 1.0f));
+      backplate.push_back(vec4f(0.2f, 0.8f, 0.2f, 1.0f));
+      backplate.push_back(vec4f(0.2f, 0.2f, 0.8f, 1.0f));
+      backplate.push_back(vec4f(0.4f, 0.2f, 0.4f, 1.0f));
+      backplateTex.createChild("format", "int", 2);
+      backplateTex.createChildData("data", vec2ul(2, 2), backplate.data());
+    } else if (useImportedTex) {
+      const char *file = tinyfd_openFileDialog(
+          "Import a scene from a file", "", 0, nullptr, nullptr, 0);
+      std::shared_ptr<sg::Texture2D> backplateTex =
+          std::static_pointer_cast<sg::Texture2D>(
+              sg::createNode("map_backplate", "texture_2d"));
+      backplateTex->load(file, false, false);
+      r.add(backplateTex);
+    }
   }
 }
 
@@ -625,6 +654,7 @@ void MainWindow::importFiles()
     try {
       ospcommon::FileName fileName = file;
       std::string nodeName         = "importer" + fileName.base();
+      
 
       std::cout << "Importing: " << file << std::endl;
 
@@ -637,10 +667,8 @@ void MainWindow::importFiles()
           g_matTypes.insert(g_matTypes.begin(), newMat);
       }
 
-      if (registrySize != baseMaterialRegistry->children().size()) {
-        std::cout << "registry size less than new size" << std::endl;
+      if (registrySize != baseMaterialRegistry->children().size())
          refreshRenderer();
-      }
 
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";

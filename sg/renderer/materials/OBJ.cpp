@@ -24,13 +24,13 @@ namespace ospray::sg {
     ~MaterialOBJ() override = default;
   };
 
-  OSP_REGISTER_SG_NODE_NAME(MaterialOBJ, material_obj);
+  OSP_REGISTER_SG_NODE_NAME(MaterialOBJ, obj);
 
   // MaterialOBJ definitions //////////////////////////////////////////////////
 
   MaterialOBJ::MaterialOBJ() : Material("obj")
   {
-    createChild("kd", "rgb", vec3f(0.f));
+    createChild("kd", "rgb", vec3f(0.f, 1.f, 0.f));
     createChild("ks", "rgb", vec3f(0.8f));
     createChild("ns", "float", 0.f);
     createChild("d", "float", 1.f);

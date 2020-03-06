@@ -60,6 +60,16 @@ namespace ospray::sg {
     template <typename T, typename ALLOC_T>
     Data(const std::vector<T, ALLOC_T> &arr, bool isShared = false);
 
+    template <typename T, typename ALLOC_T>
+    Data(const std::vector<T, ALLOC_T> &arr,
+         const vec2ul &numItems,
+         bool isShared = false);
+
+    template <typename T, typename ALLOC_T>
+    Data(const std::vector<T, ALLOC_T> &arr,
+         const vec3ul &numItems,
+         bool isShared = false);
+
     // Set a single object as a 1-item data array
 
     template <typename T>
@@ -156,6 +166,24 @@ namespace ospray::sg {
   template <typename T, typename ALLOC_T>
   inline Data::Data(const std::vector<T, ALLOC_T> &arr, bool isShared)
       : Data(arr.size(), arr.data(), isShared)
+  {
+    validate_element_type<T>();
+  }
+
+  template <typename T, typename ALLOC_T>
+  inline Data::Data(const std::vector<T, ALLOC_T> &arr,
+                    const vec2ul &numItems,
+                    bool isShared)
+      : Data(numItems, arr.data(), isShared)
+  {
+    validate_element_type<T>();
+  }
+
+  template <typename T, typename ALLOC_T>
+  inline Data::Data(const std::vector<T, ALLOC_T> &arr,
+                    const vec3ul &numItems,
+                    bool isShared)
+      : Data(numItems, arr.data(), isShared)
   {
     validate_element_type<T>();
   }

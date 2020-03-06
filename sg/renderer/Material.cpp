@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "Material.h"
+#include "sg/texture/Texture2D.h"
 
 namespace ospray::sg {
 
@@ -42,18 +43,21 @@ namespace ospray::sg {
       return;
     for (auto &child : c) {
       if (child.second->type() == NodeType::PARAMETER) {
+        std::cout << child.first << std::endl;
         for (auto &h : handles) {
-          // On the SG node (child.second), setOSPRayParam will call ospSetParam
-          // on the OSPObject (h.second).
           child.second->setOSPRayParam(
               child.first, h.second->valueAs<cpp::Material>().handle());
         }
+      } else if (child.second->subType() == "texture_2d") {       
+        for (auto &h : handles)
+          child.second->setOSPRayParam(
+              child.first, h.second->valueAs<cpp::Material>().handle());
       }
     }
   }
 
   void Material::postCommit()
-  {
+  { 
     const auto &handles = child("handles").children();
     for (auto &h : handles)
       h.second->valueAs<cpp::Material>().commit();
