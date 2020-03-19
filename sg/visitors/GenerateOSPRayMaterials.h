@@ -41,6 +41,10 @@ namespace ospray::sg {
   inline bool GenerateOSPRayMaterials::operator()(Node &node,
                                                   TraversalContext &)
   {
+    // XXX: How can a renderer specify that it doesn't handle materials?
+    if (rendererType == "debug")
+      return true;
+
     switch (node.type()) {
     case NodeType::MATERIAL: {
       auto &mat = *node.nodeAs<Material>();

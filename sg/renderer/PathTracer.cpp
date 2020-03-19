@@ -30,8 +30,8 @@ namespace ospray::sg {
 
   PathTracer::PathTracer() : Renderer("pathtracer")
   {
-    createChild("maxDepth", "int", 5);
-    createChild("rouletteDepth", "int", 5);
+    createChild("maxPathLength", "int", 5);
+    createChild("roulettePathLength", "int", 5);
   }
 
 }  // namespace ospray::sg

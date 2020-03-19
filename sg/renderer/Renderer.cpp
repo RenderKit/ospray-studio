@@ -23,17 +23,26 @@ namespace ospray::sg {
     auto handle = ospNewRenderer(type.c_str());
     setHandle(handle);
 
-    createChild("spp", "int", "samples-per-pixel", 1);
+    createChild("pixelSamples", "int", "samples-per-pixel", 1);
     createChild("varianceThreshold",
                 "float",
                 "stop rendering when variance < threshold",
                 0.f);
-    createChild("bgColor", "rgba", rgba(0.1f));
-    createChild("method", "string", std::string("eyeLight"));
+    createChild("backgroundColor", "rgba", rgba(0.1f));
   }
 
   // Register OSPRay's debug renderers //
+  struct OSPSG_INTERFACE DebugRenderer : public Renderer
+  {
+    DebugRenderer();
+    virtual ~DebugRenderer() override = default;
+  };
 
-  OSP_REGISTER_SG_NODE_NAME(Renderer("debug"), renderer_debug);
+  DebugRenderer::DebugRenderer() : Renderer("debug")
+  {
+    createChild("method", "string", std::string("eyeLight"));
+  }
+
+  OSP_REGISTER_SG_NODE_NAME(DebugRenderer, renderer_debug);
 
 }  // namespace ospray::sg

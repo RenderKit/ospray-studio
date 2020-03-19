@@ -116,6 +116,7 @@ namespace ospray::sg {
       mat["kd"].setValue(vec3f(m.diffuse));
       mat["ks"].setValue(vec3f(m.specular));
       mat["ns"].setValue( m.shininess);
+      mat["d"]  = m.dissolve;
 
       retval.push_back(matNode);
     }
@@ -201,7 +202,7 @@ namespace ospray::sg {
 
       auto name = std::to_string(shapeId++) + '_' + shape.name;
 
-#if 0 // per-object materials (not technically correct)
+#if 0  // per-object materials (not technically correct)
       int materialIndex = int(baseMaterialOffset + shape.mesh.material_ids[0]);
       auto materialName =
           materialRegistry.children().at_index(materialIndex).first;
@@ -214,7 +215,7 @@ namespace ospray::sg {
       auto &matNode = child(materialNodeName);
 
       auto &mesh = matNode.createChild(name, "geometry_triangles");
-#else // per-primitive materials (correct)
+#else  // per-primitive materials (correct)
       auto &mesh = createChild(name, "geometry_triangles");
 
       std::vector<uint32_t> mIDs(shape.mesh.material_ids.size());

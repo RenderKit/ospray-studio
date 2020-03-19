@@ -498,28 +498,28 @@ void MainWindow::buildUI()
 
   ImGui::Separator();
 
-  static int spp = 1;
-  if (ImGui::SliderInt("spp", &spp, 1, 64))
-    renderer["spp"] = spp;
+  int spp = renderer["pixelSamples"].valueAs<int>();
+  if (ImGui::SliderInt("pixelSamples", &spp, 1, 64))
+    renderer["pixelSamples"] = spp;
+
+  sg::rgba bgColor = renderer["backgroundColor"].valueAs<sg::rgba>();
+  if (ImGui::ColorEdit4("backgroundColor", bgColor))
+    renderer["backgroundColor"] = bgColor;
 
   if (rendererType == OSPRayRendererType::PATHTRACER) {
-    static int maxDepth = 5;
-    if (ImGui::SliderInt("maxDepth", &maxDepth, 1, 64))
-      renderer["maxDepth"] = maxDepth;
+    int maxDepth = renderer["maxPathLength"].valueAs<int>();
+    if (ImGui::SliderInt("maxPathLength", &maxDepth, 1, 64))
+      renderer["maxPathLength"] = maxDepth;
 
-    static int rouletteDepth = 1;
-    if (ImGui::SliderInt("rouletteDepth", &rouletteDepth, 1, 64))
-      renderer["rouletteDepth"] = rouletteDepth;
+    int rouletteDepth = renderer["roulettePathLength"].valueAs<int>();
+    if (ImGui::SliderInt("roulettePathLength", &rouletteDepth, 1, 64))
+      renderer["roulettePathLength"] = rouletteDepth;
   } else if (rendererType == OSPRayRendererType::SCIVIS) {
-    static sg::rgba bgColor = renderer["bgColor"].valueAs<sg::rgba>();
-    if (ImGui::ColorEdit4("bgColor", bgColor))
-      renderer["bgColor"] = bgColor;
-
-    static int aoSamples = 1;
+    int aoSamples = renderer["aoSamples"].valueAs<int>();
     if (ImGui::SliderInt("aoSamples", &aoSamples, 0, 64))
       renderer["aoSamples"] = aoSamples;
 
-    static float aoIntensity = 1.f;
+    float aoIntensity = renderer["aoIntensity"].valueAs<float>();
     if (ImGui::SliderFloat("aoIntensity", &aoIntensity, 0.f, 1.f))
       renderer["aoIntensity"] = aoIntensity;
   }
@@ -534,19 +534,13 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
-  if (rendererTypeStr == "pathtracer") {
+  auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
 
-    auto &r = frame->createChild("renderer", "renderer_pathtracer");
+  // Debug renderers don't handle materials
+  if (rendererTypeStr != "debug") {
     mr.updateMaterialList(rendererTypeStr);
     r.createChildData("material", mr.materialList);
-
-  } else if (rendererTypeStr == "scivis") {
-    
-    auto &r = frame->createChild("renderer", "renderer_scivis");
-    mr.updateMaterialList(rendererTypeStr);
-    r.createChildData("material", mr.materialList);
- 
-  } 
+  }
 }
 
 void MainWindow::refreshLight()

@@ -41,9 +41,13 @@ namespace ospray::sg {
     if (c.empty() || handles.empty())
       return;
 
+    std::cout << "  Material::preCommit: " << name()
+              << " subType: " << subType() << std::endl;
     for (auto &child : c) {
       if (child.second->type() == NodeType::PARAMETER) {
         for (auto &h : handles) {
+          // On the SG node (child.second), setOSPRayParam will call ospSetParam
+          // on the OSPObject (h.second).
           child.second->setOSPRayParam(
               child.first, h.second->valueAs<cpp::Material>().handle());
         }

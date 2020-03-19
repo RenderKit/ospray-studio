@@ -33,6 +33,7 @@ namespace ospray::sg {
     createChild("kd", "rgb", vec3f(0.f));
     createChild("ks", "rgb", vec3f(0.8f));
     createChild("ns", "float", 0.f);
+    createChild("d", "float", 1.f);
   }
 
 }  // namespace ospray::sg

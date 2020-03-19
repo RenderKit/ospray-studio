@@ -31,7 +31,7 @@ namespace ospray::sg {
   SciVis::SciVis() : Renderer("scivis")
   {
     createChild("aoSamples", "int", 1);
-    createChild("aoDistance", "float", 1e20f);
+    createChild("aoRadius", "float", 1e20f);
     createChild("aoIntensity", "float", 1.f);
   }
 
