@@ -95,7 +95,8 @@ class MainWindow
   std::unique_ptr<ArcballCamera> arcballCamera;
 
   std::shared_ptr<sg::Frame> frame;
-  sg::MaterialRegistry mr;
+
+  std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
 
   // OpenGL framebuffer texture
   GLuint framebufferTexture = 0;

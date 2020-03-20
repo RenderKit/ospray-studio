@@ -40,9 +40,6 @@ namespace ospray::sg {
 
     if (c.empty() || handles.empty())
       return;
-
-    std::cout << "  Material::preCommit: " << name()
-              << " subType: " << subType() << std::endl;
     for (auto &child : c) {
       if (child.second->type() == NodeType::PARAMETER) {
         for (auto &h : handles) {

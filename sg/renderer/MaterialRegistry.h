@@ -24,10 +24,10 @@ namespace ospray::sg {
   struct MaterialRegistry : public Node
   {
     MaterialRegistry();
-    MaterialRegistry(const std::vector<std::string> g_matTypes);
+
     ~MaterialRegistry() override = default;
 
-    void addNewOSPMaterial(std::string matType);
+    void addNewSGMaterial(std::string matType);
 
     void updateMaterialRegistry(const std::string &rType);
 
@@ -35,13 +35,13 @@ namespace ospray::sg {
 
     void refreshMaterialList(const std::string &matType, const std::string &rType);
 
-    void removeImportedMats(const std::string &rType);
+    void rmMatImports();
 
-    std::vector<std::string> importedMatNames;
+    std::vector<std::string> matImportsList;
 
-    std::vector<cpp::Material> materialList;
+    std::vector<cpp::Material> cppMaterialList;
 
-    std::vector<std::shared_ptr<sg::Material>> materialMap;
+    std::vector<std::shared_ptr<sg::Material>> sgMaterialList;
 
   };
 

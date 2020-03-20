@@ -16,83 +16,59 @@
 
 #include "MaterialRegistry.h"
 
-namespace ospray::sg { 
-
+namespace ospray::sg {
   MaterialRegistry::MaterialRegistry()
-  {
-    auto mr   = createNode("materialRegistry");
-    setValue(mr);
-  }
- 
-  MaterialRegistry::MaterialRegistry(const std::vector<std::string> g_matTypes)
-  {
-    auto mr   = createNode("materialRegistry");
-    for (auto mat_it = g_matTypes.begin(); mat_it != g_matTypes.end(); ++mat_it) {
-      mr->createChild(*mat_it, *mat_it);
-    }
-    setValue(mr);
-  }
+  {}
 
-  void MaterialRegistry::addNewOSPMaterial(std::string matType)
+  void MaterialRegistry::addNewSGMaterial(std::string matType)
   {
-    auto &mr = valueAs<NodePtr>();
-
-    if (!mr->hasChild(matType))
-      mr->createChild(matType, matType);
+    if (!hasChild(matType))
+      createChild(matType, matType);
   }
-
-/////////// TODO:setup better importer and material registry interface
 
   void MaterialRegistry::refreshMaterialList(const std::string &matType, const std::string &rType)
   {
-    auto &mr = valueAs<NodePtr>();
-    materialList.clear();
+    cppMaterialList.clear();
 
-    for (auto mat_it = materialMap.begin(); mat_it != materialMap.end(); ++mat_it) {
+    for (auto mat_it = sgMaterialList.begin(); mat_it != sgMaterialList.end(); ++mat_it) {
       auto &materialNode = *(*mat_it);
       if (materialNode.name() == matType) {
         auto mat_x = *mat_it;
-        materialMap.erase(mat_it);
-        materialMap.insert(materialMap.begin(), mat_x);
+        sgMaterialList.erase(mat_it);
+        sgMaterialList.insert(sgMaterialList.begin(), mat_x);
         break;     
       }
     }
 
-    for (auto mat_it = materialMap.begin(); mat_it != materialMap.end(); ++mat_it) {
+    for (auto mat_it = sgMaterialList.begin(); mat_it != sgMaterialList.end(); ++mat_it) {
       auto &materialNode = *(*mat_it);      
       auto &ospHandleNode = materialNode.child("handles").child(rType);
       auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
-      materialList.push_back(cppMaterial);
+      cppMaterialList.push_back(cppMaterial);
     }
   }
 
-  void MaterialRegistry::updateMaterialRegistry(const std::string &rType) {
-    auto &mr = valueAs<NodePtr>();
-    mr->traverse<sg::GenerateOSPRayMaterials>(rType);
-
-    mr->commit();
+  void MaterialRegistry::updateMaterialRegistry(const std::string &rType) 
+  {
+    this->traverse<sg::GenerateOSPRayMaterials>(rType);
+    this->commit();
   }
 
-  void MaterialRegistry::removeImportedMats(const std::string &rType)
+  void MaterialRegistry::rmMatImports()
   {
-    auto &mr = valueAs<NodePtr>();
-
-    if (importedMatNames.size() != 0) {
-        for (auto & m : importedMatNames) {
-          mr->remove(m);
+    if (matImportsList.size() != 0) {
+      for (auto &m : matImportsList) {
+        this->remove(m);
       }
     }
-
-    importedMatNames.clear();
-    updateMaterialList(rType);
+    matImportsList.clear();
   }
 
   void MaterialRegistry::updateMaterialList(const std::string &rType) {
     updateMaterialRegistry(rType);
-    auto &mr = valueAs<NodePtr>();
-    materialMap.clear();
-    materialList.clear();
-    auto &mats = mr->children();
+    sgMaterialList.clear();
+    cppMaterialList.clear();
+    auto &mats = this->children();
 
     for (auto &m : mats) {
       auto &matHandle = m.second->child("handles");
@@ -102,23 +78,25 @@ namespace ospray::sg {
       auto sgMaterial      = m.second->nodeAs<sg::Material>();
       auto &ospHandleNode = matHandle.child(rType);
       auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
-      materialMap.push_back(sgMaterial);
-      materialList.push_back(cppMaterial);
-      }
+      sgMaterialList.push_back(sgMaterial);
+      cppMaterialList.push_back(cppMaterial);
+    }
 
-      if (importedMatNames.size() != 0) {
-        for (auto newMat : importedMatNames) {
-          auto &matChild  = mr->child(newMat);
+      if (matImportsList.size() != 0) {
+        for (auto newMat : matImportsList) {
+          auto &matChild  = this->child(newMat);
           auto &matHandle = matChild.child("handles");
           if (!matHandle.hasChild(rType))
             return;
           auto sgMaterial      = matChild.nodeAs<sg::Material>();
           auto &ospHandleNode = matHandle.child(rType);
           auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
-          materialMap.insert(materialMap.begin(), sgMaterial);
-          materialList.insert(materialList.begin(), cppMaterial);
+          sgMaterialList.insert(sgMaterialList.begin(), sgMaterial);
+          cppMaterialList.insert(cppMaterialList.begin(), cppMaterial);
         }
       }
     } 
+
+    OSP_REGISTER_SG_NODE_NAME(MaterialRegistry, materialRegistry);
 
 }  // namespace ospray::sg

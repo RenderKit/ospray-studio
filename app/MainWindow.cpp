@@ -177,8 +177,11 @@ MainWindow::MainWindow(const vec2i &windowSize) : scene(g_scenes[0])
 
   frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
+  baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
+      "baseMaterialRegistry", "materialRegistry");
+
   for(auto mat : g_matTypes) {
-    mr.addNewOSPMaterial(mat);
+    baseMaterialRegistry->addNewSGMaterial(mat);
   }
 
   refreshRenderer();
@@ -425,22 +428,26 @@ void MainWindow::buildUI()
   ImGui::Begin("press 'g' to hide/show UI", nullptr, flags);
 
   static int whichScene = 0;
+  static int whichRenderer     = 0;
+  static int whichDebuggerType = 0;
+  static int whichLightType    = 0;
+  static int whichMatType    = 0;
   if (ImGui::Combo("scene##whichScene",
                    &whichScene,
                    sceneUI_callback,
                    nullptr,
                    g_scenes.size())) {
     scene = g_scenes[whichScene];
-    auto numImportedMats = mr.importedMatNames.size();
-    mr.removeImportedMats(rendererTypeStr);
+    
+    auto numImportedMats = baseMaterialRegistry->matImportsList.size();
     g_matTypes.erase(g_matTypes.begin(), g_matTypes.begin() + numImportedMats);
+    baseMaterialRegistry->rmMatImports();
+
+    whichMatType = 0; //necessary to reset menu material name on scene change
+    
+    refreshRenderer();
     refreshScene();
   }
-
-  static int whichRenderer     = 0;
-  static int whichDebuggerType = 0;
-  static int whichLightType    = 0;
-  static int whichMatType    = 0;
 
   if (ImGui::Combo("renderer##whichRenderer",
                    &whichRenderer,
@@ -535,11 +542,9 @@ void MainWindow::buildUI()
 void MainWindow::refreshRenderer()
 {
   auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
-
-  // Debug renderers don't handle materials
   if (rendererTypeStr != "debug") {
-    mr.updateMaterialList(rendererTypeStr);
-    r.createChildData("material", mr.materialList);
+    baseMaterialRegistry->updateMaterialList(rendererTypeStr);
+    r.createChildData("material", baseMaterialRegistry->cppMaterialList);
   }
 }
 
@@ -550,9 +555,9 @@ void MainWindow::refreshLight()
 }
 
 void MainWindow::refreshMaterial() {
-    mr.refreshMaterialList(matTypeStr, rendererTypeStr);
+    baseMaterialRegistry->refreshMaterialList(matTypeStr, rendererTypeStr);
     auto &r = frame->child("renderer");
-    r.createChildData("material", mr.materialList);
+    r.createChildData("material", baseMaterialRegistry->cppMaterialList);
 }
 
 void MainWindow::refreshScene()
@@ -569,14 +574,14 @@ void MainWindow::refreshScene()
       auto &imp =
           world->createChildAs<sg::Importer>("importer", "importer_obj");
       imp["file"]       = std::string(file);
-      auto registrySize = mr.children().size();
-      imp.importScene(mr);
-      if (mr.importedMatNames.size() != 0) {
-        for (auto &newMat : mr.importedMatNames)
+      auto registrySize = baseMaterialRegistry->children().size();
+      imp.importScene(baseMaterialRegistry);
+      if (baseMaterialRegistry->matImportsList.size() != 0) {
+        for (auto &newMat : baseMaterialRegistry->matImportsList)
           g_matTypes.insert(g_matTypes.begin(), newMat);
       }
 
-      if (registrySize != mr.children().size()) {
+      if (registrySize != baseMaterialRegistry->children().size()) {
         std::cout << "registry size less than new size" << std::endl;
          refreshRenderer();
       }
@@ -625,14 +630,14 @@ void MainWindow::importFiles()
 
       auto &imp = world->createChildAs<sg::Importer>(nodeName, "importer_obj");
       imp["file"]       = std::string(file);
-      auto registrySize = mr.children().size();
-      imp.importScene(mr);
-      if (mr.importedMatNames.size() != 0) {
-        for (auto &newMat : mr.importedMatNames)
+      auto registrySize = baseMaterialRegistry->children().size();
+      imp.importScene(baseMaterialRegistry);
+      if (baseMaterialRegistry->matImportsList.size() != 0) {
+        for (auto &newMat : baseMaterialRegistry->matImportsList)
           g_matTypes.insert(g_matTypes.begin(), newMat);
       }
 
-      if (registrySize != mr.children().size()) {
+      if (registrySize != baseMaterialRegistry->children().size()) {
         std::cout << "registry size less than new size" << std::endl;
          refreshRenderer();
       }

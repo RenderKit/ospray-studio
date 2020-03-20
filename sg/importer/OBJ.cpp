@@ -27,7 +27,7 @@ namespace ospray::sg {
     OBJImporter()           = default;
     ~OBJImporter() override = default;
 
-    void importScene(MaterialRegistry &materialRegistry) override;
+    void importScene(std::shared_ptr<sg::MaterialRegistry> materialRegistry) override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(OBJImporter, importer_obj);
@@ -126,7 +126,7 @@ namespace ospray::sg {
 
   // OBJImporter definitions //////////////////////////////////////////////////
 
-  void OBJImporter::importScene(MaterialRegistry &materialRegistry)
+  void OBJImporter::importScene(std::shared_ptr<sg::MaterialRegistry> materialRegistry)
   {
     auto file    = FileName(child("file").valueAs<std::string>());
     auto objData = loadFromFile(file);
@@ -146,11 +146,11 @@ namespace ospray::sg {
     // defaultMat = createNode("obj_default", "material_obj");
     // materialRegistry.add(defaultMat);
 
-    size_t baseMaterialOffset = materialRegistry.valueAs<sg::NodePtr>()->children().size();
+    size_t baseMaterialOffset = materialRegistry->children().size();
 
     for (auto m : materialNodes) {
-      materialRegistry.valueAs<sg::NodePtr>()->add(m);
-      materialRegistry.importedMatNames.push_back(m->name());
+      materialRegistry->add(m);
+      materialRegistry->matImportsList.push_back(m->name());
     }
 
     auto &attrib = objData.attrib;
