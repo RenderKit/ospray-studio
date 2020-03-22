@@ -14,6 +14,12 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
+# Prevent OSX 10.14+ OGL deprecation warnings
+# This isn't set at the project level as that conflicts with ImGui setting it.
+if(APPLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
+endif()
+
 add_library(tiny_gltf INTERFACE)
 
 target_include_directories(tiny_gltf

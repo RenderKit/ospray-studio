@@ -41,7 +41,7 @@ namespace ospray::sg {
     glTFImporter()           = default;
     ~glTFImporter() override = default;
 
-    void importScene(MaterialRegistry &materialRegistry) override;
+    void importScene(std::shared_ptr<MaterialRegistry> materialRegistry) override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(glTFImporter, importer_gltf);
@@ -672,14 +672,14 @@ namespace ospray::sg {
 
   // GLTFmporter definitions //////////////////////////////////////////////////
 
-  void glTFImporter::importScene(MaterialRegistry &materialRegistry)
+  void glTFImporter::importScene(std::shared_ptr<MaterialRegistry> materialRegistry)
   {
     GLTFData gltf(child("file").valueAs<std::string>());
 
     if (!gltf.parseAsset())
       return;
 
-    gltf.createMaterials(materialRegistry);
+    gltf.createMaterials(*materialRegistry);
     gltf.createGeometries();
     gltf.buildScene();
 
