@@ -17,6 +17,7 @@
 #pragma once
 
 #include "../Node.h"
+#include "ospcommon/os/FileName.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include  "sg/texture/Texture2D.h"
 
@@ -29,7 +30,29 @@ namespace ospray::sg {
 
     NodeType type() const override;
 
-    virtual void importScene(std::shared_ptr<sg::MaterialRegistry> materialRegistry) = 0;
+    virtual void importScene(
+        std::shared_ptr<sg::MaterialRegistry> materialRegistry) = 0;
   };
+
+  static const std::map<std::string, std::string> importerMap = {
+      {"obj", "importer_obj"},
+      {"gltf", "importer_gltf"},
+      {"glb", "importer_gltf"}};
+
+  inline std::string getImporter(ospcommon::FileName fileName)
+  {
+    auto fnd = importerMap.find(fileName.ext());
+    if (fnd == importerMap.end()) {
+      std::cout << "No importer for selected file, nothing to import!\n";
+      return "";
+    }
+
+    std::string importer = fnd->second;
+    std::string nodeName = "importer" + fileName.base();
+
+    // auto &node = createNodeAs<sg::Importer>(nodeName, importer);
+    // child("file") = fileName.base();
+    return importer;
+  }
 
 }  // namespace ospray::sg

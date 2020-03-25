@@ -180,7 +180,7 @@ MainWindow::MainWindow(const vec2i &windowSize) : scene(g_scenes[0])
   baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
       "baseMaterialRegistry", "materialRegistry");
 
-  for(auto mat : g_matTypes) {
+  for (auto mat : g_matTypes) {
     baseMaterialRegistry->addNewSGMaterial(mat);
   }
 
@@ -434,24 +434,24 @@ void MainWindow::buildUI()
   ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize;
   ImGui::Begin("press 'g' to hide/show UI", nullptr, flags);
 
-  static int whichScene = 0;
+  static int whichScene        = 0;
   static int whichRenderer     = 0;
   static int whichDebuggerType = 0;
   static int whichLightType    = 0;
-  static int whichMatType    = 0;
+  static int whichMatType      = 0;
   if (ImGui::Combo("scene##whichScene",
                    &whichScene,
                    sceneUI_callback,
                    nullptr,
                    g_scenes.size())) {
     scene = g_scenes[whichScene];
-    
+
     auto numImportedMats = baseMaterialRegistry->matImportsList.size();
     g_matTypes.erase(g_matTypes.begin(), g_matTypes.begin() + numImportedMats);
     baseMaterialRegistry->rmMatImports();
 
-    whichMatType = 0; //necessary to reset menu material name on scene change
-    
+    whichMatType = 0;  // necessary to reset menu material name on scene change
+
     refreshRenderer();
     refreshScene();
   }
@@ -594,14 +594,15 @@ void MainWindow::refreshLight()
   world.createChild("light", lightTypeStr);
 }
 
-void MainWindow::refreshMaterial() {
-    baseMaterialRegistry->refreshMaterialList(matTypeStr, rendererTypeStr);
-    auto &r = frame->child("renderer");
-    r.createChildData("material", baseMaterialRegistry->cppMaterialList);
+void MainWindow::refreshMaterial()
+{
+  baseMaterialRegistry->refreshMaterialList(matTypeStr, rendererTypeStr);
+  auto &r = frame->child("renderer");
+  r.createChildData("material", baseMaterialRegistry->cppMaterialList);
 }
 
 void MainWindow::refreshScene()
-{ 
+{
   auto world = sg::createNode("world", "world");
 
   world->createChild("materialref", "reference_to_material", 0);
@@ -611,26 +612,19 @@ void MainWindow::refreshScene()
         "Import a scene from a file", "", 0, nullptr, nullptr, 0);
 
     if (file) {
-      std::map<std::string, std::string> importerMap = {
-        {"obj", "importer_obj"},
-        {"gltf", "importer_gltf"},
-        {"glb", "importer_gltf"}};
-
-      ospcommon::FileName fileName(file);
-      auto fnd = importerMap.find(fileName.ext());
-      if (fnd != importerMap.end()) {
-        auto importer = fnd->second;
-        auto &imp =
-          world->createChildAs<sg::Importer>("importer", importer);
-        imp["file"]       = std::string(file);
-        auto registrySize = baseMaterialRegistry->children().size();
+      auto oldRegistrySize = baseMaterialRegistry->children().size();
+      auto importer        = sg::getImporter(file);
+      if (importer != "") {
+        auto &imp   = world->createChildAs<sg::Importer>("importer", importer);
+        imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
+
         if (baseMaterialRegistry->matImportsList.size() != 0) {
           for (auto &newMat : baseMaterialRegistry->matImportsList)
             g_matTypes.insert(g_matTypes.begin(), newMat);
         }
 
-        if (registrySize != baseMaterialRegistry->children().size()) {
+        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
           std::cout << "registry size less than new size" << std::endl;
           refreshRenderer();
         }
@@ -641,8 +635,9 @@ void MainWindow::refreshScene()
       std::cout << "No file selected, nothing to import!\n";
     }
   } else {
-      auto &gen = world->createChildAs<sg::Generator>("generator", "generator_" + scene);
-      gen.generateData();
+    auto &gen =
+        world->createChildAs<sg::Generator>("generator", "generator_" + scene);
+    gen.generateData();
   }
   world->createChild("light", lightTypeStr);
 
@@ -674,20 +669,21 @@ void MainWindow::importFiles()
 
   for (auto file : filesToImport) {
     try {
-      ospcommon::FileName fileName = file;
-      std::string nodeName         = "importer" + fileName.base();
-      
+        ospcommon::FileName fileName(file);
+        std::string nodeName = "importer" + fileName.base();
 
       std::cout << "Importing: " << file << std::endl;
+      auto oldRegistrySize = baseMaterialRegistry->children().size();
+      auto importer        = sg::getImporter(file);
+      if (importer != "") {
+        auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
+        imp["file"] = std::string(file);
+        imp.importScene(baseMaterialRegistry);
 
-      auto &imp = world->createChildAs<sg::Importer>(nodeName, "importer_obj");
-      imp["file"]       = std::string(file);
-      auto registrySize = baseMaterialRegistry->children().size();
-      imp.importScene(baseMaterialRegistry);
-      if (baseMaterialRegistry->matImportsList.size() != 0) {
-        for (auto &newMat : baseMaterialRegistry->matImportsList)
-          g_matTypes.insert(g_matTypes.begin(), newMat);
-      }
+        if (baseMaterialRegistry->matImportsList.size() != 0) {
+          for (auto &newMat : baseMaterialRegistry->matImportsList)
+            g_matTypes.insert(g_matTypes.begin(), newMat);
+        }
 
       if (registrySize != baseMaterialRegistry->children().size())
          refreshRenderer();

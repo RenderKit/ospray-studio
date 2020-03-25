@@ -25,6 +25,7 @@ add_executable(ospStudio
 if (APPLE)
   set_source_files_properties(imgui_impl_glfw_gl3.cpp GLFWSgWindow.cpp
     PROPERTIES COMPILE_FLAGS -w)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
 endif()
 
 target_link_libraries(ospStudio
