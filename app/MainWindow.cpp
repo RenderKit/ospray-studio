@@ -615,7 +615,8 @@ void MainWindow::refreshScene()
       auto oldRegistrySize = baseMaterialRegistry->children().size();
       auto importer        = sg::getImporter(file);
       if (importer != "") {
-        auto &imp   = world->createChildAs<sg::Importer>("importer", importer);
+        std::string nodeName = "importer_" + std::string(file);
+        auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
         imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
 
@@ -625,7 +626,10 @@ void MainWindow::refreshScene()
         }
 
         if (oldRegistrySize != baseMaterialRegistry->children().size()) {
-          std::cout << "registry size less than new size" << std::endl;
+          auto newMats =
+              baseMaterialRegistry->children().size() - oldRegistrySize;
+          std::cout << "Importer added " << newMats << " material(s)"
+                    << std::endl;
           refreshRenderer();
         }
       } else {
@@ -669,8 +673,8 @@ void MainWindow::importFiles()
 
   for (auto file : filesToImport) {
     try {
-        ospcommon::FileName fileName(file);
-        std::string nodeName = "importer" + fileName.base();
+      ospcommon::FileName fileName(file);
+      std::string nodeName = "importer_" + fileName.base();
 
       std::cout << "Importing: " << file << std::endl;
       auto oldRegistrySize = baseMaterialRegistry->children().size();
@@ -685,9 +689,14 @@ void MainWindow::importFiles()
             g_matTypes.insert(g_matTypes.begin(), newMat);
         }
 
-      if (registrySize != baseMaterialRegistry->children().size())
-         refreshRenderer();
-
+        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
+          auto newMats =
+              baseMaterialRegistry->children().size() - oldRegistrySize;
+          std::cout << "Importer added " << newMats << " material(s)"
+                    << std::endl;
+          refreshRenderer();
+        }
+      }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }

@@ -41,7 +41,8 @@ namespace ospray::sg {
     glTFImporter()           = default;
     ~glTFImporter() override = default;
 
-    void importScene(std::shared_ptr<MaterialRegistry> materialRegistry) override;
+    void importScene(
+        std::shared_ptr<MaterialRegistry> materialRegistry) override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(glTFImporter, importer_gltf);
@@ -59,11 +60,12 @@ namespace ospray::sg {
     const FileName &fileName;
 
     bool parseAsset();
-    void createMaterials(Node &materialRegistry);
+    void createMaterials(MaterialRegistry &materialRegistry);
     void createGeometries();
     void buildScene();
 
     std::vector<NodePtr> ospModels;
+
    private:
     tinygltf::Model model;
 
@@ -168,7 +170,7 @@ namespace ospray::sg {
     return ret;
   }
 
-  void GLTFData::createMaterials(Node &materialRegistry)
+  void GLTFData::createMaterials(MaterialRegistry &materialRegistry)
   {
     INFO << "Create Materials\n";
     // Create materials and textures
@@ -201,8 +203,10 @@ namespace ospray::sg {
 #endif
 
     size_t baseMaterialOffset = materialRegistry.children().size();
-    for (auto m : ospMaterials)
+    for (auto m : ospMaterials) {
       materialRegistry.add(m);
+      materialRegistry.matImportsList.push_back(m->name());
+    }
   }
 
   void GLTFData::createGeometries()
@@ -224,7 +228,6 @@ namespace ospray::sg {
 
       ospModels.push_back(ospModel);
     }
-
   }
 
   void GLTFData::buildScene()
@@ -500,6 +503,8 @@ namespace ospray::sg {
       ospGeom->add(ospMaterialList);
     }
 #endif
+    // XXX BMCDEBUG prevents crash!
+    ospGeom->createChildData("material", 0 /*prim.material*/);
 
     return ospGeom;
   }
@@ -672,9 +677,11 @@ namespace ospray::sg {
 
   // GLTFmporter definitions //////////////////////////////////////////////////
 
-  void glTFImporter::importScene(std::shared_ptr<MaterialRegistry> materialRegistry)
+  void glTFImporter::importScene(
+      std::shared_ptr<MaterialRegistry> materialRegistry)
   {
-    GLTFData gltf(child("file").valueAs<std::string>());
+    auto file = FileName(child("file").valueAs<std::string>());
+    GLTFData gltf(file);
 
     if (!gltf.parseAsset())
       return;
@@ -683,7 +690,8 @@ namespace ospray::sg {
     gltf.createGeometries();
     gltf.buildScene();
 
-    auto &xfm = createChild("xfm", "Transform", affine3f::translate(vec3f(0.1f)));
+    auto &xfm =
+        createChild("xfm", "Transform", affine3f::translate(vec3f(0.1f)));
     for (auto &m : gltf.ospModels) {
       xfm.add(m);
     }
