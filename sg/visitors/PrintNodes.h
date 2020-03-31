@@ -29,11 +29,36 @@ namespace ospray::sg {
 
   // Inlined definitions //////////////////////////////////////////////////////
 
+#define PRINT_AS(node, type) \
+  if (node.subType() == #type) \
+  std::cout << " [" << node.valueAs<type>() << "]";
+
   inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
   {
     for (int i = 0; i < ctx.level; i++)
       std::cout << "  ";
-    std::cout << node.name() << " : " << node.subType() << '\n';
+    std::cout << node.name() << " : " << node.subType();
+
+    using string = std::string;
+    PRINT_AS(node, string);      
+    PRINT_AS(node, bool);      
+    PRINT_AS(node, float);     
+    PRINT_AS(node, vec2f);     
+    PRINT_AS(node, vec3f);     
+    PRINT_AS(node, vec4f);     
+    PRINT_AS(node, int);       
+    PRINT_AS(node, vec2i);     
+    PRINT_AS(node, vec3i);     
+    PRINT_AS(node, vec4i);     
+    PRINT_AS(node, void *);  
+    PRINT_AS(node, box3f);     
+    PRINT_AS(node, box3i);     
+    PRINT_AS(node, range1f);   
+    PRINT_AS(node, rgb);       
+    PRINT_AS(node, rgba);      
+    PRINT_AS(node, affine3f); 
+    std::cout << std::endl;
+
     return true;
   }
 
