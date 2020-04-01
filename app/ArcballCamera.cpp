@@ -25,15 +25,17 @@ ArcballCamera::ArcballCamera(const ospcommon::math::box3f &worldBounds,
       translation(ospcommon::math::one),
       rotation(ospcommon::math::one)
 {
-  ospcommon::math::vec3f diag = worldBounds.size();
-  zoomSpeed = ospcommon::math::max(length(diag) / 150.0, 0.001);
-  diag =
-      ospcommon::math::max(diag, ospcommon::math::vec3f(0.3f * length(diag)));
+  float diag = length(worldBounds.size());
+  zoomSpeed = ospcommon::math::max(diag / 150.0, 0.001);
+
+  // This works well enough for the models I'm testing
+  if (diag < 1)
+    diag = 1.f/diag;
 
   centerTranslation =
       ospcommon::math::AffineSpace3f::translate(-worldBounds.center());
   translation = ospcommon::math::AffineSpace3f::translate(
-      ospcommon::math::vec3f(0, 0, length(diag)));
+      ospcommon::math::vec3f(0, 0, diag));
   updateCamera();
 }
 
