@@ -39,7 +39,9 @@ namespace ospray::sg {
       std::cout << "  ";
     std::cout << node.name() << " : " << node.subType();
 
+    // A couple of usings to make subType strings match types
     using string = std::string;
+    using Transform = affine3f;
     PRINT_AS(node, string);      
     PRINT_AS(node, bool);      
     PRINT_AS(node, float);     
@@ -56,7 +58,7 @@ namespace ospray::sg {
     PRINT_AS(node, range1f);   
     PRINT_AS(node, rgb);       
     PRINT_AS(node, rgba);      
-    PRINT_AS(node, affine3f); 
+    PRINT_AS(node, Transform); 
     std::cout << std::endl;
 
     return true;
