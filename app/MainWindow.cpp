@@ -68,6 +68,9 @@ static const std::vector<std::string> g_lightTypes = {
 std::vector<std::string> g_matTypes = {
     "obj", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
 
+std::vector<vec3f> g_camPath;
+int g_camPathSelected = 0;
+
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_scenes[index].c_str();
@@ -96,6 +99,13 @@ bool matTypeUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_matTypes[index].c_str();
   return true;
+}
+
+std::string vec3fToString(const vec3f &v)
+{
+    std::stringstream ss;
+    ss << v;
+    return ss.str();
 }
 
 // MainWindow definitions ///////////////////////////////////////////////
@@ -551,6 +561,33 @@ void MainWindow::buildUI()
   ImGui::Checkbox("auto rotate", &autorotate);
   if (autorotate) {
     ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
+  }
+  ImGui::Checkbox("camera pathing", &cameraPathing);
+  if (cameraPathing) {
+    if (ImGui::ListBoxHeader("camera positions")) {
+      if (ImGui::Button("+")) {
+        if (g_camPath.empty()) {
+          g_camPath.push_back(arcballCamera->eyePos());
+          g_camPathSelected = 0;
+        } else {
+          g_camPath.insert(g_camPath.begin() + g_camPathSelected + 1,
+                           arcballCamera->eyePos());
+          g_camPathSelected++;
+        }
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("-")) {
+        g_camPath.erase(g_camPath.begin() + g_camPathSelected);
+        g_camPathSelected = std::max(0, g_camPathSelected - 1);
+      }
+      for (int i = 0; i < g_camPath.size(); i++) {
+        if (ImGui::Selectable(vec3fToString(g_camPath[i]).c_str(),
+                              (g_camPathSelected == i))) {
+          g_camPathSelected = i;
+        }
+      }
+      ImGui::ListBoxFooter();
+    }
   }
 
   ImGui::Separator();

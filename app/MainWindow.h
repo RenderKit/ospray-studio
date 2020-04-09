@@ -80,6 +80,7 @@ class MainWindow
   bool showAlbedo{false};
   bool cancelFrameOnInteraction{false};
   bool autorotate{false};
+  bool cameraPathing{false};
 
   std::string scene;
   std::vector<std::string> filesToImport;
