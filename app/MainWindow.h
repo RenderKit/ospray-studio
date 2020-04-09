@@ -79,6 +79,7 @@ class MainWindow
 
   bool showAlbedo{false};
   bool cancelFrameOnInteraction{false};
+  bool autorotate{false};
 
   std::string scene;
   std::vector<std::string> filesToImport;
@@ -114,4 +115,7 @@ class MainWindow
 
   // FPS measurement of last frame
   float latestFPS{0.f};
+
+  // auto rotation speed, 1=0.1% window width mouse movement, 100=10%
+  int autorotateSpeed{1};
 };

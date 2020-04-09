@@ -308,6 +308,13 @@ void MainWindow::display()
 {
   static auto displayStart = std::chrono::high_resolution_clock::now();
 
+  if (autorotate) {
+    vec2f from(0.f, 0.f);
+    vec2f to(autorotateSpeed * 0.001f, 0.f);
+    arcballCamera->rotate(from, to);
+    updateCamera();
+  }
+
   if (showUi)
     buildUI();
 
@@ -533,6 +540,10 @@ void MainWindow::buildUI()
 
   ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
   ImGui::Checkbox("show albedo", &showAlbedo);
+  ImGui::Checkbox("auto rotate", &autorotate);
+  if (autorotate) {
+    ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
+  }
 
   ImGui::Separator();
 
