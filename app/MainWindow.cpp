@@ -70,6 +70,33 @@ std::vector<std::string> g_matTypes = {
 
 std::vector<quaternionf> g_camPath;
 int g_camPathSelected = 0;
+int g_camPathAnimIndex = 0;
+float g_camPathFrac = 0.f;
+
+float dot(const ospcommon::math::quaternionf &q0,
+          const ospcommon::math::quaternionf &q1)
+{
+  return q0.r * q1.r + q0.i * q1.i + q0.j * q1.j + q0.k * q1.k;
+}
+
+ospcommon::math::quaternionf slerp(ospcommon::math::quaternionf q0,
+                                   ospcommon::math::quaternionf q1,
+                                   float t)
+{
+  float d = dot(q0, q1);
+  if (d < 0.f) {
+    q0 = -q0;
+    d  = -d;
+  }
+
+  float theta0 = std::acos(d);
+  float theta  = theta0 * t;
+
+  float s0 = std::cos(theta) - d * std::sin(theta) / std::sin(theta0);
+  float s1 = std::sin(theta) / std::sin(theta0);
+
+  return s0 * q0 + s1 * q1;
+}
 
 std::string quatToString(quaternionf &q)
 {
@@ -340,6 +367,18 @@ void MainWindow::display()
     updateCamera();
   }
 
+  if (animatingPath) {
+    arcballCamera->setRotation(slerp(
+                                    g_camPath[g_camPathAnimIndex],
+                                    g_camPath[g_camPathAnimIndex + 1], g_camPathFrac));
+    updateCamera();
+    g_camPathFrac += 0.01f;
+    if (g_camPathFrac >= 1.f) {
+      g_camPathFrac      = 0.f;
+      g_camPathAnimIndex = (g_camPathAnimIndex + 1) % (g_camPath.size() - 1);
+    }
+  }
+
   if (showUi)
     buildUI();
 
@@ -586,6 +625,10 @@ void MainWindow::buildUI()
       if (ImGui::Button("-")) { // remove the selected position
         g_camPath.erase(g_camPath.begin() + g_camPathSelected);
         g_camPathSelected = std::max(0, g_camPathSelected - 1);
+      }
+      ImGui::SameLine();
+      if (ImGui::ArrowButton("play", ImGuiDir_Right)) {
+          animatingPath = !animatingPath;
       }
       for (int i = 0; i < g_camPath.size(); i++) {
         if (ImGui::Selectable(quatToString(g_camPath[i]).c_str(),

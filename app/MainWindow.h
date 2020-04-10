@@ -81,6 +81,7 @@ class MainWindow
   bool cancelFrameOnInteraction{false};
   bool autorotate{false};
   bool cameraPathing{false};
+  bool animatingPath{false};
 
   std::string scene;
   std::vector<std::string> filesToImport;
