@@ -103,6 +103,11 @@ void ArcballCamera::setRotation(ospcommon::math::quaternionf q)
   updateCamera();
 }
 
+ospcommon::math::quaternionf ArcballCamera::getRotation() const
+{
+  return rotation;
+}
+
 void ArcballCamera::updateWindowSize(const ospcommon::math::vec2i &windowSize)
 {
   invWindowSize =

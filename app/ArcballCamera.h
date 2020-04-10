@@ -37,6 +37,7 @@ class ArcballCamera
 
 
   void setRotation(ospcommon::math::quaternionf);
+  ospcommon::math::quaternionf getRotation() const;
 
   void updateWindowSize(const ospcommon::math::vec2i &windowSize);
 

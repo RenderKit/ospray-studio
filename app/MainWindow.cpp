@@ -68,8 +68,15 @@ static const std::vector<std::string> g_lightTypes = {
 std::vector<std::string> g_matTypes = {
     "obj", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
 
-std::vector<CameraState> g_camPath;
+std::vector<quaternionf> g_camPath;
 int g_camPathSelected = 0;
+
+std::string quatToString(quaternionf &q)
+{
+  std::stringstream ss;
+  ss << q;
+  return ss.str();
+}
 
 bool sceneUI_callback(void *, int index, const char **out_text)
 {
@@ -281,15 +288,6 @@ void MainWindow::updateCamera()
   camera["position"]  = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
   camera["up"]        = arcballCamera->upDir();
-}
-
-void MainWindow::updateCamera(const CameraState &camState)
-{
-  auto &camera = frame->child("camera");
-
-  camera["position"]  = camState.eye;
-  camera["direction"] = camState.view;
-  camera["up"]        = camState.up;
 }
 
 void MainWindow::motion(const vec2f &position)
@@ -576,15 +574,11 @@ void MainWindow::buildUI()
     if (ImGui::ListBoxHeader("camera positions")) {
       if (ImGui::Button("+")) { // add current position after the selected one
         if (g_camPath.empty()) {
-          g_camPath.emplace_back(arcballCamera->eyePos(),
-                                 arcballCamera->lookDir(),
-                                 arcballCamera->upDir());
+          g_camPath.emplace_back(arcballCamera->getRotation());
           g_camPathSelected = 0;
         } else {
           g_camPath.emplace(g_camPath.begin() + g_camPathSelected + 1,
-                            arcballCamera->eyePos(),
-                            arcballCamera->lookDir(),
-                            arcballCamera->upDir());
+                            arcballCamera->getRotation());
           g_camPathSelected++;
         }
       }
@@ -594,10 +588,11 @@ void MainWindow::buildUI()
         g_camPathSelected = std::max(0, g_camPathSelected - 1);
       }
       for (int i = 0; i < g_camPath.size(); i++) {
-        if (ImGui::Selectable(g_camPath[i].toString().c_str(),
+        if (ImGui::Selectable(quatToString(g_camPath[i]).c_str(),
                               (g_camPathSelected == i))) {
           g_camPathSelected = i;
-          updateCamera(g_camPath[i]);
+          arcballCamera->setRotation(g_camPath[i]);
+          updateCamera();
         }
       }
       ImGui::ListBoxFooter();

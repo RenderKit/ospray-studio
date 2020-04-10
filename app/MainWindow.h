@@ -28,21 +28,6 @@
 using namespace ospcommon::math;
 using namespace ospray;
 
-struct CameraState {
-  CameraState(vec3f e, vec3f v, vec3f u)
-      : eye(std::move(e)), view(std::move(v)), up(std::move(u))
-  {
-  }
-
-  std::string toString() {
-    std::stringstream ss;
-    ss << eye << "," << view << "," << up;
-    return ss.str();
-  }
-
-  vec3f eye, view, up;
-};
-
 enum class OSPRayRendererType
 {
   SCIVIS,
@@ -71,7 +56,6 @@ class MainWindow
 
  protected:
   void updateCamera();
-  void updateCamera(const CameraState &camState);
 
   void reshape(const vec2i &newWindowSize);
   void motion(const vec2f &position);
