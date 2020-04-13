@@ -20,6 +20,66 @@
 
 using namespace ospcommon::math;
 
+class ArcballCamera;
+
+class CameraState
+{
+ public:
+  CameraState(const AffineSpace3f &centerTrans,
+              const AffineSpace3f &trans,
+              const quaternionf &rot)
+      : centerTranslation(centerTrans), translation(trans), rotation(rot)
+  {
+  }
+
+  void slerp(const CameraState &to, float frac)
+  {
+    centerTranslation = lerp(frac, centerTranslation, to.centerTranslation);
+    translation       = lerp(frac, translation, to.translation);
+    if (rotation != to.rotation)
+      rotation = slerp(rotation, to.rotation, frac);
+  }
+
+  friend std::string to_string(const CameraState &state)
+  {
+    // returns the world position
+    const AffineSpace3f rot = LinearSpace3f(state.rotation);
+    const AffineSpace3f camera = state.translation * rot * state.centerTranslation;
+    vec3f pos = xfmPoint(rcp(camera), vec3f(0, 0, 1));
+    std::stringstream ss;
+    ss << pos;
+    return ss.str();
+  }
+
+ protected:
+  friend ArcballCamera;
+
+  float dot(const quaternionf &q0, const quaternionf &q1)
+  {
+    return q0.r * q1.r + q0.i * q1.i + q0.j * q1.j + q0.k * q1.k;
+  }
+
+  quaternionf slerp(quaternionf q0, quaternionf q1, float t)
+  {
+    float d = dot(q0, q1);
+    if (d < 0.f) {
+      q0 = -q0;
+      d  = -d;
+    }
+
+    float theta0 = std::acos(d);
+    float theta  = theta0 * t;
+
+    float s0 = std::cos(theta) - d * std::sin(theta) / std::sin(theta0);
+    float s1 = std::sin(theta) / std::sin(theta0);
+
+    return s0 * q0 + s1 * q1;
+  }
+
+  AffineSpace3f centerTranslation, translation;
+  quaternionf rotation;
+};
+
 class ArcballCamera
 {
  public:
@@ -36,7 +96,8 @@ class ArcballCamera
   vec3f upDir() const;
 
   void setRotation(quaternionf);
-  quaternionf getRotation() const;
+  void setState(const CameraState &state);
+  CameraState getState() const;
 
   void updateWindowSize(const vec2i &windowSize);
 

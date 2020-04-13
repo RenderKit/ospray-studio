@@ -68,35 +68,10 @@ static const std::vector<std::string> g_lightTypes = {
 std::vector<std::string> g_matTypes = {
     "obj", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
 
-std::vector<quaternionf> g_camPath;
+std::vector<CameraState> g_camPath;
 int g_camPathSelected = 0;
 int g_camPathAnimIndex = 0;
 float g_camPathFrac = 0.f;
-
-float dot(const ospcommon::math::quaternionf &q0,
-          const ospcommon::math::quaternionf &q1)
-{
-  return q0.r * q1.r + q0.i * q1.i + q0.j * q1.j + q0.k * q1.k;
-}
-
-ospcommon::math::quaternionf slerp(ospcommon::math::quaternionf q0,
-                                   ospcommon::math::quaternionf q1,
-                                   float t)
-{
-  float d = dot(q0, q1);
-  if (d < 0.f) {
-    q0 = -q0;
-    d  = -d;
-  }
-
-  float theta0 = std::acos(d);
-  float theta  = theta0 * t;
-
-  float s0 = std::cos(theta) - d * std::sin(theta) / std::sin(theta0);
-  float s1 = std::sin(theta) / std::sin(theta0);
-
-  return s0 * q0 + s1 * q1;
-}
 
 std::string quatToString(quaternionf &q)
 {
@@ -368,10 +343,13 @@ void MainWindow::display()
   }
 
   if (animatingPath) {
-    arcballCamera->setRotation(slerp(
-                                    g_camPath[g_camPathAnimIndex],
-                                    g_camPath[g_camPathAnimIndex + 1], g_camPathFrac));
+    CameraState from = g_camPath[g_camPathAnimIndex];
+    CameraState to = g_camPath[g_camPathAnimIndex + 1];
+    from.slerp(to, g_camPathFrac);
+
+    arcballCamera->setState(from);
     updateCamera();
+
     g_camPathFrac += 0.01f;
     if (g_camPathFrac >= 1.f) {
       g_camPathFrac      = 0.f;
@@ -613,11 +591,11 @@ void MainWindow::buildUI()
     if (ImGui::ListBoxHeader("camera positions")) {
       if (ImGui::Button("+")) { // add current position after the selected one
         if (g_camPath.empty()) {
-          g_camPath.emplace_back(arcballCamera->getRotation());
+          g_camPath.push_back(arcballCamera->getState());
           g_camPathSelected = 0;
         } else {
-          g_camPath.emplace(g_camPath.begin() + g_camPathSelected + 1,
-                            arcballCamera->getRotation());
+          g_camPath.insert(g_camPath.begin() + g_camPathSelected + 1,
+                            arcballCamera->getState());
           g_camPathSelected++;
         }
       }
@@ -631,10 +609,11 @@ void MainWindow::buildUI()
           animatingPath = !animatingPath;
       }
       for (int i = 0; i < g_camPath.size(); i++) {
-        if (ImGui::Selectable(quatToString(g_camPath[i]).c_str(),
-                              (g_camPathSelected == i))) {
+        if (ImGui::Selectable(
+                (std::to_string(i) + ": " + to_string(g_camPath[i])).c_str(),
+                (g_camPathSelected == i))) {
           g_camPathSelected = i;
-          arcballCamera->setRotation(g_camPath[i]);
+          arcballCamera->setState(g_camPath[i]);
           updateCamera();
         }
       }

@@ -87,9 +87,17 @@ void ArcballCamera::setRotation(quaternionf q)
   updateCamera();
 }
 
-quaternionf ArcballCamera::getRotation() const
+void ArcballCamera::setState(const CameraState &state)
 {
-  return rotation;
+  centerTranslation = state.centerTranslation;
+  translation = state.translation;
+  rotation = state.rotation;
+  updateCamera();
+}
+
+CameraState ArcballCamera::getState() const
+{
+  return CameraState(centerTranslation, translation, rotation);
 }
 
 void ArcballCamera::updateWindowSize(const vec2i &windowSize)
