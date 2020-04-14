@@ -89,6 +89,11 @@ PRIVATE
   tiny_obj_loader
 )
 
+install(TARGETS ospray_sg
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  COMPONENT lib
+)
+
 target_include_directories(ospray_sg
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
