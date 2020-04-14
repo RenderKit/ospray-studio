@@ -169,6 +169,9 @@ MainWindow::MainWindow(const vec2i &windowSize) : scene(g_scenes[0])
                          case GLFW_KEY_B:
                            PRINT(activeWindow->frame->bounds());
                            break;
+                         case GLFW_KEY_V:
+                           activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
+                           break;
                          }
                        }
                      });
@@ -615,10 +618,14 @@ void MainWindow::refreshScene()
       auto oldRegistrySize = baseMaterialRegistry->children().size();
       auto importer        = sg::getImporter(file);
       if (importer != "") {
-        std::string nodeName = "importer_" + std::string(file);
+        std::string nodeName = std::string(file) + "_importer";
         auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
         imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
+
+#if 1 //BMCDEBUG, just for testing
+        imp.traverse<sg::PrintNodes>();
+#endif
 
         if (baseMaterialRegistry->matImportsList.size() != 0) {
           for (auto &newMat : baseMaterialRegistry->matImportsList)
@@ -674,7 +681,7 @@ void MainWindow::importFiles()
   for (auto file : filesToImport) {
     try {
       ospcommon::FileName fileName(file);
-      std::string nodeName = "importer_" + fileName.base();
+      std::string nodeName = fileName.base() + "_importer";
 
       std::cout << "Importing: " << file << std::endl;
       auto oldRegistrySize = baseMaterialRegistry->children().size();
@@ -683,6 +690,10 @@ void MainWindow::importFiles()
         auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
         imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
+
+#if 1 //BMCDEBUG, just for testing
+        imp.traverse<sg::PrintNodes>();
+#endif
 
         if (baseMaterialRegistry->matImportsList.size() != 0) {
           for (auto &newMat : baseMaterialRegistry->matImportsList)
