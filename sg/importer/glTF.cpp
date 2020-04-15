@@ -54,7 +54,10 @@ namespace ospray::sg {
 
   struct GLTFData
   {
-    GLTFData(Node &rootNode, const FileName &fileName) : fileName(fileName), rootNode(rootNode) {}
+    GLTFData(Node &rootNode, const FileName &fileName)
+        : fileName(fileName), rootNode(rootNode)
+    {
+    }
 
    public:
     const FileName &fileName;
@@ -64,7 +67,7 @@ namespace ospray::sg {
     void createGeometries();
     void buildScene();
 
-    std::vector<NodePtr> ospMeshes;
+    // std::vector<NodePtr> ospMeshes;
 
    private:
     tinygltf::Model model;
@@ -81,8 +84,8 @@ namespace ospray::sg {
 
     affine3f nodeTransform(const tinygltf::Node &node);
 
-    NodePtr createOSPMesh(const std::string &primBaseName,
-                              tinygltf::Primitive &primitive);
+    void createOSPMesh(const std::string &primBaseName,
+                       tinygltf::Primitive &primitive);
 
     NodePtr createOSPMaterial(const tinygltf::Material &material);
 
@@ -217,7 +220,7 @@ namespace ospray::sg {
   void GLTFData::createGeometries()
   {
     INFO << "Create Geometries\n";
-    ospMeshes.reserve(model.meshes.size());
+    // ospMeshes.reserve(model.meshes.size());
     for (auto &m : model.meshes) {  // -> Model
       static auto nModel = 0;
       auto modelName     = m.name + "_" + pad(std::to_string(nModel++));
@@ -226,8 +229,9 @@ namespace ospray::sg {
 
       for (auto &prim : m.primitives) {  // -> TriangleMesh
         // Create per 'primitive' geometry
-        auto ospMesh = createOSPMesh(modelName, prim);
-        ospMeshes.push_back(ospMesh);
+        createOSPMesh(modelName, prim);
+        // auto ospMesh = createOSPMesh(modelName, prim);
+        // ospMeshes.push_back(ospMesh);
       }
     }
   }
@@ -254,7 +258,7 @@ namespace ospray::sg {
   {
     const tinygltf::Node &n = model.nodes[nid];
     INFO << pad("", '.', 3 * level) << nid << ":" << n.name
-        << " (children:" << n.children.size() << ")\n";
+         << " (children:" << n.children.size() << ")\n";
 
     // XXX !!! This is still a single-level-instance implementation, since
     // all tranforms are only applied to mesh-producing leaf nodes.
@@ -263,22 +267,23 @@ namespace ospray::sg {
     // On 1.8.5 SG, problems with Adam Head eyes when attempting multi-level
 
     // Apply any transform in this node -> xfm
-    const affine3f new_xfm     = xfm * nodeTransform(n);
-    const auto needXfm = (new_xfm != affine3f{one});
+    const affine3f new_xfm = xfm * nodeTransform(n);
+    const auto needXfm     = (new_xfm != affine3f{one});
 
     // Create xfm
     // XXX Only create if there's something to add.
     if (needXfm || n.mesh != -1 || n.camera != -1 || n.skin != -1) {
-#if 1 // BMCDEBUG, temp removal
-      WARN << "Skipping needXfm at the moment -- needs 2.0 implmentation\n";
-      if (n.mesh != -1) {
-        INFO << pad("", '.', 3 * level) << "....mesh\n";
-        rootNode.add(ospMeshes[n.mesh]);
-      }
+#if 1  // BMCDEBUG, temp removal
+//      WARN << "Skipping needXfm at the moment -- needs 2.0 implmentation\n";
+//      if (n.mesh != -1) {
+//        INFO << pad("", '.', 3 * level) << "....mesh\n";
+//        rootNode.add(ospMeshes[n.mesh]);
+//      }
 #else
       static auto nNode = 0;
       auto nodeName     = n.name + "_" + pad(std::to_string(nNode++));
-      auto ospXfm  = createNode(nodeName + "_xfm", "Transform", affine3f::translate(vec3f(0.f)));
+      auto ospXfm       = createNode(
+          nodeName + "_xfm", "Transform", affine3f::translate(vec3f(0.f)));
       INFO << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
 
       if (needXfm) {
@@ -286,7 +291,7 @@ namespace ospray::sg {
         // Pushed to gitlab branch bc/add-instance-userTransform
         // Either make sure this is available in OSPRaySG 2.0, or
         // find another way to do this.
-        ospXfm->remove("xfm"); // remove default xfm
+        ospXfm->remove("xfm");  // remove default xfm
         ospXfm->createChild("xfm", "Transform", new_xfm);
         INFO << pad("", '.', 3 * level) << "....xfm\n";
       }
@@ -343,8 +348,8 @@ namespace ospray::sg {
     return xfm;
   }
 
-  NodePtr GLTFData::createOSPMesh(const std::string &primBaseName,
-                                  tinygltf::Primitive &prim)
+  void GLTFData::createOSPMesh(const std::string &primBaseName,
+                               tinygltf::Primitive &prim)
   {
     static auto nPrim = 0;
     auto primName     = primBaseName + "_" + pad(std::to_string(nPrim++));
@@ -393,19 +398,25 @@ namespace ospray::sg {
       Accessor<uint8_t> index_accessor(model.accessors[prim.indices], model);
       vi.reserve(index_accessor.size() / 3);
       for (size_t i = 0; i < index_accessor.size() / 3; ++i)
-        vi.emplace_back(index_accessor[i * 3]);
+        vi.emplace_back(vec3ui(index_accessor[i * 3],
+                               index_accessor[i * 3 + 1],
+                               index_accessor[i * 3 + 2]));
     } else if (model.accessors[prim.indices].componentType ==
                TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
       Accessor<uint16_t> index_accessor(model.accessors[prim.indices], model);
       vi.reserve(index_accessor.size() / 3);
       for (size_t i = 0; i < index_accessor.size() / 3; ++i)
-        vi.emplace_back(index_accessor[i * 3]);
+        vi.emplace_back(vec3ui(index_accessor[i * 3],
+                               index_accessor[i * 3 + 1],
+                               index_accessor[i * 3 + 2]));
     } else if (model.accessors[prim.indices].componentType ==
                TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
       Accessor<uint32_t> index_accessor(model.accessors[prim.indices], model);
       vi.reserve(index_accessor.size() / 3);
       for (size_t i = 0; i < index_accessor.size() / 3; ++i)
-        vi.push_back(index_accessor[i * 3]);
+        vi.emplace_back(vec3ui(index_accessor[i * 3],
+                               index_accessor[i * 3 + 1],
+                               index_accessor[i * 3 + 2]));
     } else {
       ERROR << "Unsupported index type: "
             << model.accessors[prim.indices].componentType << "\n";
@@ -488,13 +499,31 @@ namespace ospray::sg {
 #endif
 
     // Add attribute arrays to mesh
+#if 0
     auto ospGeom = createNode(primName + "_object", "geometry_triangles");
+#else
+    std::cout << "....... test creating mesh geometries here, directly on the "
+                 "root node\n";
+    auto &ospGeom =
+        rootNode.createChild(primName + "_object", "geometry_triangles");
+#endif
 
-    ospGeom->createChildData("vertex.position", v);
-    ospGeom->createChildData("index", vi);
+#if 0
+    std::cout << "V.position: ";
+    for (auto i : v)
+        std::cout << i;
+    std::cout << std::endl;
+    std::cout << "V.index: ";
+    for (auto i : vi)
+        std::cout << i;
+    std::cout << std::endl;
+#endif
+
+    ospGeom.createChildData("vertex.position", v);
+    ospGeom.createChildData("index", vi);
     if (!vn.empty())
-      ospGeom->createChildData("vertex.normal", vn);
-#if 0 // Shouldn't cause any problem, but get basic geometry working first
+      ospGeom.createChildData("vertex.normal", vn);
+#if 0  // Shouldn't cause any problem, but get basic geometry working first
     if (!vc.empty())
       ospGeom->createChildData("vertex.color", vc);
     if (!vn.empty())
@@ -513,10 +542,10 @@ namespace ospray::sg {
 #else
     // XXX BMCDEBUG prevents crash until getting materials to work!
     std::vector<uint32_t> mIDs(v.size(), 0);
-    ospGeom->createChildData("material", mIDs);
+    ospGeom.createChildData("material", mIDs);
 #endif
 
-    return ospGeom;
+    // return ospGeom;
   }
 
   NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
@@ -692,9 +721,11 @@ namespace ospray::sg {
   {
     auto file = FileName(child("file").valueAs<std::string>());
 
-    // Create a root Transform/Instance off the Importer, under which to build the import hierarchy
+    // Create a root Transform/Instance off the Importer, under which to build
+    // the import hierarchy
 
-    // XXX This messes up the OBJ importer, so don't use a top-level transform here either
+    // XXX This messes up the OBJ importer, so don't use a top-level transform
+    // here either
     // === Still get nothing to render here though ===
 #if 0
     auto &rootNode = createChild("root_node_xfm", "Transform", affine3f{one});
