@@ -14,6 +14,9 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+// Althought stb_image.h is in the external directory, there can be only one
+// implementation in the entire scene graph.  Implement it here.
+
 #define STB_IMAGE_IMPLEMENTATION // define this in only *one* .cc
-#include "external/stb_image.h"
+#include "stb_image.h"
 

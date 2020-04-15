@@ -1,5 +1,5 @@
 ## ======================================================================== ##
-## Copyright 2009-2018 Intel Corporation                                    ##
+## Copyright 2020 Intel Corporation                                         ##
 ##                                                                          ##
 ## Licensed under the Apache License, Version 2.0 (the "License");          ##
 ## you may not use this file except in compliance with the License.         ##
@@ -14,9 +14,9 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-add_subdirectory(imgui)
-#add_subdirectory(tfn_lib)
-add_subdirectory(tiny_file_dialogs)
-add_subdirectory(tiny_obj_loader)
-add_subdirectory(tiny_gltf)
-add_subdirectory(stb_image)
+add_library(stb_image stb_image_impl.cpp)
+
+target_include_directories(stb_image
+PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+)

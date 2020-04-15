@@ -65,7 +65,6 @@ find_package(ospray 2.0.0 REQUIRED)
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
-include_directories(external)
 add_subdirectory(external)
 add_subdirectory(sg)
 
