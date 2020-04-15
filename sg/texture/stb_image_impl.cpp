@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
+// Copyright 2009-2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,6 +14,6 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#define TINYGLTF_IMPLEMENTATION  // define this in only *one* .cc
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-#include "tiny_gltf.h"
+#define STB_IMAGE_IMPLEMENTATION // define this in only *one* .cc
+#include "external/stb_image.h"
+

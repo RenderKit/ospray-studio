@@ -14,8 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "sg_old/3rdParty/stb_image.h"
+#include "stb_image.h"
 
 #ifdef USE_OPENIMAGEIO
 #include <OpenImageIO/imageio.h>

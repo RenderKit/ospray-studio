@@ -82,6 +82,7 @@ add_library(ospray_sg SHARED
   scene/lights/QuadLight.cpp
   scene/lights/HDRILight.cpp
 
+  texture/stb_image_impl.cpp  # Only one for entire SG
   texture/Texture.cpp
   texture/Texture2D.cpp
   )

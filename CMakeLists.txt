@@ -65,7 +65,9 @@ find_package(ospray 2.0.0 REQUIRED)
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
-subdirs(external sg)
+include_directories(external)
+add_subdirectory(external)
+add_subdirectory(sg)
 
 option(BUILD_APPS "Build OSPRay Studio Apps" ON)
 
