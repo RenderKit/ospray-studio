@@ -54,7 +54,7 @@ namespace ospray::sg {
 
   struct GLTFData
   {
-    GLTFData(const FileName &fileName) : fileName(fileName) {}
+    GLTFData(Node &rootNode, const FileName &fileName) : fileName(fileName), rootNode(rootNode) {}
 
    public:
     const FileName &fileName;
@@ -64,10 +64,12 @@ namespace ospray::sg {
     void createGeometries();
     void buildScene();
 
-    std::vector<NodePtr> ospModels;
+    std::vector<NodePtr> ospMeshes;
 
    private:
     tinygltf::Model model;
+
+    Node &rootNode;
 
     std::vector<NodePtr> ospTextures;
     std::vector<NodePtr> ospMaterials;
@@ -79,7 +81,7 @@ namespace ospray::sg {
 
     affine3f nodeTransform(const tinygltf::Node &node);
 
-    NodePtr createOSPGeometry(const std::string &primBaseName,
+    NodePtr createOSPMesh(const std::string &primBaseName,
                               tinygltf::Primitive &primitive);
 
     NodePtr createOSPMaterial(const tinygltf::Material &material);
@@ -178,9 +180,12 @@ namespace ospray::sg {
     ospMaterials.reserve(model.materials.size() + 1);
     ospTextures.reserve(model.textures.size());
 
+#if 0
     // "default" material for glTF '-1' index (no material)
     ospMaterials.emplace_back(createNode("default", "material_obj"));
+#endif
 
+    WARN << "Skipping materials at the moment -- needs 2.0 implmentation\n";
 #if 0
     // Create textures (references model.images[])
     for (const auto &texture : model.textures) {
@@ -212,28 +217,24 @@ namespace ospray::sg {
   void GLTFData::createGeometries()
   {
     INFO << "Create Geometries\n";
-    ospModels.reserve(model.meshes.size());
+    ospMeshes.reserve(model.meshes.size());
     for (auto &m : model.meshes) {  // -> Model
       static auto nModel = 0;
       auto modelName     = m.name + "_" + pad(std::to_string(nModel++));
 
-      auto ospModel = createNode(modelName + "_model");
       INFO << pad("", '.', 3) << "mesh." + modelName << "\n";
 
       for (auto &prim : m.primitives) {  // -> TriangleMesh
-        // Create per primitive geometry
-        auto ospPrim = createOSPGeometry(modelName, prim);
-        ospModel->add(ospPrim);
+        // Create per 'primitive' geometry
+        auto ospMesh = createOSPMesh(modelName, prim);
+        ospMeshes.push_back(ospMesh);
       }
-
-      ospModels.push_back(ospModel);
     }
   }
 
   void GLTFData::buildScene()
   {
     INFO << "Build Scene\n";
-#if 0
     if (model.defaultScene == -1)
       model.defaultScene = 0;
 
@@ -245,7 +246,6 @@ namespace ospray::sg {
       // recursively process node hierarchy
       visitNode(nid, xfm, 1);
     }
-#endif
   }
 
   void GLTFData::visitNode(const int nid,
@@ -253,8 +253,8 @@ namespace ospray::sg {
                            const int level)  // XXX just for debug
   {
     const tinygltf::Node &n = model.nodes[nid];
-    // INFO << pad("", '.', 3 * level) << nid << ":" << n.name
-    //     << " (children:" << n.children.size() << ")\n";
+    INFO << pad("", '.', 3 * level) << nid << ":" << n.name
+        << " (children:" << n.children.size() << ")\n";
 
     // XXX !!! This is still a single-level-instance implementation, since
     // all tranforms are only applied to mesh-producing leaf nodes.
@@ -262,34 +262,38 @@ namespace ospray::sg {
     // higher up, with the nodes that specify them.
     // On 1.8.5 SG, problems with Adam Head eyes when attempting multi-level
 
-    // Apply any transform in this node -> instance xfm
+    // Apply any transform in this node -> xfm
     const affine3f new_xfm     = xfm * nodeTransform(n);
-    const auto needInstanceXfm = (new_xfm != affine3f{one});
+    const auto needXfm = (new_xfm != affine3f{one});
 
-    // Add node entities to the World //
-#if 0
-
-    // Create Instance
+    // Create xfm
     // XXX Only create if there's something to add.
-    if (needInstanceXfm || n.mesh != -1 || n.camera != -1 || n.skin != -1) {
+    if (needXfm || n.mesh != -1 || n.camera != -1 || n.skin != -1) {
+#if 1 // BMCDEBUG, temp removal
+      WARN << "Skipping needXfm at the moment -- needs 2.0 implmentation\n";
+      if (n.mesh != -1) {
+        INFO << pad("", '.', 3 * level) << "....mesh\n";
+        rootNode.add(ospMeshes[n.mesh]);
+      }
+#else
       static auto nNode = 0;
       auto nodeName     = n.name + "_" + pad(std::to_string(nNode++));
-      auto ospInstance  = createNode(nodeName + "_instance", "Instance");
-      // INFO << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
+      auto ospXfm  = createNode(nodeName + "_xfm", "Transform", affine3f::translate(vec3f(0.f)));
+      INFO << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
 
-      if (needInstanceXfm) {
+      if (needXfm) {
         // XXX, requires change to 1.8.5 SG.
         // Pushed to gitlab branch bc/add-instance-userTransform
         // Either make sure this is available in OSPRaySG 2.0, or
         // find another way to do this.
-        ospInstance->createChild("userTransform", "affine3f") = new_xfm;
-        // INFO << pad("", '.', 3 * level) << "....xfm\n";
+        ospXfm->remove("xfm"); // remove default xfm
+        ospXfm->createChild("xfm", "Transform", new_xfm);
+        INFO << pad("", '.', 3 * level) << "....xfm\n";
       }
 
       if (n.mesh != -1) {
-        ospInstance->setChild("model", ospModels[n.mesh]);
-        ospModels[n.mesh]->setParent(ospInstance);
-        // INFO << pad("", '.', 3 * level) << "....mesh\n";
+        INFO << pad("", '.', 3 * level) << "....mesh\n";
+        ospXfm->add(ospMeshes[n.mesh]);
       }
 
       if (n.camera != -1) {
@@ -300,9 +304,9 @@ namespace ospray::sg {
         WARN << "unsupported node-type: skin\n";
       }
 
-      world->add(ospInstance);
-    }
+      rootNode.add(ospXfm);
 #endif
+    }
 
     // recursively process children nodes
     for (const auto &cid : n.children) {
@@ -339,8 +343,8 @@ namespace ospray::sg {
     return xfm;
   }
 
-  NodePtr GLTFData::createOSPGeometry(const std::string &primBaseName,
-                                      tinygltf::Primitive &prim)
+  NodePtr GLTFData::createOSPMesh(const std::string &primBaseName,
+                                  tinygltf::Primitive &prim)
   {
     static auto nPrim = 0;
     auto primName     = primBaseName + "_" + pad(std::to_string(nPrim++));
@@ -351,7 +355,7 @@ namespace ospray::sg {
            << model.materials[prim.material].alphaMode << ")\n";
     }
 
-    // XXX: Create nodes types based on actual accessor types
+    // XXX: Create node types based on actual accessor types
     std::vector<vec3f> v;
     std::vector<vec3ui> vi;  // XXX support both 3i and 4i OSPRay 2?
     std::vector<vec4f> vc;
@@ -483,17 +487,21 @@ namespace ospray::sg {
     }
 #endif
 
-    // Add attribute arrays to geometry
-    auto ospGeom = createNode(primName + "_mesh", "geometry_triangles");
+    // Add attribute arrays to mesh
+    auto ospGeom = createNode(primName + "_object", "geometry_triangles");
 
     ospGeom->createChildData("vertex.position", v);
     ospGeom->createChildData("index", vi);
+    if (!vn.empty())
+      ospGeom->createChildData("vertex.normal", vn);
+#if 0 // Shouldn't cause any problem, but get basic geometry working first
     if (!vc.empty())
       ospGeom->createChildData("vertex.color", vc);
     if (!vn.empty())
       ospGeom->createChildData("vertex.normal", vn);
     if (!vt.empty())
       ospGeom->createChildData("vertex.texcoord", vt);
+#endif
 
 #if 0  // XXX might need to make ospGeom the child of a material node
     // Add material reference (adding 1 for default material)
@@ -502,9 +510,11 @@ namespace ospray::sg {
       ospGeom->createChildWithValue("geom.materialID", "int", materialID);
       ospGeom->add(ospMaterialList);
     }
+#else
+    // XXX BMCDEBUG prevents crash until getting materials to work!
+    std::vector<uint32_t> mIDs(v.size(), 0);
+    ospGeom->createChildData("material", mIDs);
 #endif
-    // XXX BMCDEBUG prevents crash!
-    ospGeom->createChildData("material", 0 /*prim.material*/);
 
     return ospGeom;
   }
@@ -681,7 +691,18 @@ namespace ospray::sg {
       std::shared_ptr<MaterialRegistry> materialRegistry)
   {
     auto file = FileName(child("file").valueAs<std::string>());
-    GLTFData gltf(file);
+
+    // Create a root Transform/Instance off the Importer, under which to build the import hierarchy
+
+    // XXX This messes up the OBJ importer, so don't use a top-level transform here either
+    // === Still get nothing to render here though ===
+#if 0
+    auto &rootNode = createChild("root_node_xfm", "Transform", affine3f{one});
+#else
+    Node &rootNode = *this;
+#endif
+
+    GLTFData gltf(rootNode, file);
 
     if (!gltf.parseAsset())
       return;
@@ -689,12 +710,6 @@ namespace ospray::sg {
     gltf.createMaterials(*materialRegistry);
     gltf.createGeometries();
     gltf.buildScene();
-
-    auto &xfm =
-        createChild("xfm", "Transform", affine3f::translate(vec3f(0.1f)));
-    for (auto &m : gltf.ospModels) {
-      xfm.add(m);
-    }
 
     INFO << "finished import!\n";
   }

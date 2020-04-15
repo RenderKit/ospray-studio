@@ -276,6 +276,16 @@ namespace ospray::sg {
 
     std::string baseName = file.name() + '_';
 
+    // Create a root Transform/Instance off the Importer, under which to build the import hierarchy
+
+    // XXX This messes things up when more than one model is loaded.  Why?!?!?!
+    // When creating a top-level transform, only the last of multiple models is rendered!
+#if 0
+    auto &rootNode = createChild("root_node_xfm", "Transform", affine3f{one});
+#else
+    auto &rootNode = *this;
+#endif
+
     for (auto &shape : objData.shapes) {
       auto numSrcIndices = shape.mesh.indices.size();
 
@@ -333,7 +343,7 @@ namespace ospray::sg {
 
       auto &mesh = matNode.createChild(name, "geometry_triangles");
 #else  // per-primitive materials (correct)
-      auto &mesh = createChild(name, "geometry_triangles");
+      auto &mesh = rootNode.createChild(name, "geometry_triangles");
 
       std::vector<uint32_t> mIDs(shape.mesh.material_ids.size());
       std::transform(shape.mesh.material_ids.begin(),
