@@ -281,7 +281,7 @@ namespace ospray::sg {
     // XXX This messes things up when more than one model is loaded.  Why?!?!?!
     // When creating a top-level transform, only the last of multiple models is rendered!
     // (same in glTF loader)
-#if 0
+#if 0  // XXX Define this to see the behavior where only the last model is rendered.
     auto &rootNode = createChild(baseName + "root_node_xfm", "Transform", affine3f{one});
 #else
     auto &rootNode = *this;
