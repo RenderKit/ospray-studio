@@ -608,10 +608,12 @@ void MainWindow::buildUI()
         g_camPath.erase(g_camPath.begin() + g_camPathSelected);
         g_camPathSelected = std::max(0, g_camPathSelected - 1);
       }
-      ImGui::SameLine();
-      if (ImGui::ArrowButton("play", ImGuiDir_Right)) {
-          animatingPath = !animatingPath;
+      if (g_camPath.size() >= 4) {
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("play", ImGuiDir_Right)) {
+          animatingPath      = !animatingPath;
           g_camPathAnimIndex = 1;
+        }
       }
       for (int i = 0; i < g_camPath.size(); i++) {
         if (ImGui::Selectable(
