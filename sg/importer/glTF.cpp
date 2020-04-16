@@ -24,6 +24,9 @@
 #include "glTF/buffer_view.h"
 #include "glTF/gltf_types.h"
 
+// Note: may want to disable warnings/errors from TinyGLTF
+#define REPORT_TINYGLTF_WARNINGS
+
 #define INFO std::cout << prefix << "(I): "
 #define WARN std::cout << prefix << "(W): "
 #define ERROR std::cerr << prefix << "(E): "
@@ -67,7 +70,7 @@ namespace ospray::sg {
     void createGeometries();
     void buildScene();
 
-    // std::vector<NodePtr> ospMeshes;
+    std::vector<NodePtr> ospMeshes;
 
    private:
     tinygltf::Model model;
@@ -84,8 +87,8 @@ namespace ospray::sg {
 
     affine3f nodeTransform(const tinygltf::Node &node);
 
-    void createOSPMesh(const std::string &primBaseName,
-                       tinygltf::Primitive &primitive);
+    NodePtr createOSPMesh(const std::string &primBaseName,
+                          tinygltf::Primitive &primitive);
 
     NodePtr createOSPMaterial(const tinygltf::Material &material);
 
@@ -220,7 +223,7 @@ namespace ospray::sg {
   void GLTFData::createGeometries()
   {
     INFO << "Create Geometries\n";
-    // ospMeshes.reserve(model.meshes.size());
+    ospMeshes.reserve(model.meshes.size());
     for (auto &m : model.meshes) {  // -> Model
       static auto nModel = 0;
       auto modelName     = m.name + "_" + pad(std::to_string(nModel++));
@@ -229,9 +232,8 @@ namespace ospray::sg {
 
       for (auto &prim : m.primitives) {  // -> TriangleMesh
         // Create per 'primitive' geometry
-        createOSPMesh(modelName, prim);
-        // auto ospMesh = createOSPMesh(modelName, prim);
-        // ospMeshes.push_back(ospMesh);
+        auto ospMesh = createOSPMesh(modelName, prim);
+        ospMeshes.push_back(ospMesh);
       }
     }
   }
@@ -274,11 +276,11 @@ namespace ospray::sg {
     // XXX Only create if there's something to add.
     if (needXfm || n.mesh != -1 || n.camera != -1 || n.skin != -1) {
 #if 1  // BMCDEBUG, temp removal
-//      WARN << "Skipping needXfm at the moment -- needs 2.0 implmentation\n";
-//      if (n.mesh != -1) {
-//        INFO << pad("", '.', 3 * level) << "....mesh\n";
-//        rootNode.add(ospMeshes[n.mesh]);
-//      }
+      WARN << "Skipping needXfm at the moment -- needs 2.0 implmentation\n";
+      if (n.mesh != -1) {
+        INFO << pad("", '.', 3 * level) << "....mesh\n";
+        rootNode.add(ospMeshes[n.mesh]);
+      }
 #else
       static auto nNode = 0;
       auto nodeName     = n.name + "_" + pad(std::to_string(nNode++));
@@ -348,7 +350,7 @@ namespace ospray::sg {
     return xfm;
   }
 
-  void GLTFData::createOSPMesh(const std::string &primBaseName,
+  NodePtr GLTFData::createOSPMesh(const std::string &primBaseName,
                                tinygltf::Primitive &prim)
   {
     static auto nPrim = 0;
@@ -432,22 +434,20 @@ namespace ospray::sg {
           TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
         Accessor<uint16_t> col_accessor(model.accessors[col_attrib], model);
         vc.reserve(col_accessor.size() / 3);
-        for (size_t i = 0; i < col_accessor.size() / 3; ++i) {
-          vc.push_back(vec4f(col_accessor[i * 3],
-                             col_accessor[i * 3 + 1],
-                             col_accessor[i * 3 + 2],
-                             1.f));
-        }
+        for (size_t i = 0; i < col_accessor.size() / 3; ++i)
+          vc.emplace_back(vec4f(col_accessor[i * 3],
+                                col_accessor[i * 3 + 1],
+                                col_accessor[i * 3 + 2],
+                                1.f));
       } else if (model.accessors[col_attrib].componentType ==
                  TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
         Accessor<uint8_t> col_accessor(model.accessors[col_attrib], model);
         vc.reserve(col_accessor.size() / 3);
-        for (size_t i = 0; i < col_accessor.size() / 3; ++i) {
-          vc.push_back(vec4f(col_accessor[i * 3],
-                             col_accessor[i * 3 + 1],
-                             col_accessor[i * 3 + 2],
-                             1.f));
-        }
+        for (size_t i = 0; i < col_accessor.size() / 3; ++i)
+          vc.emplace_back(vec4f(col_accessor[i * 3],
+                                col_accessor[i * 3 + 1],
+                                col_accessor[i * 3 + 2],
+                                1.f));
       } else if (model.accessors[col_attrib].componentType ==
                  TINYGLTF_COMPONENT_TYPE_FLOAT) {
         Accessor<vec4f> col_accessor(model.accessors[col_attrib], model);
@@ -499,38 +499,16 @@ namespace ospray::sg {
 #endif
 
     // Add attribute arrays to mesh
-#if 0
     auto ospGeom = createNode(primName + "_object", "geometry_triangles");
-#else
-    std::cout << "....... test creating mesh geometries here, directly on the "
-                 "root node\n";
-    auto &ospGeom =
-        rootNode.createChild(primName + "_object", "geometry_triangles");
-#endif
 
-#if 0
-    std::cout << "V.position: ";
-    for (auto i : v)
-        std::cout << i;
-    std::cout << std::endl;
-    std::cout << "V.index: ";
-    for (auto i : vi)
-        std::cout << i;
-    std::cout << std::endl;
-#endif
-
-    ospGeom.createChildData("vertex.position", v);
-    ospGeom.createChildData("index", vi);
-    if (!vn.empty())
-      ospGeom.createChildData("vertex.normal", vn);
-#if 0  // Shouldn't cause any problem, but get basic geometry working first
+    ospGeom->createChildData("vertex.position", v);
+    ospGeom->createChildData("index", vi);
     if (!vc.empty())
       ospGeom->createChildData("vertex.color", vc);
     if (!vn.empty())
       ospGeom->createChildData("vertex.normal", vn);
     if (!vt.empty())
       ospGeom->createChildData("vertex.texcoord", vt);
-#endif
 
 #if 0  // XXX might need to make ospGeom the child of a material node
     // Add material reference (adding 1 for default material)
@@ -542,10 +520,10 @@ namespace ospray::sg {
 #else
     // XXX BMCDEBUG prevents crash until getting materials to work!
     std::vector<uint32_t> mIDs(v.size(), 0);
-    ospGeom.createChildData("material", mIDs);
+    ospGeom->createChildData("material", mIDs);
 #endif
 
-    // return ospGeom;
+    return ospGeom;
   }
 
   NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
@@ -724,9 +702,9 @@ namespace ospray::sg {
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
 
-    // XXX This messes up the OBJ importer, so don't use a top-level transform
-    // here either
-    // === Still get nothing to render here though ===
+    // XXX This messes things up when more than one model is loaded.  Why?!?!?!
+    // When creating a top-level transform, only the last of multiple models is rendered!
+    // (same in OBJ loader)
 #if 0
     auto &rootNode = createChild("root_node_xfm", "Transform", affine3f{one});
 #else
