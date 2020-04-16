@@ -343,17 +343,21 @@ void MainWindow::display()
   }
 
   if (animatingPath) {
+    CameraState prefix = g_camPath[g_camPathAnimIndex - 1];
     CameraState from = g_camPath[g_camPathAnimIndex];
     CameraState to = g_camPath[g_camPathAnimIndex + 1];
-    from.slerp(to, g_camPathFrac);
+    CameraState suffix = g_camPath[g_camPathAnimIndex + 2];
+    CameraState interp = catmullRom(prefix, from, to, suffix, g_camPathFrac);
 
-    arcballCamera->setState(from);
+    arcballCamera->setState(interp);
     updateCamera();
 
     g_camPathFrac += 0.01f;
     if (g_camPathFrac >= 1.f) {
       g_camPathFrac      = 0.f;
-      g_camPathAnimIndex = (g_camPathAnimIndex + 1) % (g_camPath.size() - 1);
+      // clamp anim index to [1, nframes-2] for now
+      // to use first/last points as interp prefix/suffix
+      g_camPathAnimIndex = std::max(1ul, (g_camPathAnimIndex + 1) % (g_camPath.size() - 2));
     }
   }
 
@@ -607,6 +611,7 @@ void MainWindow::buildUI()
       ImGui::SameLine();
       if (ImGui::ArrowButton("play", ImGuiDir_Right)) {
           animatingPath = !animatingPath;
+          g_camPathAnimIndex = 1;
       }
       for (int i = 0; i < g_camPath.size(); i++) {
         if (ImGui::Selectable(

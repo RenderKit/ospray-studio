@@ -117,3 +117,28 @@ quaternionf ArcballCamera::screenToArcball(const vec2f &p)
     return quaternionf(0, unitDir.x, unitDir.y, 0);
   }
 }
+
+// Catmull-Rom interpolation for rotation quaternions
+// linear interpolation for translation matrices
+// adapted from Graphics Gems 2
+CameraState catmullRom(const CameraState &prefix,
+    const CameraState &from,
+    const CameraState &to,
+    const CameraState &suffix,
+    float frac)
+{
+  // essentially this interpolation creates a "pyramid"
+  // interpolate 4 points to 3
+  CameraState c10 = prefix.slerp(from, frac + 1);
+  CameraState c11 = from.slerp(to, frac);
+  CameraState c12 = to.slerp(suffix, frac - 1);
+
+  // 3 points to 2
+  CameraState c20 = c10.slerp(c11, (frac + 1) / 2.f);
+  CameraState c21 = c11.slerp(c12, frac / 2.f);
+
+  // and 2 to 1
+  CameraState cf = c20.slerp(c21, frac);
+
+  return cf;
+}
