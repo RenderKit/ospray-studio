@@ -44,7 +44,7 @@ namespace ospray::sg {
     {
       std::vector<cpp::GeometricModel> geometries;
       std::vector<cpp::VolumetricModel> volumes;
-      cpp::Group group;
+      // cpp::Group group;
       // Apperance information:
       //     - Material
       //     - TransferFunction
@@ -158,18 +158,20 @@ namespace ospray::sg {
     if (current.geometries.empty() && current.volumes.empty())
       return;
 
+    cpp::Group group;
+
     if (!current.geometries.empty())
-      current.group.setParam("geometry", cpp::Data(current.geometries));
+      group.setParam("geometry", cpp::Data(current.geometries));
 
     if (!current.volumes.empty())
-      current.group.setParam("volume", cpp::Data(current.volumes));
+      group.setParam("volume", cpp::Data(current.volumes));
 
     current.geometries.clear();
     current.volumes.clear();
 
-    current.group.commit();
+    group.commit();
 
-    cpp::Instance inst(current.group);
+    cpp::Instance inst(group);
     inst.setParam("xfm", xfms.top());
     inst.commit();
     instances.push_back(inst);
