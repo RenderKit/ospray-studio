@@ -56,6 +56,79 @@ namespace ospray::sg {
     return OSP_TEXTURE_FORMAT_INVALID;
   }
 
+  template <typename T>
+  void generatePPMTex(std::vector<T> &data,
+                      unsigned int dataSize,
+                      int height,
+                      int width,
+                      int channels,
+                      std::string filename)
+  {
+    unsigned char *texels = (unsigned char *)data.data();
+    for (int y = 0; y < height / 2; y++)
+      for (int x = 0; x < width * channels; x++) {
+        unsigned int a = (y * width * channels) + x;
+        unsigned int b = ((height - 1 - y) * width * channels) + x;
+        if (a >= dataSize || b >= dataSize) {
+          throw std::runtime_error(
+              "#osp:minisg: could not parse P6 PPM file '" + filename +
+              "': buffer overflow.");
+        }
+        std::swap(texels[a], texels[b]);
+      }
+  }
+
+  template <typename T>
+  void generatePFMTex(std::vector<T> &data,
+                      unsigned int dataSize,
+                      int height,
+                      int width,
+                      int numChannels,
+                      float scaleFactor)
+  {
+    float *texels = (float *)data.data();
+    for (int y = 0; y < height / 2; ++y) {
+      for (int x = 0; x < width * numChannels; ++x) {
+        // Scale the pixels by the scale factor
+        texels[y * width * numChannels + x] =
+            texels[y * width * numChannels + x] * scaleFactor;
+        texels[(height - 1 - y) * width * numChannels + x] =
+            texels[(height - 1 - y) * width * numChannels + x] * scaleFactor;
+        std::swap(texels[y * width * numChannels + x],
+                  texels[(height - 1 - y) * width * numChannels + x]);
+      }
+    }
+  }
+
+  template <typename T>
+  void generateTex(std::vector<T> &data,
+                   unsigned int dataSize,
+                   int height,
+                   int width,
+                   int channels,
+                   unsigned char *pixels,
+                   bool hdr)
+  {
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        if (hdr) {
+          const float *pixel = &((float *)pixels)[(y * width + x) * channels];
+          float *dst         = &(
+              (float *)data.data())[(x + (height - 1 - y) * width) * channels];
+          for (int i = 0; i < channels; i++)
+            *dst++ = pixel[i];
+        } else {
+          const unsigned char *pixel = &pixels[(y * width + x) * channels];
+          unsigned char *dst =
+              &((unsigned char *)
+                    data.data())[((height - 1 - y) * width + x) * channels];
+          for (int i = 0; i < channels; i++)
+            *dst++ = pixel[i];
+        }
+      }
+    }
+  }
+
   // Texture2D definitions ////////////////////////////////////////////////////
 
   Texture2D::Texture2D() : Texture("texture2d") {
@@ -198,28 +271,34 @@ namespace ospray::sg {
 
         unsigned int dataSize = width * height * channels * depth;
 
-        std::vector<vec3uc> data(sizeof(unsigned char) * dataSize);
-
-        rc = fread(data.data(), dataSize, 1, file);
-
         // flip in y, because OSPRay's textures have the origin at the lower
         // left corner
 
-         unsigned char *texels = (unsigned char *)data.data();
-          for (int y = 0; y < height/2; y++)
-            for (int x = 0; x < width*3; x++) {
-              unsigned int a = (y * width * 3) + x;
-              unsigned int b = ((height - 1 - y) * width * 3) + x;
-              if (a >= dataSize || b >= dataSize) {
-                throw std::runtime_error("#osp:minisg: could not parse P6 PPM file '" + fileName.str() + "': buffer overflow.");
-              }
-              std::swap(texels[a], texels[b]);
-            }
+        if (channels == 1) {
+          std::vector<unsigned char> data(dataSize);
+          rc = fread(data.data(), dataSize, 1, file);
+          generatePPMTex<unsigned char>(data, dataSize, height, width, channels, fileName.str());
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 2) {
+          std::vector<vec2uc> data(dataSize);
+          rc = fread(data.data(), dataSize, 1, file);
+          generatePPMTex<vec2uc>(data, dataSize, height, width, channels, fileName.str());
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 3) {
+          std::vector<vec3uc> data(dataSize);
+          rc = fread(data.data(), dataSize, 1, file);
+          generatePPMTex<vec3uc>(data, dataSize, height, width, channels, fileName.str());
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 4) {
+          std::vector<vec4uc> data(dataSize);
+          rc = fread(data.data(), dataSize, 1, file);
+          generatePPMTex<vec4uc>(data, dataSize, height, width, channels, fileName.str());
+          createChildData("data", data, vec2ul(width, height));
+        }
 
         auto texFormat = (int)(osprayTextureFormat(depth, channels, preferLinear));
         auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
                                              : OSP_TEXTURE_FILTER_BILINEAR);
-        createChildData("data", data, vec2ul(width, height));
         createChild("format", "int", texFormat);
         createChild("filter", "int", texFilter);
 
@@ -303,31 +382,32 @@ namespace ospray::sg {
         depth         = sizeof(float);
 
         unsigned int dataSize = size.x * size.y * channels * depth;
-
-        std::vector<vec3f> data(sizeof(float) * dataSize);
-
-        rc = fread(data.data(), dataSize, 1, file);
         
-        // flip in y, because OSPRay's textures have the origin at the lower
-        // left corner
-        float *texels = (float *)data.data();
-        for (int y = 0; y < height / 2; ++y) {
-          for (int x = 0; x < width * numChannels; ++x) {
-            // Scale the pixels by the scale factor
-            texels[y * width * numChannels + x] =
-                texels[y * width * numChannels + x] * scaleFactor;
-            texels[(height - 1 - y) * width * numChannels + x] =
-                texels[(height - 1 - y) * width * numChannels + x] *
-                scaleFactor;
-            std::swap(texels[y * width * numChannels + x],
-                      texels[(height - 1 - y) * width * numChannels + x]);
-          }
+        if (channels == 1) {
+          std::vector<float> data(dataSize);
+          rc = fread(data.data(), dataSize, 1, file);
+          generatePFMTex<float>(data, dataSize, height, width, channels, scaleFactor);
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 2) {
+          std::vector<vec2f> data(dataSize);
+          rc = fread(data.data(), dataSize, 1, file);
+          generatePFMTex<vec2f>(data, dataSize, height, width, channels, scaleFactor);
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 3) {
+          std::vector<vec3f> data(dataSize);
+          rc = fread(data.data(), dataSize, 1, file);
+          generatePFMTex<vec3f>(data, dataSize, height, width, channels, scaleFactor);
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 4) {
+          std::vector<vec4f> data(dataSize);
+          rc = fread(data.data(), dataSize, 1, file);
+          generatePFMTex<vec4f>(data, dataSize, height, width, channels, scaleFactor);
+          createChildData("data", data, vec2ul(width, height));
         }
 
         auto texFormat = (int)(osprayTextureFormat(depth, channels, preferLinear));
         auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
                                              : OSP_TEXTURE_FILTER_BILINEAR);
-        createChildData("data", data, vec2ul(width, height));
         createChild("format", "int", texFormat);
         createChild("filter", "int", texFilter);
       } catch (const std::runtime_error &e) {
@@ -356,36 +436,28 @@ namespace ospray::sg {
         // reset();
       } else {
         unsigned int dataSize = size.x * size.y * channels * depth;
-
-        std::vector<vec3uc> data(sizeof(unsigned char) * dataSize);
-        // convert pixels and flip image (because OSPRay's textures
-        // have the origin at the lower left corner)
-        for (int y = 0; y < size.y; y++) {
-          for (int x = 0; x < size.x; x++) {
-            if (hdr) {
-              const float *pixel =
-                  &((float *)pixels)[(y * size.x + x) * channels];
-              float *dst = &(
-                  (float *)
-                      data.data())[(x + (size.y - 1 - y) * size.x) * channels];
-              for (int i = 0; i < channels; i++)
-                *dst++ = pixel[i];
-            } else {
-              const unsigned char *pixel = &pixels[(y * size.x + x) * channels];
-              unsigned char *dst         = &(
-                  (unsigned char *)
-                      data.data())[((size.y - 1 - y) * size.x + x) * channels];
-              for (int i = 0; i < channels; i++)
-                *dst++ = pixel[i];
-            }
-          }
+        if (channels == 1) {
+          std::vector<unsigned char> data(dataSize);
+          generateTex<unsigned char>(data, dataSize, height, width, channels, pixels, hdr);
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 2) {
+          std::vector<vec2uc> data(dataSize);
+          generateTex<vec2uc>(data, dataSize, height, width, channels, pixels, hdr);
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 3) {
+          std::vector<vec3uc> data(dataSize);
+          generateTex<vec3uc>(data, dataSize, height, width, channels, pixels, hdr);
+          createChildData("data", data, vec2ul(width, height));
+        } else if (channels == 4) {
+          std::vector<vec4uc> data(dataSize);
+          generateTex<vec4uc>(data, dataSize, height, width, channels, pixels, hdr);
+          createChildData("data", data, vec2ul(width, height));
         }
 
         auto texFormat =
             (int)(osprayTextureFormat(depth, channels, preferLinear));
         auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
                                              : OSP_TEXTURE_FILTER_BILINEAR);
-        createChildData("data", data, vec2ul(width, height));
         createChild("format", "int", texFormat);
         createChild("filter", "int", texFilter);
       }

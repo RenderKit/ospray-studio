@@ -71,19 +71,10 @@ namespace ospray::sg {
     cppMaterialList.clear();
     auto &mats = this->children();
 
-    std::cout << "children size should be 7 initially :: "
-              << this->children().size() << std::endl;
-
     for (auto &m : mats) {
       if (rType == "scivis") {
         if (m.second->nodeAs<Material>()->osprayMaterialType() == "obj") {
-          std::cout << "##### renderer type for creating new sg and cpp "
-                       "material lists::"
-                    << rType << std::endl;
           auto &matHandle = m.second->child("handles");
-          std::cout << "material gonna be added to the lists " << m.first
-                    << std::endl;
-
           auto sgMaterial     = m.second->nodeAs<sg::Material>();
           auto &ospHandleNode = matHandle.child(rType);
           auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
@@ -91,14 +82,7 @@ namespace ospray::sg {
           cppMaterialList.push_back(cppMaterial);
         }
       } else {
-        std::cout << "###### renderer type for creating new sg and cpp "
-                     "material lists::"
-                  << rType << std::endl;
         auto &matHandle = m.second->child("handles");
-
-        std::cout << "material gonna be added to the list " << m.first
-                  << std::endl;
-
         auto sgMaterial     = m.second->nodeAs<sg::Material>();
         auto &ospHandleNode = matHandle.child(rType);
         auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();

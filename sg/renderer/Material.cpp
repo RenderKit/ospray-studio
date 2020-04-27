@@ -43,7 +43,6 @@ namespace ospray::sg {
       return;
     for (auto &child : c) {
       if (child.second->type() == NodeType::PARAMETER) {
-        std::cout << child.first << std::endl;
         for (auto &h : handles) {
           child.second->setOSPRayParam(
               child.first, h.second->valueAs<cpp::Material>().handle());
