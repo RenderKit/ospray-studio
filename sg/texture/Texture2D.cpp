@@ -73,7 +73,7 @@ namespace ospray::sg {
       // return textureCache[fileName.str()];
 
 #ifdef USE_OPENIMAGEIO
-    ImageInput *in = ImageInput::open(fileName.str().c_str());
+    auto in = ImageInput::open(fileName.str().c_str());
     if (!in) {
       std::cerr << "#osp:sg: failed to load texture '" + fileName.str() + "'"
                 << std::endl;
@@ -93,7 +93,9 @@ namespace ospray::sg {
 
       in->read_image(hdr ? TypeDesc::FLOAT : TypeDesc::UINT8, data);
       in->close();
+#if OIIO_VERSION < 10903 && OIIO_VERSION > 10603
       ImageInput::destroy(in);
+#endif
 
       // flip image (because OSPRay's textures have the origin at the lower
       // left corner)
