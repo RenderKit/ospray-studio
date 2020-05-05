@@ -29,6 +29,7 @@ add_library(ospray_sg SHARED
   generator/Generator.cpp
   generator/RandomSpheres.cpp
   generator/TutorialScene.cpp
+  generator/TutorialSceneML.cpp
   generator/WaveletVolume.cpp
   generator/UnstructuredVol.cpp
   generator/TestSphere.cpp

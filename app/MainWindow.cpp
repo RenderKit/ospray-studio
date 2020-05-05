@@ -36,7 +36,8 @@
 
 static bool g_quitNextFrame = false;
 
-static const std::vector<std::string> g_scenes = {"tutorial_scene",
+static const std::vector<std::string> g_scenes = {"multilevel_hierarchy",
+                                                  "tutorial_scene",
                                                   "random_spheres",
                                                   "wavelet",
                                                   "import",
