@@ -64,6 +64,7 @@ add_library(ospray_sg SHARED
   scene/World.cpp
 
   scene/geometry/Geometry.cpp
+  scene/geometry/Boxes.cpp
   scene/geometry/Spheres.cpp
   scene/geometry/Triangles.cpp
 

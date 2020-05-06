@@ -31,24 +31,33 @@ namespace ospray::sg {
   OSP_REGISTER_SG_NODE_NAME(TutorialSceneML, generator_multilevel_hierarchy);
 
   // TutorialSceneML definitions ////////////////////////////////////////////
-  void makeScene(NodePtr nodeTop, NodePtr geometryNode, bool useMultilevel)
+  void makeScene(NodePtr nodeTop, NodePtr geometryX, bool useMultilevel)
   {
     NodePtr node = nodeTop;
-    auto scale = 1.f;
-    auto x = 0.f;
+    auto size = 1.f;
+    auto scaleFactor = 0.8f;
+    float absScale = scaleFactor;
+    float x = 0.f;
     for (auto i = 0; i < 10; i++) {
       std::string nodeName  = "xfm_" + std::to_string(i);
+
       auto xfm = affine3f{one};
-      xfm = affine3f::scale(vec3f(scale)) * xfm;
-      xfm = affine3f::translate(vec3f(x, 0, 0)) * xfm;
-      x += scale;
-      scale *= 0.8;
-      x += scale;
-      auto newNode = createNode(nodeName, "Transform", xfm);
-      newNode->add(geometryNode);
-      node->add(newNode);
+      if (useMultilevel) { // Relative to last xfm
+        xfm = affine3f::scale(vec3f(scaleFactor)) * xfm;
+        xfm = affine3f::translate(vec3f(x * size, 0, 0)) * xfm;
+        x = (1.f + scaleFactor);
+      } else { // Absolute
+        xfm = affine3f::scale(vec3f(absScale)) * xfm;
+        xfm = affine3f::translate(vec3f(x * size, 0, 0)) * xfm;
+        x += (1.f + scaleFactor) * absScale;
+        absScale *= scaleFactor;
+      }
+
+      auto newX = createNode(nodeName, "Transform", xfm);
+      newX->add(geometryX);
+      node->add(newX);
       if (useMultilevel)
-        node = newNode;
+        node = newX;
     }
   }
 
@@ -57,26 +66,35 @@ namespace ospray::sg {
     remove("singleLevel");
     remove("multiLevel");
 
-    // create a single sphere, then instance it in 2 ways.
-    auto sphere = createNode("spheres", "geometry_spheres");
-    vec3f center{0.f};
-    float radius = 1.f;
-    sphere->createChildData("sphere.position", center);
-    sphere->child("radius") = radius;
+    auto geomX = createNode("geomXfm", "Transform", affine3f{one});
+
+    auto makeSpheres = true;
+    if (makeSpheres) {
+      // create a single sphere, then instance it in 2 ways.
+      auto sphereG = createNode("spheres", "geometry_spheres");
+      vec3f center{0.f};
+      float radius = 1.f;
+      sphereG->createChildData("sphere.position", center);
+      sphereG->child("radius") = radius;
+      geomX->add(sphereG);
+    } else {
+      // create boxes
+      box3f boxes = {vec3f(-1.f,-1.f,-1.f),vec3f(1.f,1.f,1.f)};
+      auto boxG = createNode("box", "geometry_boxes");
+      boxG->createChildData("box", boxes);
+      geomX->add(boxG);
+    }
 
     auto singleLevel = createNode("single-level", "Transform", affine3f::translate(vec3f(0.f, 2.f, 0.f)));
-    auto multiLevel = createNode("multi-level", "Transform", affine3f::translate(vec3f(0.f, -2.f, 0)));
+    auto multiLevel = createNode("multi-level", "Transform", affine3f::translate(vec3f(0.f, -2.f, 0.f)));
 
-    // Create 2 hierarchies, instancing the sphere multiple times in each
+    // Create 2 hierarchies, instancing the geometry multiple times in each
     // In singleLevel, all transforms hang off the passed-in node.
     // In multiLevel, each new transforms hangs off the previously created instance.
-    makeScene(singleLevel, sphere, false);
-    makeScene(multiLevel, sphere, true);
+    makeScene(singleLevel, geomX, false);
+    makeScene(multiLevel, geomX, true);
 
     // Add both methods to the scene
-    // Nears as I can tell, both hierarchies are created correctly, but only the
-    // single level renders anything.  Not even the topmost sphere in multilevel
-    // gets renderes.  (type 'p' to print the tree.)
     add(singleLevel);
     add(multiLevel);
   }
