@@ -51,6 +51,7 @@ namespace ospray::sg {
       //     - ...others?
     } current;
     cpp::World world;
+    int unusedGeoms = 0;
     std::vector<cpp::Instance> instances;
     std::stack<affine3f> xfms;
     std::stack<uint32_t> materialIDs;
@@ -87,7 +88,12 @@ namespace ospray::sg {
       tfns.push(node.valueAs<cpp::TransferFunction>());
       break;
     case NodeType::TRANSFORM:
-      xfms.push(xfms.top() * node.valueAs<affine3f>());
+      if (unusedGeoms == current.geometries.size())
+        xfms.push(xfms.top() * node.valueAs<affine3f>());
+      else {
+        createInstanceFromGroup();
+        xfms.push(xfms.top() * node.valueAs<affine3f>());
+      }
       break;
     case NodeType::LIGHT:
       addLightToWorld(node);
@@ -155,6 +161,10 @@ namespace ospray::sg {
 
   inline void RenderScene::createInstanceFromGroup()
   {
+    #if defined(DEBUG)
+    std::cout << "number of geometries : " << current.geometries.size()
+              << std::endl;
+    #endif
     if (current.geometries.empty() && current.volumes.empty())
       return;
 
@@ -175,6 +185,9 @@ namespace ospray::sg {
     inst.setParam("xfm", xfms.top());
     inst.commit();
     instances.push_back(inst);
+    #if defined(DEBUG)
+    std::cout << "number of instances : " << instances.size() << std::endl;
+    #endif
   }
 
   inline void RenderScene::addLightToWorld(Node &node)
