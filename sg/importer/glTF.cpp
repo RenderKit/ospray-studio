@@ -32,9 +32,9 @@
 #define ERROR std::cerr << prefix << "(E): "
 
 // Pads a std::string to optional length.  Useful for numbers.
-inline std::string pad(std::string string, char p = '0', int length = 3)
+inline std::string pad(std::string string, char p = '0', int length = 4)
 {
-  return std::string(length - string.length(), p) + string;
+  return std::string(std::max(0, length - (int)string.length()), p) + string;
 }
 
 namespace ospray::sg {
@@ -57,7 +57,7 @@ namespace ospray::sg {
 
   struct GLTFData
   {
-    GLTFData(Node &rootNode, const FileName &fileName)
+    GLTFData(NodePtr rootNode, const FileName &fileName)
         : fileName(fileName), rootNode(rootNode)
     {
     }
@@ -75,11 +75,12 @@ namespace ospray::sg {
    private:
     tinygltf::Model model;
 
-    Node &rootNode;
+    NodePtr rootNode;
 
     std::vector<NodePtr> ospTextures;
     std::vector<NodePtr> ospMaterials;
-    // NodePtr ospMaterialList; Not used anymore
+
+    size_t baseMaterialOffset; // set in createMaterials()
 
     void visitNode(const int nid,
                    const affine3f xfm,
@@ -186,23 +187,23 @@ namespace ospray::sg {
     ospMaterials.reserve(model.materials.size() + 1);
     ospTextures.reserve(model.textures.size());
 
-#if 0
     // "default" material for glTF '-1' index (no material)
-    ospMaterials.emplace_back(createNode("default", "material_obj"));
-#endif
+    ospMaterials.emplace_back(createNode("default", "principled"));
 
-    WARN << "Skipping materials at the moment -- needs 2.0 implmentation\n";
 #if 0
+    WARN << "Skipping materials at the moment -- needs 2.0 implmentation\n";
     // Create textures (references model.images[])
     for (const auto &texture : model.textures) {
       ospTextures.push_back(createOSPTexture(texture));
     }
+#endif
 
     // Create materials (also sets textures to material params)
     for (const auto &material : model.materials) {
       ospMaterials.push_back(createOSPMaterial(material));
     }
 
+#if 0
     // Create materials list
     // XXX Is there a better way to do this?!
     auto materialsList =
@@ -213,7 +214,7 @@ namespace ospray::sg {
     ospMaterialList = materialsList;
 #endif
 
-    size_t baseMaterialOffset = materialRegistry.children().size();
+    baseMaterialOffset = materialRegistry.children().size();
     for (auto m : ospMaterials) {
       materialRegistry.add(m);
       materialRegistry.matImportsList.push_back(m->name());
@@ -228,13 +229,18 @@ namespace ospray::sg {
       static auto nModel = 0;
       auto modelName     = m.name + "_" + pad(std::to_string(nModel++));
 
+      // XXX Is there a better way to represent this "group" than a transform node?
+      auto ospModel =
+        createNode(modelName + "_model", "Transform", affine3f{one}); // Model "group"
       INFO << pad("", '.', 3) << "mesh." + modelName << "\n";
 
       for (auto &prim : m.primitives) {  // -> TriangleMesh
         // Create per 'primitive' geometry
         auto ospMesh = createOSPMesh(modelName, prim);
-        ospMeshes.push_back(ospMesh);
+        ospModel->add(ospMesh);
       }
+
+      ospMeshes.push_back(ospModel);
     }
   }
 
@@ -246,7 +252,6 @@ namespace ospray::sg {
 
     // Process all nodes in default scene
     for (const auto &nid : model.scenes[model.defaultScene].nodes) {
-      const tinygltf::Node &n = model.nodes[nid];
       INFO << "... Top Node (#" << nid << ")\n";
       affine3f xfm{one};
       // recursively process node hierarchy
@@ -269,38 +274,23 @@ namespace ospray::sg {
     // On 1.8.5 SG, problems with Adam Head eyes when attempting multi-level
 
     // Apply any transform in this node -> xfm
-    const affine3f new_xfm = xfm * nodeTransform(n);
-    const auto needXfm     = (new_xfm != affine3f{one});
+    const auto new_xfm = xfm * nodeTransform(n);
+    const auto needXfm = (new_xfm != affine3f{one});
 
     // Create xfm
     // XXX Only create if there's something to add.
     if (needXfm || n.mesh != -1 || n.camera != -1 || n.skin != -1) {
-#if 1  // BMCDEBUG, temp removal
-      WARN << "Skipping needXfm at the moment -- needs 2.0 implmentation\n";
-      if (n.mesh != -1) {
-        INFO << pad("", '.', 3 * level) << "....mesh\n";
-        rootNode.add(ospMeshes[n.mesh]);
-      }
-#else
       static auto nNode = 0;
       auto nodeName     = n.name + "_" + pad(std::to_string(nNode++));
-      auto ospXfm       = createNode(
-          nodeName + "_xfm", "Transform", affine3f::translate(vec3f(0.f)));
       INFO << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
-
-      if (needXfm) {
-        // XXX, requires change to 1.8.5 SG.
-        // Pushed to gitlab branch bc/add-instance-userTransform
-        // Either make sure this is available in OSPRaySG 2.0, or
-        // find another way to do this.
-        ospXfm->remove("xfm");  // remove default xfm
-        ospXfm->createChild("xfm", "Transform", new_xfm);
-        INFO << pad("", '.', 3 * level) << "....xfm\n";
-      }
+      // INFO << pad("", '.', 3 * level) << "....xfm\n";
 
       if (n.mesh != -1) {
-        INFO << pad("", '.', 3 * level) << "....mesh\n";
+        auto meshSize = 0;//ospMeshes[n.mesh].size()
+        INFO << pad("", '.', 3 * level) << "....mesh " << n.mesh << ":(" << meshSize << ")\n";
+        auto ospXfm = createNode(nodeName + "_xfm_" + std::to_string(level), "Transform", new_xfm);
         ospXfm->add(ospMeshes[n.mesh]);
+        rootNode->add(ospXfm);
       }
 
       if (n.camera != -1) {
@@ -310,9 +300,6 @@ namespace ospray::sg {
       if (n.skin != -1) {
         WARN << "unsupported node-type: skin\n";
       }
-
-      rootNode.add(ospXfm);
-#endif
     }
 
     // recursively process children nodes
@@ -329,9 +316,9 @@ namespace ospray::sg {
       // Matrix must decompose to T/R/S, no skew/shear
       const auto &m = n.matrix;
       xfm           = {vec3f(m[0 * 4 + 0], m[0 * 4 + 1], m[0 * 4 + 2]),
-             vec3f(m[1 * 4 + 0], m[1 * 4 + 1], m[1 * 4 + 2]),
-             vec3f(m[2 * 4 + 0], m[2 * 4 + 1], m[2 * 4 + 2]),
-             vec3f(m[3 * 4 + 0], m[3 * 4 + 1], m[3 * 4 + 2])};
+                       vec3f(m[1 * 4 + 0], m[1 * 4 + 1], m[1 * 4 + 2]),
+                       vec3f(m[2 * 4 + 0], m[2 * 4 + 1], m[2 * 4 + 2]),
+                       vec3f(m[3 * 4 + 0], m[3 * 4 + 1], m[3 * 4 + 2])};
     } else {
       if (!n.scale.empty()) {
         const auto &s = n.scale;
@@ -355,7 +342,7 @@ namespace ospray::sg {
   {
     static auto nPrim = 0;
     auto primName     = primBaseName + "_" + pad(std::to_string(nPrim++));
-    INFO << pad("", '.', 6) << "prim." + primName << "\n";
+    //INFO << pad("", '.', 6) << "prim." + primName << "\n";
     if (prim.material > -1) {
       INFO << pad("", '.', 6) << "    .uses material #" << prim.material << ": "
            << model.materials[prim.material].name << " (alphaMode "
@@ -464,7 +451,7 @@ namespace ospray::sg {
       // but set all alpha to 1.f
       if (prim.material == -1 ||
           model.materials[prim.material].alphaMode == "OPAQUE") {
-        INFO << pad("", '.', 6) << "prim. Correcting Alpha\n";
+        //INFO << pad("", '.', 6) << "prim. Correcting Alpha\n";
         std::transform(vc.begin(), vc.end(), vc.begin(), [](vec4f c) {
           return vec4f(c.x, c.y, c.z, 1.f);
         });
@@ -510,18 +497,10 @@ namespace ospray::sg {
     if (!vt.empty())
       ospGeom->createChildData("vertex.texcoord", vt);
 
-#if 0  // XXX might need to make ospGeom the child of a material node
-    // Add material reference (adding 1 for default material)
-    auto materialID = prim.material + 1;
-    if (materialID > 0) {
-      ospGeom->createChildWithValue("geom.materialID", "int", materialID);
-      ospGeom->add(ospMaterialList);
-    }
-#else
-    // XXX BMCDEBUG prevents crash until getting materials to work!
-    std::vector<uint32_t> mIDs(v.size(), 0);
+    // add one for default, "no material" material
+    auto materialID = prim.material + 1 + baseMaterialOffset;
+    std::vector<uint32_t> mIDs(v.size(), materialID);
     ospGeom->createChildData("material", mIDs);
-#endif
 
     return ospGeom;
   }
@@ -541,9 +520,7 @@ namespace ospray::sg {
          << "        .baseColorFactor.alpha:" << (float)pbr.baseColorFactor[4]
          << "\n";
 
-#if 0
-    auto ospMat = createNode(matName, "Material")->nodeAs<Material>();
-    ospMat->createChild("type", "string")     = std::string("Principled");
+    auto ospMat = createNode(matName, "principled");
     ospMat->createChild("baseColor", "vec3f") = vec3f(
         pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
     ospMat->createChild("metallic", "float")  = (float)pbr.metallicFactor;
@@ -609,8 +586,6 @@ namespace ospray::sg {
     }
 
     return ospMat;
-#endif
-    return {};
   }
 
   NodePtr GLTFData::createOSPTexture(const tinygltf::Texture &tex)
@@ -681,7 +656,7 @@ namespace ospray::sg {
 #if 0
     auto &ospTex = ospTextures[texIndex];
     if (ospTex) {
-      auto texParam = texParamBase + "Map";
+      auto texParam = "map_" + texParamBase;
 
       INFO << pad("", '.', 3) << "        .setChild: " << texParam << "= "
            << ospTex->name() << "\n";
@@ -701,15 +676,7 @@ namespace ospray::sg {
 
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
-
-    // XXX This messes things up when more than one model is loaded.  Why?!?!?!
-    // When creating a top-level transform, only the last of multiple models is rendered!
-    // (same in OBJ loader)
-#if 0
-    auto &rootNode = createChild("root_node_xfm", "Transform", affine3f{one});
-#else
-    Node &rootNode = *this;
-#endif
+    auto rootNode = createNode("root_node_xfm", "Transform", affine3f{one});
 
     GLTFData gltf(rootNode, file);
 
@@ -719,6 +686,9 @@ namespace ospray::sg {
     gltf.createMaterials(*materialRegistry);
     gltf.createGeometries();
     gltf.buildScene();
+
+    // Finally, add node hierarchy to importer parent
+    add(rootNode);
 
     INFO << "finished import!\n";
   }

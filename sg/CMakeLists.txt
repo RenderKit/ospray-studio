@@ -59,7 +59,9 @@ add_library(ospray_sg SHARED
   renderer/materials/MetallicPaint.cpp
   renderer/materials/Mix.cpp
   renderer/materials/Plastic.cpp
+  renderer/materials/Principled.cpp
   renderer/materials/ThinGlass.cpp
+  renderer/materials/Velvet.cpp
 
   scene/World.cpp
 
