@@ -82,8 +82,8 @@ namespace ospray::sg {
 
     size_t baseMaterialOffset; // set in createMaterials()
 
-    void visitNode(const int nid,
-                   const affine3f xfm,
+    void visitNode(NodePtr sgNode,
+                   const int nid,
                    const int level);  // XXX level is just for debug
 
     affine3f nodeTransform(const tinygltf::Node &node);
@@ -232,7 +232,7 @@ namespace ospray::sg {
       // XXX Is there a better way to represent this "group" than a transform node?
       auto ospModel =
         createNode(modelName + "_model", "Transform", affine3f{one}); // Model "group"
-      INFO << pad("", '.', 3) << "mesh." + modelName << "\n";
+      //INFO << pad("", '.', 3) << "mesh." + modelName << "\n";
 
       for (auto &prim : m.primitives) {  // -> TriangleMesh
         // Create per 'primitive' geometry
@@ -252,59 +252,52 @@ namespace ospray::sg {
 
     // Process all nodes in default scene
     for (const auto &nid : model.scenes[model.defaultScene].nodes) {
+      NodePtr sgNode = rootNode;
       INFO << "... Top Node (#" << nid << ")\n";
-      affine3f xfm{one};
       // recursively process node hierarchy
-      visitNode(nid, xfm, 1);
+      visitNode(sgNode, nid, 1);
     }
   }
 
-  void GLTFData::visitNode(const int nid,
-                           const affine3f xfm,
+  void GLTFData::visitNode(NodePtr sgNode,
+                           const int nid,
                            const int level)  // XXX just for debug
   {
     const tinygltf::Node &n = model.nodes[nid];
-    INFO << pad("", '.', 3 * level) << nid << ":" << n.name
-         << " (children:" << n.children.size() << ")\n";
-
-    // XXX !!! This is still a single-level-instance implementation, since
-    // all tranforms are only applied to mesh-producing leaf nodes.
-    // Explore full multi-level instancing, allowing transforms to occur
-    // higher up, with the nodes that specify them.
-    // On 1.8.5 SG, problems with Adam Head eyes when attempting multi-level
+    //INFO << pad("", '.', 3 * level) << nid << ":" << n.name
+    //     << " (children:" << n.children.size() << ")\n";
 
     // Apply any transform in this node -> xfm
-    const auto new_xfm = xfm * nodeTransform(n);
-    const auto needXfm = (new_xfm != affine3f{one});
+    const auto nodeXfm = nodeTransform(n);
+    const auto needXfm = (nodeXfm != affine3f{one});
 
     // Create xfm
-    // XXX Only create if there's something to add.
-    if (needXfm || n.mesh != -1 || n.camera != -1 || n.skin != -1) {
+    if (needXfm) {
       static auto nNode = 0;
       auto nodeName     = n.name + "_" + pad(std::to_string(nNode++));
-      INFO << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
+      //INFO << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
       // INFO << pad("", '.', 3 * level) << "....xfm\n";
+      auto newXfm = createNode(nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
+      sgNode->add(newXfm);
+      sgNode = newXfm;
+    }
 
-      if (n.mesh != -1) {
-        auto meshSize = 0;//ospMeshes[n.mesh].size()
-        INFO << pad("", '.', 3 * level) << "....mesh " << n.mesh << ":(" << meshSize << ")\n";
-        auto ospXfm = createNode(nodeName + "_xfm_" + std::to_string(level), "Transform", new_xfm);
-        ospXfm->add(ospMeshes[n.mesh]);
-        rootNode->add(ospXfm);
-      }
+    if (n.mesh != -1) {
+      //INFO << pad("", '.', 3 * level) << "....mesh\n";
+      sgNode->add(ospMeshes[n.mesh]);
+    }
 
-      if (n.camera != -1) {
-        WARN << "unsupported node-type: camera\n";
-      }
+    if (n.camera != -1) {
+      WARN << "unsupported node-type: camera\n";
+    }
 
-      if (n.skin != -1) {
-        WARN << "unsupported node-type: skin\n";
-      }
+    if (n.skin != -1) {
+      WARN << "unsupported node-type: skin\n";
     }
 
     // recursively process children nodes
     for (const auto &cid : n.children) {
-      visitNode(cid, new_xfm, level + 1);
+      visitNode(sgNode, cid, level + 1);
     }
   }
 
@@ -344,9 +337,9 @@ namespace ospray::sg {
     auto primName     = primBaseName + "_" + pad(std::to_string(nPrim++));
     //INFO << pad("", '.', 6) << "prim." + primName << "\n";
     if (prim.material > -1) {
-      INFO << pad("", '.', 6) << "    .uses material #" << prim.material << ": "
-           << model.materials[prim.material].name << " (alphaMode "
-           << model.materials[prim.material].alphaMode << ")\n";
+      //INFO << pad("", '.', 6) << "    .uses material #" << prim.material << ": "
+      //     << model.materials[prim.material].name << " (alphaMode "
+      //     << model.materials[prim.material].alphaMode << ")\n";
     }
 
     // XXX: Create node types based on actual accessor types
@@ -509,16 +502,16 @@ namespace ospray::sg {
   {
     static auto nMat = 0;
     auto matName     = mat.name + "_" + pad(std::to_string(nMat++));
-    INFO << pad("", '.', 3) << "material." + matName << "\n";
-    INFO << pad("", '.', 3) << "        .alphaMode:" << mat.alphaMode << "\n";
-    INFO << pad("", '.', 3) << "        .alphaCutoff:" << (float)mat.alphaCutoff
-         << "\n";
+    //INFO << pad("", '.', 3) << "material." + matName << "\n";
+    //INFO << pad("", '.', 3) << "        .alphaMode:" << mat.alphaMode << "\n";
+    //INFO << pad("", '.', 3) << "        .alphaCutoff:" << (float)mat.alphaCutoff
+    //     << "\n";
 
     auto &pbr = mat.pbrMetallicRoughness;
 
-    INFO << pad("", '.', 3)
-         << "        .baseColorFactor.alpha:" << (float)pbr.baseColorFactor[4]
-         << "\n";
+    //INFO << pad("", '.', 3)
+    //     << "        .baseColorFactor.alpha:" << (float)pbr.baseColorFactor[4]
+    //     << "\n";
 
     auto ospMat = createNode(matName, "principled");
     ospMat->createChild("baseColor", "vec3f") = vec3f(
