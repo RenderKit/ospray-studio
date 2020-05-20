@@ -613,6 +613,18 @@ void MainWindow::buildUI()
         if (ImGui::ArrowButton("play", ImGuiDir_Right)) {
           animatingPath      = !animatingPath;
           g_camPathAnimIndex = 1;
+          if (animatingPath) {
+            // create prefix and suffix interp states for catmull-rom
+            size_t last        = g_camPath.size() - 1;
+            CameraState prefix = g_camPath[0].slerp(g_camPath[1], -.1f);
+            CameraState suffix =
+                g_camPath[last - 1].slerp(g_camPath[last - 2], 1.1f);
+            g_camPath.insert(g_camPath.begin(), prefix);
+            g_camPath.push_back(suffix);
+          } else {
+            g_camPath.pop_back();
+            g_camPath.erase(g_camPath.begin());
+          }
         }
       }
       for (int i = 0; i < g_camPath.size(); i++) {
