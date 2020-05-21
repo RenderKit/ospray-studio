@@ -34,10 +34,14 @@ namespace ospray::sg {
     void waitOnFrame();
     void cancelFrame();
 
+    bool denoiserEnabled{false};
+    bool updateFrameOpsNextFrame{false};
+
     const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmapFrame(void *mem);
 
    private:
+    void refreshFrameOperations();
     void preCommit() override;
     void postCommit() override;
   };

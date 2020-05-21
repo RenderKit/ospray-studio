@@ -22,9 +22,12 @@ using ospcommon::make_unique;
 
 int main(int argc, const char *argv[])
 {
+
+  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
+
   initializeOSPRay(argc, argv);
 
-  auto window = make_unique<MainWindow>(vec2i(1024, 768));
+  auto window = make_unique<MainWindow>(vec2i(1024, 768), denoiser);
   window->parseCommandLine(argc, argv);
   window->mainLoop();
   window.reset();

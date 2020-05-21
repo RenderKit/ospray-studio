@@ -32,6 +32,7 @@ namespace ospray::sg {
     void unmap(const void *mem);
 
     void resetAccumulation();
+    void updateDenoiser(bool enabled);
 
    private:
     void postCommit() override;

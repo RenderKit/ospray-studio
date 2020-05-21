@@ -43,6 +43,11 @@ namespace ospray::sg {
     auto &renderer = childAs<Renderer>("renderer");
     auto &world    = childAs<World>("world");
 
+    if (updateFrameOpsNextFrame) {
+      refreshFrameOperations();
+      updateFrameOpsNextFrame = false;
+    }
+
     if (this->anyChildModified())
       fb.resetAccumulation();
 
@@ -99,6 +104,12 @@ namespace ospray::sg {
   {
     auto &fb = childAs<FrameBuffer>("framebuffer");
     fb.unmap(mem);
+  }
+
+  void Frame::refreshFrameOperations()
+  {
+    auto &fb = childAs<FrameBuffer>("framebuffer");
+    fb.updateDenoiser(denoiserEnabled);
   }
 
   void Frame::preCommit() {}

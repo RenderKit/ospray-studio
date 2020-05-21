@@ -64,6 +64,17 @@ namespace ospray::sg {
     setHandle(fb);
   }
 
+  void FrameBuffer::updateDenoiser(bool enabled)
+  {
+    if (enabled) {
+      cpp::ImageOperation d("denoiser");
+      handle().setParam("imageOperation", cpp::Data(d));
+    } else {
+      handle().removeParam("imageOperation");
+    }
+    commit();
+  }
+
   OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);
 
 }  // namespace ospray::sg

@@ -39,7 +39,7 @@ enum class OSPRayRendererType
 class MainWindow
 {
  public:
-  MainWindow(const vec2i &windowSize);
+  MainWindow(const vec2i &windowSize, bool denoiser = false);
 
   ~MainWindow();
 
@@ -77,6 +77,7 @@ class MainWindow
   vec2i fbSize;
   vec2f previousMouse{-1.f};
 
+  bool denoiserAvailable{false};
   bool showAlbedo{false};
   bool cancelFrameOnInteraction{false};
   bool autorotate{false};

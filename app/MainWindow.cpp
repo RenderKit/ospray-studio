@@ -121,9 +121,15 @@ std::string vec3fToString(const vec3f &v)
 
 // MainWindow definitions ///////////////////////////////////////////////
 
+void error_callback(int error, const char *desc)
+{
+  std::cerr << "error " << error << ": " << desc << std::endl;
+}
+
 MainWindow *MainWindow::activeWindow = nullptr;
 
-MainWindow::MainWindow(const vec2i &windowSize) : scene(g_scenes[0])
+MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
+    : scene(g_scenes[0]), denoiserAvailable(denoiser)
 {
   if (activeWindow != nullptr) {
     throw std::runtime_error("Cannot create more than one MainWindow!");
@@ -131,13 +137,14 @@ MainWindow::MainWindow(const vec2i &windowSize) : scene(g_scenes[0])
 
   activeWindow = this;
 
+  glfwSetErrorCallback(error_callback);
+
   // initialize GLFW
   if (!glfwInit()) {
     throw std::runtime_error("Failed to initialize GLFW!");
   }
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+  glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
   // create GLFW window
   glfwWindow = glfwCreateWindow(
@@ -588,6 +595,14 @@ void MainWindow::buildUI()
 
   ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
   ImGui::Checkbox("show albedo", &showAlbedo);
+
+  if (denoiserAvailable) {
+    auto denoiserEnabled = frame->denoiserEnabled;
+    if (ImGui::Checkbox("denoiser", &denoiserEnabled))
+      frame->denoiserEnabled = denoiserEnabled;
+      frame->updateFrameOpsNextFrame = true;
+  }
+
   ImGui::Checkbox("auto rotate", &autorotate);
   if (autorotate) {
     ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
