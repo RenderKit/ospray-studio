@@ -146,12 +146,12 @@ namespace ospray::sg {
 
   inline void RenderScene::createVolume(Node &node)
   {
-    auto vol = node.valueAs<cpp::Volume>();
+    auto &vol = node.valueAs<cpp::Volume>();
     cpp::VolumetricModel model(vol);
-    if (node.hasChild("transfer_function")) {
+    if (node.hasChild("transferFunction")) {
       model.setParam(
-          "transfer_function",
-          node["transfer_function"].valueAs<cpp::TransferFunction>());
+          "transferFunction",
+          node["transferFunction"].valueAs<cpp::TransferFunction>());
     } else {
       model.setParam("transferFunction", tfns.top());
     }

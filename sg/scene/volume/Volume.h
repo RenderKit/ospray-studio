@@ -24,6 +24,14 @@ namespace ospray::sg {
   {
     Volume(const std::string &osp_type);
     ~Volume() override = default;
+
+    NodeType type() const;
+
+
+    void preCommit() override;
+    void postCommit() override;
+
+
   };
 
 }  // namespace ospray::sg

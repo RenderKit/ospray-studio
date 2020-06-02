@@ -23,4 +23,29 @@ namespace ospray::sg {
     setValue(cpp::Volume(osp_type));
   }
 
+  NodeType Volume::type() const
+  {
+    return NodeType::VOLUME;
+  }
+
+  void Volume::preCommit()
+  {
+    auto &vol     = valueAs<cpp::Volume>();
+    const auto &c = children();
+    if (c.empty())
+      return;
+    for (auto &child : c) {
+      if (child.second->type() == NodeType::PARAMETER) {
+        child.second->setOSPRayParam(child.first, vol.handle());
+      }
+    }
+  }
+
+  void Volume::postCommit()
+  {
+    auto &vol = valueAs<cpp::Volume>();
+    vol.commit();
+  }
+
+
 }  // namespace ospray::sg

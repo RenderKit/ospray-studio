@@ -25,6 +25,9 @@ namespace ospray::sg {
   {
     TransferFunction(const std::string &osp_type);
     ~TransferFunction() override = default;
+
+    void preCommit() override;
+    void postCommit() override;
   };
 
 }  // namespace ospray::sg

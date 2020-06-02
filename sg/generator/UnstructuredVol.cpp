@@ -158,7 +158,7 @@ namespace ospray {
       std::vector<uint8_t> cellTypes = {
           OSP_HEXAHEDRON, OSP_WEDGE, OSP_TETRAHEDRON, OSP_PYRAMID};
 
-      auto &tf     = createChild("transfer_function", "transfer_function_jet");
+      auto &tf     = createChild("transferFunction", "transfer_function_jet");
       auto &volume = tf.createChild("volume", "volume_unstructured");
 
       // set data objects for volume object

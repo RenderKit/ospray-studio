@@ -33,6 +33,7 @@
 #include "ospcommon/utility/getEnvVar.h"
 // tiny_file_dialogs
 #include "tinyfiledialogs.h"
+#include "sg/scene/volume/Structured.h"
 
 static bool g_quitNextFrame = false;
 
@@ -40,6 +41,7 @@ static const std::vector<std::string> g_scenes = {"multilevel_hierarchy",
                                                   "tutorial_scene",
                                                   "random_spheres",
                                                   "wavelet",
+                                                  "import volume",
                                                   "import",
                                                   "unstructured_volume"};
 
@@ -582,7 +584,7 @@ void MainWindow::refreshRenderer()
       backplateTex.createChildData("data", vec2ul(2, 2), backplate.data());
     } else if (useImportedTex) {
       const char *file = tinyfd_openFileDialog(
-          "Import a scene from a file", "", 0, nullptr, nullptr, 0);
+          "Import a texture from a file", "", 0, nullptr, nullptr, 0);
       std::shared_ptr<sg::Texture2D> backplateTex =
           std::static_pointer_cast<sg::Texture2D>(
               sg::createNode("map_backplate", "texture_2d"));
@@ -643,6 +645,23 @@ void MainWindow::refreshScene()
       } else {
         std::cout << "No importer for selected file, nothing to import!\n";
       }
+    } else {
+      std::cout << "No file selected, nothing to import!\n";
+    }
+  } else if (scene == "import volume") {
+    const char *file = tinyfd_openFileDialog(
+        "Import a volume from a file", "", 0, nullptr, nullptr, 0);
+
+    if (file) {
+      std::shared_ptr<sg::StructuredVolume> volumeImport =
+          std::static_pointer_cast<sg::StructuredVolume>(
+              sg::createNode("volume", "volume_structured"));
+
+      volumeImport->load(file);
+      auto &tf =
+          world->createChild("transferFunction", "transfer_function_jet");
+      tf.add(volumeImport);
+
     } else {
       std::cout << "No file selected, nothing to import!\n";
     }

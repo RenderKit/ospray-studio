@@ -14,39 +14,24 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "TransferFunction.h"
+#pragma once
+
+// sg
+#include "../../Data.h"
+#include "Volume.h"
+// ospcommon
+#include "ospcommon/os/FileName.h"
 
 namespace ospray::sg {
 
-  TransferFunction::TransferFunction(const std::string &osp_type)
+  struct OSPSG_INTERFACE StructuredVolume : public Volume
   {
-    setValue(cpp::TransferFunction(osp_type));
+    StructuredVolume();
+    virtual ~StructuredVolume() override = default;
+    void load(const FileName &fileName);
 
-    createChild("valueRange", "vec2f", vec2f(0.f, 1.f));
-
-    std::vector<vec3f> colors = {vec3f(0.f), vec3f(1.f)};
-    createChildData("color", colors);
-
-    std::vector<float> opacities = {0.f, 1.f};
-    createChildData("opacity", opacities);
-  }
-
-  void TransferFunction::preCommit() {
-    auto &tf      = valueAs<cpp::TransferFunction>();
-    const auto &c = children();
-    if (c.empty())
-      return;
-    for (auto &child : c) {
-      if (child.second->type() == NodeType::PARAMETER) {
-        child.second->setOSPRayParam(child.first, tf.handle());
-      } 
-    }
-  }
-
-  void TransferFunction::postCommit() {
-    auto &tf = valueAs<cpp::TransferFunction>();
-    tf.commit();
-  }
-
+   private:
+    bool fileLoaded{false};
+  };
 
 }  // namespace ospray::sg

@@ -30,7 +30,7 @@ ArcballCamera::ArcballCamera(const ospcommon::math::box3f &worldBounds,
   zoomSpeed = ospcommon::math::max(diag / 150.0, 0.001);
 
   // if Box3f defining wolrd bounds is less than a unit cube
-  // translate along (0, 0, 1)
+  // translate along (0, 0, 1.7)
   if (diag < 1.7)
     diag = 1.7f;
 
