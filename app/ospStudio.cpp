@@ -14,23 +14,47 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "MainWindow.h"
-#include "example_common.h"
+#include "ospStudio.h"
 
-using namespace ospray;
-using ospcommon::make_unique;
+using ospcommon::removeArgs;
 
 int main(int argc, const char *argv[])
 {
+  std::cout << "OSPRay Studio\n";
 
   bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
 
+  // Parse first argument as StudioMode
+  // (GUI is the default if no mode is given)
+  // XXX Switch to using ospcommon/rkcommon ArgumentList
+  auto mode = StudioMode::GUI;
+  if (argc > 1) {
+    auto modeArg = std::string(argv[1]);
+    if (modeArg.front() != '-') {
+      auto s = StudioModeMap.find(modeArg);
+      if (s != StudioModeMap.end()) {
+        mode = s->second;
+        // Remove mode argument
+        ospcommon::removeArgs(argc, argv, 1, 1);
+      }
+    }
+  }
+
   initializeOSPRay(argc, argv);
 
-  auto window = make_unique<MainWindow>(vec2i(1024, 768), denoiser);
-  window->parseCommandLine(argc, argv);
-  window->mainLoop();
-  window.reset();
+  switch (mode) {
+  case StudioMode::GUI:
+    start_GUI_mode(argc, argv);
+    break;
+  case StudioMode::BATCH:
+    start_Batch_mode(argc, argv);
+    break;
+  case StudioMode::HEADLESS:
+    std::cerr << "Headless mode\n";
+    break;
+  default:
+    std::cerr << "unknown mode!  How did I get here?!\n";
+  }
 
   ospShutdown();
 

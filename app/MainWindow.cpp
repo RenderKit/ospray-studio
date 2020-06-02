@@ -28,7 +28,6 @@
 // ospray_sg
 #include "sg/generator/Generator.h"
 #include "sg/importer/Importer.h"
-
 #include "sg/visitors/PrintNodes.h"
 // ospcommon
 #include "ospcommon/os/FileName.h"
@@ -37,6 +36,16 @@
 // tiny_file_dialogs
 #include "tinyfiledialogs.h"
 #include "sg/scene/volume/Structured.h"
+
+// GUI mode entry point
+void start_GUI_mode(int argc, const char *argv[])
+{
+  std::cerr << "GUI mode\n";
+  auto window = make_unique<MainWindow>(vec2i(1024, 768));
+  window->parseCommandLine(argc, argv);
+  window->mainLoop();
+  window.reset();
+}
 
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -753,7 +762,7 @@ void MainWindow::importFiles()
         imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
 
-#if 1  // BMCDEBUG, just for testing
+#if 0  // BMCDEBUG, just for testing
         imp.traverse<sg::PrintNodes>();
 #endif
 

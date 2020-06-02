@@ -19,14 +19,15 @@
 #include "ArcballCamera.h"
 // glfw
 #include "GLFW/glfw3.h"
-// ospray
+// ospray sg
 #include "sg/Frame.h"
+#include "sg/renderer/MaterialRegistry.h"
 // std
 #include <functional>
-#include "sg/renderer/MaterialRegistry.h"
 
 using namespace ospcommon::math;
 using namespace ospray;
+using ospcommon::make_unique;
 
 enum class OSPRayRendererType
 {
@@ -116,7 +117,7 @@ class MainWindow
   std::string rendererTypeStr{"scivis"};
   std::string lightTypeStr{"ambient"};
   std::string matTypeStr{"obj"};
-  bool useTestTex = false;
+  bool useTestTex     = false;
   bool useImportedTex = false;
 
   // GLFW window instance

@@ -20,6 +20,7 @@ add_executable(ospStudio
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
   ospStudio.cpp
+  Batch.cpp
 )
 
 if (APPLE)
