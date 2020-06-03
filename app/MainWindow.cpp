@@ -618,7 +618,7 @@ void MainWindow::buildUI()
             size_t last        = g_camPath.size() - 1;
             CameraState prefix = g_camPath[0].slerp(g_camPath[1], -.1f);
             CameraState suffix =
-                g_camPath[last - 1].slerp(g_camPath[last - 2], 1.1f);
+                g_camPath[last - 1].slerp(g_camPath[last], 1.1f);
             g_camPath.insert(g_camPath.begin(), prefix);
             g_camPath.push_back(suffix);
           } else {

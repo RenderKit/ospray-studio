@@ -41,6 +41,8 @@ class CameraState
     cs.translation       = lerp(frac, translation, to.translation);
     if (rotation != to.rotation)
       cs.rotation = slerp(rotation, to.rotation, frac);
+    else
+      cs.rotation = rotation;
 
     return cs;
   }
@@ -69,15 +71,20 @@ class CameraState
     quaternionf qt0 = q0, qt1 = q1;
     float d = dot(qt0, qt1);
     if (d < 0.f) {
+      // prevent "long way around"
       qt0 = -qt0;
       d   = -d;
+    } else if (d > 0.9995) {
+      // angles too small
+      quaternionf l = lerp(t, q0, q1);
+      return normalize(l);
     }
 
-    float theta0 = std::acos(d);
-    float theta  = theta0 * t;
+    float theta  = std::acos(d);
+    float thetat = theta * t;
 
-    float s0 = std::cos(theta) - d * std::sin(theta) / std::sin(theta0);
-    float s1 = std::sin(theta) / std::sin(theta0);
+    float s0 = std::cos(thetat) - d * std::sin(thetat) / std::sin(theta);
+    float s1 = std::sin(thetat) / std::sin(theta);
 
     return s0 * qt0 + s1 * qt1;
   }

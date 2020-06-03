@@ -127,6 +127,12 @@ CameraState catmullRom(const CameraState &prefix,
     const CameraState &suffix,
     float frac)
 {
+  if (frac == 0) {
+    return from;
+  } else if (frac == 1) {
+    return to;
+  }
+
   // essentially this interpolation creates a "pyramid"
   // interpolate 4 points to 3
   CameraState c10 = prefix.slerp(from, frac + 1);
