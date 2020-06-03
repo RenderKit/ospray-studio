@@ -186,28 +186,28 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
     }
   });
 
-  glfwSetKeyCallback(glfwWindow,
-                     [](GLFWwindow *, int key, int, int action, int) {
-                       if (action == GLFW_PRESS) {
-                         switch (key) {
-                         case GLFW_KEY_G:
-                           activeWindow->showUi = !(activeWindow->showUi);
-                           break;
-                         case GLFW_KEY_Q:
-                           g_quitNextFrame = true;
-                           break;
-                         case GLFW_KEY_P:
-                           activeWindow->frame->traverse<sg::PrintNodes>();
-                           break;
-                         case GLFW_KEY_B:
-                           PRINT(activeWindow->frame->bounds());
-                           break;
-                         case GLFW_KEY_V:
-                           activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
-                           break;
-                         }
-                       }
-                     });
+  glfwSetKeyCallback(
+      glfwWindow, [](GLFWwindow *, int key, int, int action, int) {
+        if (action == GLFW_PRESS) {
+          switch (key) {
+          case GLFW_KEY_G:
+            activeWindow->showUi = !(activeWindow->showUi);
+            break;
+          case GLFW_KEY_Q:
+            g_quitNextFrame = true;
+            break;
+          case GLFW_KEY_P:
+            activeWindow->frame->traverse<sg::PrintNodes>();
+            break;
+          case GLFW_KEY_B:
+            PRINT(activeWindow->frame->bounds());
+            break;
+          case GLFW_KEY_V:
+            activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
+            break;
+          }
+        }
+      });
 
   // OSPRay setup //
 
@@ -396,8 +396,10 @@ void MainWindow::display()
     auto *fb =
         (void *)frame->mapFrame(showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR);
 
+    // This needs to query the actual framebuffer format
     const GLint glFormat = showAlbedo ? GL_RGB : GL_RGBA;
-    const GLenum glType  = showAlbedo ? GL_FLOAT : GL_UNSIGNED_BYTE;
+    //const GLenum glType  = showAlbedo ? GL_FLOAT : GL_UNSIGNED_BYTE;
+    const GLenum glType  = GL_FLOAT; // required for denoiser
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
@@ -597,9 +599,7 @@ void MainWindow::buildUI()
   ImGui::Checkbox("show albedo", &showAlbedo);
 
   if (denoiserAvailable) {
-    auto denoiserEnabled = frame->denoiserEnabled;
-    if (ImGui::Checkbox("denoiser", &denoiserEnabled))
-      frame->denoiserEnabled = denoiserEnabled;
+    if (ImGui::Checkbox("denoiser", &frame->denoiserEnabled))
       frame->updateFrameOpsNextFrame = true;
   }
 
@@ -674,7 +674,7 @@ void MainWindow::refreshRenderer()
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
     r.createChildData("material", baseMaterialRegistry->cppMaterialList);
   }
-  // backplate does not work without renderer pre/post commit 
+  // backplate does not work without renderer pre/post commit
   // which cause issues with material textures
   // uncomment scivis pre/post commit to see this working
   // TODO:: fix this issue
@@ -732,7 +732,7 @@ void MainWindow::refreshScene()
         imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
 
-#if 1 //BMCDEBUG, just for testing
+#if 1  // BMCDEBUG, just for testing
         imp.traverse<sg::PrintNodes>();
 #endif
 
@@ -817,7 +817,7 @@ void MainWindow::importFiles()
         imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
 
-#if 1 //BMCDEBUG, just for testing
+#if 1  // BMCDEBUG, just for testing
         imp.traverse<sg::PrintNodes>();
 #endif
 
