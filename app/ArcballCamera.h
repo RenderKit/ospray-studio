@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "ospcommon/math/AffineSpace.h"
 
 using namespace ospcommon::math;
@@ -134,3 +136,9 @@ CameraState catmullRom(const CameraState &prefix,
                        const CameraState &to,
                        const CameraState &suffix,
                        float frac);
+
+// build an interpolated path from a vector of CameraStates
+// using Catmull-Rom quaternion interpolation
+// for n >= 2 anchors, creates (n - 1) * (1 / stepSize) CameraStates
+std::vector<CameraState> buildPath(const std::vector<CameraState> &anchors,
+                                   const float stepSize = 0.1);

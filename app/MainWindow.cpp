@@ -68,10 +68,10 @@ static const std::vector<std::string> g_lightTypes = {
 std::vector<std::string> g_matTypes = {
     "obj", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
 
-std::vector<CameraState> g_camPath;
-int g_camPathSelected = 0;
-int g_camPathAnimIndex = 0;
-float g_camPathFrac = 0.f;
+std::vector<CameraState> g_camAnchors;  // user-defined anchor states
+std::vector<CameraState> g_camPath;     // interpolated path through anchors
+int g_camSelectedAnchorIndex = 0;
+int g_camCurrentPathIndex    = 0;
 
 std::string quatToString(quaternionf &q)
 {
@@ -343,22 +343,10 @@ void MainWindow::display()
   }
 
   if (animatingPath) {
-    CameraState prefix = g_camPath[g_camPathAnimIndex - 1];
-    CameraState from = g_camPath[g_camPathAnimIndex];
-    CameraState to = g_camPath[g_camPathAnimIndex + 1];
-    CameraState suffix = g_camPath[g_camPathAnimIndex + 2];
-    CameraState interp = catmullRom(prefix, from, to, suffix, g_camPathFrac);
-
-    arcballCamera->setState(interp);
+    CameraState current = g_camPath[g_camCurrentPathIndex];
+    arcballCamera->setState(current);
     updateCamera();
-
-    g_camPathFrac += 0.01f;
-    if (g_camPathFrac >= 1.f) {
-      g_camPathFrac      = 0.f;
-      // clamp anim index to [1, nframes-2] for now
-      // to use first/last points as interp prefix/suffix
-      g_camPathAnimIndex = std::max(1ul, (g_camPathAnimIndex + 1) % (g_camPath.size() - 2));
-    }
+    g_camCurrentPathIndex = (g_camCurrentPathIndex + 1) % g_camPath.size();
   }
 
   if (showUi)
@@ -594,45 +582,36 @@ void MainWindow::buildUI()
   if (cameraPathing) {
     if (ImGui::ListBoxHeader("camera positions")) {
       if (ImGui::Button("+")) { // add current position after the selected one
-        if (g_camPath.empty()) {
-          g_camPath.push_back(arcballCamera->getState());
-          g_camPathSelected = 0;
+        if (g_camAnchors.empty()) {
+          g_camAnchors.push_back(arcballCamera->getState());
+          g_camSelectedAnchorIndex = 0;
         } else {
-          g_camPath.insert(g_camPath.begin() + g_camPathSelected + 1,
+          g_camAnchors.insert(g_camAnchors.begin() + g_camSelectedAnchorIndex + 1,
                             arcballCamera->getState());
-          g_camPathSelected++;
+          g_camSelectedAnchorIndex++;
         }
       }
       ImGui::SameLine();
       if (ImGui::Button("-")) { // remove the selected position
-        g_camPath.erase(g_camPath.begin() + g_camPathSelected);
-        g_camPathSelected = std::max(0, g_camPathSelected - 1);
+        g_camAnchors.erase(g_camAnchors.begin() + g_camSelectedAnchorIndex);
+        g_camSelectedAnchorIndex = std::max(0, g_camSelectedAnchorIndex - 1);
       }
-      if (g_camPath.size() >= 4) {
+      if (g_camAnchors.size() >= 2) {
         ImGui::SameLine();
         if (ImGui::ArrowButton("play", ImGuiDir_Right)) {
           animatingPath      = !animatingPath;
-          g_camPathAnimIndex = 1;
+          g_camCurrentPathIndex = 0;
           if (animatingPath) {
-            // create prefix and suffix interp states for catmull-rom
-            size_t last        = g_camPath.size() - 1;
-            CameraState prefix = g_camPath[0].slerp(g_camPath[1], -.1f);
-            CameraState suffix =
-                g_camPath[last - 1].slerp(g_camPath[last], 1.1f);
-            g_camPath.insert(g_camPath.begin(), prefix);
-            g_camPath.push_back(suffix);
-          } else {
-            g_camPath.pop_back();
-            g_camPath.erase(g_camPath.begin());
+            g_camPath = buildPath(g_camAnchors);
           }
         }
       }
-      for (int i = 0; i < g_camPath.size(); i++) {
+      for (int i = 0; i < g_camAnchors.size(); i++) {
         if (ImGui::Selectable(
-                (std::to_string(i) + ": " + to_string(g_camPath[i])).c_str(),
-                (g_camPathSelected == i))) {
-          g_camPathSelected = i;
-          arcballCamera->setState(g_camPath[i]);
+                (std::to_string(i) + ": " + to_string(g_camAnchors[i])).c_str(),
+                (g_camSelectedAnchorIndex == i))) {
+          g_camSelectedAnchorIndex = i;
+          arcballCamera->setState(g_camAnchors[i]);
           updateCamera();
         }
       }
