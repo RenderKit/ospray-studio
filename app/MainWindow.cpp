@@ -72,6 +72,7 @@ std::vector<CameraState> g_camAnchors;  // user-defined anchor states
 std::vector<CameraState> g_camPath;     // interpolated path through anchors
 int g_camSelectedAnchorIndex = 0;
 int g_camCurrentPathIndex    = 0;
+int g_camPathSpeed = 5; // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
 
 std::string quatToString(quaternionf &q)
 {
@@ -602,9 +603,11 @@ void MainWindow::buildUI()
           animatingPath      = !animatingPath;
           g_camCurrentPathIndex = 0;
           if (animatingPath) {
-            g_camPath = buildPath(g_camAnchors);
+            g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
           }
         }
+        ImGui::SameLine();
+        ImGui::SliderInt("speed##path", &g_camPathSpeed, 1, 10);
       }
       for (int i = 0; i < g_camAnchors.size(); i++) {
         if (ImGui::Selectable(
