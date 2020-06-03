@@ -72,7 +72,8 @@ std::vector<CameraState> g_camAnchors;  // user-defined anchor states
 std::vector<CameraState> g_camPath;     // interpolated path through anchors
 int g_camSelectedAnchorIndex = 0;
 int g_camCurrentPathIndex    = 0;
-int g_camPathSpeed = 5; // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
+int g_camPathSpeed = 5;  // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
+const int g_camPathPause = 2;  // _seconds_ to pause for at end of path
 
 std::string quatToString(quaternionf &q)
 {
@@ -344,10 +345,22 @@ void MainWindow::display()
   }
 
   if (animatingPath) {
+    static int framesPaused = 0;
     CameraState current = g_camPath[g_camCurrentPathIndex];
     arcballCamera->setState(current);
     updateCamera();
-    g_camCurrentPathIndex = (g_camCurrentPathIndex + 1) % g_camPath.size();
+
+    // pause at the end of the path
+    if (g_camCurrentPathIndex == g_camPath.size() - 1) {
+      framesPaused++;
+      int framesToWait = g_camPathPause * latestFPS;
+      if (framesPaused > framesToWait) {
+        framesPaused = 0;
+        g_camCurrentPathIndex = 0;
+      }
+    } else {
+      g_camCurrentPathIndex++;
+    }
   }
 
   if (showUi)
@@ -579,10 +592,11 @@ void MainWindow::buildUI()
   if (autorotate) {
     ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
   }
-  ImGui::Checkbox("camera pathing", &cameraPathing);
+  ImGui::Checkbox("camera keyframing", &cameraPathing);
   if (cameraPathing) {
-    if (ImGui::ListBoxHeader("camera positions")) {
-      if (ImGui::Button("+")) { // add current position after the selected one
+    ImGui::SetNextItemWidth(20 * ImGui::GetFontSize());
+    if (ImGui::ListBoxHeader("##")) {
+      if (ImGui::Button("+")) { // add current camera state after the selected one
         if (g_camAnchors.empty()) {
           g_camAnchors.push_back(arcballCamera->getState());
           g_camSelectedAnchorIndex = 0;
@@ -593,7 +607,7 @@ void MainWindow::buildUI()
         }
       }
       ImGui::SameLine();
-      if (ImGui::Button("-")) { // remove the selected position
+      if (ImGui::Button("-")) { // remove the selected camera state
         g_camAnchors.erase(g_camAnchors.begin() + g_camSelectedAnchorIndex);
         g_camSelectedAnchorIndex = std::max(0, g_camSelectedAnchorIndex - 1);
       }
@@ -607,7 +621,13 @@ void MainWindow::buildUI()
           }
         }
         ImGui::SameLine();
+        ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
         ImGui::SliderInt("speed##path", &g_camPathSpeed, 1, 10);
+        if (ImGui::IsItemHovered()) {
+          ImGui::SetTooltip(
+              "Animation speed for computed path. \n"
+              "Slow speeds may jitter for small objects");
+        }
       }
       for (int i = 0; i < g_camAnchors.size(); i++) {
         if (ImGui::Selectable(
