@@ -32,6 +32,7 @@ target_link_libraries(ospStudio
 PRIVATE
   glfw
   imgui
+  stb_image
   ospray_sg
   tiny_file_dialogs
 )

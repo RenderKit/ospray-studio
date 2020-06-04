@@ -70,6 +70,7 @@ class MainWindow
   void refreshLight();
   void refreshMaterial();
   void addPTMaterials();
+  void saveCurrentFrame(const void *fb);
 
   static MainWindow *activeWindow;
 

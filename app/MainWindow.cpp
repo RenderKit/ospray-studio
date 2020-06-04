@@ -19,6 +19,8 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
+// stb_image
+#include "stb_image_write.h"
 // std
 #include <chrono>
 #include <iostream>
@@ -36,6 +38,7 @@
 #include "sg/scene/volume/Structured.h"
 
 static bool g_quitNextFrame = false;
+static bool g_saveNextFrame = false;
 
 static const std::vector<std::string> g_scenes = {"multilevel_hierarchy",
                                                   "torus",
@@ -205,6 +208,9 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
           case GLFW_KEY_V:
             activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
             break;
+          case GLFW_KEY_S:
+          g_saveNextFrame = true;
+          break;
           }
         }
       });
@@ -410,6 +416,11 @@ void MainWindow::display()
                  glFormat,
                  glType,
                  fb);
+
+    if (g_saveNextFrame) {
+      saveCurrentFrame(fb);
+      g_saveNextFrame = false;
+    }
 
     frame->unmapFrame(fb);
 
@@ -847,4 +858,21 @@ void MainWindow::importFiles()
   arcballCamera.reset(
       new ArcballCamera(frame->child("world").bounds(), windowSize));
   updateCamera();
+}
+
+void MainWindow::saveCurrentFrame(const void *fb)
+{
+  int res;
+  std::string filename("studio.");
+
+  if (showAlbedo) {
+    filename += "hdr";
+    res = stbi_write_hdr(filename.c_str(), windowSize.x, windowSize.y, 3, (float *)fb);
+  } else {
+    filename += "png";
+    res = stbi_write_png(filename.c_str(), windowSize.x, windowSize.y, 4, fb, 4 * windowSize.x);
+  }
+
+  if (res != 0)
+    std::cout << "Saved " << filename << std::endl;
 }
