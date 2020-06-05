@@ -368,7 +368,7 @@ void MainWindow::display()
     // pause at the end of the path
     if (g_camCurrentPathIndex == g_camPath.size() - 1) {
       framesPaused++;
-      int framesToWait = g_camPathPause * latestFPS;
+      int framesToWait = g_camPathPause * ImGui::GetIO().Framerate;
       if (framesPaused > framesToWait) {
         framesPaused = 0;
         g_camCurrentPathIndex = 0;
