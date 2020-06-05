@@ -629,7 +629,7 @@ void MainWindow::buildUI()
   }
   ImGui::Checkbox("camera keyframing", &cameraPathing);
   if (cameraPathing) {
-    ImGui::SetNextItemWidth(20 * ImGui::GetFontSize());
+    ImGui::SetNextItemWidth(25 * ImGui::GetFontSize());
     if (ImGui::ListBoxHeader("##")) {
       if (ImGui::Button("+")) { // add current camera state after the selected one
         if (g_camAnchors.empty()) {
@@ -648,7 +648,7 @@ void MainWindow::buildUI()
       }
       if (g_camAnchors.size() >= 2) {
         ImGui::SameLine();
-        if (ImGui::ArrowButton("play", ImGuiDir_Right)) {
+        if (ImGui::Button(animatingPath ? "stop" : "play")) {
           animatingPath      = !animatingPath;
           g_camCurrentPathIndex = 0;
           if (animatingPath) {
