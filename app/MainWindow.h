@@ -83,6 +83,7 @@ class MainWindow
   // menu and window UI
   void buildMainMenu();
   void buildMainMenuEdit();
+  void buildMainMenuView();
   void buildWindows();
   void buildWindowPreferences();
 

@@ -917,6 +917,7 @@ void MainWindow::buildMainMenu()
   // build main menu bar and options
   ImGui::BeginMainMenuBar();
   buildMainMenuEdit();
+  buildMainMenuView();
   ImGui::EndMainMenuBar();
 }
 
@@ -925,6 +926,15 @@ void MainWindow::buildMainMenuEdit()
   if (ImGui::BeginMenu("Edit")) {
     if (ImGui::MenuItem("Preferences...", nullptr))
       showPreferences = true;
+    ImGui::EndMenu();
+  }
+}
+
+void MainWindow::buildMainMenuView()
+{
+  if (ImGui::BeginMenu("View")) {
+    if (ImGui::MenuItem("Screenshot", "s", nullptr))
+      g_saveNextFrame = true;
     ImGui::EndMenu();
   }
 }
