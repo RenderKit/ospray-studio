@@ -89,9 +89,11 @@ class MainWindow
   void buildMainMenuView();
   void buildWindows();
   void buildWindowPreferences();
+  void buildWindowKeyframes();
 
   // imgui window visibility toggles
   bool showPreferences{false};
+  bool showKeyframes{false};
 
   // imgui-controlled options
   ImageType screenshotFiletype{ImageType::PNG};
@@ -106,7 +108,6 @@ class MainWindow
   bool showAlbedo{false};
   bool cancelFrameOnInteraction{false};
   bool autorotate{false};
-  bool cameraPathing{false};
   bool animatingPath{false};
 
   std::string scene;

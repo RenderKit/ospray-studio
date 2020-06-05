@@ -627,55 +627,6 @@ void MainWindow::buildUI()
   if (autorotate) {
     ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
   }
-  ImGui::Checkbox("camera keyframing", &cameraPathing);
-  if (cameraPathing) {
-    ImGui::SetNextItemWidth(25 * ImGui::GetFontSize());
-    if (ImGui::ListBoxHeader("##")) {
-      if (ImGui::Button("+")) { // add current camera state after the selected one
-        if (g_camAnchors.empty()) {
-          g_camAnchors.push_back(arcballCamera->getState());
-          g_camSelectedAnchorIndex = 0;
-        } else {
-          g_camAnchors.insert(g_camAnchors.begin() + g_camSelectedAnchorIndex + 1,
-                            arcballCamera->getState());
-          g_camSelectedAnchorIndex++;
-        }
-      }
-      ImGui::SameLine();
-      if (ImGui::Button("-")) { // remove the selected camera state
-        g_camAnchors.erase(g_camAnchors.begin() + g_camSelectedAnchorIndex);
-        g_camSelectedAnchorIndex = std::max(0, g_camSelectedAnchorIndex - 1);
-      }
-      if (g_camAnchors.size() >= 2) {
-        ImGui::SameLine();
-        if (ImGui::Button(animatingPath ? "stop" : "play")) {
-          animatingPath      = !animatingPath;
-          g_camCurrentPathIndex = 0;
-          if (animatingPath) {
-            g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
-          }
-        }
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
-        ImGui::SliderInt("speed##path", &g_camPathSpeed, 1, 10);
-        if (ImGui::IsItemHovered()) {
-          ImGui::SetTooltip(
-              "Animation speed for computed path. \n"
-              "Slow speeds may jitter for small objects");
-        }
-      }
-      for (int i = 0; i < g_camAnchors.size(); i++) {
-        if (ImGui::Selectable(
-                (std::to_string(i) + ": " + to_string(g_camAnchors[i])).c_str(),
-                (g_camSelectedAnchorIndex == i))) {
-          g_camSelectedAnchorIndex = i;
-          arcballCamera->setState(g_camAnchors[i]);
-          updateCamera();
-        }
-      }
-      ImGui::ListBoxFooter();
-    }
-  }
 
   ImGui::Separator();
 
@@ -975,6 +926,8 @@ void MainWindow::buildMainMenuView()
   if (ImGui::BeginMenu("View")) {
     if (ImGui::MenuItem("Screenshot", "s", nullptr))
       g_saveNextFrame = true;
+    if (ImGui::MenuItem("Keyframes...", "", nullptr))
+      showKeyframes = true;
     ImGui::EndMenu();
   }
 }
@@ -985,6 +938,8 @@ void MainWindow::buildWindows()
 {
   if (showPreferences)
     buildWindowPreferences();
+  if (showKeyframes)
+    buildWindowKeyframes();
 }
 
 void MainWindow::buildWindowPreferences()
@@ -1005,6 +960,63 @@ void MainWindow::buildWindowPreferences()
     } else {
       fb["colorFormat"] = std::string("sRGB");
     }
+  }
+  ImGui::End();
+}
+
+void MainWindow::buildWindowKeyframes()
+{
+  if (!ImGui::Begin("Keyframe editor", &showKeyframes, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  ImGui::SetNextItemWidth(25 * ImGui::GetFontSize());
+  if (ImGui::ListBoxHeader("##")) {
+    if (ImGui::Button(
+            "+")) {  // add current camera state after the selected one
+      if (g_camAnchors.empty()) {
+        g_camAnchors.push_back(arcballCamera->getState());
+        g_camSelectedAnchorIndex = 0;
+      } else {
+        g_camAnchors.insert(g_camAnchors.begin() + g_camSelectedAnchorIndex + 1,
+                            arcballCamera->getState());
+        g_camSelectedAnchorIndex++;
+      }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("-")) {  // remove the selected camera state
+      g_camAnchors.erase(g_camAnchors.begin() + g_camSelectedAnchorIndex);
+      g_camSelectedAnchorIndex = std::max(0, g_camSelectedAnchorIndex - 1);
+    }
+    if (g_camAnchors.size() >= 2) {
+      ImGui::SameLine();
+      if (ImGui::Button(animatingPath ? "stop" : "play")) {
+        animatingPath         = !animatingPath;
+        g_camCurrentPathIndex = 0;
+        if (animatingPath) {
+          g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
+        }
+      }
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
+      ImGui::SliderInt("speed##path", &g_camPathSpeed, 1, 10);
+      if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "Animation speed for computed path. \n"
+            "Slow speeds may cause jitter for small objects");
+      }
+    }
+    for (int i = 0; i < g_camAnchors.size(); i++) {
+      if (ImGui::Selectable(
+              (std::to_string(i) + ": " + to_string(g_camAnchors[i])).c_str(),
+              (g_camSelectedAnchorIndex == i))) {
+        g_camSelectedAnchorIndex = i;
+        arcballCamera->setState(g_camAnchors[i]);
+        updateCamera();
+      }
+    }
+    ImGui::ListBoxFooter();
   }
   ImGui::End();
 }
