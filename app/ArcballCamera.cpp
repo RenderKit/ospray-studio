@@ -23,12 +23,18 @@ ArcballCamera::ArcballCamera(const box3f &worldBounds, const vec2i &windowSize)
       translation(one),
       rotation(one)
 {
-  vec3f diag = worldBounds.size();
-  zoomSpeed  = max(length(diag) / 150.0, 0.001);
-  diag       = max(diag, vec3f(0.3f * length(diag)));
+  float diag = length(worldBounds.size());
+
+  zoomSpeed  = max(diag / 150.0, 0.001);
+
+  // if Box3f defining wolrd bounds is less than a unit cube
+  // translate along (0, 0, 1)
+  if (diag < 1.7)
+    diag = 1.7f;
+
 
   centerTranslation = AffineSpace3f::translate(-worldBounds.center());
-  translation       = AffineSpace3f::translate(vec3f(0, 0, length(diag)));
+  translation       = AffineSpace3f::translate(vec3f(0, 0, diag));
   updateCamera();
 }
 
