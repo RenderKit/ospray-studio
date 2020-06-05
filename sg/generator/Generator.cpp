@@ -28,4 +28,12 @@ namespace ospray::sg {
     return NodeType::GENERATOR;
   }
 
+  void Generator::generateDataAndMat(std::shared_ptr<sg::MaterialRegistry> materialRegistry)
+  {
+  }
+
+  void Generator::generateData()
+  {
+  }
+
 }  // namespace ospray::sg

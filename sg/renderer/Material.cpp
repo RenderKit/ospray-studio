@@ -42,12 +42,14 @@ namespace ospray::sg {
     if (c.empty() || handles.empty())
       return;
     for (auto &child : c) {
+      // test and merge following two; they're identical
       if (child.second->type() == NodeType::PARAMETER) {
         for (auto &h : handles) {
           child.second->setOSPRayParam(
               child.first, h.second->valueAs<cpp::Material>().handle());
         }
-      } else if (child.second->subType() == "texture_2d") {       
+      } else if (child.second->subType() == "texture_2d" ||
+                 child.second->subType() == "texture_volume") {
         for (auto &h : handles)
           child.second->setOSPRayParam(
               child.first, h.second->valueAs<cpp::Material>().handle());

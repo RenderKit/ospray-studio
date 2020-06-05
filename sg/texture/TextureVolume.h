@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -16,22 +16,22 @@
 
 #pragma once
 
-#include "../Node.h"
-#include "sg/renderer/MaterialRegistry.h"
+// sg
+#include "Texture.h"
 
-namespace ospray::sg {
+namespace ospray::sg{
 
-  struct OSPSG_INTERFACE Generator : public Node
-  {
-    Generator();
-    virtual ~Generator() = default;
+    /*! \brief wrapper for a Texture Volume */
+    struct OSPSG_INTERFACE TextureVolume : public Texture
+    {
+      /*! constructor */
+      TextureVolume();
+      virtual ~TextureVolume() override = default;
 
-    NodeType type() const override;
+      NodeType type() const;
 
-    virtual void generateData();
+      void preCommit() override;
+      void postCommit() override;
+    };
 
-    virtual void generateDataAndMat(std::shared_ptr<sg::MaterialRegistry> materialRegistry);
-
-  };
-
-}  // namespace ospray::sg
+  } // ::ospray::sg

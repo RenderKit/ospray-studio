@@ -33,6 +33,8 @@ add_library(ospray_sg SHARED
   generator/WaveletVolume.cpp
   generator/UnstructuredVol.cpp
   generator/TestSphere.cpp
+  generator/TextureVolumeTest.cpp
+  generator/Torus.cpp
 
   importer/Importer.cpp
   importer/OBJ.cpp
@@ -88,6 +90,7 @@ add_library(ospray_sg SHARED
 
   texture/Texture.cpp
   texture/Texture2D.cpp
+  texture/TextureVolume.cpp
   )
 
 target_link_libraries(ospray_sg

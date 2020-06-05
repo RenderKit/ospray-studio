@@ -1,5 +1,6 @@
+ 
 // ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                    //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,24 +15,25 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+#include "TextureVolume.h"
 
-#include "../Node.h"
-#include "sg/renderer/MaterialRegistry.h"
+namespace ospray::sg{
 
-namespace ospray::sg {
+    // TextureVolume definitions //////////////////////////////////////////////////
 
-  struct OSPSG_INTERFACE Generator : public Node
-  {
-    Generator();
-    virtual ~Generator() = default;
+    TextureVolume::TextureVolume() : Texture("volume") {}
 
-    NodeType type() const override;
+    NodeType TextureVolume::type() const
+    {
+      return NodeType::TEXTUREVOLUME;
+    }
 
-    virtual void generateData();
+    void TextureVolume::preCommit()
+    {}
 
-    virtual void generateDataAndMat(std::shared_ptr<sg::MaterialRegistry> materialRegistry);
+    void TextureVolume::postCommit()
+    {}
 
-  };
+    OSP_REGISTER_SG_NODE_NAME(TextureVolume, textureVolume);
 
-}  // namespace ospray::sg
+  } // ::ospray::sg

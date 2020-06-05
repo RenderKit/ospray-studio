@@ -304,7 +304,7 @@ DTYPE gltf_type_to_dtype(int type, int component_type)
     default:
         break;
     }
-    throw std::runtime_error("Unrecognized type/component type pair");
+    // throw std::runtime_error("Unrecognized type/component type pair");
 }
 
 size_t dtype_stride(DTYPE type)
@@ -373,7 +373,7 @@ size_t dtype_stride(DTYPE type)
     default:
         break;
     }
-    throw std::runtime_error("UNKOWN DATATYPE");
+    // throw std::runtime_error("UNKOWN DATATYPE");
 }
 
 size_t dtype_components(DTYPE type)
@@ -444,5 +444,5 @@ size_t dtype_components(DTYPE type)
     default:
         break;
     }
-    throw std::runtime_error("Invalid data type");
+    // throw std::runtime_error("Invalid data type");
 }

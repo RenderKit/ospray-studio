@@ -17,6 +17,7 @@
 #pragma once
 
 #include "../Node.h"
+#include "../renderer/MaterialRegistry.h"
 // std
 #include <stack>
 
@@ -44,12 +45,17 @@ namespace ospray::sg {
     {
       std::vector<cpp::GeometricModel> geometries;
       std::vector<cpp::VolumetricModel> volumes;
+      // make this a shared pointer instead of vector
+      std::vector<cpp::Texture> textures;
+      // make this a shared pointer instead of vector
+      std::vector<cpp::Material> materials;
       // cpp::Group group;
       // Apperance information:
       //     - Material
       //     - TransferFunction
       //     - ...others?
     } current;
+    bool setTextureVolume{false};
     cpp::World world;
     int unusedGeoms = 0;
     std::vector<cpp::Instance> instances;
@@ -79,6 +85,10 @@ namespace ospray::sg {
     case NodeType::GEOMETRY:
       createGeometry(node);
       traverseChildren = false;
+      break;
+    case NodeType::TEXTUREVOLUME:
+      setTextureVolume = true;
+      current.textures.push_back(node.valueAs<cpp::Texture>());
       break;
     case NodeType::VOLUME:
       createVolume(node);
@@ -138,7 +148,11 @@ namespace ospray::sg {
     if (node.hasChild("material")) {
       model.setParam("material", node["material"].valueAs<cpp::Data>());
     } else {
-      model.setParam("material", materialIDs.top());
+      if (current.materials.size() != 0) {
+        model.setParam("material", *current.materials.begin());
+        current.materials.clear();
+      } else
+        model.setParam("material", materialIDs.top());
     }
     model.commit();
     current.geometries.push_back(model);
@@ -149,14 +163,37 @@ namespace ospray::sg {
     auto &vol = node.valueAs<cpp::Volume>();
     cpp::VolumetricModel model(vol);
     if (node.hasChild("transferFunction")) {
-      model.setParam(
-          "transferFunction",
-          node["transferFunction"].valueAs<cpp::TransferFunction>());
-    } else {
+      model.setParam("transferFunction",
+                     node["transferFunction"].valueAs<cpp::TransferFunction>());
+    } else
       model.setParam("transferFunction", tfns.top());
-    }
     model.commit();
-    current.volumes.push_back(model);
+    if (setTextureVolume) {
+      auto &tex = *current.textures.begin();
+      tex.setParam("volume", model);
+      tex.commit();
+
+      // fix the following by allowing material registry communication and,
+      // adding a material directly in the material registry
+      // whose material reference can be added to the geometry
+      cpp::Material texmaterial("scivis", "obj");
+      texmaterial.setParam("map_kd", tex);
+      texmaterial.commit();
+      current.materials.push_back(texmaterial);
+
+      // auto matNode = createNode("sphereMaterial", "obj");
+      // auto &mat    = *matNode;
+      // std::shared_ptr<sg::TextureVolume> sgTex =
+      //     std::static_pointer_cast<sg::TextureVolume>(
+      //         sg::createNode("map_kd", "texture_volume"));
+      // matNode->add(sgTex);
+      // matNode->commit();
+      // materialRegistry->add(matNode);
+      // materialRegistry->matImportsList.push_back(matNode->name());
+      current.textures.clear();
+      setTextureVolume = false;
+    } else
+      current.volumes.push_back(model);
   }
 
   inline void RenderScene::createInstanceFromGroup()
@@ -201,11 +238,5 @@ namespace ospray::sg {
     if (!instances.empty())
       world.setParam("instance", cpp::Data(instances));
   }
-
-  // inline void RenderScene::placeInstanceInWorld(Node &node)
-  // {
-  //   auto &inst = node.valueAs<cpp::Instance>();
-  //   world.setParam("instance", cpp::Data(inst));
-  // }
 
 }  // namespace ospray::sg

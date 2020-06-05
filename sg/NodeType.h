@@ -33,6 +33,7 @@ namespace ospray::sg {
     MATERIAL,
     MATERIAL_REFERENCE,
     TEXTURE,
+    TEXTUREVOLUME,
     LIGHT,
     GEOMETRY,
     VOLUME,
