@@ -21,7 +21,6 @@ namespace ospray::sg {
   FrameBuffer::FrameBuffer()
   {
     createChild("size", "vec2i", vec2i(1024, 768));
-    //createChild("colorFormat", "string", std::string("sRGB"));
     createChild("colorFormat", "string", std::string("float"));
 
     updateHandle();
@@ -67,9 +66,9 @@ namespace ospray::sg {
 
   void FrameBuffer::updateDenoiser(bool enabled)
   {
-    // XXX Denoiser requires float color buffer.
-    // Check fb format as condition of enabling.
-    if (enabled) {
+    // Denoiser requires float color buffer.
+    auto colorFormatStr = child("colorFormat").valueAs<std::string>();
+    if (enabled && colorFormatStr == "float") {
       cpp::ImageOperation d("denoiser");
       handle().setParam("imageOperation", cpp::Data(d));
     } else {
