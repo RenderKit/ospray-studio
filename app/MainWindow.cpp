@@ -33,10 +33,12 @@
 // ospcommon
 #include "ospcommon/os/FileName.h"
 #include "ospcommon/utility/getEnvVar.h"
+#include "ospcommon/utility/SaveImage.h"
 // tiny_file_dialogs
 #include "tinyfiledialogs.h"
 #include "sg/scene/volume/Structured.h"
 
+static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 
@@ -403,8 +405,9 @@ void MainWindow::display()
         (void *)frame->mapFrame(showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR);
 
     // This needs to query the actual framebuffer format
-    const GLint glFormat = showAlbedo ? GL_RGB : GL_RGBA;
-    //const GLenum glType  = showAlbedo ? GL_FLOAT : GL_UNSIGNED_BYTE;
+    //const GLenum glType  = (showAlbedo || screenshotFiletype == ImageType::HDR)
+    //                          ? GL_FLOAT
+    //                          : GL_UNSIGNED_BYTE;
     const GLenum glType  = GL_FLOAT; // required for denoiser
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
     glTexImage2D(GL_TEXTURE_2D,
@@ -499,8 +502,13 @@ void MainWindow::updateTitleBar()
 
 void MainWindow::buildUI()
 {
-  ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize;
-  ImGui::Begin("press 'g' to hide/show UI", nullptr, flags);
+  // build main menu and options
+  buildMainMenu();
+
+  // build window UIs as needed
+  buildWindows();
+
+  ImGui::Begin("press 'g' to hide/show UI", nullptr, g_imguiWindowFlags);
 
   static int whichScene        = 0;
   static int whichRenderer     = 0;
@@ -867,12 +875,86 @@ void MainWindow::saveCurrentFrame(const void *fb)
 
   if (showAlbedo) {
     filename += "hdr";
-    res = stbi_write_hdr(filename.c_str(), windowSize.x, windowSize.y, 3, (float *)fb);
+    res = stbi_write_hdr(
+        filename.c_str(), windowSize.x, windowSize.y, 3, (float *)fb);
   } else {
-    filename += "png";
-    res = stbi_write_png(filename.c_str(), windowSize.x, windowSize.y, 4, fb, 4 * windowSize.x);
+    switch (screenshotFiletype) {
+    case ImageType::PPM:
+      filename += "ppm";
+      ospcommon::utility::writePPM(
+          filename.c_str(), windowSize.x, windowSize.y, (uint32_t *)fb);
+      break;
+    case ImageType::PNG:
+      filename += "png";
+      res = stbi_write_png(filename.c_str(),
+                           windowSize.x,
+                           windowSize.y,
+                           4,
+                           fb,
+                           4 * windowSize.x);
+      break;
+    case ImageType::JPG:
+      filename += "jpg";
+      res = stbi_write_jpg(
+          filename.c_str(), windowSize.x, windowSize.y, 4, fb, 90);
+      break;
+    case ImageType::HDR:
+      filename += "hdr";
+      res = stbi_write_hdr(
+          filename.c_str(), windowSize.x, windowSize.y, 4, (float *)fb);
+      break;
+    }
   }
 
   if (res != 0)
     std::cout << "Saved " << filename << std::endl;
+}
+
+// Main menu //////////////////////////////////////////////////////////////////
+
+void MainWindow::buildMainMenu()
+{
+  // build main menu bar and options
+  ImGui::BeginMainMenuBar();
+  buildMainMenuEdit();
+  ImGui::EndMainMenuBar();
+}
+
+void MainWindow::buildMainMenuEdit()
+{
+  if (ImGui::BeginMenu("Edit")) {
+    if (ImGui::MenuItem("Preferences...", nullptr))
+      showPreferences = true;
+    ImGui::EndMenu();
+  }
+}
+
+// Option windows /////////////////////////////////////////////////////////////
+
+void MainWindow::buildWindows()
+{
+  if (showPreferences)
+    buildWindowPreferences();
+}
+
+void MainWindow::buildWindowPreferences()
+{
+  if (!ImGui::Begin("Preferences", &showPreferences, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  const char *screenshotFiletypes[] = {"ppm", "png", "jpg", "hdr"};
+  if (ImGui::Combo("Screenshot filetype",
+                   (int *)&screenshotFiletype,
+                   screenshotFiletypes,
+                   4)) {
+    auto &fb = frame->child("framebuffer");
+    if (screenshotFiletype == ImageType::HDR) {
+      fb["colorFormat"] = std::string("float");
+    } else {
+      fb["colorFormat"] = std::string("sRGB");
+    }
+  }
+  ImGui::End();
 }

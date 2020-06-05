@@ -36,6 +36,14 @@ enum class OSPRayRendererType
   OTHER
 };
 
+enum class ImageType
+{
+  PPM,
+  PNG,
+  JPG,
+  HDR
+};
+
 class MainWindow
 {
  public:
@@ -71,6 +79,18 @@ class MainWindow
   void refreshMaterial();
   void addPTMaterials();
   void saveCurrentFrame(const void *fb);
+
+  // menu and window UI
+  void buildMainMenu();
+  void buildMainMenuEdit();
+  void buildWindows();
+  void buildWindowPreferences();
+
+  // imgui window visibility toggles
+  bool showPreferences{false};
+
+  // imgui-controlled options
+  ImageType screenshotFiletype{ImageType::PNG};
 
   static MainWindow *activeWindow;
 
