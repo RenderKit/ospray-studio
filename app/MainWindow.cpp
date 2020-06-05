@@ -405,6 +405,7 @@ void MainWindow::display()
         (void *)frame->mapFrame(showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR);
 
     // This needs to query the actual framebuffer format
+    const GLint glFormat = showAlbedo ? GL_RGB : GL_RGBA;
     //const GLenum glType  = (showAlbedo || screenshotFiletype == ImageType::HDR)
     //                          ? GL_FLOAT
     //                          : GL_UNSIGNED_BYTE;
@@ -739,56 +740,12 @@ void MainWindow::refreshScene()
   world->createChild("materialref", "reference_to_material", 0);
 
   if (scene == "import") {
-    const char *file = tinyfd_openFileDialog(
-        "Import a scene from a file", "", 0, nullptr, nullptr, 0);
-
-    if (file) {
-      auto oldRegistrySize = baseMaterialRegistry->children().size();
-      auto importer        = sg::getImporter(file);
-      if (importer != "") {
-        std::string nodeName = std::string(file) + "_importer";
-        auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
-        imp["file"] = std::string(file);
-        imp.importScene(baseMaterialRegistry);
-
-#if 1  // BMCDEBUG, just for testing
-        imp.traverse<sg::PrintNodes>();
-#endif
-
-        if (baseMaterialRegistry->matImportsList.size() != 0) {
-          for (auto &newMat : baseMaterialRegistry->matImportsList)
-            g_matTypes.insert(g_matTypes.begin(), newMat);
-        }
-
-        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
-          auto newMats =
-              baseMaterialRegistry->children().size() - oldRegistrySize;
-          std::cout << "Importer added " << newMats << " material(s)"
-                    << std::endl;
-          refreshRenderer();
-        }
-      } else {
-        std::cout << "No importer for selected file, nothing to import!\n";
-      }
-    } else {
-      std::cout << "No file selected, nothing to import!\n";
+    if (!importGeometry(world)) {
+      return;
     }
   } else if (scene == "import volume") {
-    const char *file = tinyfd_openFileDialog(
-        "Import a volume from a file", "", 0, nullptr, nullptr, 0);
-
-    if (file) {
-      std::shared_ptr<sg::StructuredVolume> volumeImport =
-          std::static_pointer_cast<sg::StructuredVolume>(
-              sg::createNode("volume", "volume_structured"));
-
-      volumeImport->load(file);
-      auto &tf =
-          world->createChild("transferFunction", "transfer_function_jet");
-      tf.add(volumeImport);
-
-    } else {
-      std::cout << "No file selected, nothing to import!\n";
+    if (!importVolume(world)) {
+      return;
     }
   } else {
     auto &gen =
@@ -868,6 +825,70 @@ void MainWindow::importFiles()
   updateCamera();
 }
 
+bool MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
+{
+  const char *file = tinyfd_openFileDialog(
+      "Import a scene from a file", "", 0, nullptr, nullptr, 0);
+
+  if (file) {
+    auto oldRegistrySize = baseMaterialRegistry->children().size();
+    auto importer        = sg::getImporter(file);
+    if (importer != "") {
+      std::string nodeName = std::string(file) + "_importer";
+      auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
+      imp["file"] = std::string(file);
+      imp.importScene(baseMaterialRegistry);
+
+#if 1  // BMCDEBUG, just for testing
+      imp.traverse<sg::PrintNodes>();
+#endif
+
+      if (baseMaterialRegistry->matImportsList.size() != 0) {
+        for (auto &newMat : baseMaterialRegistry->matImportsList)
+          g_matTypes.insert(g_matTypes.begin(), newMat);
+      }
+
+      if (oldRegistrySize != baseMaterialRegistry->children().size()) {
+        auto newMats =
+            baseMaterialRegistry->children().size() - oldRegistrySize;
+        std::cout << "Importer added " << newMats << " material(s)"
+                  << std::endl;
+        refreshRenderer();
+      }
+    } else {
+      std::cout << "No importer for selected file, nothing to import!\n";
+      return false;
+    }
+  } else {
+    std::cout << "No file selected, nothing to import!\n";
+    return false;
+  }
+
+  return true;
+}
+
+bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
+{
+  const char *file = tinyfd_openFileDialog(
+      "Import a volume from a file", "", 0, nullptr, nullptr, 0);
+
+  if (file) {
+    std::shared_ptr<sg::StructuredVolume> volumeImport =
+        std::static_pointer_cast<sg::StructuredVolume>(
+            sg::createNode("volume", "volume_structured"));
+
+    volumeImport->load(file);
+    auto &tf = world->createChild("transferFunction", "transfer_function_jet");
+    tf.add(volumeImport);
+
+  } else {
+    std::cout << "No file selected, nothing to import!\n";
+    return false;
+  }
+
+  return true;
+}
+
 void MainWindow::saveCurrentFrame(const void *fb)
 {
   int res;
@@ -916,9 +937,28 @@ void MainWindow::buildMainMenu()
 {
   // build main menu bar and options
   ImGui::BeginMainMenuBar();
+  buildMainMenuFile();
   buildMainMenuEdit();
   buildMainMenuView();
   ImGui::EndMainMenuBar();
+}
+
+void MainWindow::buildMainMenuFile()
+{
+  if (ImGui::BeginMenu("File")) {
+    if (ImGui::BeginMenu("Import")) {
+      if (ImGui::MenuItem("Import geometry...", nullptr)) {
+        scene = "import";
+        refreshScene();
+      }
+      if (ImGui::MenuItem("Import volume...", nullptr)) {
+        scene = "import volume";
+        refreshScene();
+      }
+      ImGui::EndMenu();
+    }
+    ImGui::EndMenu();
+  }
 }
 
 void MainWindow::buildMainMenuEdit()
@@ -954,7 +994,7 @@ void MainWindow::buildWindowPreferences()
     return;
   }
 
-  const char *screenshotFiletypes[] = {"ppm", "png", "jpg", "hdr"};
+  const char *screenshotFiletypes[] = {"pfm", "png", "jpg", "hdr"};
   if (ImGui::Combo("Screenshot filetype",
                    (int *)&screenshotFiletype,
                    screenshotFiletypes,

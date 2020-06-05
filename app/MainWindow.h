@@ -78,10 +78,13 @@ class MainWindow
   void refreshLight();
   void refreshMaterial();
   void addPTMaterials();
+  bool importGeometry(std::shared_ptr<sg::Node> &world);
+  bool importVolume(std::shared_ptr<sg::Node> &world);
   void saveCurrentFrame(const void *fb);
 
   // menu and window UI
   void buildMainMenu();
+  void buildMainMenuFile();
   void buildMainMenuEdit();
   void buildMainMenuView();
   void buildWindows();
