@@ -43,6 +43,9 @@ enum class ImageType
   PNG,
   JPG,
   HDR
+#ifdef STUDIO_OPENEXR
+  ,EXR
+#endif
 };
 
 class MainWindow
