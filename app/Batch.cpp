@@ -111,9 +111,9 @@ void BatchContext::render()
     frame["world"].remove(importedModels);
 
     box3f bounds = frame["world"].bounds();
-    float tx = bounds.size().x * 1.2f;
-    float ty = bounds.size().y * 1.2f;
-    float tz = bounds.size().z * 1.2f;
+    float tx     = bounds.size().x * 1.2f;
+    float ty     = bounds.size().y * 1.2f;
+    float tz     = bounds.size().z * 1.2f;
 
     for (auto z = 0; z < optGridSize.z; z++)
       for (auto y = 0; y < optGridSize.y; y++)
@@ -147,12 +147,22 @@ void BatchContext::render()
   for (auto i = 0; i < optSPP; i++)
     frame.startNewFrame(true);
 
-  auto size    = frame["framebuffer"]["size"].valueAs<vec2i>();
-  auto *pixels = (uint32_t *)frame.mapFrame();
+  auto size          = frame["framebuffer"]["size"].valueAs<vec2i>();
+  const void *pixels = frame.mapFrame();
 
-  ospcommon::utility::writePPM(optImageName, size.x, size.y, pixels);
+  auto colorFormatStr =
+      frame["framebuffer"]["colorFormat"].valueAs<std::string>();
 
-  frame.unmapFrame(pixels);
+  if (colorFormatStr == "float") {
+    optImageName += ".pfm";
+    ospcommon::utility::writePFM(optImageName, size.x, size.y, (vec4f *)pixels);
+  } else {
+    optImageName += ".ppm";
+    ospcommon::utility::writePPM(
+        optImageName, size.x, size.y, (uint32_t *)pixels);
+  }
+
+  frame.unmapFrame((void *)pixels);
 
 #if 0  // XXX for debug
   frame.traverse<sg::PrintNodes>();
@@ -199,8 +209,8 @@ void BatchContext::printHelp()
 ./ospStudio batch [parameters] [scene_files]
 
 ospStudio batch specific parameters:
-   -i     --image [baseFilename] (default 'ospBbatch.ppm')
-            name of saved image
+   -i     --image [baseFilename] (default 'ospBatch')
+            base name of saved image
    -s     --size [x y] (default 1024x768)
             image size
    -spp   --samples [int] (default 32)

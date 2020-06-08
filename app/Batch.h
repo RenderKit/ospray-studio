@@ -31,7 +31,7 @@ class BatchContext
   NodePtr importedModels;
 
   std::string optRendererTypeStr = "scivis";
-  std::string optImageName       = "ospBbatch.ppm";
+  std::string optImageName       = "ospBatch";
   vec2i optImageSize             = (1024, 768);
   int optSPP                     = 32;
   bool optGridEnable             = false;
