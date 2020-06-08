@@ -39,8 +39,10 @@
 #include "sg/scene/volume/Structured.h"
 
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
+
 static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
+static bool g_animatingPath = false;
 
 static const std::vector<std::string> g_scenes = {"multilevel_hierarchy",
                                                   "torus",
@@ -211,8 +213,15 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
             activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
             break;
           case GLFW_KEY_S:
-          g_saveNextFrame = true;
-          break;
+            g_saveNextFrame = true;
+            break;
+          case GLFW_KEY_SPACE:
+            g_animatingPath = !g_animatingPath;
+            g_camCurrentPathIndex = 0;
+            if (g_animatingPath) {
+              g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
+            }
+            break;
           }
         }
       });
@@ -359,7 +368,7 @@ void MainWindow::display()
     updateCamera();
   }
 
-  if (animatingPath) {
+  if (g_animatingPath) {
     static int framesPaused = 0;
     CameraState current = g_camPath[g_camCurrentPathIndex];
     arcballCamera->setState(current);
@@ -991,10 +1000,10 @@ void MainWindow::buildWindowKeyframes()
     }
     if (g_camAnchors.size() >= 2) {
       ImGui::SameLine();
-      if (ImGui::Button(animatingPath ? "stop" : "play")) {
-        animatingPath         = !animatingPath;
+      if (ImGui::Button(g_animatingPath ? "stop" : "play")) {
+        g_animatingPath         = !g_animatingPath;
         g_camCurrentPathIndex = 0;
-        if (animatingPath) {
+        if (g_animatingPath) {
           g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
         }
       }
