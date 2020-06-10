@@ -14,33 +14,51 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+#include "ImageExporter.h"
+// ospcommon
+#include "ospcommon/os/FileName.h"
+// stb
+#include "stb_image_write.h"
 
 namespace ospray::sg {
 
-  enum class NodeType
+  struct PNGExporter : public ImageExporter
   {
-    GENERIC,
-    PARAMETER,
-    FRAME,
-    FRAME_BUFFER,
-    RENDERER,
-    CAMERA,
-    WORLD,
-    INSTANCE,
-    TRANSFORM,
-    TRANSFER_FUNCTION,
-    MATERIAL,
-    MATERIAL_REFERENCE,
-    TEXTURE,
-    TEXTUREVOLUME,
-    LIGHT,
-    GEOMETRY,
-    VOLUME,
-    GENERATOR,
-    IMPORTER,
-    EXPORTER,
-    UNKNOWN = 9999
+    PNGExporter()           = default;
+    ~PNGExporter() override = default;
+
+    void doExport() override;
   };
+
+  OSP_REGISTER_SG_NODE_NAME(PNGExporter, exporter_png);
+
+  // PNGExporter definitions //////////////////////////////////////////////////
+
+  void PNGExporter::doExport()
+  {
+    auto file    = FileName(child("file").valueAs<std::string>());
+
+    if (child("data").valueAs<void *>() == nullptr) {
+      std::cerr << "Warning: image data null; not exporting" << std::endl;
+      return;
+    }
+
+    int format = child("format").valueAs<int>();
+    if (format == OSP_FB_RGBA32F) {
+      std::cerr << "Warning: saving a 32-bit float buffer as PNG; color space "
+                   "will be limited."
+                << std::endl;
+      floatToChar();
+    }
+
+    vec2i size = child("size").valueAs<vec2i>();
+    void *fb = child("data").valueAs<void *>();
+    int res = stbi_write_png(file.c_str(), size.x, size.y, 4, fb, 4 * size.x);
+
+    if (res == 0)
+      std::cerr << "STBI error; could not save image" << std::endl;
+    else
+      std::cout << "Saved to " << file << std::endl;
+  }
 
 }  // namespace ospray::sg

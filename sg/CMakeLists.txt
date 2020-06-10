@@ -37,6 +37,9 @@ add_library(ospray_sg SHARED
   camera/Camera.cpp
   camera/Perspective.cpp
 
+  exporter/Exporter.cpp
+  exporter/PNG.cpp
+
   fb/FrameBuffer.cpp
 
   generator/Generator.cpp

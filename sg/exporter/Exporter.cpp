@@ -14,33 +14,18 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+#include "Exporter.h"
 
 namespace ospray::sg {
 
-  enum class NodeType
+  Exporter::Exporter()
   {
-    GENERIC,
-    PARAMETER,
-    FRAME,
-    FRAME_BUFFER,
-    RENDERER,
-    CAMERA,
-    WORLD,
-    INSTANCE,
-    TRANSFORM,
-    TRANSFER_FUNCTION,
-    MATERIAL,
-    MATERIAL_REFERENCE,
-    TEXTURE,
-    TEXTUREVOLUME,
-    LIGHT,
-    GEOMETRY,
-    VOLUME,
-    GENERATOR,
-    IMPORTER,
-    EXPORTER,
-    UNKNOWN = 9999
-  };
+    createChild("file", "string", "");
+  }
+
+  NodeType Exporter::type() const
+  {
+    return NodeType::EXPORTER;
+  }
 
 }  // namespace ospray::sg

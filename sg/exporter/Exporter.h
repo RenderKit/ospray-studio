@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
+// Copyright 2020 Intel Corporation                                         //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -16,31 +16,36 @@
 
 #pragma once
 
+#include "../Node.h"
+#include "ospcommon/os/FileName.h"
+
 namespace ospray::sg {
 
-  enum class NodeType
+  struct OSPSG_INTERFACE Exporter : public Node
   {
-    GENERIC,
-    PARAMETER,
-    FRAME,
-    FRAME_BUFFER,
-    RENDERER,
-    CAMERA,
-    WORLD,
-    INSTANCE,
-    TRANSFORM,
-    TRANSFER_FUNCTION,
-    MATERIAL,
-    MATERIAL_REFERENCE,
-    TEXTURE,
-    TEXTUREVOLUME,
-    LIGHT,
-    GEOMETRY,
-    VOLUME,
-    GENERATOR,
-    IMPORTER,
-    EXPORTER,
-    UNKNOWN = 9999
+    Exporter();
+    virtual ~Exporter() = default;
+
+    NodeType type() const override;
+
+    virtual void doExport() = 0;
   };
+
+  static const std::map<std::string, std::string> exporterMap = {
+      {"png", "exporter_png"}};
+
+  inline std::string getExporter(ospcommon::FileName fileName)
+  {
+    auto fnd = exporterMap.find(fileName.ext());
+    if (fnd == exporterMap.end()) {
+      std::cout << "No exporter for selected file, nothing to export!\n";
+      return "";
+    }
+
+    std::string exporter = fnd->second;
+    std::string nodeName = "exporter" + fileName.base();
+
+    return exporter;
+  }
 
 }  // namespace ospray::sg
