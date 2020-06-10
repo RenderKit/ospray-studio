@@ -81,6 +81,10 @@ namespace ospray::sg {
   void FrameBuffer::saveFrame(std::string filename)
   {
     auto exporter = getExporter(FileName(filename));
+    if (exporter == "") {
+      std::cout << "No exporter found for type " << FileName(filename).ext() << std::endl;
+      return;
+    }
     auto &exp = createChildAs<ImageExporter>("exporter", exporter);
     exp["file"] = filename;
 

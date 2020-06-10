@@ -467,7 +467,7 @@ void MainWindow::display()
     frame->unmapFrame(fb);
 
     if (g_saveNextFrame) {
-      frame->saveFrame("test.png");
+      frame->saveFrame("test.exr");
       g_saveNextFrame = false;
     }
 

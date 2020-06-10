@@ -17,24 +17,23 @@
 #include "ImageExporter.h"
 // ospcommon
 #include "ospcommon/os/FileName.h"
-// stb
-#include "stb_image_write.h"
+#include "ospcommon/utility/SaveImage.h"
 
 namespace ospray::sg {
 
-  struct PNGExporter : public ImageExporter
+  struct PPMExporter : public ImageExporter
   {
-    PNGExporter()  = default;
-    ~PNGExporter() = default;
+    PPMExporter()  = default;
+    ~PPMExporter() = default;
 
     void doExport() override;
   };
 
-  OSP_REGISTER_SG_NODE_NAME(PNGExporter, exporter_png);
+  OSP_REGISTER_SG_NODE_NAME(PPMExporter, exporter_ppm);
 
-  // PNGExporter definitions //////////////////////////////////////////////////
+  // PPMExporter definitions //////////////////////////////////////////////////
 
-  void PNGExporter::doExport()
+  void PPMExporter::doExport()
   {
     auto file    = FileName(child("file").valueAs<std::string>());
 
@@ -44,21 +43,30 @@ namespace ospray::sg {
     }
 
     std::string format = child("format").valueAs<std::string>();
-    if (format == "float") {
-      std::cerr << "Warning: saving a 32-bit float buffer as PNG; color space "
-                   "will be limited."
-                << std::endl;
-      floatToChar();
-    }
-
     vec2i size = child("size").valueAs<vec2i>();
     const void *fb = child("data").valueAs<const void *>();
-    int res = stbi_write_png(file.c_str(), size.x, size.y, 4, fb, 4 * size.x);
 
-    if (res == 0)
-      std::cerr << "STBI error; could not save image" << std::endl;
-    else
-      std::cout << "Saved to " << file << std::endl;
+    if (format == "float") {
+      // TODO: there is a bug in FileName::setExt that deletes the dot when
+      // replacing the extension. Fix and use that in rkcommon when we make the
+      // switch
+      // file = file.setExt("pfm");
+      auto fn = child("file").valueAs<std::string>();
+      auto dot = fn.find_last_of('.');
+      if (dot == std::string::npos)
+        file = FileName(fn + ".pfm");
+      else
+        file = FileName(fn.substr(0, dot+1) + "pfm");
+
+      ospcommon::utility::writePFM(
+          file.c_str(), size.x, size.y, (const vec4f *)fb);
+    } else {
+      ospcommon::utility::writePPM(
+          file.c_str(), size.x, size.y, (const uint32_t *)fb);
+    }
+
+    std::cout << "Saved to " << file << std::endl;
   }
 
 }  // namespace ospray::sg
+

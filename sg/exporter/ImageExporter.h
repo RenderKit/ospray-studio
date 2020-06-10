@@ -29,6 +29,7 @@ namespace ospray::sg {
 
    protected:
     void floatToChar();
+    void charToFloat();
   };
 
   // ImageExporter functions //////////////////////////////////////////////////
@@ -50,6 +51,17 @@ namespace ospray::sg {
     char *newfb = (char *)malloc(nsubpix * sizeof(char));
     for (size_t i = 0; i < nsubpix; i++)
       newfb[i] = char(255 * fb[i]);
+    child("data") = (const void *)newfb;
+  }
+
+  inline void ImageExporter::charToFloat()
+  {
+    const char *fb = (const char *)child("data").valueAs<const void *>();
+    vec2i size = child("size").valueAs<vec2i>();
+    size_t nsubpix = 4 * size.x * size.y;
+    float *newfb = (float *)malloc(nsubpix * sizeof(float));
+    for (size_t i = 0; i < nsubpix; i++)
+      newfb[i] = fb[i] * 0.00392156862f;
     child("data") = (const void *)newfb;
   }
 

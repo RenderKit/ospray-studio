@@ -29,6 +29,13 @@ endif()
 
 ## Build Library ##
 
+option(ENABLE_EXR "Enable EXR format image writing" ON)
+if (ENABLE_EXR)
+  find_package(OpenEXR REQUIRED)
+  set(OPENEXR_LIB OpenEXR::IlmImf)
+  set(EXR_EXPORTER "exporter/EXR.cpp")
+endif()
+
 add_library(ospray_sg SHARED
   Data.cpp
   Node.cpp
@@ -39,6 +46,10 @@ add_library(ospray_sg SHARED
 
   exporter/Exporter.cpp
   exporter/PNG.cpp
+  exporter/JPG.cpp
+  exporter/PPM.cpp
+  exporter/HDR.cpp
+  ${EXR_EXPORTER}
 
   fb/FrameBuffer.cpp
 
@@ -116,6 +127,7 @@ PUBLIC
   OpenImageIO::OpenImageIO
 PRIVATE
   stb_image
+  ${OPENEXR_LIB}
   tiny_obj_loader
   tiny_gltf
 )
@@ -130,12 +142,14 @@ target_include_directories(ospray_sg
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
 )
 
-## Setup additional compile config for optional dependencies ##
-
 if(OSPSG_OPENIMAGEIO AND OpenImageIO_FOUND)
   target_compile_definitions(ospray_sg PRIVATE -DUSE_OPENIMAGEIO)
 endif()
 
+target_compile_definitions(ospray_sg
+PRIVATE
+  $<$<BOOL:${ENABLE_EXR}>:STUDIO_OPENEXR>
+)
 
 ## Build Tests ##
 

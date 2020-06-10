@@ -14,41 +14,53 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
+#include "ImageExporter.h"
+// ospcommon
 #include "ospcommon/os/FileName.h"
+// stb
+#include "stb_image_write.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Exporter : public Node
+  struct HDRExporter : public ImageExporter
   {
-    Exporter();
-    virtual ~Exporter() = default;
+    HDRExporter()  = default;
+    ~HDRExporter() = default;
 
-    NodeType type() const override;
-
-    virtual void doExport() {}
+    void doExport() override;
   };
 
-  static const std::map<std::string, std::string> exporterMap = {
-      {"png", "exporter_png"},
-      {"jpg", "exporter_jpg"},
-      {"ppm", "exporter_ppm"},
-      {"pfm", "exporter_ppm"},
-#ifdef STUDIO_OPENEXR
-      {"exr", "exporter_exr"},
-#endif
-      {"hdr", "exporter_hdr"},
-  };
+  OSP_REGISTER_SG_NODE_NAME(HDRExporter, exporter_hdr);
 
-  inline std::string getExporter(ospcommon::FileName fileName)
+  // HDRExporter definitions //////////////////////////////////////////////////
+
+  void HDRExporter::doExport()
   {
-    auto fnd = exporterMap.find(fileName.ext());
-    if (fnd == exporterMap.end())
-      return "";
+    auto file    = FileName(child("file").valueAs<std::string>());
+
+    if (child("data").valueAs<const void *>() == nullptr) {
+      std::cerr << "Warning: image data null; not exporting" << std::endl;
+      return;
+    }
+
+    std::string format = child("format").valueAs<std::string>();
+    if (format != "float") {
+      std::cerr << "Warning: saving a char buffer as HDR; image will not have "
+                   "wide gamut."
+                << std::endl;
+      floatToChar();
+    }
+
+    vec2i size = child("size").valueAs<vec2i>();
+    const void *fb = child("data").valueAs<const void *>();
+    int res =
+        stbi_write_hdr(file.c_str(), size.x, size.y, 4, (const float *)fb);
+
+    if (res == 0)
+      std::cerr << "STBI error; could not save image" << std::endl;
     else
-      return fnd->second;
+      std::cout << "Saved to " << file << std::endl;
   }
 
 }  // namespace ospray::sg
+
