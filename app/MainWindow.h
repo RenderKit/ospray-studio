@@ -42,10 +42,8 @@ enum class ImageType
   PPM,
   PNG,
   JPG,
-  HDR
-#ifdef STUDIO_OPENEXR
-  ,EXR
-#endif
+  HDR,
+  EXR
 };
 
 class MainWindow
@@ -84,7 +82,7 @@ class MainWindow
   void addPTMaterials();
   bool importGeometry(std::shared_ptr<sg::Node> &world);
   bool importVolume(std::shared_ptr<sg::Node> &world);
-  void saveCurrentFrame(const void *fb);
+  void saveCurrentFrame();
 
   // menu and window UI
   void buildMainMenu();

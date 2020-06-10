@@ -21,10 +21,6 @@
 #include "imgui_impl_opengl2.h"
 // stb_image
 #include "stb_image_write.h"
-#ifdef STUDIO_OPENEXR
-#include <ImfChannelList.h>
-#include <ImfOutputFile.h>
-#endif
 // std
 #include <chrono>
 #include <iostream>
@@ -467,7 +463,7 @@ void MainWindow::display()
     frame->unmapFrame(fb);
 
     if (g_saveNextFrame) {
-      frame->saveFrame("test.exr");
+      saveCurrentFrame();
       g_saveNextFrame = false;
     }
 
@@ -879,67 +875,28 @@ bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
   return true;
 }
 
-void MainWindow::saveCurrentFrame(const void *fb)
+void MainWindow::saveCurrentFrame()
 {
-  int res;
   std::string filename("studio.");
-
-  if (showAlbedo) {
-    filename += "hdr";
-    res = stbi_write_hdr(
-        filename.c_str(), windowSize.x, windowSize.y, 3, (float *)fb);
-  } else {
-    switch (screenshotFiletype) {
-    case ImageType::PPM:
-      filename += "ppm";
-      ospcommon::utility::writePPM(
-          filename.c_str(), windowSize.x, windowSize.y, (uint32_t *)fb);
-      break;
+  switch(screenshotFiletype) {
     case ImageType::PNG:
       filename += "png";
-      res = stbi_write_png(filename.c_str(),
-                           windowSize.x,
-                           windowSize.y,
-                           4,
-                           fb,
-                           4 * windowSize.x);
       break;
     case ImageType::JPG:
       filename += "jpg";
-      res = stbi_write_jpg(
-          filename.c_str(), windowSize.x, windowSize.y, 4, fb, 90);
+      break;
+    case ImageType::PPM:
+      filename += "ppm";
+      break;
+    case ImageType::EXR:
+      filename += "exr";
       break;
     case ImageType::HDR:
       filename += "hdr";
-      res = stbi_write_hdr(
-          filename.c_str(), windowSize.x, windowSize.y, 4, (float *)fb);
       break;
-#ifdef STUDIO_OPENEXR
-    case ImageType::EXR:
-      namespace IMF = OPENEXR_IMF_NAMESPACE;
-      filename += "exr";
-      // use general EXR file API for 32-bit float support
-      Imf::Header exrHeader(windowSize.x, windowSize.y);
-      exrHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
-      exrHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
-      exrHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
-      exrHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
-      Imf::OutputFile exrFile(filename.c_str(), exrHeader);
-      Imf::FrameBuffer exrFb;
-      exrFb.insert("R", Imf::Slice(IMF::FLOAT, (char *)((float *)fb + 0), sizeof(float) * 4, windowSize.x * sizeof(float) * 4));
-      exrFb.insert("G", Imf::Slice(IMF::FLOAT, (char *)((float *)fb + 1), sizeof(float) * 4, windowSize.x * sizeof(float) * 4));
-      exrFb.insert("B", Imf::Slice(IMF::FLOAT, (char *)((float *)fb + 2), sizeof(float) * 4, windowSize.x * sizeof(float) * 4));
-      exrFb.insert("A", Imf::Slice(IMF::FLOAT, (char *)((float *)fb + 3), sizeof(float) * 4, windowSize.x * sizeof(float) * 4));
-      exrFile.setFrameBuffer(exrFb);
-      exrFile.writePixels(windowSize.y);
-      res = 1;
-      break;
-#endif
-    }
   }
 
-  if (res != 0)
-    std::cout << "Saved " << filename << std::endl;
+  frame->saveFrame(filename);
 }
 
 // Main menu //////////////////////////////////////////////////////////////////
@@ -1009,31 +966,12 @@ void MainWindow::buildWindowPreferences()
     return;
   }
 
-  const char *screenshotFiletypes[] = {"pfm", "png", "jpg", "hdr"
-#ifdef STUDIO_OPENEXR
-  , "exr"
-#endif
-  };
-  if (ImGui::Combo("Screenshot filetype",
-                   (int *)&screenshotFiletype,
-                   screenshotFiletypes,
-#ifdef STUDIO_OPENEXR
-                   5
-#else
-                   4
-#endif
-                   )) {
-    auto &fb = frame->child("framebuffer");
-    if (screenshotFiletype == ImageType::HDR
-#ifdef STUDIO_OPENEXR
-        || screenshotFiletype == ImageType::EXR
-#endif
-        ) {
-      fb["colorFormat"] = std::string("float");
-    } else {
-      fb["colorFormat"] = std::string("sRGB");
-    }
-  }
+  // TODO: can this link to exporterMap?
+  const char *screenshotFiletypes[] = {"pfm", "png", "jpg", "hdr", "exr"};
+  ImGui::Combo("Screenshot filetype",
+               (int *)&screenshotFiletype,
+               screenshotFiletypes,
+               5);
   ImGui::End();
 }
 

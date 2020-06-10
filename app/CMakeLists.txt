@@ -29,12 +29,6 @@ if (APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
 endif()
 
-option(ENABLE_EXR "Enable EXR format image writing" OFF)
-if (ENABLE_EXR)
-  find_package(OpenEXR REQUIRED)
-  set(OPENEXR_LIB OpenEXR::IlmImf)
-endif()
-
 target_link_libraries(ospStudio
 PRIVATE
   glfw
@@ -42,12 +36,6 @@ PRIVATE
   stb_image
   ospray_sg
   tiny_file_dialogs
-  ${OPENEXR_LIB}
-)
-
-target_compile_definitions(ospStudio
-PRIVATE
-  $<$<BOOL:${ENABLE_EXR}>:STUDIO_OPENEXR>
 )
 
 install(TARGETS ospStudio
