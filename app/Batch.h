@@ -17,7 +17,7 @@ using ospcommon::make_unique;
 class BatchContext
 {
  public:
-  BatchContext(const vec2i &imageSize);
+  BatchContext(const vec2i &imageSize, bool denoiser = false);
   ~BatchContext() {}
 
   bool parseCommandLine(int &ac, const char **&av);
@@ -30,10 +30,13 @@ class BatchContext
   std::vector<std::string> filesToImport;
   NodePtr importedModels;
 
+  bool denoiserAvailable{false};
+
   std::string optRendererTypeStr = "scivis";
   std::string optImageName       = "ospBatch";
   vec2i optImageSize             = (1024, 768);
   int optSPP                     = 32;
+  int optDenoiser                = 0;
   bool optGridEnable             = false;
   vec3i optGridSize              = (1, 1, 1);
 

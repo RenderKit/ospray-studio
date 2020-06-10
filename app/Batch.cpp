@@ -15,7 +15,9 @@ void start_Batch_mode(int argc, const char *argv[])
 {
   std::cerr << "Batch mode\n";
 
-  auto batch = make_unique<BatchContext>(vec2i(1024, 768));
+  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
+
+  auto batch = make_unique<BatchContext>(vec2i(1024, 768), denoiser);
   if (batch->parseCommandLine(argc, argv)) {
     std::cout << "...importing files!" << std::endl;
     batch->importFiles();
@@ -26,7 +28,8 @@ void start_Batch_mode(int argc, const char *argv[])
   }
 }
 
-BatchContext::BatchContext(const vec2i &imageSize) : optImageSize(imageSize)
+BatchContext::BatchContext(const vec2i &imageSize, bool denoiser)
+    : optImageSize(imageSize), denoiserAvailable(denoiser)
 {
   frame_ptr = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
@@ -64,6 +67,14 @@ bool BatchContext::parseCommandLine(int &argc, const char **&argv)
         --i;
       } else if (arg == "-spp" || arg == "--samples") {
         optSPP = max(1, atoi(argv[i + 1]));
+        removeArgs(argc, argv, i, 2);
+        --i;
+      } else if (arg == "-oidn" || arg == "--denoiser") {
+        if (denoiserAvailable)
+          optDenoiser = min(2, max(0, atoi(argv[i + 1])));
+        else
+          std::cout << " Denoiser not enabled. Check OSPRay module.\n";
+
         removeArgs(argc, argv, i, 2);
         --i;
       } else if (arg == "-g" || arg == "--grid") {
@@ -144,8 +155,19 @@ void BatchContext::render()
 
   frame.render();
   // Accumulate several frames
-  for (auto i = 0; i < optSPP; i++)
+  for (auto i = 0; i < optSPP - 1; i++)
     frame.startNewFrame(true);
+
+  // Only denoise the final frame
+  // XXX TODO if optDenoiser == 2, save both the noisy and denoised color
+  // buffers.  How best to do that since the frame op will alter the final
+  // buffer?
+  if (denoiserAvailable && optDenoiser) {
+    frame.denoiserEnabled         = true;
+    frame.updateFrameOpsNextFrame = true;
+  }
+
+  frame.startNewFrame(true);
 
   auto size          = frame["framebuffer"]["size"].valueAs<vec2i>();
   const void *pixels = frame.mapFrame();
@@ -218,6 +240,13 @@ ospStudio batch specific parameters:
    -r     --renderer [type] (default "scivis")
             rendererType scivis or pathtracer
    -g     --grid [x y z] (default 1 1 1, single instance)
-            instace a grid of models
+            instace a grid of models)text"
+            << std::endl;
+  if (denoiserAvailable) {
+    std::cout <<
+        R"text(
+   -oidn  --denoiser [0,1,2] (default 0)
+            image denoiser (0 = off, 1 = on, 2 = save both)
 )text" << std::endl;
+  }
 }

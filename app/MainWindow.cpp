@@ -41,7 +41,10 @@
 void start_GUI_mode(int argc, const char *argv[])
 {
   std::cerr << "GUI mode\n";
-  auto window = make_unique<MainWindow>(vec2i(1024, 768));
+
+  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
+
+  auto window = make_unique<MainWindow>(vec2i(1024, 768), denoiser);
   window->parseCommandLine(argc, argv);
   window->mainLoop();
   window.reset();

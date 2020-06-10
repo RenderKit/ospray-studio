@@ -22,8 +22,6 @@ int main(int argc, const char *argv[])
 {
   std::cout << "OSPRay Studio\n";
 
-  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
-
   // Parse first argument as StudioMode
   // (GUI is the default if no mode is given)
   // XXX Switch to using ospcommon/rkcommon ArgumentList
