@@ -159,15 +159,25 @@ namespace ospray::sg {
   {
     std::vector<NodePtr> retval;
     const std::string containingPath = fileName.path();
-    std::vector<NodePtr> paramNodes;
 
     for (const auto &m : objData.materials) {
+      std::vector<NodePtr> paramNodes;
       std::string matType{"obj"};
       for (auto &param : m.unknown_parameter) {
         if (param.first == "type") {
-          if (param.second != "obj" &&
-              param.second != "obj")
+          if (param.second != "obj") {
             matType = param.second;
+#if 1 // XXX Accept old OSPRay1.8.5 names
+            if (matType == "Principled")
+              matType = "principled";
+            if (matType == "CarPaint")
+              matType = "carPaint";
+            if (matType == "Luminous")
+              matType = "luminous";
+            if (matType == "Metal")
+              matType = "metal";
+#endif
+          }
 
         } else {
           std::string paramType;
