@@ -33,6 +33,7 @@ namespace ospray::sg {
 
     void resetAccumulation();
     void updateDenoiser(bool enabled);
+    void saveFrame(std::string filename);
 
    private:
     void postCommit() override;

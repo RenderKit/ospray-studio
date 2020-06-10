@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "FrameBuffer.h"
+#include "../exporter/ImageExporter.h"
 
 namespace ospray::sg {
 
@@ -75,6 +76,20 @@ namespace ospray::sg {
       handle().removeParam("imageOperation");
     }
     handle().commit();
+  }
+
+  void FrameBuffer::saveFrame(std::string filename)
+  {
+    auto exporter = getExporter(FileName(filename));
+    auto &exp = createChildAs<ImageExporter>("exporter", exporter);
+    exp["file"] = filename;
+
+    auto fb      = map(OSP_FB_COLOR);
+    auto size    = child("size").valueAs<vec2i>();
+    auto fmt     = child("colorFormat").valueAs<std::string>();
+
+    exp.setImageData(fb, size, fmt);
+    exp.doExport();
   }
 
   OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);

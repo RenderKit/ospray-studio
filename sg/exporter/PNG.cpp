@@ -24,8 +24,8 @@ namespace ospray::sg {
 
   struct PNGExporter : public ImageExporter
   {
-    PNGExporter()           = default;
-    ~PNGExporter() override = default;
+    PNGExporter()  = default;
+    ~PNGExporter() = default;
 
     void doExport() override;
   };
@@ -38,13 +38,13 @@ namespace ospray::sg {
   {
     auto file    = FileName(child("file").valueAs<std::string>());
 
-    if (child("data").valueAs<void *>() == nullptr) {
+    if (child("data").valueAs<const void *>() == nullptr) {
       std::cerr << "Warning: image data null; not exporting" << std::endl;
       return;
     }
 
-    int format = child("format").valueAs<int>();
-    if (format == OSP_FB_RGBA32F) {
+    std::string format = child("format").valueAs<std::string>();
+    if (format == "float") {
       std::cerr << "Warning: saving a 32-bit float buffer as PNG; color space "
                    "will be limited."
                 << std::endl;
@@ -52,7 +52,7 @@ namespace ospray::sg {
     }
 
     vec2i size = child("size").valueAs<vec2i>();
-    void *fb = child("data").valueAs<void *>();
+    const void *fb = child("data").valueAs<const void *>();
     int res = stbi_write_png(file.c_str(), size.x, size.y, 4, fb, 4 * size.x);
 
     if (res == 0)

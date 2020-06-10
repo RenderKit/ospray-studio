@@ -23,11 +23,9 @@ namespace ospray::sg {
   struct OSPSG_INTERFACE ImageExporter : public Exporter
   {
     ImageExporter() = default;
-    virtual ~ImageExporter() = default;
+    ~ImageExporter() = default;
 
-    virtual void doExport() = 0;
-
-    void setImageData(void *fb, vec2i size, OSPFrameBufferFormat format);
+    void setImageData(const void *fb, vec2i size, std::string format);
 
    protected:
     void floatToChar();
@@ -35,22 +33,24 @@ namespace ospray::sg {
 
   // ImageExporter functions //////////////////////////////////////////////////
 
-  inline void ImageExporter::setImageData(void *fb, vec2i size, OSPFrameBufferFormat format)
+  inline void ImageExporter::setImageData(const void *fb,
+                                          vec2i size,
+                                          std::string format)
   {
     createChild("data", "void_ptr", fb);
     createChild("size", "vec2i", size);
-    createChild("format", "int", format);
+    createChild("format", "string", format);
   }
 
   inline void ImageExporter::floatToChar()
   {
-    float *fb = child("data").valueAs<float *>();
+    const float *fb = (const float *)child("data").valueAs<const void *>();
     vec2i size = child("size").valueAs<vec2i>();
     size_t nsubpix = 4 * size.x * size.y;
     char *newfb = (char *)malloc(nsubpix * sizeof(char));
     for (size_t i = 0; i < nsubpix; i++)
       newfb[i] = char(255 * fb[i]);
-    child("data") = (void *)newfb;
+    child("data") = (const void *)newfb;
   }
 
 }  // namespace ospray::sg

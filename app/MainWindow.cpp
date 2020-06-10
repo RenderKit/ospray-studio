@@ -464,12 +464,12 @@ void MainWindow::display()
                  glType,
                  fb);
 
+    frame->unmapFrame(fb);
+
     if (g_saveNextFrame) {
-      saveCurrentFrame(fb);
+      frame->saveFrame("test.png");
       g_saveNextFrame = false;
     }
-
-    frame->unmapFrame(fb);
 
     // Start new frame and reset frame timing interval start
     displayStart = std::chrono::high_resolution_clock::now();

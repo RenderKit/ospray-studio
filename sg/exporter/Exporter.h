@@ -28,7 +28,7 @@ namespace ospray::sg {
 
     NodeType type() const override;
 
-    virtual void doExport() = 0;
+    virtual void doExport() {}
   };
 
   static const std::map<std::string, std::string> exporterMap = {
@@ -36,6 +36,7 @@ namespace ospray::sg {
 
   inline std::string getExporter(ospcommon::FileName fileName)
   {
+    std::cerr << "getting exporter for " << fileName << std::endl;
     auto fnd = exporterMap.find(fileName.ext());
     if (fnd == exporterMap.end()) {
       std::cout << "No exporter for selected file, nothing to export!\n";
@@ -43,7 +44,6 @@ namespace ospray::sg {
     }
 
     std::string exporter = fnd->second;
-    std::string nodeName = "exporter" + fileName.base();
 
     return exporter;
   }

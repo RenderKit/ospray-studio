@@ -106,6 +106,12 @@ namespace ospray::sg {
     fb.unmap(mem);
   }
 
+  void Frame::saveFrame(std::string filename)
+  {
+    auto &fb = childAs<FrameBuffer>("framebuffer");
+    fb.saveFrame(filename);
+  }
+
   void Frame::refreshFrameOperations()
   {
     auto &fb = childAs<FrameBuffer>("framebuffer");
