@@ -35,9 +35,7 @@ namespace ospray::sg {
 
   inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
   {
-    for (int i = 0; i < ctx.level; i++)
-      std::cout << "  ";
-    std::cout << node.name() << " : " << node.subType();
+    std::cout << std::string(2*ctx.level, ' ') << node.name() << " : " << node.subType();
 
     // A couple of usings to make subType strings match types
     using string = std::string;
@@ -60,6 +58,12 @@ namespace ospray::sg {
     PRINT_AS(node, rgba);      
     PRINT_AS(node, Transform); 
     std::cout << std::endl;
+
+    // XXX Debug only, probably need something better here.
+    // Don't litter the PrintNodes with copies of instances, only fully traverse
+    // the main one hanging off world.
+    if (ctx.level > 2 && node.subType().find("importer_") != std::string::npos)
+        return false;
 
     return true;
   }
