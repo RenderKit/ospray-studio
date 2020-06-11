@@ -37,15 +37,6 @@ enum class OSPRayRendererType
   OTHER
 };
 
-enum class ImageType
-{
-  PPM,
-  PNG,
-  JPG,
-  HDR,
-  EXR
-};
-
 class MainWindow
 {
  public:
@@ -98,7 +89,7 @@ class MainWindow
   bool showKeyframes{false};
 
   // imgui-controlled options
-  ImageType screenshotFiletype{ImageType::PNG};
+  std::string screenshotFiletype{"png"};
 
   static MainWindow *activeWindow;
 

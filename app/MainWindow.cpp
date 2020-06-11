@@ -28,6 +28,7 @@
 // ospray_sg
 #include "sg/generator/Generator.h"
 #include "sg/importer/Importer.h"
+#include "sg/exporter/Exporter.h"
 #include "sg/visitors/PrintNodes.h"
 // ospcommon
 #include "ospcommon/math/ospmath.h"
@@ -129,6 +130,12 @@ bool lightTypeUI_callback(void *, int index, const char **out_text)
 bool matTypeUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_matTypes[index].c_str();
+  return true;
+}
+
+bool stringVec_callback(void *data, int index, const char **out_text)
+{
+  *out_text = ((std::string *)data)[index].c_str();
   return true;
 }
 
@@ -878,24 +885,7 @@ bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
 void MainWindow::saveCurrentFrame()
 {
   std::string filename("studio.");
-  switch(screenshotFiletype) {
-    case ImageType::PNG:
-      filename += "png";
-      break;
-    case ImageType::JPG:
-      filename += "jpg";
-      break;
-    case ImageType::PPM:
-      filename += "ppm";
-      break;
-    case ImageType::EXR:
-      filename += "exr";
-      break;
-    case ImageType::HDR:
-      filename += "hdr";
-      break;
-  }
-
+  filename += screenshotFiletype;
   frame->saveFrame(filename);
 }
 
@@ -966,12 +956,21 @@ void MainWindow::buildWindowPreferences()
     return;
   }
 
-  // TODO: can this link to exporterMap?
-  const char *screenshotFiletypes[] = {"pfm", "png", "jpg", "hdr", "exr"};
-  ImGui::Combo("Screenshot filetype",
-               (int *)&screenshotFiletype,
-               screenshotFiletypes,
-               5);
+  // are these names too terse?
+  static const std::vector<std::string> screenshotFiletypes =
+      sg::getExporterTypes();
+
+  static int screenshotFiletypeChoice = std::distance(
+      screenshotFiletypes.begin(),
+      std::find(screenshotFiletypes.begin(), screenshotFiletypes.end(), "png"));
+
+  if (ImGui::Combo("Screenshot filetype",
+                   (int *)&screenshotFiletypeChoice,
+                   stringVec_callback,
+                   (void *)screenshotFiletypes.data(),
+                   screenshotFiletypes.size())) {
+    screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
+  }
   ImGui::End();
 }
 

@@ -51,4 +51,15 @@ namespace ospray::sg {
       return fnd->second;
   }
 
+  // currently used to get screenshot filetypes
+  // assumes that exporterMap only contains image types
+  inline std::vector<std::string> getExporterTypes()
+  {
+    std::vector<std::string> expTypes;
+    for (const auto &e : exporterMap)
+      expTypes.push_back(e.first);
+    std::sort(expTypes.begin(), expTypes.end());
+    return expTypes;
+  }
+
 }  // namespace ospray::sg
