@@ -14,6 +14,19 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+## OpenImageIO support ##
+
+option(OSPSG_OPENIMAGEIO "Enable OpenImageIO support" ON)
+
+if(OSPSG_OPENIMAGEIO)
+  find_package(OpenImageIO 2.2.3.0 EXACT)
+  if (NOT OpenImageIO_FOUND)
+    message(STATUS "OpenImageIO not found. Using stb_image instead.")
+  endif()
+endif()
+
 ## Build Library ##
 
 add_library(ospray_sg SHARED
@@ -97,6 +110,7 @@ target_link_libraries(ospray_sg
 PUBLIC
   ospcommon::ospcommon
   ospray::ospray
+  ${OPENIMAGEIO_LIBRARIES}
 PRIVATE
   stb_image
   tiny_obj_loader
@@ -112,6 +126,14 @@ target_include_directories(ospray_sg
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
 )
+
+## Setup additional compile config for optional dependencies ##
+
+if(OSPSG_OPENIMAGEIO AND OpenImageIO_FOUND)
+  target_include_directories(ospray_sg PUBLIC ${OPENIMAGEIO_INCLUDES})
+  target_compile_definitions(ospray_sg PRIVATE -DOPENIMAGEIO_INPUT)
+endif()
+
 
 ## Build Tests ##
 

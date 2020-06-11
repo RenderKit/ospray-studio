@@ -16,7 +16,7 @@
 
 #include "stb_image.h"
 
-#ifdef USE_OPENIMAGEIO
+#ifdef OPENIMAGEIO_INPUT
 #include <OpenImageIO/imageio.h>
 OIIO_NAMESPACE_USING
 #endif
@@ -54,6 +54,22 @@ namespace ospray::sg {
     std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << channels
               << std::endl;
     return OSP_TEXTURE_FORMAT_INVALID;
+  }
+
+  template <typename T>
+  void generateOIIOTex(std::vector<T> &imageData,
+                      const size_t stride,
+                      int height)
+  {
+      // flip image (because OSPRay's textures have the origin at the lower
+      // left corner)
+      unsigned char *data = (unsigned char *)imageData.data();
+      for (int y = 0; y < height / 2; y++) {
+        unsigned char *src  = &data[y * stride];
+        unsigned char *dest = &data[(height - 1 - y) * stride];
+        for (size_t x = 0; x < stride; x++)
+          std::swap(src[x], dest[x]);
+      }
   }
 
   template <typename T>
@@ -144,7 +160,10 @@ namespace ospray::sg {
     // if (textureCache.find(fileName.str()) != textureCache.end())
       // return textureCache[fileName.str()];
 
-#ifdef USE_OPENIMAGEIO
+#ifdef OPENIMAGEIO_INPUT
+    auto version = OIIO_VERSION;
+    std ::cout << version << std::endl;
+    // std::cout << "using openimage io" << std::endl;
     auto in = ImageInput::open(fileName.str().c_str());
     if (!in) {
       std::cerr << "#osp:sg: failed to load texture '" + fileName.str() + "'"
@@ -158,26 +177,75 @@ namespace ospray::sg {
       channels       = spec.nchannels;
       const bool hdr      = spec.format.size() > 1;
       depth          = hdr ? 4 : 1;
-      preferLinear   = preferLinear;
-      nearestFilter  = nearestFilter;
+      // preferLinear   = preferLinear;
+      // nearestFilter  = nearestFilter;
       const size_t stride = size.x * channels * depth;
-      data = memory::alignedMalloc(sizeof(unsigned char) * size.y * stride);
+      unsigned int dataSize = size.x * size.y * channels * depth;
 
-      in->read_image(hdr ? TypeDesc::FLOAT : TypeDesc::UINT8, data);
-      in->close();
-#if OIIO_VERSION < 10903 && OIIO_VERSION > 10603
-      ImageInput::destroy(in);
-#endif
-
-      // flip image (because OSPRay's textures have the origin at the lower
-      // left corner)
-      unsigned char *data = (unsigned char *)data;
-      for (int y = 0; y < size.y / 2; y++) {
-        unsigned char *src  = &data[y * stride];
-        unsigned char *dest = &data[(size.y - 1 - y) * stride];
-        for (size_t x = 0; x < stride; x++)
-          std::swap(src[x], dest[x]);
+      if (channels == 1) {
+        std::vector<unsigned char> data(dataSize);
+        in->read_image(TypeDesc::UINT8, data.data());
+        in->close();
+        #if OIIO_VERSION < 10903
+        ImageInput::destroy(in);
+        #endif
+        generateOIIOTex<unsigned char>(data, stride, size.y);
+        createChildData("data", data, vec2ul(size.x, size.y));
+      } else if (channels == 2) {
+        std::vector<vec2uc> data(dataSize);
+        in->read_image(TypeDesc::UINT8, data.data());
+        in->close();
+        #if OIIO_VERSION < 10903
+        ImageInput::destroy(in);
+        #endif
+        generateOIIOTex<vec2uc>(data, stride, size.y);
+        createChildData("data", data, vec2ul(size.x, size.y));
+      } else if (channels == 3) {
+        std::vector<vec3uc> data(dataSize);
+        in->read_image(TypeDesc::UINT8, data.data());
+        in->close();
+        #if OIIO_VERSION < 10903
+        ImageInput::destroy(in);
+        #endif
+        generateOIIOTex<vec3uc>(data, stride, size.y);
+        createChildData("data", data, vec2ul(size.x, size.y));
+      } else if (channels == 4) {
+        std::vector<vec4uc> data(dataSize);
+        in->read_image(TypeDesc::UINT8, data.data());
+        in->close();
+        #if OIIO_VERSION < 10903
+        ImageInput::destroy(in);
+        #endif
+        generateOIIOTex<vec4uc>(data, stride, size.y);
+        createChildData("data", data, vec2ul(size.x, size.y));
       }
+//       const ImageSpec &spec = in->spec();
+
+//       size.x         = spec.width;
+//       size.y         = spec.height;
+//       channels       = spec.nchannels;
+//       const bool hdr      = spec.format.size() > 1;
+//       depth          = hdr ? 4 : 1;
+//       preferLinear   = preferLinear;
+//       nearestFilter  = nearestFilter;
+//       const size_t stride = size.x * channels * depth;
+//       data = memory::alignedMalloc(sizeof(unsigned char) * size.y * stride);
+
+//       in->read_image(hdr ? TypeDesc::FLOAT : TypeDesc::UINT8, data);
+//       in->close();
+// #if OIIO_VERSION < 10903 && OIIO_VERSION > 10603
+//       ImageInput::destroy(in);
+// #endif
+
+//       // flip image (because OSPRay's textures have the origin at the lower
+//       // left corner)
+//       unsigned char *data = (unsigned char *)data;
+//       for (int y = 0; y < size.y / 2; y++) {
+//         unsigned char *src  = &data[y * stride];
+//         unsigned char *dest = &data[(size.y - 1 - y) * stride];
+//         for (size_t x = 0; x < stride; x++)
+//           std::swap(src[x], dest[x]);
+//       }
     }
 #else
     const std::string ext = fileName.ext();
