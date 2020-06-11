@@ -886,7 +886,10 @@ void MainWindow::saveCurrentFrame()
 {
   std::string filename("studio.");
   filename += screenshotFiletype;
-  frame->saveFrame(filename);
+  if (screenshotFiletype == "exr")
+    frame->saveFrame(filename, screenshotDepth);
+  else
+    frame->saveFrame(filename);
 }
 
 // Main menu //////////////////////////////////////////////////////////////////
@@ -971,6 +974,11 @@ void MainWindow::buildWindowPreferences()
                    screenshotFiletypes.size())) {
     screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
   }
+
+  if (screenshotFiletype == "exr") {
+    ImGui::Checkbox("Include depth buffer", &screenshotDepth);
+  }
+
   ImGui::End();
 }
 

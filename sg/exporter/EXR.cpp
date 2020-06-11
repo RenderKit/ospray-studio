@@ -65,42 +65,30 @@ namespace ospray::sg {
     exrHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
     exrHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
+    auto makeSlice = [&](const void *fb, int offset) {
+      return Imf::Slice::Make(IMF::FLOAT,
+                              (const void *)((const float *)fb + offset),
+                              IMATH::V2i(0),
+                              size.x,
+                              size.y,
+                              sizeof(float) * 4,
+                              size.x * sizeof(float) * 4);
+    };
+
     Imf::FrameBuffer exrFb;
     // generic API requires channels individually
     // in particular, we need to use the Slice::Make function because we have a
     // const pointer, and the Slice constructor only takes non-const >:|
-    exrFb.insert("R",
-                 Imf::Slice::Make(IMF::FLOAT,
-                                  (const void *)((const float *)fb + 0),
-                                  IMATH::V2i(0),
-                                  size.x,
-                                  size.y,
-                                  sizeof(float) * 4,
-                                  size.x * sizeof(float) * 4));
-    exrFb.insert("G",
-                 Imf::Slice::Make(IMF::FLOAT,
-                                  (const void *)((const float *)fb + 1),
-                                  IMATH::V2i(0),
-                                  size.x,
-                                  size.y,
-                                  sizeof(float) * 4,
-                                  size.x * sizeof(float) * 4));
-    exrFb.insert("B",
-                 Imf::Slice::Make(IMF::FLOAT,
-                                  (const void *)((const float *)fb + 2),
-                                  IMATH::V2i(0),
-                                  size.x,
-                                  size.y,
-                                  sizeof(float) * 4,
-                                  size.x * sizeof(float) * 4));
-    exrFb.insert("A",
-                 Imf::Slice::Make(IMF::FLOAT,
-                                  (const void *)((const float *)fb + 3),
-                                  IMATH::V2i(0),
-                                  size.x,
-                                  size.y,
-                                  sizeof(float) * 4,
-                                  size.x * sizeof(float) * 4));
+    exrFb.insert("R", makeSlice(fb, 0));
+    exrFb.insert("G", makeSlice(fb, 1));
+    exrFb.insert("B", makeSlice(fb, 2));
+    exrFb.insert("A", makeSlice(fb, 3));
+
+    if (hasChild("depth")) {
+      exrHeader.channels().insert("D", Imf::Channel(IMF::FLOAT));
+      const void *depth = child("depth").valueAs<const void *>();
+      exrFb.insert("D", makeSlice(depth, 0));
+    }
 
     Imf::OutputFile exrFile(file.c_str(), exrHeader);
     exrFile.setFrameBuffer(exrFb);

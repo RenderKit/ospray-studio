@@ -147,7 +147,7 @@ if(OSPSG_OPENIMAGEIO AND OpenImageIO_FOUND)
 endif()
 
 target_compile_definitions(ospray_sg
-PRIVATE
+  PUBLIC
   $<$<BOOL:${ENABLE_EXR}>:STUDIO_OPENEXR>
 )
 

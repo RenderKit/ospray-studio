@@ -18,6 +18,8 @@
 
 #include "Exporter.h"
 
+#define ONEOVER255 0.00392156862f
+
 namespace ospray::sg {
 
   struct OSPSG_INTERFACE ImageExporter : public Exporter
@@ -26,6 +28,8 @@ namespace ospray::sg {
     ~ImageExporter() = default;
 
     void setImageData(const void *fb, vec2i size, std::string format);
+    void setDepthData(const void *fb);
+    void clearDepthData();
 
    protected:
     void floatToChar();
@@ -43,6 +47,16 @@ namespace ospray::sg {
     createChild("format", "string", format);
   }
 
+  inline void ImageExporter::setDepthData(const void *fb)
+  {
+    createChild("depth", "void_ptr", fb);
+  }
+
+  inline void ImageExporter::clearDepthData()
+  {
+    remove("depth");
+  }
+
   inline void ImageExporter::floatToChar()
   {
     const float *fb = (const float *)child("data").valueAs<const void *>();
@@ -52,6 +66,13 @@ namespace ospray::sg {
     for (size_t i = 0; i < nsubpix; i++)
       newfb[i] = char(255 * fb[i]);
     child("data") = (const void *)newfb;
+
+    if (hasChild("depth")) {
+      char *newdb = (char *)malloc(nsubpix * sizeof(char));
+      for (size_t i = 0; i < nsubpix; i++)
+        newdb[i] = char(255 * fb[i]);
+      child("depth") = (const void *)newdb;
+    }
   }
 
   inline void ImageExporter::charToFloat()
@@ -61,7 +82,7 @@ namespace ospray::sg {
     size_t nsubpix = 4 * size.x * size.y;
     float *newfb = (float *)malloc(nsubpix * sizeof(float));
     for (size_t i = 0; i < nsubpix; i++)
-      newfb[i] = fb[i] * 0.00392156862f;
+      newfb[i] = fb[i] * ONEOVER255;
     child("data") = (const void *)newfb;
   }
 

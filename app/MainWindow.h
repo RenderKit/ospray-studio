@@ -90,6 +90,7 @@ class MainWindow
 
   // imgui-controlled options
   std::string screenshotFiletype{"png"};
+  bool screenshotDepth{false};
 
   static MainWindow *activeWindow;
 

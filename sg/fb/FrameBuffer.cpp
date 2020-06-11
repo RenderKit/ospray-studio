@@ -60,7 +60,7 @@ namespace ospray::sg {
     auto fb = cpp::FrameBuffer(
         size,
         colorFormats[colorFormatStr],
-        OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO | OSP_FB_VARIANCE);
+        OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO | OSP_FB_VARIANCE | OSP_FB_DEPTH);
 
     setHandle(fb);
   }
@@ -78,7 +78,7 @@ namespace ospray::sg {
     handle().commit();
   }
 
-  void FrameBuffer::saveFrame(std::string filename)
+  void FrameBuffer::saveFrame(std::string filename, bool depth)
   {
     auto exporter = getExporter(FileName(filename));
     if (exporter == "") {
@@ -93,6 +93,10 @@ namespace ospray::sg {
     auto fmt     = child("colorFormat").valueAs<std::string>();
 
     exp.setImageData(fb, size, fmt);
+    if (depth)
+      exp.setDepthData(map(OSP_FB_DEPTH));
+    else
+      exp.clearDepthData();
     exp.doExport();
   }
 
