@@ -31,11 +31,11 @@
 #include "sg/visitors/PrintNodes.h"
 // ospcommon
 #include "ospcommon/os/FileName.h"
-#include "ospcommon/utility/getEnvVar.h"
 #include "ospcommon/utility/SaveImage.h"
+#include "ospcommon/utility/getEnvVar.h"
 // tiny_file_dialogs
-#include "tinyfiledialogs.h"
 #include "sg/scene/volume/Structured.h"
+#include "tinyfiledialogs.h"
 
 // GUI mode entry point
 void start_GUI_mode(int argc, const char *argv[])
@@ -133,9 +133,9 @@ bool matTypeUI_callback(void *, int index, const char **out_text)
 
 std::string vec3fToString(const vec3f &v)
 {
-    std::stringstream ss;
-    ss << v;
-    return ss.str();
+  std::stringstream ss;
+  ss << v;
+  return ss.str();
 }
 
 // MainWindow definitions ///////////////////////////////////////////////
@@ -206,15 +206,22 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
   });
 
   glfwSetKeyCallback(
-      glfwWindow, [](GLFWwindow *, int key, int, int action, int) {
+      glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
         if (action == GLFW_PRESS) {
           switch (key) {
           case GLFW_KEY_G:
             activeWindow->showUi = !(activeWindow->showUi);
             break;
-          case GLFW_KEY_Q:
-            g_quitNextFrame = true;
-            break;
+          case GLFW_KEY_Q: {
+            auto showMode =
+                ospcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
+            // XXX Invoke the "Jim-Q" key, make it more difficult to exit
+            // by mistake.
+            if (showMode && mod != GLFW_MOD_CONTROL)
+              std::cout << "Use ctrl-Q to exit\n";
+            else
+              g_quitNextFrame = true;
+          } break;
           case GLFW_KEY_P:
             activeWindow->frame->traverse<sg::PrintNodes>();
             break;
@@ -231,7 +238,7 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
             g_saveNextFrame = true;
             break;
           case GLFW_KEY_SPACE:
-            g_animatingPath = !g_animatingPath;
+            g_animatingPath       = !g_animatingPath;
             g_camCurrentPathIndex = 0;
             if (g_animatingPath) {
               g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
@@ -385,7 +392,7 @@ void MainWindow::display()
 
   if (g_animatingPath) {
     static int framesPaused = 0;
-    CameraState current = g_camPath[g_camCurrentPathIndex];
+    CameraState current     = g_camPath[g_camCurrentPathIndex];
     arcballCamera->setState(current);
     updateCamera();
 
@@ -394,7 +401,7 @@ void MainWindow::display()
       framesPaused++;
       int framesToWait = g_camPathPause * ImGui::GetIO().Framerate;
       if (framesPaused > framesToWait) {
-        framesPaused = 0;
+        framesPaused          = 0;
         g_camCurrentPathIndex = 0;
       }
     } else {
@@ -430,10 +437,10 @@ void MainWindow::display()
 
     // This needs to query the actual framebuffer format
     const GLint glFormat = showAlbedo ? GL_RGB : GL_RGBA;
-    //const GLenum glType  = (showAlbedo || screenshotFiletype == ImageType::HDR)
+    // const GLenum glType  = (showAlbedo || screenshotFiletype == ImageType::HDR)
     //                          ? GL_FLOAT
     //                          : GL_UNSIGNED_BYTE;
-    const GLenum glType  = GL_FLOAT; // required for denoiser
+    const GLenum glType = GL_FLOAT;  // required for denoiser
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
@@ -756,7 +763,7 @@ void MainWindow::importFiles()
   auto world = sg::createNode("world", "world");
 
   for (auto file : filesToImport) {
-//    try {
+    try {
       ospcommon::FileName fileName(file);
       std::string nodeName = fileName.base() + "_importer";
 
@@ -767,10 +774,6 @@ void MainWindow::importFiles()
         auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
         imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
-
-#if 0  // BMCDEBUG, just for testing
-        imp.traverse<sg::PrintNodes>();
-#endif
 
         if (baseMaterialRegistry->matImportsList.size() != 0) {
           for (auto &newMat : baseMaterialRegistry->matImportsList)
@@ -785,9 +788,9 @@ void MainWindow::importFiles()
           refreshRenderer();
         }
       }
-//    } catch (...) {
-//      std::cerr << "Failed to open file '" << file << "'!\n";
-//    }
+    } catch (...) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
+    }
   }
   world->createChild("light", lightTypeStr);
 
@@ -813,10 +816,6 @@ bool MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
       auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
       imp["file"] = std::string(file);
       imp.importScene(baseMaterialRegistry);
-
-#if 0  // BMCDEBUG, just for testing
-      imp.traverse<sg::PrintNodes>();
-#endif
 
       if (baseMaterialRegistry->matImportsList.size() != 0) {
         for (auto &newMat : baseMaterialRegistry->matImportsList)
@@ -1016,7 +1015,7 @@ void MainWindow::buildWindowKeyframes()
     if (g_camAnchors.size() >= 2) {
       ImGui::SameLine();
       if (ImGui::Button(g_animatingPath ? "stop" : "play")) {
-        g_animatingPath         = !g_animatingPath;
+        g_animatingPath       = !g_animatingPath;
         g_camCurrentPathIndex = 0;
         if (g_animatingPath) {
           g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
