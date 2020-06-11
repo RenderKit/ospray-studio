@@ -116,18 +116,22 @@ namespace ospray::sg {
       auto numTriangles = 0;
       needsReload       = false;
       for (auto &shape : retval.shapes) {
+        // If already planning to reload, skip next loop
+        if (needsReload)
+          break;
         for (auto numVertsInFace : shape.mesh.num_face_vertices) {
           numTriangles += (numVertsInFace == 3);
           numQuads += (numVertsInFace == 4);
 
           if (numVertsInFace < 3) {
             std::cerr << "Warning: less than 3 verts in face!\n"
-                      << "         Lines and points not supported.\n";
+              << "         Lines and points not supported.\n";
             needsReload = true;
+            break;
           }
           if (numVertsInFace > 4) {
             std::cerr << "Warning: more than 4 verts in face!\n"
-                      << "         Polygons not supported.\n";
+              << "         Polygons not supported.\n";
             needsReload = true;
             break;
           }
