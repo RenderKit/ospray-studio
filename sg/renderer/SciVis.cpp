@@ -22,8 +22,8 @@ namespace ospray::sg {
   {
     SciVis();
     virtual ~SciVis() override = default;
-    // void preCommit() override;
-    // void postCommit() override;
+    void preCommit() override;
+    void postCommit() override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(SciVis, renderer_scivis);
@@ -37,19 +37,19 @@ namespace ospray::sg {
     createChild("aoIntensity", "float", 1.f);
   }
 
-  // void SciVis::preCommit() {
-  //   auto &renderer = handle();
-  //   if(hasChild("map_backplate")) {
-  //     auto &cppTex = child("map_backplate").valueAs<cpp::Texture>();
-  //     renderer.setParam("map_backplate", cppTex);
-  //   } else if (hasChild("map_maxDepth")) {
-  //     // add texture for maxDepth here.
-  //   }
-  // }
+  void SciVis::preCommit() {
+    auto &renderer = handle();
+    if(hasChild("map_backplate")) {
+      auto &cppTex = child("map_backplate").valueAs<cpp::Texture>();
+      renderer.setParam("map_backplate", cppTex);
+    } else if (hasChild("map_maxDepth")) {
+      // add texture for maxDepth here.
+    }
+  }
 
-  // void SciVis::postCommit() {
-  //   auto &renderer = handle();
-  //   renderer.commit();
-  // }
+  void SciVis::postCommit() {
+    auto &renderer = handle();
+    renderer.commit();
+  }
 
 }  // namespace ospray::sg

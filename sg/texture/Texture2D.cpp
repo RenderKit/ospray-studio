@@ -16,7 +16,7 @@
 
 #include "stb_image.h"
 
-#ifdef OPENIMAGEIO_INPUT
+#ifdef USE_OPENIMAGEIO
 #include <OpenImageIO/imageio.h>
 OIIO_NAMESPACE_USING
 #endif
@@ -56,6 +56,7 @@ namespace ospray::sg {
     return OSP_TEXTURE_FORMAT_INVALID;
   }
 
+
   template <typename T>
   void generateOIIOTex(std::vector<T> &imageData,
                       const size_t stride,
@@ -70,6 +71,144 @@ namespace ospray::sg {
         for (size_t x = 0; x < stride; x++)
           std::swap(src[x], dest[x]);
       }
+  }
+
+  void createOIIOTexData(Texture2D *texNode,
+                         std::unique_ptr<ImageInput> in,
+                         bool preferLinear  = false,
+                         bool nearestFilter = false)
+  {
+    if (!in) {
+      // TO DO: mention image input description along with error message
+      std::cerr << "#osp:sg: failed to load texture '" << std::endl;
+      // reset();
+    } else {
+      const ImageSpec &spec = in->spec();
+      vec2i size;
+      int channels, depth;
+      size.x                = spec.width;
+      size.y                = spec.height;
+      channels              = spec.nchannels;
+      const bool hdr        = spec.format.size() > 1;
+      depth                 = hdr ? 4 : 1;
+      const size_t stride   = size.x * channels * depth;
+      unsigned int dataSize = stride * size.y;
+
+      if (depth == 1) {
+        switch (channels) {
+        case 1: {
+          auto ospTexFormat = preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
+
+          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                               : OSP_TEXTURE_FILTER_BILINEAR);
+          texNode->createChild("format", "int", (int)ospTexFormat);
+          texNode->createChild("filter", "int", texFilter);
+          std::vector<unsigned char> data(dataSize);
+          in->read_image(TypeDesc::UINT8, data.data());
+
+          generateOIIOTex<unsigned char>(data, stride, size.y);
+          texNode->createChildData("data", data, vec2ul(size.x, size.y));
+          break;
+        }
+        case 2: {
+          auto ospTexFormat = preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
+          auto texFilter    = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                               : OSP_TEXTURE_FILTER_BILINEAR);
+          texNode->createChild("format", "int", (int)ospTexFormat);
+          texNode->createChild("filter", "int", texFilter);
+          std::vector<vec2uc> data(dataSize);
+          in->read_image(TypeDesc::UINT8, data.data());
+
+          generateOIIOTex<vec2uc>(data, stride, size.y);
+          texNode->createChildData("data", data, vec2ul(size.x, size.y));
+          break;
+        }
+        case 3: {
+          auto ospTexFormat =
+              preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
+          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                               : OSP_TEXTURE_FILTER_BILINEAR);
+          texNode->createChild("format", "int", (int)ospTexFormat);
+          texNode->createChild("filter", "int", texFilter);
+          std::vector<vec3uc> data(dataSize);
+          in->read_image(TypeDesc::UINT8, data.data());
+
+          generateOIIOTex<vec3uc>(data, stride, size.y);
+          texNode->createChildData("data", data, vec2ul(size.x, size.y));
+          break;
+        }
+        case 4: {
+          auto ospTexFormat =
+              preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
+          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                               : OSP_TEXTURE_FILTER_BILINEAR);
+          texNode->createChild("format", "int", (int)ospTexFormat);
+          texNode->createChild("filter", "int", texFilter);
+          std::vector<vec4uc> data(dataSize);
+          in->read_image(TypeDesc::UINT8, data.data());
+
+          generateOIIOTex<vec4uc>(data, stride, size.y);
+          texNode->createChildData("data", data, vec2ul(size.x, size.y));
+          break;
+        }
+        default:
+          std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << channels
+                    << std::endl;
+          break;
+        }
+      } else if (depth == 4) {
+        switch (channels) {
+        case 1: {
+          auto ospTexFormat = OSP_TEXTURE_R32F;
+          auto texFilter    = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                               : OSP_TEXTURE_FILTER_BILINEAR);
+          texNode->createChild("format", "int", (int)ospTexFormat);
+          texNode->createChild("filter", "int", texFilter);
+          std::vector<float> data(dataSize);
+          in->read_image(TypeDesc::FLOAT, data.data());
+
+          generateOIIOTex<float>(data, stride, size.y);
+          texNode->createChildData("data", data, vec2ul(size.x, size.y));
+          break;
+        }
+        case 3: {
+          auto ospTexFormat = OSP_TEXTURE_RGB32F;
+          auto texFilter    = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                               : OSP_TEXTURE_FILTER_BILINEAR);
+          texNode->createChild("format", "int", (int)ospTexFormat);
+          texNode->createChild("filter", "int", texFilter);
+          std::vector<vec3f> data(dataSize);
+          in->read_image(TypeDesc::FLOAT, data.data());
+
+          generateOIIOTex<vec3f>(data, stride, size.y);
+          texNode->createChildData("data", data, vec2ul(size.x, size.y));
+          break;
+        }
+        case 4: {
+          auto ospTexFormat = OSP_TEXTURE_RGBA32F;
+          auto texFilter    = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                               : OSP_TEXTURE_FILTER_BILINEAR);
+          texNode->createChild("format", "int", (int)ospTexFormat);
+          texNode->createChild("filter", "int", texFilter);
+          std::vector<vec4f> data(dataSize);
+          in->read_image(TypeDesc::FLOAT, data.data());
+
+          generateOIIOTex<vec4f>(data, stride, size.y);
+          texNode->createChildData("data", data, vec2ul(size.x, size.y));
+          break;
+        }
+        default:
+          std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << channels
+                    << std::endl;
+          break;
+        }
+      }
+
+      in->close();
+#if OIIO_VERSION < 10903
+      ImageInput::destroy(in);
+#endif
+    }
   }
 
   template <typename T>
@@ -160,93 +299,13 @@ namespace ospray::sg {
     // if (textureCache.find(fileName.str()) != textureCache.end())
       // return textureCache[fileName.str()];
 
-#ifdef OPENIMAGEIO_INPUT
-    auto version = OIIO_VERSION;
-    std ::cout << version << std::endl;
-    // std::cout << "using openimage io" << std::endl;
-    auto in = ImageInput::open(fileName.str().c_str());
-    if (!in) {
-      std::cerr << "#osp:sg: failed to load texture '" + fileName.str() + "'"
-                << std::endl;
-      // reset();
-    } else {
-      const ImageSpec &spec = in->spec();
+#ifdef USE_OPENIMAGEIO
 
-      size.x         = spec.width;
-      size.y         = spec.height;
-      channels       = spec.nchannels;
-      const bool hdr      = spec.format.size() > 1;
-      depth          = hdr ? 4 : 1;
-      // preferLinear   = preferLinear;
-      // nearestFilter  = nearestFilter;
-      const size_t stride = size.x * channels * depth;
-      unsigned int dataSize = size.x * size.y * channels * depth;
+    createOIIOTexData(this,
+                      ImageInput::open(fileName.str().c_str()),
+                      preferLinear,
+                      nearestFilter);
 
-      if (channels == 1) {
-        std::vector<unsigned char> data(dataSize);
-        in->read_image(TypeDesc::UINT8, data.data());
-        in->close();
-        #if OIIO_VERSION < 10903
-        ImageInput::destroy(in);
-        #endif
-        generateOIIOTex<unsigned char>(data, stride, size.y);
-        createChildData("data", data, vec2ul(size.x, size.y));
-      } else if (channels == 2) {
-        std::vector<vec2uc> data(dataSize);
-        in->read_image(TypeDesc::UINT8, data.data());
-        in->close();
-        #if OIIO_VERSION < 10903
-        ImageInput::destroy(in);
-        #endif
-        generateOIIOTex<vec2uc>(data, stride, size.y);
-        createChildData("data", data, vec2ul(size.x, size.y));
-      } else if (channels == 3) {
-        std::vector<vec3uc> data(dataSize);
-        in->read_image(TypeDesc::UINT8, data.data());
-        in->close();
-        #if OIIO_VERSION < 10903
-        ImageInput::destroy(in);
-        #endif
-        generateOIIOTex<vec3uc>(data, stride, size.y);
-        createChildData("data", data, vec2ul(size.x, size.y));
-      } else if (channels == 4) {
-        std::vector<vec4uc> data(dataSize);
-        in->read_image(TypeDesc::UINT8, data.data());
-        in->close();
-        #if OIIO_VERSION < 10903
-        ImageInput::destroy(in);
-        #endif
-        generateOIIOTex<vec4uc>(data, stride, size.y);
-        createChildData("data", data, vec2ul(size.x, size.y));
-      }
-//       const ImageSpec &spec = in->spec();
-
-//       size.x         = spec.width;
-//       size.y         = spec.height;
-//       channels       = spec.nchannels;
-//       const bool hdr      = spec.format.size() > 1;
-//       depth          = hdr ? 4 : 1;
-//       preferLinear   = preferLinear;
-//       nearestFilter  = nearestFilter;
-//       const size_t stride = size.x * channels * depth;
-//       data = memory::alignedMalloc(sizeof(unsigned char) * size.y * stride);
-
-//       in->read_image(hdr ? TypeDesc::FLOAT : TypeDesc::UINT8, data);
-//       in->close();
-// #if OIIO_VERSION < 10903 && OIIO_VERSION > 10603
-//       ImageInput::destroy(in);
-// #endif
-
-//       // flip image (because OSPRay's textures have the origin at the lower
-//       // left corner)
-//       unsigned char *data = (unsigned char *)data;
-//       for (int y = 0; y < size.y / 2; y++) {
-//         unsigned char *src  = &data[y * stride];
-//         unsigned char *dest = &data[(size.y - 1 - y) * stride];
-//         for (size_t x = 0; x < stride; x++)
-//           std::swap(src[x], dest[x]);
-//       }
-    }
 #else
     const std::string ext = fileName.ext();
 

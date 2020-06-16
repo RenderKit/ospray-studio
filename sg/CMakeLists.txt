@@ -21,7 +21,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 option(OSPSG_OPENIMAGEIO "Enable OpenImageIO support" ON)
 
 if(OSPSG_OPENIMAGEIO)
-  find_package(OpenImageIO 2.2.3.0 EXACT)
+  find_package(OpenImageIO 2.2.3.0)
   if (NOT OpenImageIO_FOUND)
     message(STATUS "OpenImageIO not found. Using stb_image instead.")
   endif()
@@ -131,7 +131,7 @@ target_include_directories(ospray_sg
 
 if(OSPSG_OPENIMAGEIO AND OpenImageIO_FOUND)
   target_include_directories(ospray_sg PUBLIC ${OPENIMAGEIO_INCLUDES})
-  target_compile_definitions(ospray_sg PRIVATE -DOPENIMAGEIO_INPUT)
+  target_compile_definitions(ospray_sg PRIVATE -DUSE_OPENIMAGEIO)
 endif()
 
 
