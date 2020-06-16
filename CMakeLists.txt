@@ -56,7 +56,7 @@ set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL 2 REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(ospcommon 1.1.0 REQUIRED)
-find_package(ospray 2.0.0 REQUIRED)
+find_package(ospray 2.1.1 REQUIRED)
 
 # imgui (since v1.74) now includes this define, making this
 # redundant

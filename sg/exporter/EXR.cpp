@@ -65,29 +65,24 @@ namespace ospray::sg {
     exrHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
     exrHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
-    auto makeSlice = [&](const void *fb, int offset) {
-      return Imf::Slice::Make(IMF::FLOAT,
-                              (const void *)((const float *)fb + offset),
-                              IMATH::V2i(0),
-                              size.x,
-                              size.y,
-                              sizeof(float) * 4,
-                              size.x * sizeof(float) * 4);
+    auto makeSlice = [&](const void *fb, int offset, int ncomp = 4) {
+      return Imf::Slice(IMF::FLOAT,
+                        (char *)((float *)fb + offset),
+                        sizeof(float) * ncomp,
+                        size.x * sizeof(float) * ncomp);
     };
 
     Imf::FrameBuffer exrFb;
     // generic API requires channels individually
-    // in particular, we need to use the Slice::Make function because we have a
-    // const pointer, and the Slice constructor only takes non-const >:|
     exrFb.insert("R", makeSlice(fb, 0));
     exrFb.insert("G", makeSlice(fb, 1));
     exrFb.insert("B", makeSlice(fb, 2));
     exrFb.insert("A", makeSlice(fb, 3));
 
     if (hasChild("depth")) {
-      exrHeader.channels().insert("D", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("Z", Imf::Channel(IMF::FLOAT));
       const void *depth = child("depth").valueAs<const void *>();
-      exrFb.insert("D", makeSlice(depth, 0));
+      exrFb.insert("Z", makeSlice(depth, 0, 1));
     }
 
     Imf::OutputFile exrFile(file.c_str(), exrHeader);

@@ -88,16 +88,24 @@ namespace ospray::sg {
     auto &exp = createChildAs<ImageExporter>("exporter", exporter);
     exp["file"] = filename;
 
-    auto fb      = map(OSP_FB_COLOR);
-    auto size    = child("size").valueAs<vec2i>();
-    auto fmt     = child("colorFormat").valueAs<std::string>();
+    auto fb    = map(OSP_FB_COLOR);
+    auto size  = child("size").valueAs<vec2i>();
+    auto fmt   = child("colorFormat").valueAs<std::string>();
+    void *zbuf = nullptr;
 
     exp.setImageData(fb, size, fmt);
-    if (depth)
-      exp.setDepthData(map(OSP_FB_DEPTH));
-    else
+    if (depth) {
+      zbuf = (void *)map(OSP_FB_DEPTH);
+      exp.setDepthData(zbuf);
+    } else {
       exp.clearDepthData();
+    }
+
     exp.doExport();
+
+    unmap(fb);
+    if (depth)
+      unmap(zbuf);
   }
 
   OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);
