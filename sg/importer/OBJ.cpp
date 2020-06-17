@@ -83,7 +83,7 @@ namespace ospray::sg {
               sg::createNode(map_name, "texture_2d"));
 
       auto &tex2D = *sgTex;
-      tex2D["name"].setValue(texName);
+      tex2D["name"].setValue(texName.str());
 
       sgTex->load(containingPath + texName, preferLinear, nearestFilter);
 
@@ -168,6 +168,7 @@ namespace ospray::sg {
           if (param.second != "obj") {
             matType = param.second;
 #if 1 // XXX Accept old OSPRay1.8.5 names
+            // Accept OSPRay 1.8.5 material 'type' names
             if (matType == "Principled")
               matType = "principled";
             if (matType == "CarPaint")
