@@ -46,7 +46,7 @@ inline void initializeOSPRay(int argc,
   // set an error callback to catch any OSPRay errors and exit the application
   ospDeviceSetErrorFunc(device, [](OSPError error, const char *errorDetails) {
     std::cerr << "OSPRay error: " << errorDetails << std::endl;
-    exit(error);
+    // exit(error); Not all errors need be fatal.  ie, ospLoadModule may fail.
   });
 
   ospDeviceSetStatusFunc(device, [](const char *message) {
