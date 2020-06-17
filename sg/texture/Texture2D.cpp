@@ -57,6 +57,7 @@ namespace ospray::sg {
   }
 
 
+#ifdef USE_OPENIMAGEIO
   template <typename T>
   void generateOIIOTex(std::vector<T> &imageData,
                       const size_t stride,
@@ -210,6 +211,7 @@ namespace ospray::sg {
 #endif
     }
   }
+#endif
 
   template <typename T>
   void generatePPMTex(std::vector<T> &data,
