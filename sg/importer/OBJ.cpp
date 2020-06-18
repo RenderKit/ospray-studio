@@ -287,6 +287,11 @@ namespace ospray::sg {
     for (auto &shape : objData.shapes) {
       auto numSrcIndices = shape.mesh.indices.size();
 
+      // Mesh indices.size == 0 indicates a non-mesh primitive
+      // (points, lines, curves and surfaces)
+      if (numSrcIndices == 0)
+        continue;
+
       std::vector<vec3f> v;
       std::vector<vec4ui> vi;
       std::vector<vec3f> vn;
