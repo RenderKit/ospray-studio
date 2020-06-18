@@ -29,34 +29,6 @@ namespace ospray::sg {
 
   // static helper functions //////////////////////////////////////////////////
 
-  OSPTextureFormat osprayTextureFormat(int depth,
-                                       int channels,
-                                       bool preferLinear = false)
-  {
-    if (depth == 1) {
-      if (channels == 1)
-        return preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
-      if (channels == 2)
-        return preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
-      if (channels == 3)
-        return preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
-      if (channels == 4)
-        return preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
-    } else if (depth == 4) {
-      if (channels == 1)
-        return OSP_TEXTURE_R32F;
-      if (channels == 3)
-        return OSP_TEXTURE_RGB32F;
-      if (channels == 4)
-        return OSP_TEXTURE_RGBA32F;
-    }
-
-    std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << channels
-              << std::endl;
-    return OSP_TEXTURE_FORMAT_INVALID;
-  }
-
-
 #ifdef USE_OPENIMAGEIO
   template <typename T>
   void generateOIIOTex(std::vector<T> &imageData,

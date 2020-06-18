@@ -39,17 +39,44 @@ namespace ospray::sg {
               const bool nearestFilter = false);
     static void clearTextureCache();
 
-   private:
-     //! texture size, in pixels
-    vec2i size {-1};
+    //! texture size, in pixels
+    vec2i size{-1};
     int channels{0};
     int depth{0};
     bool preferLinear{false};
-    bool nearestFilter{false};   
+    bool nearestFilter{false};
 
+   private:
     bool committed{false};
 
     static std::map<std::string, std::shared_ptr<Texture2D>> textureCache;
   };
+
+  inline OSPTextureFormat osprayTextureFormat(int depth,
+                                              int channels,
+                                              bool preferLinear)
+  {
+    if (depth == 1) {
+      if (channels == 1)
+        return preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
+      if (channels == 2)
+        return preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
+      if (channels == 3)
+        return preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
+      if (channels == 4)
+        return preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
+    } else if (depth == 4) {
+      if (channels == 1)
+        return OSP_TEXTURE_R32F;
+      if (channels == 3)
+        return OSP_TEXTURE_RGB32F;
+      if (channels == 4)
+        return OSP_TEXTURE_RGBA32F;
+    }
+
+    std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << channels
+              << std::endl;
+    return OSP_TEXTURE_FORMAT_INVALID;
+  }
 
 }  // namespace ospray::sg

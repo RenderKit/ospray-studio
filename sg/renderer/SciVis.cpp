@@ -38,13 +38,13 @@ namespace ospray::sg {
   }
 
   void SciVis::preCommit() {
-    auto &renderer = handle();
-    if(hasChild("map_backplate")) {
-      auto &cppTex = child("map_backplate").valueAs<cpp::Texture>();
-      renderer.setParam("map_backplate", cppTex);
-    } else if (hasChild("map_maxDepth")) {
-      // add texture for maxDepth here.
-    }
+//    auto &renderer = handle();
+//    if(hasChild("map_backplate")) {
+//      auto &cppTex = child("map_backplate").valueAs<cpp::Texture>();
+//      renderer.setParam("map_backplate", cppTex);
+//    } else if (hasChild("map_maxDepth")) {
+//      // add texture for maxDepth here.
+//    }
   }
 
   void SciVis::postCommit() {

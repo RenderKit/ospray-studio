@@ -218,6 +218,9 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
           case GLFW_KEY_P:
             activeWindow->frame->traverse<sg::PrintNodes>();
             break;
+          case GLFW_KEY_M:
+            activeWindow->baseMaterialRegistry->traverse<sg::PrintNodes>();
+            break;
           case GLFW_KEY_B:
             PRINT(activeWindow->frame->bounds());
             break;
@@ -753,7 +756,7 @@ void MainWindow::importFiles()
   auto world = sg::createNode("world", "world");
 
   for (auto file : filesToImport) {
-    try {
+//    try {
       ospcommon::FileName fileName(file);
       std::string nodeName = fileName.base() + "_importer";
 
@@ -782,9 +785,9 @@ void MainWindow::importFiles()
           refreshRenderer();
         }
       }
-    } catch (...) {
-      std::cerr << "Failed to open file '" << file << "'!\n";
-    }
+//    } catch (...) {
+//      std::cerr << "Failed to open file '" << file << "'!\n";
+//    }
   }
   world->createChild("light", lightTypeStr);
 
@@ -811,7 +814,7 @@ bool MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
       imp["file"] = std::string(file);
       imp.importScene(baseMaterialRegistry);
 
-#if 1  // BMCDEBUG, just for testing
+#if 0  // BMCDEBUG, just for testing
       imp.traverse<sg::PrintNodes>();
 #endif
 

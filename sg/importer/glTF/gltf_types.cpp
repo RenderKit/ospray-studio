@@ -1,6 +1,8 @@
 #include "tiny_gltf.h"
 #include "gltf_types.h"
 
+#include <iostream>
+
 std::string print_primitive_mode(int mode)
 {
     if (mode == TINYGLTF_MODE_POINTS) {
@@ -304,7 +306,8 @@ DTYPE gltf_type_to_dtype(int type, int component_type)
     default:
         break;
     }
-    // throw std::runtime_error("Unrecognized type/component type pair");
+    std::cerr << "Unrecognized type/component type pair" << std::endl;
+    return (enum DTYPE)-1; // XXX Why is DTYPE::UNKNOWN not defined?!
 }
 
 size_t dtype_stride(DTYPE type)
@@ -373,7 +376,8 @@ size_t dtype_stride(DTYPE type)
     default:
         break;
     }
-    // throw std::runtime_error("UNKOWN DATATYPE");
+    std::cerr << "UNKOWN DATATYPE" << std::endl;
+    return 0;
 }
 
 size_t dtype_components(DTYPE type)
@@ -444,5 +448,6 @@ size_t dtype_components(DTYPE type)
     default:
         break;
     }
-    // throw std::runtime_error("Invalid data type");
+    std::cerr << "Invalid data type" << std::endl;
+    return 0;
 }

@@ -27,15 +27,10 @@
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
+#define DEBUG std::cout << prefix << "(D): "
 #define INFO std::cout << prefix << "(I): "
 #define WARN std::cout << prefix << "(W): "
 #define ERROR std::cerr << prefix << "(E): "
-
-// Pads a std::string to optional length.  Useful for numbers.
-inline std::string pad(std::string string, char p = '0', int length = 4)
-{
-  return std::string(std::max(0, length - (int)string.length()), p) + string;
-}
 
 namespace ospray::sg {
 
@@ -77,10 +72,9 @@ namespace ospray::sg {
 
     NodePtr rootNode;
 
-    std::vector<NodePtr> ospTextures;
     std::vector<NodePtr> ospMaterials;
 
-    size_t baseMaterialOffset; // set in createMaterials()
+    size_t baseMaterialOffset;  // set in createMaterials()
 
     void visitNode(NodePtr sgNode,
                    const int nid,
@@ -93,7 +87,9 @@ namespace ospray::sg {
 
     NodePtr createOSPMaterial(const tinygltf::Material &material);
 
-    NodePtr createOSPTexture(const tinygltf::Texture &texture);
+    NodePtr createOSPTexture(const std::string &texParam,
+                             const tinygltf::Texture &texture,
+                             const bool preferLinear);
 
     void setOSPTexture(NodePtr ospMaterial,
                        const std::string &texParam,
@@ -102,6 +98,12 @@ namespace ospray::sg {
   };
 
   // Helper functions /////////////////////////////////////////////////////////
+
+  // Pads a std::string to optional length.  Useful for numbers.
+  inline std::string pad(std::string string, char p = '0', int length = 4)
+  {
+    return std::string(std::max(0, length - (int)string.length()), p) + string;
+  }
 
   bool GLTFData::parseAsset()
   {
@@ -181,38 +183,19 @@ namespace ospray::sg {
 
   void GLTFData::createMaterials(MaterialRegistry &materialRegistry)
   {
-    INFO << "Create Materials\n";
+    //DEBUG << "Create Materials\n";
+
     // Create materials and textures
     // (adding 1 for default material)
     ospMaterials.reserve(model.materials.size() + 1);
-    ospTextures.reserve(model.textures.size());
 
     // "default" material for glTF '-1' index (no material)
     ospMaterials.emplace_back(createNode("default", "principled"));
-
-#if 0
-    WARN << "Skipping materials at the moment -- needs 2.0 implmentation\n";
-    // Create textures (references model.images[])
-    for (const auto &texture : model.textures) {
-      ospTextures.push_back(createOSPTexture(texture));
-    }
-#endif
 
     // Create materials (also sets textures to material params)
     for (const auto &material : model.materials) {
       ospMaterials.push_back(createOSPMaterial(material));
     }
-
-#if 0
-    // Create materials list
-    // XXX Is there a better way to do this?!
-    auto materialsList =
-        createNode("materialList", "MaterialList")->nodeAs<MaterialList>();
-    for (const auto &ospMat : ospMaterials)
-      materialsList->push_back(ospMat);
-
-    ospMaterialList = materialsList;
-#endif
 
     baseMaterialOffset = materialRegistry.children().size();
     for (auto m : ospMaterials) {
@@ -223,16 +206,18 @@ namespace ospray::sg {
 
   void GLTFData::createGeometries()
   {
-    INFO << "Create Geometries\n";
+    //DEBUG << "Create Geometries\n";
+
     ospMeshes.reserve(model.meshes.size());
     for (auto &m : model.meshes) {  // -> Model
       static auto nModel = 0;
       auto modelName     = m.name + "_" + pad(std::to_string(nModel++));
 
-      // XXX Is there a better way to represent this "group" than a transform node?
-      auto ospModel =
-        createNode(modelName + "_model", "Transform", affine3f{one}); // Model "group"
-      //INFO << pad("", '.', 3) << "mesh." + modelName << "\n";
+      // XXX Is there a better way to represent this "group" than a transform
+      // node?
+      auto ospModel = createNode(
+          modelName + "_model", "Transform", affine3f{one});  // Model "group"
+      // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
 
       for (auto &prim : m.primitives) {  // -> TriangleMesh
         // Create per 'primitive' geometry
@@ -246,14 +231,15 @@ namespace ospray::sg {
 
   void GLTFData::buildScene()
   {
-    INFO << "Build Scene\n";
+    // DEBUG << "Build Scene\n";
+
     if (model.defaultScene == -1)
       model.defaultScene = 0;
 
     // Process all nodes in default scene
     for (const auto &nid : model.scenes[model.defaultScene].nodes) {
       NodePtr sgNode = rootNode;
-      INFO << "... Top Node (#" << nid << ")\n";
+      // DEBUG << "... Top Node (#" << nid << ")\n";
       // recursively process node hierarchy
       visitNode(sgNode, nid, 1);
     }
@@ -264,7 +250,7 @@ namespace ospray::sg {
                            const int level)  // XXX just for debug
   {
     const tinygltf::Node &n = model.nodes[nid];
-    //INFO << pad("", '.', 3 * level) << nid << ":" << n.name
+    // DEBUG << pad("", '.', 3 * level) << nid << ":" << n.name
     //     << " (children:" << n.children.size() << ")\n";
 
     // Apply any transform in this node -> xfm
@@ -275,15 +261,16 @@ namespace ospray::sg {
     if (needXfm) {
       static auto nNode = 0;
       auto nodeName     = n.name + "_" + pad(std::to_string(nNode++));
-      //INFO << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
-      // INFO << pad("", '.', 3 * level) << "....xfm\n";
-      auto newXfm = createNode(nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
+      // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
+      // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
+      auto newXfm = createNode(
+          nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
       sgNode->add(newXfm);
       sgNode = newXfm;
     }
 
     if (n.mesh != -1) {
-      //INFO << pad("", '.', 3 * level) << "....mesh\n";
+      // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
       sgNode->add(ospMeshes[n.mesh]);
     }
 
@@ -309,9 +296,9 @@ namespace ospray::sg {
       // Matrix must decompose to T/R/S, no skew/shear
       const auto &m = n.matrix;
       xfm           = {vec3f(m[0 * 4 + 0], m[0 * 4 + 1], m[0 * 4 + 2]),
-                       vec3f(m[1 * 4 + 0], m[1 * 4 + 1], m[1 * 4 + 2]),
-                       vec3f(m[2 * 4 + 0], m[2 * 4 + 1], m[2 * 4 + 2]),
-                       vec3f(m[3 * 4 + 0], m[3 * 4 + 1], m[3 * 4 + 2])};
+             vec3f(m[1 * 4 + 0], m[1 * 4 + 1], m[1 * 4 + 2]),
+             vec3f(m[2 * 4 + 0], m[2 * 4 + 1], m[2 * 4 + 2]),
+             vec3f(m[3 * 4 + 0], m[3 * 4 + 1], m[3 * 4 + 2])};
     } else {
       if (!n.scale.empty()) {
         const auto &s = n.scale;
@@ -331,13 +318,14 @@ namespace ospray::sg {
   }
 
   NodePtr GLTFData::createOSPMesh(const std::string &primBaseName,
-                               tinygltf::Primitive &prim)
+                                  tinygltf::Primitive &prim)
   {
     static auto nPrim = 0;
     auto primName     = primBaseName + "_" + pad(std::to_string(nPrim++));
-    //INFO << pad("", '.', 6) << "prim." + primName << "\n";
+    // DEBUG << pad("", '.', 6) << "prim." + primName << "\n";
     if (prim.material > -1) {
-      //INFO << pad("", '.', 6) << "    .uses material #" << prim.material << ": "
+      // DEBUG << pad("", '.', 6) << "    .uses material #" << prim.material <<
+      // ": "
       //     << model.materials[prim.material].name << " (alphaMode "
       //     << model.materials[prim.material].alphaMode << ")\n";
     }
@@ -444,7 +432,7 @@ namespace ospray::sg {
       // but set all alpha to 1.f
       if (prim.material == -1 ||
           model.materials[prim.material].alphaMode == "OPAQUE") {
-        //INFO << pad("", '.', 6) << "prim. Correcting Alpha\n";
+        //DEBUG << pad("", '.', 6) << "prim. Correcting Alpha\n";
         std::transform(vc.begin(), vc.end(), vc.begin(), [](vec4f c) {
           return vec4f(c.x, c.y, c.z, 1.f);
         });
@@ -480,7 +468,6 @@ namespace ospray::sg {
 
     // Add attribute arrays to mesh
     auto ospGeom = createNode(primName + "_object", "geometry_triangles");
-
     ospGeom->createChildData("vertex.position", v);
     ospGeom->createChildData("index", vi);
     if (!vc.empty())
@@ -502,14 +489,14 @@ namespace ospray::sg {
   {
     static auto nMat = 0;
     auto matName     = mat.name + "_" + pad(std::to_string(nMat++));
-    //INFO << pad("", '.', 3) << "material." + matName << "\n";
-    //INFO << pad("", '.', 3) << "        .alphaMode:" << mat.alphaMode << "\n";
-    //INFO << pad("", '.', 3) << "        .alphaCutoff:" << (float)mat.alphaCutoff
+    //DEBUG << pad("", '.', 3) << "material." + matName << "\n";
+    //DEBUG << pad("", '.', 3) << "        .alphaMode:" << mat.alphaMode << "\n";
+    //DEBUG << pad("", '.', 3) << "        .alphaCutoff:" << (float)mat.alphaCutoff
     //     << "\n";
 
     auto &pbr = mat.pbrMetallicRoughness;
 
-    //INFO << pad("", '.', 3)
+    //DEBUG << pad("", '.', 3)
     //     << "        .baseColorFactor.alpha:" << (float)pbr.baseColorFactor[4]
     //     << "\n";
 
@@ -529,8 +516,6 @@ namespace ospray::sg {
 
     // All textures *can* specify a texcoord other than 0.  OSPRay only
     // supports one set of texcoords (TEXCOORD_0).
-
-    NodePtr ospTex = nullptr;
 
     if (pbr.baseColorTexture.index != -1 &&
         pbr.baseColorTexture.texCoord == 0) {
@@ -581,9 +566,10 @@ namespace ospray::sg {
     return ospMat;
   }
 
-  NodePtr GLTFData::createOSPTexture(const tinygltf::Texture &tex)
+  NodePtr GLTFData::createOSPTexture(const std::string &texParam,
+                                     const tinygltf::Texture &tex,
+                                     const bool preferLinear)
   {
-#if 0
     static auto nTex = 0;
 
     if (tex.source == -1)
@@ -594,18 +580,18 @@ namespace ospray::sg {
     if (img.uri.length() < 256) {  // The uri can be a stream of data!
       img.name = FileName(img.uri).name();
     }
-    auto texName = img.name + "_" + pad(std::to_string(nTex++));
+    auto texName = img.name + "_" + pad(std::to_string(nTex++)) + "_tex";
 
-    INFO << pad("", '.', 6) << "texture." + texName << "\n";
-    INFO << pad("", '.', 9) << "image name: " << img.name << "\n";
-    INFO << pad("", '.', 9) << "image width: " << img.width << "\n";
-    INFO << pad("", '.', 9) << "image height: " << img.height << "\n";
-    INFO << pad("", '.', 9) << "image component: " << img.component << "\n";
-    INFO << pad("", '.', 9) << "image bits: " << img.bits << "\n";
-    if (img.uri.length() < 256)  // The uri can be a stream of data!
-      INFO << pad("", '.', 9) << "image uri: " << img.uri << "\n";
-    INFO << pad("", '.', 9) << "image bufferView: " << img.bufferView << "\n";
-    INFO << pad("", '.', 9) << "image data: " << img.image.size() << "\n";
+    //DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
+    //DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
+    //DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
+    //DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
+    //DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
+    //DEBUG << pad("", '.', 9) << "image bits: " << img.bits << "\n";
+    //if (img.uri.length() < 256)  // The uri can be a stream of data!
+    //  DEBUG << pad("", '.', 9) << "image uri: " << img.uri << "\n";
+    //DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView << "\n";
+    //DEBUG << pad("", '.', 9) << "image data: " << img.image.size() << "\n";
 
     // XXX Only handle pre-loaded images for now
     if (img.image.empty()) {
@@ -613,32 +599,41 @@ namespace ospray::sg {
       return nullptr;
     }
 
-    auto ospTex =
-        createNode(texName + "_tex", "Texture2D")->nodeAs<Texture2D>();
-    ospTex->setName(texName + "_tex");
+    auto ospTexNode = createNode(texParam, "texture_2d");
+    auto &ospTex    = *ospTexNode->nodeAs<Texture2D>();
 
-    ospTex->size.x      = img.width;
-    ospTex->size.y      = img.height;
-    ospTex->channels    = img.component;
-    const bool hdr      = img.bits > 8;
-    ospTex->depth       = hdr ? 4 : 1;
-    const size_t stride = ospTex->size.x * ospTex->channels * ospTex->depth;
-    ospTex->data =
-        alignedMalloc(sizeof(unsigned char) * ospTex->size.y * stride);
+    ospTex["name"]  = texName;
+    ospTex.size.x   = img.width;
+    ospTex.size.y   = img.height;
+    ospTex.channels = img.component;
+    const bool hdr  = img.bits > 8;
+    ospTex.depth    = hdr ? 4 : 1;
+
+    // XXX handle different depths and channels!!!!
+    if (ospTex.depth != 1)
+      ERROR << "Not yet handled pixel depth: " << ospTex.depth << std::endl;
+    if (ospTex.channels != 4)
+      ERROR << "Not yet handled number of channels: " << ospTex.channels << std::endl;
+
+    // XXX better way to do this?!
+    std::vector<vec4uc> data(ospTex.size.x * ospTex.size.y);
+    std::memcpy(data.data(), img.image.data(), img.image.size());
+
+    ospTex.createChildData("data", data, vec2ul(img.width, img.height));
+
+    auto texFormat =
+        osprayTextureFormat(ospTex.depth, ospTex.channels, preferLinear);
+    ospTex.createChild("format", "int", (int)texFormat);
 
     // XXX Check sampler wrap/clamp modes!!!
-    auto nearestFilter = false;
-    if (tex.sampler != -1 && model.samplers[tex.sampler].magFilter ==
-                                 TINYGLTF_TEXTURE_FILTER_NEAREST) {
-      nearestFilter = true;
-    }
-    ospTex->nearestFilter = nearestFilter;
+    auto texFilter =
+        (tex.sampler != -1 && model.samplers[tex.sampler].magFilter ==
+                                  TINYGLTF_TEXTURE_FILTER_NEAREST)
+            ? OSP_TEXTURE_FILTER_NEAREST
+            : OSP_TEXTURE_FILTER_BILINEAR;
+    ospTex.createChild("filter", "int", (int)texFilter);
 
-    std::memcpy(ospTex->data, img.image.data(), img.image.size());
-
-    return ospTex;
-#endif
-    return {};
+    return ospTexNode;
   }
 
   void GLTFData::setOSPTexture(NodePtr ospMat,
@@ -646,18 +641,24 @@ namespace ospray::sg {
                                int texIndex,
                                bool preferLinear)
   {
-#if 0
-    auto &ospTex = ospTextures[texIndex];
-    if (ospTex) {
-      auto texParam = "map_" + texParamBase;
+    // A disabled texture will have index = -1
+    if (texIndex < 0)
+      return;
 
-      INFO << pad("", '.', 3) << "        .setChild: " << texParam << "= "
-           << ospTex->name() << "\n";
+    auto texParam = "map_" + texParamBase;
+    auto ospTexNode =
+        createOSPTexture(texParam, model.textures[texIndex], preferLinear);
+    if (ospTexNode) {
+      auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
 
-      ospTex->preferLinear = preferLinear;
-      ospMat->setChild(texParam, ospTex);
+      //DEBUG << pad("", '.', 3) << "        .setChild: " << texParam << "= "
+      //     << ospTex.name() << "\n";
+      //DEBUG << pad("", '.', 3) << "            "
+      //     << "depth: " << ospTex.depth << " channels: " << ospTex.channels
+      //     << " preferLinear: " << preferLinear << "\n";
+
+      ospMat->add(ospTexNode);
     }
-#endif
   }
 
   // GLTFmporter definitions //////////////////////////////////////////////////
