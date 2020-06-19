@@ -110,7 +110,7 @@ target_link_libraries(ospray_sg
 PUBLIC
   ospcommon::ospcommon
   ospray::ospray
-  ${OPENIMAGEIO_LIBRARIES}
+  OpenImageIO::OpenImageIO
 PRIVATE
   stb_image
   tiny_obj_loader
@@ -130,7 +130,6 @@ target_include_directories(ospray_sg
 ## Setup additional compile config for optional dependencies ##
 
 if(OSPSG_OPENIMAGEIO AND OpenImageIO_FOUND)
-  target_include_directories(ospray_sg PUBLIC ${OPENIMAGEIO_INCLUDES})
   target_compile_definitions(ospray_sg PRIVATE -DUSE_OPENIMAGEIO)
 endif()
 
