@@ -48,23 +48,32 @@ namespace ospray::sg {
 
     switch (node.type()) {
     case NodeType::MATERIAL: {
-      auto &mat = *node.nodeAs<Material>();
-      if (mat.osprayMaterialType() == "obj") {
-        if (!mat["handles"].hasChild(rendererType)) {
-          mat["handles"].createChild(
-              rendererType,
-              "Node",
-              cpp::Material(rendererType, mat.osprayMaterialType()));
-        }
-
-      } else {
-        if (rendererType == "pathtracer" &&
-            !mat["handles"].hasChild("pathtracer")) {
-          mat["handles"].createChild(
-              "pathtracer",
-              "Node",
-              cpp::Material("pathtracer", mat.osprayMaterialType()));
-        }
+      auto &mat         = *node.nodeAs<Material>();
+      auto &matChildren = mat.children();
+      if (rendererType == "pathtracer" &&
+          !mat["handles"].hasChild("pathtracer")) {
+        auto &matHandle = mat["handles"].createChild(
+            "pathtracer",
+            "Node",
+            cpp::Material("pathtracer", mat.osprayMaterialType()));
+        if (!matChildren.empty())
+          for (auto &c : matChildren)
+            if (c.second->subType() == "texture_2d" ||
+                c.second->subType() == "texture_volume")
+              c.second->setOSPRayParam(
+                  c.first, matHandle.valueAs<cpp::Material>().handle());
+      } else if (!mat["handles"].hasChild(rendererType) &&
+                 mat.osprayMaterialType() == "obj") {
+        auto &matHandle = mat.child("handles").createChild(
+            rendererType,
+            "Node",
+            cpp::Material(rendererType, mat.osprayMaterialType()));
+        if (!matChildren.empty())
+          for (auto &c : matChildren)
+            if (c.second->subType() == "texture_2d" ||
+                c.second->subType() == "texture_volume")
+              c.second->setOSPRayParam(
+                  c.first, matHandle.valueAs<cpp::Material>().handle());
       }
       return false;
     }

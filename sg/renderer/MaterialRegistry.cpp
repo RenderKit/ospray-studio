@@ -48,7 +48,7 @@ namespace ospray::sg {
     }
   }
 
-  void MaterialRegistry::updateMaterialRegistry(const std::string &rType) 
+  void MaterialRegistry::createCPPMaterials(const std::string &rType) 
   {
     this->traverse<sg::GenerateOSPRayMaterials>(rType);
     this->commit();
@@ -66,27 +66,18 @@ namespace ospray::sg {
 
   void MaterialRegistry::updateMaterialList(const std::string &rType) 
   {
-    updateMaterialRegistry(rType);
+    createCPPMaterials(rType);
     sgMaterialList.clear();
     cppMaterialList.clear();
     auto &mats = this->children();
 
     for (auto &m : mats) {
-      if (rType == "scivis") {
-        if (m.second->nodeAs<Material>()->osprayMaterialType() == "obj") {
-          auto &matHandle = m.second->child("handles");
-          auto sgMaterial     = m.second->nodeAs<sg::Material>();
-          auto &ospHandleNode = matHandle.child(rType);
-          auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
-          sgMaterialList.push_back(sgMaterial);
-          cppMaterialList.push_back(cppMaterial);
-        }
-      } else {
-        auto &matHandle = m.second->child("handles");
-        auto sgMaterial     = m.second->nodeAs<sg::Material>();
-        auto &ospHandleNode = matHandle.child(rType);
-        auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
-        sgMaterialList.push_back(sgMaterial);
+      auto &matHandle = m.second->child("handles");
+      auto sgMaterial = m.second->nodeAs<sg::Material>();
+      sgMaterialList.push_back(sgMaterial);
+      if (m.second->nodeAs<Material>()->osprayMaterialType() == "obj" ||
+          rType == "pathtracer") {
+        auto &cppMaterial = matHandle.child(rType).valueAs<cpp::Material>();
         cppMaterialList.push_back(cppMaterial);
       }
     }

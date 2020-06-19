@@ -36,25 +36,16 @@ namespace ospray::sg {
 
   void Material::preCommit()
   {
-    const auto &c       = children();
-    const auto &handles = child("handles").children();
+    const auto &c          = children();
+    const auto &handles    = child("handles").children();
 
     if (c.empty() || handles.empty())
       return;
-    for (auto &child : c) {
-      // test and merge following two; they're identical
-      if (child.second->type() == NodeType::PARAMETER) {
-        for (auto &h : handles) {
-          child.second->setOSPRayParam(
-              child.first, h.second->valueAs<cpp::Material>().handle());
-        }
-      } else if (child.second->subType() == "texture_2d" ||
-                 child.second->subType() == "texture_volume") {
+    for (auto &c_child : c) 
+      if (c_child.second->type() == NodeType::PARAMETER)
         for (auto &h : handles)
-          child.second->setOSPRayParam(
-              child.first, h.second->valueAs<cpp::Material>().handle());
-      }
-    }
+          c_child.second->setOSPRayParam(
+              c_child.first, h.second->valueAs<cpp::Material>().handle());
   }
 
   void Material::postCommit()

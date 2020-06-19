@@ -29,7 +29,7 @@ namespace ospray::sg {
 
     void addNewSGMaterial(std::string matType);
 
-    void updateMaterialRegistry(const std::string &rType);
+    void createCPPMaterials(const std::string &rType);
 
     void updateMaterialList(const std::string &rType);
 
