@@ -165,6 +165,9 @@ namespace ospray::sg {
     for (const auto &m : objData.materials) {
       std::vector<NodePtr> paramNodes;
       std::string matType{"obj"};
+      // first check the type and parameters for this material.
+      // our full parameter names and material types get caught in tinyobj's
+      // unknown_parameter list. e.g. "anisotropy" instead of "aniso"
       for (auto &param : m.unknown_parameter) {
         auto paramName     = param.first;
         auto paramValueStr = param.second;
@@ -200,6 +203,7 @@ namespace ospray::sg {
           if (paramValueStr != "obj")
             matType = paramValueStr;
         } else {
+          // this line is declaring a parameter for this material
           std::string paramType;
 
           // Only process the texture name here
@@ -237,8 +241,10 @@ namespace ospray::sg {
         }
       }
 
+      // actually create a material of the given type
+      // and provide it the parsed parameters
       if (matType == "obj") {
-        auto objMatNode = createNode(m.name, "obj");
+        auto objMatNode = createNode(fileName.name() + "::" + m.name, "obj");
         auto &mat       = *objMatNode;
 
         mat["kd"].setValue(vec3f(m.diffuse));
