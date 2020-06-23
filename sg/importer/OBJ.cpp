@@ -27,7 +27,8 @@ namespace ospray::sg {
     OBJImporter()           = default;
     ~OBJImporter() override = default;
 
-    void importScene(std::shared_ptr<sg::MaterialRegistry> materialRegistry) override;
+    void importScene(
+        std::shared_ptr<sg::MaterialRegistry> materialRegistry) override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(OBJImporter, importer_obj);
@@ -43,52 +44,52 @@ namespace ospray::sg {
 
   // Helper functions /////////////////////////////////////////////////////////
 
-    static inline void parseParameterString(std::string typeAndValueString,
-                                            std::string &paramType,
-                                            ospcommon::utility::Any &paramValue)
-    {
-      std::stringstream typeAndValueStream(typeAndValueString);
-      std::string paramValueString;
-      getline(typeAndValueStream, paramValueString);
+  static inline void parseParameterString(std::string typeAndValueString,
+                                          std::string &paramType,
+                                          ospcommon::utility::Any &paramValue)
+  {
+    std::stringstream typeAndValueStream(typeAndValueString);
+    std::string paramValueString;
+    getline(typeAndValueStream, paramValueString);
 
-      std::vector<float> floats;
-      std::stringstream valueStream(typeAndValueString);
-      float val;
-      while (valueStream >> val)
-        floats.push_back(val);
+    std::vector<float> floats;
+    std::stringstream valueStream(typeAndValueString);
+    float val;
+    while (valueStream >> val)
+      floats.push_back(val);
 
-      if (floats.size() == 1) {
-        paramType  = "float";
-        paramValue = floats[0];
-      } else if (floats.size() == 2) {
-        paramType  = "vec2f";
-        paramValue = vec2f(floats[0], floats[1]);
-      } else if (floats.size() == 3) {
-        paramType  = "vec3f";
-        paramValue = vec3f(floats[0], floats[1], floats[2]);
-      } else {
-        // Unknown type.
-        paramValue = typeAndValueString;
-      }
+    if (floats.size() == 1) {
+      paramType  = "float";
+      paramValue = floats[0];
+    } else if (floats.size() == 2) {
+      paramType  = "vec2f";
+      paramValue = vec2f(floats[0], floats[1]);
+    } else if (floats.size() == 3) {
+      paramType  = "vec3f";
+      paramValue = vec3f(floats[0], floats[1], floats[2]);
+    } else {
+      // Unknown type.
+      paramValue = typeAndValueString;
     }
+  }
 
-    std::shared_ptr<sg::Texture2D> createSGTex(const std::string &map_name,
-                                               const FileName &texName,
-                                               const FileName &containingPath,
-                                               const bool preferLinear  = false,
-                                               const bool nearestFilter = false)
-    {
-      std::shared_ptr<sg::Texture2D> sgTex =
-          std::static_pointer_cast<sg::Texture2D>(
-              sg::createNode(map_name, "texture_2d"));
+  std::shared_ptr<sg::Texture2D> createSGTex(const std::string &map_name,
+                                             const FileName &texName,
+                                             const FileName &containingPath,
+                                             const bool preferLinear  = false,
+                                             const bool nearestFilter = false)
+  {
+    std::shared_ptr<sg::Texture2D> sgTex =
+        std::static_pointer_cast<sg::Texture2D>(
+            sg::createNode(map_name, "texture_2d"));
 
-      auto &tex2D = *sgTex;
-      tex2D["name"].setValue(texName.str());
+    auto &tex2D = *sgTex;
+    tex2D["name"].setValue(texName.str());
 
-      sgTex->load(containingPath + texName, preferLinear, nearestFilter);
+    sgTex->load(containingPath + texName, preferLinear, nearestFilter);
 
-      return sgTex;
-    }
+    return sgTex;
+  }
 
   static OBJData loadFromFile(FileName fileName)
   {
@@ -125,13 +126,13 @@ namespace ospray::sg {
 
           if (numVertsInFace < 3) {
             std::cerr << "Warning: less than 3 verts in face!\n"
-              << "         Lines and points not supported.\n";
+                      << "         Lines and points not supported.\n";
             needsReload = true;
             break;
           }
           if (numVertsInFace > 4) {
             std::cerr << "Warning: more than 4 verts in face!\n"
-              << "         Polygons not supported.\n";
+                      << "         Polygons not supported.\n";
             needsReload = true;
             break;
           }
@@ -155,7 +156,8 @@ namespace ospray::sg {
     return {};
   }
 
-  static std::vector<NodePtr> createMaterials(const OBJData &objData, FileName fileName)
+  static std::vector<NodePtr> createMaterials(const OBJData &objData,
+                                              FileName fileName)
   {
     std::vector<NodePtr> retval;
     const std::string containingPath = fileName.path();
@@ -164,54 +166,71 @@ namespace ospray::sg {
       std::vector<NodePtr> paramNodes;
       std::string matType{"obj"};
       for (auto &param : m.unknown_parameter) {
-        if (param.first == "type") {
-          if (param.second != "obj") {
-            matType = param.second;
-#if 1 // XXX Accept old OSPRay1.8.5 names
-            // Accept OSPRay 1.8.5 material 'type' names
-            if (matType == "Principled")
-              matType = "principled";
-            if (matType == "CarPaint")
-              matType = "carPaint";
-            if (matType == "Luminous")
-              matType = "luminous";
-            if (matType == "Metal")
-              matType = "metal";
-#endif
-          }
+        auto paramName     = param.first;
+        auto paramValueStr = param.second;
 
+        // Parse OSPRay 1.8.5 material 'type' names.  Material name
+        // capitalization has changes between v1.8 and v2.x
+        if (paramName == "type") {
+          const static std::map<std::string, std::string> TypeConvertMap = {
+              // Old name, new name
+              {"OBJMaterial", "obj"},
+              {"Principled", "principled"},
+              {"CarPaint", "carPaint"},
+              {"Metal", "metal"},
+              {"Alloy", "alloy"},
+              {"Glass", "glass"},
+              {"ThinGlass", "thinGlass"},
+              {"MetallicPaint", "metallicPaint"},
+              {"Luminous", "luminous"}};
+          auto s = TypeConvertMap.find(paramValueStr);
+          if (s != TypeConvertMap.end())
+            paramValueStr = s->second;
+        } else {
+          // Parse OSPRay 1.8.5 material '*Map[.]' parameter names
+          // In materials other than OBJ, textures were specified in the form
+          // <name>Map[.transform]. Rename them to map_<name>[.transform]
+          // ie: cut "Map" out and prepend with "map_"
+          auto pos = paramName.find("Map");
+          if (pos != std::string::npos)
+            paramName = "map_" + paramName.erase(pos, 3);
+        }
+
+        if (paramName == "type") {
+          if (paramValueStr != "obj")
+            matType = paramValueStr;
         } else {
           std::string paramType;
-          ospcommon::utility::Any paramValue;
-          if (param.first.find("Map") != std::string::npos &&
-              param.first.find("Map.") == std::string::npos) {
+
+          // Only process the texture name here
+          // map_<name> with no [.<transform>]
+          if (paramName.find("map_") != std::string::npos &&
+              paramName.find(".") == std::string::npos) {
             bool preferLinear = false;
             bool nearestFilter =
-                (param.first.find("rotation") != std::string::npos) ||
-                (param.first.find("Rotation") != std::string::npos);
+                (paramName.find("rotation") != std::string::npos) ||
+                (paramName.find("Rotation") != std::string::npos);
 
-            auto map_misc = createSGTex(param.first,
-                                         param.second,
-                                         containingPath,
-                                         preferLinear,
-                                         nearestFilter);
+            auto map_misc = createSGTex(paramName,
+                                        paramValueStr,
+                                        containingPath,
+                                        preferLinear,
+                                        nearestFilter);
             paramNodes.push_back(map_misc);
 
           } else {
-            parseParameterString(param.second, paramType, paramValue);
+            ospcommon::utility::Any paramValue;
+            parseParameterString(paramValueStr, paramType, paramValue);
             try {
-              // matNode.createChildWithValue(param.first, paramType,
-              // paramValue);
-              auto newParam = createNode(param.first, paramType, paramValue);
+              auto newParam = createNode(paramName, paramType, paramValue);
               paramNodes.push_back(newParam);
             } catch (const std::runtime_error &) {
               // NOTE(jda) - silently move on if parsed node type doesn't
               // exist maybe it's a texture, try it
-              std::cout << "attempting to load param as texture: "
-                        << param.first << " " << param.second << std::endl;
-              auto map_misc = createSGTex(param.first,
-                                         param.second,
-                                         containingPath);
+              std::cout << "attempting to load param as texture: " << paramName
+                        << " " << paramValueStr << std::endl;
+              auto map_misc =
+                  createSGTex(paramName, paramValueStr, containingPath);
               paramNodes.push_back(map_misc);
             }
           }
@@ -240,8 +259,8 @@ namespace ospray::sg {
         }
 
         if (!m.specular_highlight_texname.empty()) {
-          mat.add(
-              createSGTex("map_ns", m.specular_highlight_texname, containingPath, true));
+          mat.add(createSGTex(
+              "map_ns", m.specular_highlight_texname, containingPath, true));
         }
 
         if (!m.bump_texname.empty()) {
@@ -250,15 +269,14 @@ namespace ospray::sg {
         }
 
         if (!m.alpha_texname.empty()) {
-          mat.add(
-              createSGTex("map_d", m.alpha_texname, containingPath, true));
+          mat.add(createSGTex("map_d", m.alpha_texname, containingPath, true));
         }
         for (auto &param : paramNodes)
           mat.add(param);
 
         retval.push_back(objMatNode);
       } else {
-        auto matNode = createNode(m.name, matType);
+        auto matNode = createNode(fileName.name() + "::" + m.name, matType);
         auto &mat    = *matNode;
         for (auto &param : paramNodes)
           mat.add(param);
@@ -269,9 +287,10 @@ namespace ospray::sg {
     return retval;
   }
 
-  // OBJImporter definitions //////////////////////////////////////////////////
+  // OBJImporter definitions /////////////////////////////////////////////
 
-  void OBJImporter::importScene(std::shared_ptr<sg::MaterialRegistry> materialRegistry)
+  void OBJImporter::importScene(
+      std::shared_ptr<sg::MaterialRegistry> materialRegistry)
   {
     auto file    = FileName(child("file").valueAs<std::string>());
     auto objData = loadFromFile(file);
@@ -293,7 +312,8 @@ namespace ospray::sg {
 
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
-    auto &rootNode = createChild(baseName + "root_node_xfm", "Transform", affine3f{one});
+    auto &rootNode =
+        createChild(baseName + "root_node_xfm", "Transform", affine3f{one});
 
     for (auto &shape : objData.shapes) {
       auto numSrcIndices = shape.mesh.indices.size();
