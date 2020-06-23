@@ -47,13 +47,13 @@ namespace ospray::sg {
   }
 
   void createOIIOTexData(Texture2D *texNode,
-                         std::unique_ptr<ImageInput> in,
+                         const FileName &fileName,
                          bool preferLinear  = false,
                          bool nearestFilter = false)
   {
+    auto in = ImageInput::open(fileName.str().c_str());
     if (!in) {
-      // TO DO: mention image input description along with error message
-      std::cerr << "#osp:sg: failed to load texture '" << std::endl;
+      std::cerr << "#osp:sg: failed to load texture ' " << fileName << "'" << std::endl;
       // reset();
     } else {
       const ImageSpec &spec = in->spec();
@@ -276,7 +276,7 @@ namespace ospray::sg {
 #ifdef USE_OPENIMAGEIO
 
     createOIIOTexData(this,
-                      ImageInput::open(fileName.str().c_str()),
+                      fileName,
                       preferLinear,
                       nearestFilter);
 
