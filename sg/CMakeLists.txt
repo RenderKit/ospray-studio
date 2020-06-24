@@ -108,6 +108,7 @@ add_library(ospray_sg SHARED
   scene/volume/Volume.cpp
 
   scene/lights/Light.cpp
+  scene/lights/Lights.cpp
   scene/lights/DirectionalLight.cpp
   scene/lights/AmbientLight.cpp
   scene/lights/SpotLight.cpp

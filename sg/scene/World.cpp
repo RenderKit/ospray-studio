@@ -15,20 +15,27 @@
 // ======================================================================== //
 
 #include "World.h"
+#include "lights/Lights.h"
 
 namespace ospray::sg {
 
   World::World()
   {
     setHandle(cpp::World());
+    createChild("lights", "lights");
   }
 
   void World::preCommit() {    
     auto ospWorld = valueAs<cpp::World>();
-    if(hasChild("light")) {
-      auto &lights = child("light").valueAs<cpp::Light>();
-      ospWorld.setParam("light", (cpp::Data)lights);
+    auto &lights = childAs<sg::Lights>("lights");
+    std::vector<cpp::Light> lightObjects;
+
+    for (auto &name : lights.lightNames) {
+      auto &l = lights.child(name).valueAs<cpp::Light>();
+      lightObjects.push_back(l);
     }
+
+    ospWorld.setParam("light", cpp::Data(lightObjects));
   }
 
   void World::postCommit() {

@@ -14,18 +14,23 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
+#include "Lights.h"
 
-#include "../../Node.h"
+namespace ospray {
+  namespace sg {
 
-namespace ospray::sg {
+    OSP_REGISTER_SG_NODE_NAME(Lights, lights);
 
-  struct OSPSG_INTERFACE Light : public OSPNode<cpp::Light, NodeType::LIGHT>
-  {
-    Light(std::string type);
-    ~Light() override = default;
-    NodeType type() const override;
-    void postCommit() override;
-  };
+    Lights::Lights()
+    {
+      lightNames.push_back("ambient");
+      createChild("ambient", "ambient");
+    }
 
-}  // namespace ospray::sg
+    NodeType Lights::type() const
+    {
+      return NodeType::LIGHTS;
+    }
+
+  }  // namespace sg
+}  // namespace ospray

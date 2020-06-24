@@ -35,6 +35,7 @@ namespace ospray::sg {
     TEXTURE,
     TEXTUREVOLUME,
     LIGHT,
+    LIGHTS,
     GEOMETRY,
     VOLUME,
     GENERATOR,
