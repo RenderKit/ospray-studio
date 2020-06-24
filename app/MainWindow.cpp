@@ -30,6 +30,7 @@
 #include "sg/importer/Importer.h"
 #include "sg/visitors/PrintNodes.h"
 // ospcommon
+#include "ospcommon/math/ospmath.h"
 #include "ospcommon/os/FileName.h"
 #include "ospcommon/utility/SaveImage.h"
 #include "ospcommon/utility/getEnvVar.h"
@@ -354,17 +355,24 @@ void MainWindow::motion(const vec2f &position)
 
     bool cameraChanged = leftDown || rightDown || middleDown;
 
+    // XXX TODO make sensitivity UI adjustable
+    auto sensitivity = 1.f;
+    auto fineControl = 5.f;
+    if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+      sensitivity /= fineControl;
+
     if (leftDown) {
       const vec2f mouseFrom(
           clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
           clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
       const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
                           clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
-      arcballCamera->rotate(mouseFrom, mouseTo);
+      arcballCamera->rotate(mouseFrom, lerp(sensitivity, mouseFrom, mouseTo));
     } else if (rightDown) {
-      arcballCamera->zoom(mouse.y - prev.y);
+      arcballCamera->zoom((mouse.y - prev.y) * sensitivity);
     } else if (middleDown) {
-      arcballCamera->pan(vec2f(mouse.x - prev.x, prev.y - mouse.y));
+      arcballCamera->pan(vec2f(mouse.x - prev.x, prev.y - mouse.y) *
+                         sensitivity);
     }
 
     if (cameraChanged) {
@@ -763,34 +771,38 @@ void MainWindow::importFiles()
   auto world = sg::createNode("world", "world");
 
   for (auto file : filesToImport) {
-    try {
-      ospcommon::FileName fileName(file);
-      std::string nodeName = fileName.base() + "_importer";
+    //    try {
+    ospcommon::FileName fileName(file);
+    std::string nodeName = fileName.base() + "_importer";
 
-      std::cout << "Importing: " << file << std::endl;
-      auto oldRegistrySize = baseMaterialRegistry->children().size();
-      auto importer        = sg::getImporter(file);
-      if (importer != "") {
-        auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
-        imp["file"] = std::string(file);
-        imp.importScene(baseMaterialRegistry);
+    std::cout << "Importing: " << file << std::endl;
+    auto oldRegistrySize = baseMaterialRegistry->children().size();
+    auto importer        = sg::getImporter(file);
+    if (importer != "") {
+      auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
+      imp["file"] = std::string(file);
+      imp.importScene(baseMaterialRegistry);
 
-        if (baseMaterialRegistry->matImportsList.size() != 0) {
-          for (auto &newMat : baseMaterialRegistry->matImportsList)
-            g_matTypes.insert(g_matTypes.begin(), newMat);
-        }
+#if 0  // BMCDEBUG, just for testing
+        imp.traverse<sg::PrintNodes>();
+#endif
 
-        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
-          auto newMats =
-              baseMaterialRegistry->children().size() - oldRegistrySize;
-          std::cout << "Importer added " << newMats << " material(s)"
-                    << std::endl;
-          refreshRenderer();
-        }
+      if (baseMaterialRegistry->matImportsList.size() != 0) {
+        for (auto &newMat : baseMaterialRegistry->matImportsList)
+          g_matTypes.insert(g_matTypes.begin(), newMat);
       }
-    } catch (...) {
-      std::cerr << "Failed to open file '" << file << "'!\n";
+
+      if (oldRegistrySize != baseMaterialRegistry->children().size()) {
+        auto newMats =
+            baseMaterialRegistry->children().size() - oldRegistrySize;
+        std::cout << "Importer added " << newMats << " material(s)"
+                  << std::endl;
+        refreshRenderer();
+      }
     }
+    //    } catch (...) {
+    //      std::cerr << "Failed to open file '" << file << "'!\n";
+    //    }
   }
   world->createChild("light", lightTypeStr);
 
