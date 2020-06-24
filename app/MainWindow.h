@@ -69,6 +69,8 @@ class MainWindow
   void refreshScene();
   void refreshMaterialRegistry();
   void refreshLight();
+  void addLight();
+  void removeLight();
   void refreshMaterial();
   void addPTMaterials();
   bool importGeometry(std::shared_ptr<sg::Node> &world);
@@ -83,10 +85,12 @@ class MainWindow
   void buildWindows();
   void buildWindowPreferences();
   void buildWindowKeyframes();
+  void buildWindowLightEditor();
 
   // imgui window visibility toggles
   bool showPreferences{false};
   bool showKeyframes{false};
+  bool showLightEditor{false};
 
   // imgui-controlled options
   std::string screenshotFiletype{"png"};

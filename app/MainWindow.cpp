@@ -30,6 +30,7 @@
 #include "sg/importer/Importer.h"
 #include "sg/exporter/Exporter.h"
 #include "sg/visitors/PrintNodes.h"
+#include "sg/scene/lights/Lights.h"
 // ospcommon
 #include "ospcommon/math/ospmath.h"
 #include "ospcommon/os/FileName.h"
@@ -925,6 +926,8 @@ void MainWindow::buildMainMenuFile()
 void MainWindow::buildMainMenuEdit()
 {
   if (ImGui::BeginMenu("Edit")) {
+    if (ImGui::MenuItem("Lights...", "", nullptr))
+      showLightEditor = true;
     if (ImGui::MenuItem("Preferences...", nullptr))
       showPreferences = true;
     ImGui::EndMenu();
@@ -950,6 +953,8 @@ void MainWindow::buildWindows()
     buildWindowPreferences();
   if (showKeyframes)
     buildWindowKeyframes();
+  if (showLightEditor)
+    buildWindowLightEditor();
 }
 
 void MainWindow::buildWindowPreferences()
@@ -1036,5 +1041,64 @@ void MainWindow::buildWindowKeyframes()
     }
     ImGui::ListBoxFooter();
   }
+  ImGui::End();
+}
+
+void MainWindow::buildWindowLightEditor()
+{
+  if (!ImGui::Begin("Light editor", &showLightEditor, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  static int whichLightType = -1;
+  ImGui::Combo("light type##whichLightType",
+               &whichLightType,
+               lightTypeUI_callback,
+               nullptr,
+               g_lightTypes.size());
+
+  auto &world    = frame->child("world");
+  auto &lightMan = world.childAs<sg::Lights>("lights");
+  auto &lights   = lightMan.children();
+
+  static int whichLight = -1;
+  static std::string selectedLight;
+  std::string lightType = g_lightTypes[whichLightType];
+
+  if (ImGui::ListBoxHeader("##")) {
+    if (ImGui::Button("+")) {
+      if (whichLightType != -1) {
+        if (!lightMan.addLight(lightType, lightType)) {
+          std::cerr << "light needs unique name!" << std::endl;
+        }
+      }
+    }
+
+    if (lights.size() > 1) {
+      ImGui::SameLine();
+      if (ImGui::Button("-")) {
+        if (whichLight != -1) {
+          if (!lightMan.removeLight(selectedLight)) {
+            std::cerr << "no light '" << lightType << "' exists!" << std::endl;
+          }
+        }
+      }
+    }
+
+    int i = 0;
+    for (auto &light : lights) {
+      if (ImGui::Selectable(light.first.c_str(), (whichLight == i))) {
+        whichLight = i;
+        selectedLight = light.first;
+      }
+      i++;
+    }
+    ImGui::ListBoxFooter();
+    
+    // TODO selected light properties
+    // can this be a visitor? e.g. ImGuiVisitor?
+  }
+
   ImGui::End();
 }

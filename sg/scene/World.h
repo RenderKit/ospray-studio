@@ -17,6 +17,7 @@
 #pragma once
 
 #include "../Node.h"
+#include "lights/Light.h"
 
 namespace ospray::sg {
 
