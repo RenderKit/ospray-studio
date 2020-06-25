@@ -34,6 +34,9 @@ namespace ospray {
 
     bool Lights::addLight(std::string name, std::string lightType)
     {
+      if (name == "")
+        return false;
+
       auto found = std::find(lightNames.begin(), lightNames.end(), name);
       if (found == lightNames.end()) {
         lightNames.push_back(name);

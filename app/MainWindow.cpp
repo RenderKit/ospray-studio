@@ -1059,6 +1059,11 @@ void MainWindow::buildWindowLightEditor()
                nullptr,
                g_lightTypes.size());
 
+  static bool lightNameWarning = false;
+  static char lightName[64] = "";
+  if (ImGui::InputText("name", lightName, 64))
+    lightNameWarning = false;
+
   auto &world    = frame->child("world");
   auto &lightMan = world.childAs<sg::Lights>("lights");
   auto &lights   = lightMan.children();
@@ -1067,26 +1072,30 @@ void MainWindow::buildWindowLightEditor()
   static std::string selectedLight;
   std::string lightType = g_lightTypes[whichLightType];
 
-  if (ImGui::ListBoxHeader("##")) {
-    if (ImGui::Button("+")) {
-      if (whichLightType != -1) {
-        if (!lightMan.addLight(lightType, lightType)) {
-          std::cerr << "light needs unique name!" << std::endl;
-        }
+  if (lightNameWarning)
+    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
+                       "Light must have unique non-empty name");
+
+  if (ImGui::Button("add")) {
+    if (whichLightType != -1) {
+      if (!lightMan.addLight(lightName, lightType)) {
+        lightNameWarning = true;
       }
     }
+  }
 
-    if (lights.size() > 1) {
-      ImGui::SameLine();
-      if (ImGui::Button("-")) {
-        if (whichLight != -1) {
-          if (!lightMan.removeLight(selectedLight)) {
-            std::cerr << "no light '" << lightType << "' exists!" << std::endl;
-          }
-        }
+  if (lights.size() > 1) {
+    ImGui::SameLine();
+    if (ImGui::Button("remove")) {
+      if (whichLight != -1) {
+        lightMan.removeLight(selectedLight);
+        whichLight    = std::max(0, whichLight - 1);
+        selectedLight = (*(lights.begin() + whichLight)).first;
       }
     }
+  }
 
+  if (ImGui::ListBoxHeader("lights", 3)) {
     int i = 0;
     for (auto &light : lights) {
       if (ImGui::Selectable(light.first.c_str(), (whichLight == i))) {
@@ -1097,8 +1106,11 @@ void MainWindow::buildWindowLightEditor()
     }
     ImGui::ListBoxFooter();
     
-    if (whichLight != -1)
+    if (whichLight != -1) {
+      ImGui::Separator();
+      ImGui::Text("Edit light");
       lightMan.child(selectedLight).traverse<sg::GenerateImGuiWidgets>();
+    }
   }
 
   ImGui::End();
