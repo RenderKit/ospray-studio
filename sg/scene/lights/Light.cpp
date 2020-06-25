@@ -22,6 +22,8 @@ namespace ospray::sg {
   {
     auto handle = ospNewLight(type.c_str());
     setHandle(handle);
+    createChild("intensity", "float", 1.f);
+    createChild("color", "vec3f", vec3f(1.f));
   }
 
   NodeType Light::type() const
@@ -31,6 +33,8 @@ namespace ospray::sg {
 
   void Light::postCommit() {
     auto &lights = valueAs<cpp::Light>();
+    lights.setParam("intensity", child("intensity").valueAs<float>());
+    lights.setParam("color", child("color").valueAs<vec3f>());
     lights.commit();
   }
 
