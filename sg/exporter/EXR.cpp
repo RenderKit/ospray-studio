@@ -18,8 +18,8 @@
 // ospcommon
 #include "ospcommon/os/FileName.h"
 // openexr
-#include "ImfChannelList.h"
-#include "ImfOutputFile.h"
+#include "OpenEXR/ImfChannelList.h"
+#include "OpenEXR/ImfOutputFile.h"
 
 namespace ospray::sg {
 

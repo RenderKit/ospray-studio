@@ -1,6 +1,17 @@
 ## Copyright 2009-2020 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
+# Find OpenImageIO headers and libraries
+#
+# Uses:
+#   OPENIMAGEIO_ROOT or OPENIMAGEIOROOT
+#
+# If found, the following will be defined:
+#   OpenImageIO::OpenImageIO target properties
+#   OPENIMAGEIO_FOUND
+#   OPENIMAGEIO_INCLUDE_DIRS
+#   OPENIMAGEIO_LIBRARIES
+
 if(NOT OPENIMAGEIO_ROOT)
   set(OPENIMAGEIO_ROOT $ENV{OPENIMAGEIO_ROOT})
 endif()
@@ -24,7 +35,11 @@ find_path(OPENIMAGEIO_ROOT include/OpenImageIO/imageio.h
     /
 )
 
-find_path(OPENIMAGEIO_INCLUDE_DIR OpenImageIO/imageio.h PATHS ${OPENIMAGEIO_ROOT}/include NO_DEFAULT_PATH)
+find_path(OPENIMAGEIO_INCLUDE_DIR OpenImageIO/imageio.h
+  PATHS
+    ${OPENIMAGEIO_ROOT}/include NO_DEFAULT_PATH
+)
+
 set(OPENIMAGEIO_HINTS
   HINTS
     ${OPENIMAGEIO_ROOT}
@@ -38,9 +53,10 @@ find_library(OPENIMAGEIO_LIBRARY OpenImageIO ${OPENIMAGEIO_HINTS} ${OPENIMAGEIO_
 
 set(OPENIMAGEIO_ROOT_LAST ${OPENIMAGEIO_ROOT} CACHE INTERNAL "Last value of OPENIMAGEIO_ROOT to detect changes")
 
-set(OPENIMAGEIO_ERROR_MESSAGE "OpenImageIO not found in your environment. You can 1) install
-                              via your OS package manager, or 2) install it
-                              somewhere on your machine and point OPENIMAGEIO_ROOT to it.")
+set(OPENIMAGEIO_ERROR_MESSAGE "OpenImageIO not found in your environment. You can:
+    1) install via your OS package manager, or
+    2) install it somewhere on your machine and point OPENIMAGEIO_ROOT to it."
+)
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenImageIO

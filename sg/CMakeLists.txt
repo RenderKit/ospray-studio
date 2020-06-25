@@ -32,7 +32,7 @@ endif()
 option(ENABLE_EXR "Enable EXR format image writing" ON)
 if (ENABLE_EXR)
   find_package(OpenEXR REQUIRED)
-  set(OPENEXR_LIB OpenEXR::IlmImf)
+  set(OPENEXR_TARGET OpenEXR::IlmImf)
   set(EXR_EXPORTER "exporter/EXR.cpp")
 endif()
 
@@ -127,7 +127,7 @@ PUBLIC
   OpenImageIO::OpenImageIO
 PRIVATE
   stb_image
-  ${OPENEXR_LIB}
+  ${OPENEXR_TARGET}
   tiny_obj_loader
   tiny_gltf
 )
