@@ -27,7 +27,7 @@ namespace ospray {
       GenerateImGuiWidgets() = default;
 
       bool operator()(Node &node, TraversalContext &ctx) override;
-      // void postChildren(Node &, TraversalContext &) override;
+      void postChildren(Node &, TraversalContext &) override;
     };
 
     // Inlined definitions ////////////////////////////////////////////////////
@@ -35,30 +35,32 @@ namespace ospray {
     inline bool GenerateImGuiWidgets::operator()(Node &node,
                                                  TraversalContext &ctx)
     {
-      for (int i = 0; i < ctx.level; i++)
-        ImGui::Indent();
-
+      // ALOK: used to copy and assign values from/to children.
+      // if we don't, sg doesn't know the node was updated
       static float f1;
       static vec3f f3;
 
-      if (node.subType() == "Node") {
-        ImGui::Text(node.name().c_str());
-      } else if (node.subType() == "float") {
-        f1 = node.valueAs<float>();
-        if (ImGui::SliderFloat(node.name().c_str(), &f1, 0.f, 1.f))
-          node.setValue(f1);
-      } else if (node.subType() == "vec3f") {
-        f3 = node.valueAs<vec3f>();
-        if (ImGui::SliderFloat3(node.name().c_str(), f3, -1.f, 1.f))
-          node.setValue(f3);
+      if (ImGui::TreeNode(node.name().c_str())) {
+        if (node.type() == NodeType::LIGHT) {
+          f1 = node["intensity"].valueAs<float>();
+          if (ImGui::SliderFloat("intensity", &f1, 0.f, 1.f))
+            node["intensity"].setValue(f1);
+          f3 = node["color"].valueAs<vec3f>();
+          if (ImGui::ColorEdit3("color", f3))
+            node["color"].setValue(f3);
+
+          return false;
+        }
+        return true;
       } else {
-        ImGui::Text(node.subType().c_str());
+        // the tree is closed, no need to continue
+        return false;
       }
+    }
 
-      for (int i = 0; i < ctx.level; i++)
-        ImGui::Unindent();
-
-      return true;
+    inline void GenerateImGuiWidgets::postChildren(Node &, TraversalContext &)
+    {
+      ImGui::TreePop();
     }
 
   }  // namespace sg

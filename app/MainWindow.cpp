@@ -1097,7 +1097,8 @@ void MainWindow::buildWindowLightEditor()
     }
     ImGui::ListBoxFooter();
     
-    lightMan.traverse<sg::GenerateImGuiWidgets>();
+    if (whichLight != -1)
+      lightMan.child(selectedLight).traverse<sg::GenerateImGuiWidgets>();
   }
 
   ImGui::End();
