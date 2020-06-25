@@ -29,6 +29,7 @@
 #include "sg/generator/Generator.h"
 #include "sg/importer/Importer.h"
 #include "sg/exporter/Exporter.h"
+#include "sg/visitors/GenerateImGuiWidgets.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/scene/lights/Lights.h"
 // ospcommon
@@ -1096,8 +1097,7 @@ void MainWindow::buildWindowLightEditor()
     }
     ImGui::ListBoxFooter();
     
-    // TODO selected light properties
-    // can this be a visitor? e.g. ImGuiVisitor?
+    lightMan.traverse<sg::GenerateImGuiWidgets>();
   }
 
   ImGui::End();

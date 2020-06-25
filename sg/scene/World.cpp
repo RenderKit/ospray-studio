@@ -31,12 +31,9 @@ namespace ospray::sg {
     std::vector<cpp::Light> lightObjects;
 
     for (auto &name : lights.lightNames) {
-      std::cout << "world found light '" << name << "'" << std::endl;
       auto &l = lights.child(name).valueAs<cpp::Light>();
       lightObjects.push_back(l);
     }
-    std::cout << lightObjects.size() << " light"
-              << ((lightObjects.size() > 1) ? "s" : "") << std::endl;
 
     ospWorld.setParam("light", cpp::Data(lightObjects));
   }
