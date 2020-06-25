@@ -17,8 +17,8 @@
 #pragma once
 
 #include <vector>
-#include "ospcommon/vec.h"
-#include "ospcommon/FileName.h"
+#include "rkcommon/vec.h"
+#include "rkcommon/FileName.h"
 
 #ifdef _WIN32
   #ifdef ospray_tfn_EXPORTS
@@ -42,29 +42,29 @@
  * float64: data value max
  * float32: opacity scaling value, opacity values should be scaled
  *          by this factor
- * [ospcommon::vec3f...]: RGB values
- * [ospcommon::vec2f...]: data value, opacity value pairs
+ * [rkcommon::vec3f...]: RGB values
+ * [rkcommon::vec2f...]: data value, opacity value pairs
  */
 
 namespace tfn {
 
 struct OSPTFNLIB_INTERFACE TransferFunction {
   std::string name;
-  std::vector<ospcommon::vec3f> rgbValues;
-  std::vector<ospcommon::vec2f> opacityValues;
+  std::vector<rkcommon::vec3f> rgbValues;
+  std::vector<rkcommon::vec2f> opacityValues;
   double dataValueMin;
   double dataValueMax;
   float opacityScaling;
 
   // Load the transfer function data in the file
-  TransferFunction(const ospcommon::FileName &fileName);
+  TransferFunction(const rkcommon::FileName &fileName);
   // Construct a transfer function from some existing one
   TransferFunction(const std::string &name,
-      const std::vector<ospcommon::vec3f> &rgbValues,
-      const std::vector<ospcommon::vec2f> &opacityValues, const double dataValueMin,
+      const std::vector<rkcommon::vec3f> &rgbValues,
+      const std::vector<rkcommon::vec2f> &opacityValues, const double dataValueMin,
       const double dataValueMax, const float opacityScaling);
   // Save the transfer function data to the file
-  void save(const ospcommon::FileName &fileName) const;
+  void save(const rkcommon::FileName &fileName) const;
 };
 
 }

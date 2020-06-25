@@ -146,7 +146,7 @@ namespace ospray::sg {
     auto geom = node.valueAs<cpp::Geometry>();
     cpp::GeometricModel model(geom);
     if (node.hasChild("material")) {
-      model.setParam("material", node["material"].valueAs<cpp::Data>());
+      model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
     } else {
       if (current.materials.size() != 0) {
         model.setParam("material", *current.materials.begin());
@@ -208,10 +208,10 @@ namespace ospray::sg {
     cpp::Group group;
 
     if (!current.geometries.empty())
-      group.setParam("geometry", cpp::Data(current.geometries));
+      group.setParam("geometry", cpp::CopiedData(current.geometries));
 
     if (!current.volumes.empty())
-      group.setParam("volume", cpp::Data(current.volumes));
+      group.setParam("volume", cpp::CopiedData(current.volumes));
 
     current.geometries.clear();
     current.volumes.clear();
@@ -230,13 +230,13 @@ namespace ospray::sg {
   inline void RenderScene::addLightToWorld(Node &node)
   {
     auto &light = node.valueAs<cpp::Light>();
-    world.setParam("light", (cpp::Data)light);
+    world.setParam("light", (cpp::CopiedData)light);
   }
 
   inline void RenderScene::placeInstancesInWorld()
   {
     if (!instances.empty())
-      world.setParam("instance", cpp::Data(instances));
+      world.setParam("instance", cpp::CopiedData(instances));
   }
 
 }  // namespace ospray::sg

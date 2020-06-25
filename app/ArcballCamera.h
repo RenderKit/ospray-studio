@@ -18,9 +18,9 @@
 
 #include <vector>
 
-#include "ospcommon/math/AffineSpace.h"
+#include "rkcommon/math/AffineSpace.h"
 
-using namespace ospcommon::math;
+using namespace rkcommon::math;
 
 class ArcballCamera;
 

@@ -7,8 +7,8 @@
 #include "sg/importer/Importer.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/visitors/PrintNodes.h"
-// ospcommon
-#include "ospcommon/utility/SaveImage.h"
+// rkcommon
+#include "rkcommon/utility/SaveImage.h"
 
 // Batch mode entry point
 void start_Batch_mode(int argc, const char *argv[])
@@ -177,10 +177,10 @@ void BatchContext::render()
 
   if (colorFormatStr == "float") {
     optImageName += ".pfm";
-    ospcommon::utility::writePFM(optImageName, size.x, size.y, (vec4f *)pixels);
+    rkcommon::utility::writePFM(optImageName, size.x, size.y, (vec4f *)pixels);
   } else {
     optImageName += ".ppm";
-    ospcommon::utility::writePPM(
+    rkcommon::utility::writePPM(
         optImageName, size.x, size.y, (uint32_t *)pixels);
   }
 
@@ -199,7 +199,7 @@ void BatchContext::importFiles()
 
   for (auto file : filesToImport) {
     try {
-      ospcommon::FileName fileName(file);
+      rkcommon::FileName fileName(file);
       std::string nodeName = fileName.base() + "_importer";
 
       std::cout << "Importing: " << file << std::endl;

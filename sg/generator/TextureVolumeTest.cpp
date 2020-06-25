@@ -17,8 +17,8 @@
 #include "Generator.h"
 // std
 #include <random>
-// ospcommon
-#include "ospcommon/tasking/parallel_for.h"
+// rkcommon
+#include "rkcommon/tasking/parallel_for.h"
 #include "sg/texture/TextureVolume.h"
 
 namespace ospray::sg {

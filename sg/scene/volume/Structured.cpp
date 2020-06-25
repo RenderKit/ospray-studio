@@ -22,7 +22,7 @@ namespace ospray::sg {
 
   /*! helper function to help build voxel ranges during parsing */
   template <typename T>
-  inline void extendVoxelRange(ospcommon::math::vec2f &voxelRange,
+  inline void extendVoxelRange(rkcommon::math::vec2f &voxelRange,
                                const T *voxel,
                                size_t num)
   {
@@ -36,7 +36,7 @@ namespace ospray::sg {
 
   //! Convenient wrapper that will do the template dispatch for you based on
   //  the voxelType passed
-  inline void extendVoxelRange(ospcommon::math::vec2f &voxelRange,
+  inline void extendVoxelRange(rkcommon::math::vec2f &voxelRange,
                                const OSPDataType voxelType,
                                const unsigned char *voxels,
                                const size_t numVoxels)

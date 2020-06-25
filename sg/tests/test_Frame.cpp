@@ -20,7 +20,7 @@
 #include "sg/visitors/PrintNodes.h"
 using namespace ospray::sg;
 
-#include "ospcommon/utility/SaveImage.h"
+#include "rkcommon/utility/SaveImage.h"
 
 int main(int argc, const char *argv[])
 {
@@ -40,7 +40,7 @@ int main(int argc, const char *argv[])
     auto size    = frame["framebuffer"]["size"].valueAs<vec2i>();
     auto *pixels = (uint32_t *)frame.mapFrame();
 
-    ospcommon::utility::writePPM("test_Frame.ppm", size.x, size.y, pixels);
+    rkcommon::utility::writePPM("test_Frame.ppm", size.x, size.y, pixels);
 
     frame.unmapFrame(pixels);
 

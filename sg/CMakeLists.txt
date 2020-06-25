@@ -121,9 +121,11 @@ add_library(ospray_sg SHARED
   texture/TextureVolume.cpp
   )
 
+target_compile_definitions(ospray_sg PUBLIC OSPRAY_CPP_RKCOMMON_TYPES)
+
 target_link_libraries(ospray_sg
 PUBLIC
-  ospcommon::ospcommon
+  rkcommon::rkcommon
   ospray::ospray
   OpenImageIO::OpenImageIO
 PRIVATE

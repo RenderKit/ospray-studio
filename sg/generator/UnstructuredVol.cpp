@@ -162,11 +162,11 @@ namespace ospray {
       auto &volume = tf.createChild("volume", "volume_unstructured");
 
       // set data objects for volume object
-      volume["vertex.position"] = (cpp::Data)vertices;
-      volume["index"]           = (cpp::Data)indices;
-      volume["cell.index"]         = (cpp::Data)cells;
-      volume["vertex.data"]        = (cpp::Data)vertexValues;
-      volume["cell.type"]          = (cpp::Data)cellTypes;
+      volume["vertex.position"] = (cpp::CopiedData)vertices;
+      volume["index"]           = (cpp::CopiedData)indices;
+      volume["cell.index"]         = (cpp::CopiedData)cells;
+      volume["vertex.data"]        = (cpp::CopiedData)vertexValues;
+      volume["cell.type"]          = (cpp::CopiedData)cellTypes;
 
     }
   }  // namespace sg

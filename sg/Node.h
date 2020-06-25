@@ -21,12 +21,13 @@
 #include <map>
 #include <memory>
 #include <vector>
-// ospcommon
-#include "ospcommon/containers/FlatMap.h"
-#include "ospcommon/math/box.h"
-#include "ospcommon/math/vec.h"
-#include "ospcommon/utility/Any.h"
-#include "ospcommon/utility/TimeStamp.h"
+// rkcommon
+#include "rkcommon/containers/FlatMap.h"
+#include "rkcommon/math/box.h"
+#include "rkcommon/math/vec.h"
+#include "rkcommon/utility/Any.h"
+#include "rkcommon/utility/TimeStamp.h"
+#include "rkcommon/math/AffineSpace.h"
 // ospray
 #include "ospray/ospray_cpp.h"
 // ospray_sg
@@ -48,14 +49,14 @@
 
 namespace ospray::sg {
 
-  using namespace ospcommon;
-  using namespace ospcommon::math;
+  using namespace rkcommon;
+  using namespace rkcommon::math;
 
   using Any       = utility::Any;
   using TimeStamp = utility::TimeStamp;
 
   template <typename K, typename V>
-  using FlatMap = ospcommon::containers::FlatMap<K, V>;
+  using FlatMap = rkcommon::containers::FlatMap<K, V>;
 
   using rgb  = vec3f;
   using rgba = vec4f;

@@ -32,11 +32,11 @@
 #include "sg/visitors/GenerateImGuiWidgets.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/scene/lights/Lights.h"
-// ospcommon
-#include "ospcommon/math/ospmath.h"
-#include "ospcommon/os/FileName.h"
-#include "ospcommon/utility/SaveImage.h"
-#include "ospcommon/utility/getEnvVar.h"
+// rkcommon
+#include "rkcommon/math/ospmath.h"
+#include "rkcommon/os/FileName.h"
+#include "rkcommon/utility/SaveImage.h"
+#include "rkcommon/utility/getEnvVar.h"
 // tiny_file_dialogs
 #include "sg/scene/volume/Structured.h"
 #include "tinyfiledialogs.h"
@@ -781,17 +781,17 @@ void MainWindow::importFiles()
   auto world = sg::createNode("world", "world");
 
   for (auto file : filesToImport) {
-    //    try {
-    ospcommon::FileName fileName(file);
-    std::string nodeName = fileName.base() + "_importer";
+//    try {
+      rkcommon::FileName fileName(file);
+      std::string nodeName = fileName.base() + "_importer";
 
-    std::cout << "Importing: " << file << std::endl;
-    auto oldRegistrySize = baseMaterialRegistry->children().size();
-    auto importer        = sg::getImporter(file);
-    if (importer != "") {
-      auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
-      imp["file"] = std::string(file);
-      imp.importScene(baseMaterialRegistry);
+      std::cout << "Importing: " << file << std::endl;
+      auto oldRegistrySize = baseMaterialRegistry->children().size();
+      auto importer        = sg::getImporter(file);
+      if (importer != "") {
+        auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
+        imp["file"] = std::string(file);
+        imp.importScene(baseMaterialRegistry);
 
 #if 0  // BMCDEBUG, just for testing
         imp.traverse<sg::PrintNodes>();

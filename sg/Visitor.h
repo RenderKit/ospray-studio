@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "ospcommon/traits/osptraits.h"
+#include "rkcommon/traits/rktraits.h"
 
 namespace ospray::sg {
 
@@ -53,7 +53,7 @@ namespace ospray::sg {
 #if 1
   template <typename T>
   using has_valid_visit_operator_method =
-      ospcommon::traits::has_operator_method<T>;
+      rkcommon::traits::has_operator_method<T>;
 #else
   template <typename T>
   struct has_valid_visit_operator_method
@@ -90,6 +90,6 @@ namespace ospray::sg {
 
   template <typename VISITOR_T>
   using is_valid_visitor_t =
-      ospcommon::traits::enable_if_t<is_valid_visitor<VISITOR_T>::value>;
+      rkcommon::traits::enable_if_t<is_valid_visitor<VISITOR_T>::value>;
 
 }  // namespace ospray::sg

@@ -22,7 +22,7 @@ add_library(imgui
   # imguifilesystem/imguifilesystem.cpp
 )
 
-target_link_libraries(imgui PUBLIC ${OPENGL_LIBRARIES} ospcommon::ospcommon)
+target_link_libraries(imgui PUBLIC ${OPENGL_LIBRARIES} ospray_sg)
 
 target_include_directories(imgui
 PUBLIC

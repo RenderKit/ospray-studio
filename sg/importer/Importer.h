@@ -17,7 +17,7 @@
 #pragma once
 
 #include "../Node.h"
-#include "ospcommon/os/FileName.h"
+#include "rkcommon/os/FileName.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include  "sg/texture/Texture2D.h"
 
@@ -39,7 +39,7 @@ namespace ospray::sg {
       {"gltf", "importer_gltf"},
       {"glb", "importer_gltf"}};
 
-  inline std::string getImporter(ospcommon::FileName fileName)
+  inline std::string getImporter(rkcommon::FileName fileName)
   {
     auto fnd = importerMap.find(fileName.ext());
     if (fnd == importerMap.end()) {

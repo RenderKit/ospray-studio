@@ -9,10 +9,10 @@
 #include "sg/Node.h"
 #include "sg/renderer/MaterialRegistry.h"
 
-using namespace ospcommon::math;
+using namespace rkcommon::math;
 using namespace ospray;
 using namespace ospray::sg;
-using ospcommon::make_unique;
+using rkcommon::make_unique;
 
 class BatchContext
 {

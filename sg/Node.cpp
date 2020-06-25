@@ -18,9 +18,9 @@
 #include "visitors/Commit.h"
 #include "visitors/GetBounds.h"
 #include "visitors/RenderScene.h"
-// ospcommon
-#include "ospcommon/os/library.h"
-#include "ospcommon/utility/StringManip.h"
+// rkcommon
+#include "rkcommon/os/library.h"
+#include "rkcommon/utility/StringManip.h"
 
 namespace ospray::sg {
 

@@ -16,7 +16,7 @@
 
 #include "ospStudio.h"
 
-using ospcommon::removeArgs;
+using rkcommon::removeArgs;
 
 int main(int argc, const char *argv[])
 {
@@ -33,7 +33,7 @@ int main(int argc, const char *argv[])
       if (s != StudioModeMap.end()) {
         mode = s->second;
         // Remove mode argument
-        ospcommon::removeArgs(argc, argv, 1, 1);
+        rkcommon::removeArgs(argc, argv, 1, 1);
       }
     }
   }

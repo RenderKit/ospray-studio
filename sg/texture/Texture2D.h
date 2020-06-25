@@ -19,8 +19,8 @@
 // sg
 #include "../Data.h"
 #include "Texture.h"
-// ospcommon
-#include "ospcommon/os/FileName.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
 
 namespace ospray::sg {
 

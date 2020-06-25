@@ -23,7 +23,7 @@ OIIO_NAMESPACE_USING
 
 #include "Texture2D.h"
 
-#include "ospcommon/memory/malloc.h"
+#include "rkcommon/memory/malloc.h"
 
 namespace ospray::sg {
 

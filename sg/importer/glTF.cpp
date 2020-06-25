@@ -18,8 +18,8 @@
 // tiny_gltf
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #include "tiny_gltf.h"
-// ospcommon
-#include "ospcommon/os/FileName.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
 
 #include "glTF/buffer_view.h"
 #include "glTF/gltf_types.h"

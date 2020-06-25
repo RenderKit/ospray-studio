@@ -58,7 +58,7 @@ namespace ospray::sg {
     auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
     auto fb = cpp::FrameBuffer(
-        size,
+        size.x, size.y,
         colorFormats[colorFormatStr],
         OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO | OSP_FB_VARIANCE | OSP_FB_DEPTH);
 
@@ -71,7 +71,7 @@ namespace ospray::sg {
     auto colorFormatStr = child("colorFormat").valueAs<std::string>();
     if (enabled && colorFormatStr == "float") {
       cpp::ImageOperation d("denoiser");
-      handle().setParam("imageOperation", cpp::Data(d));
+      handle().setParam("imageOperation", cpp::CopiedData(d));
     } else {
       handle().removeParam("imageOperation");
     }

@@ -25,9 +25,9 @@
 // std
 #include <functional>
 
-using namespace ospcommon::math;
+using namespace rkcommon::math;
 using namespace ospray;
-using ospcommon::make_unique;
+using rkcommon::make_unique;
 
 enum class OSPRayRendererType
 {

@@ -18,7 +18,7 @@
 #include <fstream>
 #include "tfn_lib.h"
 
-using namespace ospcommon;
+using namespace rkcommon;
 using namespace tfn;
 
 // The magic number is 'OSTF' in ASCII
@@ -82,8 +82,8 @@ TransferFunction::TransferFunction(const FileName &fileName) {
   }
 }
 TransferFunction::TransferFunction(const std::string &name,
-    const std::vector<ospcommon::vec3f> &rgbValues,
-    const std::vector<ospcommon::vec2f> &opacityValues, const double dataValueMin,
+    const std::vector<rkcommon::vec3f> &rgbValues,
+    const std::vector<rkcommon::vec2f> &opacityValues, const double dataValueMin,
     const double dataValueMax, const float opacityScaling)
   : name(name), rgbValues(rgbValues), opacityValues(opacityValues), dataValueMin(dataValueMin),
   dataValueMax(dataValueMax), opacityScaling(opacityScaling)

@@ -36,12 +36,12 @@ namespace ospray::sg {
     switch (node.type()) {
     case NodeType::WORLD: {
       auto world = node.valueAs<cpp::World>();
-      bounds     = world.getBounds();
+      bounds     = world.getBounds<box3f>();
       return false;
     }
     case NodeType::GEOMETRY: {
       auto geom = node.valueAs<cpp::Geometry>();
-      bounds    = geom.getBounds();
+      bounds    = geom.getBounds<box3f>();
       return false;
     }
     default:

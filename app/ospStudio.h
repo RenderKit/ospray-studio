@@ -10,7 +10,7 @@
 // ospray
 #include "ospray/ospray_util.h"
 // ospcommno
-#include "ospcommon/common.h"
+#include "rkcommon/common.h"
 
 enum class StudioMode
 {
@@ -44,12 +44,22 @@ inline void initializeOSPRay(int argc,
     throw std::runtime_error("OSPRay device could not be fetched!");
 
   // set an error callback to catch any OSPRay errors and exit the application
-  ospDeviceSetErrorFunc(device, [](OSPError error, const char *errorDetails) {
-    std::cerr << "OSPRay error: " << errorDetails << std::endl;
-    // exit(error); Not all errors need be fatal.  ie, ospLoadModule may fail.
-  });
+  ospDeviceSetErrorCallback(
+      device,
+      [](void *, OSPError, const char *errorDetails) {
+        std::cerr << "OSPRay error: " << errorDetails << std::endl;
+      },
+      nullptr);
 
-  ospDeviceSetStatusFunc(device, [](const char *message) {
-    std::cout << "OSPRay message: " << message << std::endl;
-  });
+  ospDeviceSetStatusCallback(
+      device, [](void *, const char *msg) { std::cout << msg; }, nullptr);
+
+  bool warnAsErrors = true;
+  auto logLevel = OSP_LOG_WARNING;
+
+  ospDeviceSetParam(device, "warnAsError", OSP_BOOL, &warnAsErrors);
+  ospDeviceSetParam(device, "logLevel", OSP_INT, &logLevel);
+
+  ospDeviceCommit(device);
+  ospDeviceRelease(device);
 }

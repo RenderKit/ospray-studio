@@ -21,7 +21,7 @@
 #include "sg/visitors/PrintNodes.h"
 using namespace ospray::sg;
 
-#include "ospcommon/utility/SaveImage.h"
+#include "rkcommon/utility/SaveImage.h"
 
 int main(int argc, const char *argv[])
 {
@@ -34,10 +34,12 @@ int main(int argc, const char *argv[])
   if (!device)
     throw std::runtime_error("OSPRay device could not be fetched!");
 
-  ospDeviceSetErrorFunc(device, [](OSPError error, const char *errorDetails) {
-    std::cerr << "OSPRay error: " << errorDetails << std::endl;
-    exit(error);
-  });
+  ospDeviceSetErrorCallback(
+      device,
+      [](void *, OSPError, const char *errorDetails) {
+        std::cerr << "OSPRay error: " << errorDetails << std::endl;
+      },
+      nullptr);
 
   // image size
   vec2i imgSize(1024, 768);
@@ -96,7 +98,7 @@ int main(int argc, const char *argv[])
     auto size    = frame["framebuffer"]["size"].valueAs<vec2i>();
     auto *pixels = (uint32_t *)frame.mapFrame();
 
-    ospcommon::utility::writePPM("test_sgTutorial.ppm", size.x, size.y, pixels);
+    rkcommon::utility::writePPM("test_sgTutorial.ppm", size.x, size.y, pixels);
 
     frame.unmapFrame(pixels);
 

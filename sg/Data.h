@@ -20,7 +20,7 @@
 
 namespace ospray::sg {
 
-  struct Data : public OSPNode<cpp::Data, NodeType::PARAMETER>
+  struct Data : public OSPNode<cpp::CopiedData, NodeType::PARAMETER>
   {
     Data()           = default;
     ~Data() override = default;
@@ -153,7 +153,7 @@ namespace ospray::sg {
       ospRelease(tmp);
     }
 
-    setValue(cpp::Data(ospObject));
+    setValue(cpp::CopiedData(ospObject));
   }
 
   template <typename T, std::size_t N>
@@ -201,7 +201,7 @@ namespace ospray::sg {
         OSPTypeFor<T>::value != OSP_UNKNOWN,
         "Only types corresponding to OSPDataType values can be set "
         "as elements in OSPRay Data arrays. NOTE: Math types (vec, "
-        "box, linear, affine) are expected to come from ospcommon::math.");
+        "box, linear, affine) are expected to come from rkcommon::math.");
   }
 
 }  // namespace ospray::sg

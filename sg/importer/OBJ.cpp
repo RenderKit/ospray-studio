@@ -17,8 +17,8 @@
 #include "Importer.h"
 // tiny_obj_loader
 #include "tiny_obj_loader.h"
-// ospcommon
-#include "ospcommon/os/FileName.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
 
 namespace ospray::sg {
 
@@ -46,7 +46,7 @@ namespace ospray::sg {
 
   static inline void parseParameterString(std::string typeAndValueString,
                                           std::string &paramType,
-                                          ospcommon::utility::Any &paramValue)
+                                          rkcommon::utility::Any &paramValue)
   {
     std::stringstream typeAndValueStream(typeAndValueString);
     std::string paramValueString;
@@ -223,7 +223,7 @@ namespace ospray::sg {
             paramNodes.push_back(map_misc);
 
           } else {
-            ospcommon::utility::Any paramValue;
+            rkcommon::utility::Any paramValue;
             parseParameterString(paramValueStr, paramType, paramValue);
             try {
               auto newParam = createNode(paramName, paramType, paramValue);

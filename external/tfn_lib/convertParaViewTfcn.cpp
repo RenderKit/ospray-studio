@@ -28,7 +28,7 @@ const static std::string USAGE =
   "Converts the exported ParaView transfer functon JSON format to the\n"
   "    transfer function format used by OSPRay's sample apps\n";
 
-using namespace ospcommon;
+using namespace rkcommon;
 
 inline float cvtSrgb(const float x) {
   if (x <= 0.0031308) {
