@@ -33,7 +33,7 @@
 #include "sg/visitors/PrintNodes.h"
 #include "sg/scene/lights/Lights.h"
 // rkcommon
-#include "rkcommon/math/ospmath.h"
+#include "rkcommon/math/rkmath.h"
 #include "rkcommon/os/FileName.h"
 #include "rkcommon/utility/SaveImage.h"
 #include "rkcommon/utility/getEnvVar.h"
@@ -196,7 +196,7 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
             break;
           case GLFW_KEY_Q: {
             auto showMode =
-                ospcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
+                rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
             // XXX Invoke the "Jim-Q" key, make it more difficult to exit
             // by mistake.
             if (showMode && mod != GLFW_MOD_CONTROL)
