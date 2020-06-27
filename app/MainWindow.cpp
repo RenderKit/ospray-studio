@@ -217,7 +217,8 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
 
   glfwSetKeyCallback(
       glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
-        if (action == GLFW_PRESS) {
+      auto &io = ImGui::GetIO();
+        if (!io.WantCaptureKeyboard && action == GLFW_PRESS) {
           switch (key) {
           case GLFW_KEY_G:
             activeWindow->showUi = !(activeWindow->showUi);
