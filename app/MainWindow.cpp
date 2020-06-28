@@ -186,35 +186,6 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
 
   glfwMakeContextCurrent(glfwWindow);
 
-  ImGui::CreateContext();
-
-  ImGui_ImplGlfw_InitForOpenGL(glfwWindow, true);
-  ImGui_ImplOpenGL2_Init();
-
-  // set initial OpenGL state
-  glEnable(GL_TEXTURE_2D);
-  glDisable(GL_LIGHTING);
-
-  // create OpenGL frame buffer texture
-  glGenTextures(1, &framebufferTexture);
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, framebufferTexture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  // set GLFW callbacks
-  glfwSetFramebufferSizeCallback(
-      glfwWindow, [](GLFWwindow *, int newWidth, int newHeight) {
-        activeWindow->reshape(vec2i{newWidth, newHeight});
-      });
-
-  glfwSetCursorPosCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
-    ImGuiIO &io = ImGui::GetIO();
-    if (!activeWindow->showUi || !io.WantCaptureMouse) {
-      activeWindow->motion(vec2f{float(x), float(y)});
-    }
-  });
-
   glfwSetKeyCallback(
       glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
       auto &io = ImGui::GetIO();
@@ -258,6 +229,35 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
           }
         }
       });
+
+  // set GLFW callbacks
+  glfwSetFramebufferSizeCallback(
+      glfwWindow, [](GLFWwindow *, int newWidth, int newHeight) {
+        activeWindow->reshape(vec2i{newWidth, newHeight});
+      });
+
+  glfwSetCursorPosCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
+    ImGuiIO &io = ImGui::GetIO();
+    if (!activeWindow->showUi || !io.WantCaptureMouse) {
+      activeWindow->motion(vec2f{float(x), float(y)});
+    }
+  });
+
+  ImGui::CreateContext();
+
+  ImGui_ImplGlfw_InitForOpenGL(glfwWindow, true);
+  ImGui_ImplOpenGL2_Init();
+
+  // set initial OpenGL state
+  glEnable(GL_TEXTURE_2D);
+  glDisable(GL_LIGHTING);
+
+  // create OpenGL frame buffer texture
+  glGenTextures(1, &framebufferTexture);
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, framebufferTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   // OSPRay setup //
 
