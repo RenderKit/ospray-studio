@@ -22,6 +22,7 @@ namespace ospray::sg {
   {
     HDRILight();
     virtual ~HDRILight() override = default;
+    void postCommit() override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(HDRILight, hdri);
@@ -32,7 +33,16 @@ namespace ospray::sg {
   {
     createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f));
     createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
-    createChild("map");
+  }
+
+  void HDRILight::postCommit()
+  {
+    auto asLight = valueAs<cpp::Light>();
+    auto &map = child("map").valueAs<cpp::Texture>();
+    asLight.setParam("map", (cpp::Texture)map);
+    map.commit();
+
+    this->Light::postCommit();
   }
 
 }  // namespace ospray::sg

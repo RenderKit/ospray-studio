@@ -43,19 +43,23 @@ namespace ospray {
 
       if (ImGui::TreeNode(node.name().c_str())) {
         if (node.type() == NodeType::LIGHT) {
+
+          std::string lightType = node["type"].valueAs<std::string>();
+
           b = node["visible"].valueAs<bool>();
           if (ImGui::Checkbox("visible", &b))
             node["visible"].setValue(b);
 
-          f1 = node["intensity"].valueAs<float>();
-          if (ImGui::DragFloat("intensity", &f1, 0.1f, 0.0f, 0.0f, "%.1f"))
-            node["intensity"].setValue(f1);
+          if (lightType != "hdri") {
+            f1 = node["intensity"].valueAs<float>();
+            if (ImGui::DragFloat("intensity", &f1, 0.1f, 0.0f, 0.0f, "%.1f"))
+              node["intensity"].setValue(f1);
 
-          f3 = node["color"].valueAs<vec3f>();
-          if (ImGui::ColorEdit3("color", f3))
-            node["color"].setValue(f3);
+            f3 = node["color"].valueAs<vec3f>();
+            if (ImGui::ColorEdit3("color", f3))
+              node["color"].setValue(f3);
+          }
 
-          std::string lightType = node["type"].valueAs<std::string>();
           if (lightType == "distant") {
             f3 = node["direction"].valueAs<vec3f>();
             if (ImGui::SliderFloat3("direction", f3, -1.f, 1.f))
@@ -109,7 +113,19 @@ namespace ospray {
             f3 = node["edge2"].valueAs<vec3f>();
             if (ImGui::DragFloat3("edge 2", f3, 0.1f))
               node["edge2"].setValue(f3);
+
+          } else if (lightType == "hdri") {
+              f3 = node["up"].valueAs<vec3f>();
+              if (ImGui::SliderFloat3("up", f3, -1.f, 1.f))
+                node["up"].setValue(f3);
+
+              f3 = node["direction"].valueAs<vec3f>();
+              if (ImGui::SliderFloat3("direction", f3, -1.f, 1.f))
+                node["direction"].setValue(f3);
+
           }
+
+          ImGui::TreePop();
 
           return false;
         }

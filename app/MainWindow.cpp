@@ -563,7 +563,6 @@ void MainWindow::buildUI()
   static int whichScene        = 0;
   static int whichRenderer     = 0;
   static int whichDebuggerType = 0;
-  static int whichLightType    = 0;
   static int whichMatType      = 0;
   if (ImGui::Combo("scene##whichScene",
                    &whichScene,
@@ -641,14 +640,6 @@ void MainWindow::buildUI()
       renderer["method"] = g_debugRendererTypes[whichDebuggerType];
     }
   } else if (rendererType == OSPRayRendererType::PATHTRACER) {
-    if (ImGui::Combo("light type##whichLightType",
-                     &whichLightType,
-                     lightTypeUI_callback,
-                     nullptr,
-                     g_lightTypes.size())) {
-      lightTypeStr = g_lightTypes[whichLightType];
-      refreshLight();
-    }
     if (ImGui::Combo("material type##whichMatType",
                      &whichMatType,
                      matTypeUI_callback,
@@ -664,6 +655,12 @@ void MainWindow::buildUI()
     if (ImGui::Checkbox("backplate texture", &useTestTex) ||
         ImGui::Checkbox("import backplate texture", &useImportedTex)) {
       refreshRenderer();
+    }
+  }
+
+  if (rendererType == OSPRayRendererType::PATHTRACER) {
+    if (ImGui::Checkbox("import hdri texture", &useImportedHDRI)) {
+      refreshEnvironmentalLight();
     }
   }
 
@@ -720,12 +717,6 @@ void MainWindow::refreshRenderer()
   }
 }
 
-void MainWindow::refreshLight()
-{
-  auto &world = frame->child("world");
-  world.createChild("light", lightTypeStr);
-}
-
 void MainWindow::refreshMaterial()
 {
   baseMaterialRegistry->refreshMaterialList(matTypeStr, rendererTypeStr);
@@ -752,7 +743,6 @@ void MainWindow::refreshScene()
         world->createChildAs<sg::Generator>("generator", "generator_" + scene);
     gen.generateData();
   }
-  world->createChild("light", lightTypeStr);
 
   world->render();
 
@@ -761,6 +751,24 @@ void MainWindow::refreshScene()
   arcballCamera.reset(
       new ArcballCamera(frame->child("world").bounds(), windowSize));
   updateCamera();
+}
+
+void MainWindow::refreshEnvironmentalLight()
+{
+  if (useImportedHDRI) {
+    auto &world = frame->child("world");
+    auto &lightMan = world.childAs<sg::Lights>("lights");
+    lightMan.addLight("hdri", "hdri");
+
+    auto &lightNode = lightMan.child("hdri");
+
+    const char *file = tinyfd_openFileDialog(
+        "Import an HDRI texture from a file", "", 0, nullptr, nullptr, 0);
+
+    auto &hdriTex = lightNode.createChild("map", "texture_2d");
+    std::shared_ptr<sg::Texture2D> ast2d = hdriTex.nodeAs<sg::Texture2D>();
+    ast2d->load(file, false, false);
+  }
 }
 
 void MainWindow::parseCommandLine(int &ac, const char **&av)
@@ -814,7 +822,6 @@ void MainWindow::importFiles()
     //      std::cerr << "Failed to open file '" << file << "'!\n";
     //    }
   }
-  world->createChild("light", lightTypeStr);
 
   world->render();
 
@@ -1054,53 +1061,14 @@ void MainWindow::buildWindowLightEditor()
   }
 
   static int whichLightType = -1;
-  ImGui::Combo("light type##whichLightType",
-               &whichLightType,
-               lightTypeUI_callback,
-               nullptr,
-               g_lightTypes.size());
-  if (whichLightType < 0 or whichLightType > g_lightTypes.size())
-  {
-    return;
-  }
-
-  static bool lightNameWarning = false;
-  static char lightName[64] = "";
-  if (ImGui::InputText("name", lightName, 64))
-    lightNameWarning = false;
-
   auto &world    = frame->child("world");
   auto &lightMan = world.childAs<sg::Lights>("lights");
   auto &lights   = lightMan.children();
-
   static int whichLight = -1;
   static std::string selectedLight;
-  std::string lightType = g_lightTypes[whichLightType];
 
-  if (lightNameWarning)
-    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
-                       "Light must have unique non-empty name");
-
-  if (ImGui::Button("add")) {
-    if (whichLightType != -1) {
-      if (!lightMan.addLight(lightName, lightType)) {
-        lightNameWarning = true;
-      }
-    }
-  }
-
-  if (lights.size() > 1) {
-    ImGui::SameLine();
-    if (ImGui::Button("remove")) {
-      if (whichLight != -1) {
-        lightMan.removeLight(selectedLight);
-        whichLight    = std::max(0, whichLight - 1);
-        selectedLight = (*(lights.begin() + whichLight)).first;
-      }
-    }
-  }
-
-  if (ImGui::ListBoxHeader("lights", 3)) {
+  ImGui::Text("lights");
+  if (ImGui::ListBoxHeader("", 3)) {
     int i = 0;
     for (auto &light : lights) {
       if (ImGui::Selectable(light.first.c_str(), (whichLight == i))) {
@@ -1110,13 +1078,53 @@ void MainWindow::buildWindowLightEditor()
       i++;
     }
     ImGui::ListBoxFooter();
-    
+
     if (whichLight != -1) {
-      ImGui::Separator();
-      ImGui::Text("Edit light");
+      ImGui::Text("edit");
+      ImGui::TreePush();
+
       lightMan.child(selectedLight).traverse<sg::GenerateImGuiWidgets>();
     }
   }
+
+  if (lights.size() > 1) {
+    if (ImGui::Button("remove")) {
+      if (whichLight != -1) {
+        lightMan.removeLight(selectedLight);
+        whichLight    = std::max(0, whichLight - 1);
+        selectedLight = (*(lights.begin() + whichLight)).first;
+      }
+    }
+  }
+
+  ImGui::Separator();
+
+  ImGui::Text("new light");
+
+  ImGui::Combo("type##whichLightType",
+               &whichLightType,
+               lightTypeUI_callback,
+               nullptr,
+               g_lightTypes.size());
+
+  static bool lightNameWarning = false;
+  static char lightName[64] = "";
+  if (ImGui::InputText("name", lightName, 64))
+    lightNameWarning = false;
+
+  if (ImGui::Button("add")) {
+    if (whichLightType > -1 && whichLightType < g_lightTypes.size()) {
+      std::string lightType = g_lightTypes[whichLightType];
+
+      if (!lightMan.addLight(lightName, lightType)) {
+        lightNameWarning = true;
+      }
+    }
+  }
+
+  if (lightNameWarning)
+    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
+                       "Light must have unique non-empty name");
 
   ImGui::End();
 }
