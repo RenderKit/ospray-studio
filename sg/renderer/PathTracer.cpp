@@ -22,6 +22,7 @@ namespace ospray::sg {
   {
     PathTracer();
     virtual ~PathTracer() override = default;
+    void preCommit() override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(PathTracer, renderer_pathtracer);
@@ -32,6 +33,16 @@ namespace ospray::sg {
   {
     createChild("maxPathLength", "int", 5);
     createChild("roulettePathLength", "int", 5);
+  }
+
+  void PathTracer::preCommit() {
+    this->Renderer::preCommit();
+
+    auto &renderer = handle();
+    if(hasChild("map_backplate")) {
+      auto &cppTex = child("map_backplate").valueAs<cpp::Texture>();
+      renderer.setParam("map_backplate", cppTex);
+    }
   }
 
 }  // namespace ospray::sg

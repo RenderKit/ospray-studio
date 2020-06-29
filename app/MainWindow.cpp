@@ -657,7 +657,10 @@ void MainWindow::buildUI()
       matTypeStr = g_matTypes[whichMatType];
       refreshMaterial();
     }
-  } else if (rendererType == OSPRayRendererType::SCIVIS) {
+  }
+
+  if (rendererType == OSPRayRendererType::SCIVIS ||
+      rendererType == OSPRayRendererType::PATHTRACER) {
     if (ImGui::Checkbox("backplate texture", &useTestTex) ||
         ImGui::Checkbox("import backplate texture", &useImportedTex)) {
       refreshRenderer();
@@ -694,11 +697,8 @@ void MainWindow::refreshRenderer()
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
     r.createChildData("material", baseMaterialRegistry->cppMaterialList);
   }
-  // backplate does not work without renderer pre/post commit
-  // which cause issues with material textures
-  // uncomment scivis pre/post commit to see this working
-  // TODO:: fix this issue
-  if (rendererTypeStr == "scivis") {
+  if (rendererTypeStr == "scivis" ||
+      rendererTypeStr == "pathtracer") {
     if (useTestTex) {
       auto &backplateTex = r.createChild("map_backplate", "texture_2d");
       std::vector<vec4f> backplate;
