@@ -16,17 +16,20 @@ enum class StudioMode
 {
   GUI,
   BATCH,
-  HEADLESS
+  HEADLESS,
+  TIMESERIES
 };
 
 const static std::map<std::string, StudioMode> StudioModeMap = {
     {"gui", StudioMode::GUI},
     {"batch", StudioMode::BATCH},
-    {"server", StudioMode::HEADLESS}};
+    {"server", StudioMode::HEADLESS},
+    {"timeseries", StudioMode::TIMESERIES}};
 
 // Mode entry points
 void start_GUI_mode(int argc, const char *argv[]);
 void start_Batch_mode(int argc, const char *argv[]);
+void start_TimeSeries_mode(int argc, const char *argv[]);
 
 inline void initializeOSPRay(int argc,
                              const char **argv,

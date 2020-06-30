@@ -39,6 +39,7 @@
 #include "rkcommon/utility/SaveImage.h"
 #include "rkcommon/utility/getEnvVar.h"
 // tiny_file_dialogs
+#include "sg/scene/volume/StructuredSpherical.h"
 #include "sg/scene/volume/Structured.h"
 #include "tinyfiledialogs.h"
 
@@ -54,6 +55,7 @@ void start_GUI_mode(int argc, const char *argv[])
   window->mainLoop();
   window.reset();
 }
+
 
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -276,6 +278,10 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
   fbSize = this->windowSize;
 }
 
+MainWindow::MainWindow(MainWindow *mainWindow) {
+  activeWindow = mainWindow;
+}
+
 MainWindow::~MainWindow()
 {
   ImGui_ImplOpenGL2_Shutdown();
@@ -293,6 +299,14 @@ void MainWindow::registerDisplayCallback(
     std::function<void(MainWindow *)> callback)
 {
   displayCallback = callback;
+}
+
+void MainWindow::registerKeyCallback(
+    std::function<
+        void(MainWindow *, int key, int scancode, int action, int mods)>
+        callback)
+{
+  keyCallback = callback;
 }
 
 void MainWindow::registerImGuiCallback(std::function<void()> callback)
@@ -523,17 +537,20 @@ void MainWindow::waitOnOSPRayFrame()
 
 void MainWindow::updateTitleBar()
 {
-  std::stringstream windowTitle;
-  windowTitle << "OSPRay Studio: " << std::setprecision(3) << latestFPS
-              << " fps";
-  if (latestFPS < 2.f) {
+  // if (windowTitle.str().empty() == 0) {
+    windowTitle << "OSPRay Studio: " << std::setprecision(3) << latestFPS
+                << " fps";
+  // }
+  if (latestFPS < 2.f) {       
     float progress = frame->frameProgress();
     windowTitle << " | ";
     int barWidth = 20;
     std::string progBar;
     progBar.resize(barWidth + 2);
+
     auto start = progBar.begin() + 1;
     auto end   = start + progress * barWidth;
+
     std::fill(start, end, '=');
     std::fill(end, progBar.end(), '_');
     *end            = '>';
@@ -541,8 +558,12 @@ void MainWindow::updateTitleBar()
     progBar.back()  = ']';
     windowTitle << progBar;
   }
-
   glfwSetWindowTitle(glfwWindow, windowTitle.str().c_str());
+  
+}
+
+GLFWwindow* MainWindow::getGLFWWindow() {
+  return glfwWindow;
 }
 
 void MainWindow::buildUI()
@@ -629,6 +650,7 @@ void MainWindow::parseCommandLine(int &ac, const char **&av)
 
 void MainWindow::importFiles()
 {
+  std::cout << "import files from cmd line" << std::endl;
   auto world = sg::createNode("world", "world");
 
   for (auto file : filesToImport) {
@@ -645,8 +667,12 @@ void MainWindow::importFiles()
         imp.importScene(baseMaterialRegistry);
 
 #if 0  // BMCDEBUG, just for testing
-        imp.traverse<sg::PrintNodes>();
+        // imp.traverse<sg::PrintNodes>();
 #endif
+        if (baseMaterialRegistry->matImportsList.size() != 0) {
+          for (auto &newMat : baseMaterialRegistry->matImportsList)
+            g_matTypes.insert(g_matTypes.begin(), newMat);
+        }
 
         if (baseMaterialRegistry->matImportsList.size() != 0) {
           for (auto &newMat : baseMaterialRegistry->matImportsList)
@@ -721,7 +747,7 @@ bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
   if (file) {
     std::shared_ptr<sg::StructuredVolume> volumeImport =
         std::static_pointer_cast<sg::StructuredVolume>(
-            sg::createNode("volume", "volume_structured"));
+            sg::createNode("volume", "structuredRegular"));
 
     volumeImport->load(file);
     auto &tf = world->createChild("transferFunction", "transfer_function_jet");

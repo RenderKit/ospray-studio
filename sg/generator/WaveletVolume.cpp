@@ -68,7 +68,7 @@ namespace ospray::sg {
     auto &parameters = child("parameters");
 
     parameters.createChild("dimensions", "vec3i", vec3i(128));
-    parameters.createChild("gridOrigin", "vec3f", vec3f(-1.f));
+    parameters.createChild("gridOrigin", "vec3f",  vec3f(-1.f));
     parameters.createChild("gridSpacing", "vec3f", vec3f(2.f / 100));
   }
 
@@ -102,7 +102,7 @@ namespace ospray::sg {
 
     // Create sg subtree
     auto &tf     = createChild("transferFunction", "transfer_function_jet");
-    auto &volume = tf.createChild("wavelet", "volume_structured");     
+    auto &volume = tf.createChild("wavelet", "structuredRegular");     
     volume["voxelType"]   = int(OSP_FLOAT);
     volume["gridOrigin"]  = gridOrigin;
     volume["gridSpacing"] = gridSpacing;

@@ -32,6 +32,31 @@ namespace ospray::sg {
     createChild("backgroundColor", "rgba", rgba(0.1f));
   }
 
+  NodeType Renderer::type() const
+  {
+    return NodeType::RENDERER;
+  }
+
+  void Renderer::preCommit()
+  {
+    auto &ren     = valueAs<cpp::Renderer>();
+    const auto &c = children();
+    if (c.empty())
+      return;
+    for (auto &child : c) {
+      std::cout << child.first << std::endl;
+      if (child.second->type() == NodeType::PARAMETER) {
+        child.second->setOSPRayParam(child.first, ren.handle());
+      }
+    }
+  }
+
+  void Renderer::postCommit()
+  {
+    auto &ren = valueAs<cpp::Renderer>();
+    ren.commit();
+  }
+
   // Register OSPRay's debug renderers //
   struct OSPSG_INTERFACE DebugRenderer : public Renderer
   {

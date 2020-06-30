@@ -1,6 +1,5 @@
-
 // ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
+// Copyright 2018 Intel Corporation                                         //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -17,20 +16,25 @@
 
 #pragma once
 
-#include "sg/Node.h"
+#include <fstream>
+#include <vector>
+#include "ospcommon/math/vec.h"
 
-namespace ospray::sg {
+using namespace ospcommon::math;
 
-  struct OSPSG_INTERFACE Renderer
-      : public OSPNode<cpp::Renderer, NodeType::RENDERER>
-  {
-    Renderer(std::string type);
-    virtual ~Renderer() override = default;
+namespace ospray::sg{
 
-    NodeType type() const override;
+    struct RawFileStructuredVolume
+    {
+      RawFileStructuredVolume(const std::string &filename,
+                              const vec3i &dimensions);
 
-    void preCommit() override;
-    void postCommit() override;
-  };
+      std::vector<float> generateVoxels();
 
-}  // namespace ospray::sg
+     protected:
+      std::string filename;
+      vec3i dimensions;
+    };
+
+  }  // namespace ospray::sg
+

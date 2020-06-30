@@ -59,14 +59,15 @@ namespace ospray::sg {
       }
     }
 
-auto &tf     = createChild("transferFunction", "transfer_function_jet");
-    auto &volume = tf.createChild("torus", "volume_structured");
-    volume["voxelType"]   = int(OSP_FLOAT);
-    volume["gridOrigin"]  = vec3f(-0.5f, -0.5f, -0.5f);
-    volume["gridSpacing"] = vec3f(1.f / size, 1.f / size, 1.f / size);
-    volume["dimensions"]  = vec3i(size);
-    volume.createChildData("data", vec3i(size), 0, volumetricData.data());
-        
+
+    auto &tf     = createChild("transfer_function", "transfer_function_jet");
+    auto volume          = createNode("torus", "structuredRegular");
+    volume->createChild("voxelType", "int", int(OSP_FLOAT));
+    volume->createChild("gridOrigin","vec3f", vec3f(-0.5f, -0.5f, -0.5f));
+    volume->createChild("gridSpacing", "vec3f", vec3f(1.f / size, 1.f / size, 1.f / size));
+    volume->createChild("dimensions", "vec3i", vec3i(size));
+    volume->createChildData("data", vec3i(size), 0, volumetricData.data());
+    tf.add(volume);
   }
 
 }  // namespace ospray::sg

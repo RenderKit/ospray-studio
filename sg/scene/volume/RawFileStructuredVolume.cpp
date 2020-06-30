@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
+// Copyright 2018 Intel Corporation                                         //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -14,48 +14,32 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
-#include "rkcommon/os/FileName.h"
-#include "sg/renderer/MaterialRegistry.h"
-#include  "sg/texture/Texture2D.h"
+#include "RawFileStructuredVolume.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Importer : public Node
-  {
-    Importer();
-    virtual ~Importer() = default;
-
-    NodeType type() const override;
-
-    virtual void importScene(
-        std::shared_ptr<sg::MaterialRegistry> materialRegistry);
-
-    virtual void importScene();
-  };
-
-  static const std::map<std::string, std::string> importerMap = {
-      {"obj", "importer_obj"},
-      {"gltf", "importer_gltf"},
-      {"glb", "importer_gltf"},
-      {"raw", "importer_raw"}};
-
-  inline std::string getImporter(rkcommon::FileName fileName)
-  {
-    auto fnd = importerMap.find(fileName.ext());
-    if (fnd == importerMap.end()) {
-      std::cout << "No importer for selected file, nothing to import!\n";
-      return "";
-    }
-
-    std::string importer = fnd->second;
-    std::string nodeName = "importer" + fileName.base();
-
-    // auto &node = createNodeAs<sg::Importer>(nodeName, importer);
-    // child("file") = fileName.base();
-    return importer;
+  RawFileStructuredVolume::RawFileStructuredVolume(const std::string &filename,
+                                                   const vec3i &dimensions)
+      : filename(filename), dimensions(dimensions)
+      {
   }
 
+  std::vector<float> RawFileStructuredVolume::generateVoxels()
+  {
+    std::vector<float> voxels(dimensions.product());
+
+    std::ifstream input(filename, std::ios::binary);
+
+    if (!input) {
+      throw std::runtime_error("error opening raw volume file");
+    }
+
+    input.read((char *)voxels.data(), dimensions.product() * sizeof(float));
+
+    if (!input.good()) {
+      throw std::runtime_error("error reading raw volume file");
+    }
+
+    return voxels;
+  }
 }  // namespace ospray::sg

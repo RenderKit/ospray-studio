@@ -28,4 +28,11 @@ namespace ospray::sg {
     return NodeType::IMPORTER;
   }
 
+  void Importer::importScene(
+      std::shared_ptr<sg::MaterialRegistry> materialRegistry)
+  {
+  }
+
+  void Importer::importScene() {}
+
 }  // namespace ospray::sg

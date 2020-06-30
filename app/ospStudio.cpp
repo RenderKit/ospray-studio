@@ -50,6 +50,9 @@ int main(int argc, const char *argv[])
   case StudioMode::HEADLESS:
     std::cerr << "Headless mode\n";
     break;
+  case StudioMode::TIMESERIES:
+    start_TimeSeries_mode(argc, argv);
+    break;
   default:
     std::cerr << "unknown mode!  How did I get here?!\n";
   }

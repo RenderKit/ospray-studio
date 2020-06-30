@@ -72,6 +72,7 @@ add_library(ospray_sg SHARED
   importer/glTF/tiny_gltf_impl.cpp
   importer/glTF/buffer_view.cpp
   importer/glTF/gltf_types.cpp
+  importer/raw.cpp
 
 
   renderer/Material.cpp
@@ -107,7 +108,9 @@ add_library(ospray_sg SHARED
 
   scene/volume/Structured.cpp
   scene/volume/Unstructured.cpp
+  scene/volume/StructuredSpherical.cpp
   scene/volume/Volume.cpp
+  scene/volume/RawFileStructuredVolume.cpp
 
   scene/lights/Light.cpp
   scene/lights/Lights.cpp

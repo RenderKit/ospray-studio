@@ -14,48 +14,44 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-#include "../Node.h"
-#include "rkcommon/os/FileName.h"
-#include "sg/renderer/MaterialRegistry.h"
-#include  "sg/texture/Texture2D.h"
+#include "Importer.h"
+// ospcommon
+#include "ospcommon/os/FileName.h"
+#include "../scene/volume/StructuredSpherical.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Importer : public Node
+  struct RawImporter : public Importer
   {
-    Importer();
-    virtual ~Importer() = default;
+    RawImporter()           = default;
+    ~RawImporter() override = default;
 
-    NodeType type() const override;
-
-    virtual void importScene(
-        std::shared_ptr<sg::MaterialRegistry> materialRegistry);
-
-    virtual void importScene();
+    void importScene();
   };
 
-  static const std::map<std::string, std::string> importerMap = {
-      {"obj", "importer_obj"},
-      {"gltf", "importer_gltf"},
-      {"glb", "importer_gltf"},
-      {"raw", "importer_raw"}};
+  OSP_REGISTER_SG_NODE_NAME(RawImporter, importer_raw);
+ 
+  // rawImporter definitions /////////////////////////////////////////////
 
-  inline std::string getImporter(rkcommon::FileName fileName)
+  void RawImporter::importScene()
   {
-    auto fnd = importerMap.find(fileName.ext());
-    if (fnd == importerMap.end()) {
-      std::cout << "No importer for selected file, nothing to import!\n";
-      return "";
-    }
+    auto file    = FileName(child("file").valueAs<std::string>());
 
-    std::string importer = fnd->second;
-    std::string nodeName = "importer" + fileName.base();
+    std::string baseName = file.name() + '_';
 
-    // auto &node = createNodeAs<sg::Importer>(nodeName, importer);
-    // child("file") = fileName.base();
-    return importer;
+    // Create a root Transform/Instance off the Importer, under which to build
+    // the import hierarchy
+    auto &tf = createChild(baseName + "root_node_tfn", "transfer_function_jet");
+    
+    std::shared_ptr<sg::StructuredSpherical> volumeImport =
+        std::static_pointer_cast<sg::StructuredSpherical>(
+            sg::createNode("volume", "structuredSpherical"));
+
+    volumeImport->load(file);
+
+    tf.add(volumeImport);
+
+    std::cout << "...finished import!\n";
   }
 
 }  // namespace ospray::sg

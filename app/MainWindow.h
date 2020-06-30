@@ -57,28 +57,44 @@ class MainWindow
  public:
   MainWindow(const vec2i &windowSize, bool denoiser = false);
 
+  MainWindow(MainWindow *mainWindow);
+
   ~MainWindow();
 
   static MainWindow *getActiveWindow();
 
+  GLFWwindow* getGLFWWindow();
+
   void registerDisplayCallback(std::function<void(MainWindow *)> callback);
+
+  void registerKeyCallback(
+      std::function<void(
+          MainWindow *, int key, int scancode, int action, int mods)>);
 
   void registerImGuiCallback(std::function<void()> callback);
 
   void mainLoop();
 
   void parseCommandLine(int &ac, const char **&av);
+
   void importFiles();
+
+  std::shared_ptr<sg::Frame> getFrame();
+
+  bool examplePanel = true;
+
+  std::stringstream windowTitle;
+
+  void updateTitleBar();
 
  protected:
   void updateCamera();
-
+  void buildPanel();
   void reshape(const vec2i &newWindowSize);
   void motion(const vec2f &position);
   void display();
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
-  void updateTitleBar();
   void buildUI();
   void refreshRenderer();
   void refreshScene(bool resetCamera);
@@ -151,6 +167,11 @@ class MainWindow
 
   // optional registered ImGui callback, called during every frame to build UI
   std::function<void()> uiCallback;
+
+    // optional registered key callback, called when keys are pressed
+  std::function<void(
+      MainWindow *, int key, int scancode, int action, int mods)>
+      keyCallback;
 
   // FPS measurement of last frame
   float latestFPS{0.f};

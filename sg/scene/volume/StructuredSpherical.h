@@ -16,46 +16,22 @@
 
 #pragma once
 
-#include "../Node.h"
-#include "rkcommon/os/FileName.h"
-#include "sg/renderer/MaterialRegistry.h"
-#include  "sg/texture/Texture2D.h"
+// sg
+#include "../../Data.h"
+#include "Volume.h"
+// ospcommon
+#include "ospcommon/os/FileName.h"
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Importer : public Node
+  struct OSPSG_INTERFACE StructuredSpherical : public Volume
   {
-    Importer();
-    virtual ~Importer() = default;
+    StructuredSpherical();
+    virtual ~StructuredSpherical() override = default;
+    void load(const FileName &fileName);
 
-    NodeType type() const override;
-
-    virtual void importScene(
-        std::shared_ptr<sg::MaterialRegistry> materialRegistry);
-
-    virtual void importScene();
+   private:
+    bool fileLoaded{false};
   };
-
-  static const std::map<std::string, std::string> importerMap = {
-      {"obj", "importer_obj"},
-      {"gltf", "importer_gltf"},
-      {"glb", "importer_gltf"},
-      {"raw", "importer_raw"}};
-
-  inline std::string getImporter(rkcommon::FileName fileName)
-  {
-    auto fnd = importerMap.find(fileName.ext());
-    if (fnd == importerMap.end()) {
-      std::cout << "No importer for selected file, nothing to import!\n";
-      return "";
-    }
-
-    std::string importer = fnd->second;
-    std::string nodeName = "importer" + fileName.base();
-
-    // auto &node = createNodeAs<sg::Importer>(nodeName, importer);
-    // child("file") = fileName.base();
-    return importer;
-  }
 
 }  // namespace ospray::sg

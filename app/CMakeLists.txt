@@ -21,7 +21,13 @@ add_executable(ospStudio
   imgui_impl_opengl2.cpp
   ospStudio.cpp
   Batch.cpp
+  TimeSeriesWindow.cpp
+  widgets/TransferFunctionWidget.cpp
 )
+
+## Cereal dependency ##
+add_library(cereal INTERFACE)
+target_include_directories(cereal INTERFACE ./cereal/include)
 
 if (APPLE)
   set_source_files_properties(imgui_impl_glfw_gl3.cpp GLFWSgWindow.cpp
@@ -38,6 +44,7 @@ PRIVATE
   stb_image
   ospray_sg
   tiny_file_dialogs
+  cereal
 )
 
 install(TARGETS ospStudio

@@ -310,6 +310,10 @@ namespace ospray::sg {
       materialRegistry->matImportsList.push_back(m->name());
     }
 
+
+
+
+
     auto &attrib = objData.attrib;
 
     int shapeId = 0;

@@ -90,7 +90,7 @@ namespace ospray::sg {
     // the following hard coded volume properties should exist either in volume file headers or,
     // xml kind supporting docs with binary volume data
     createChild("voxelType", "int", int(OSP_FLOAT));
-    createChild("dimensions", "vec3i", vec3i(128));
+    createChild("dimensions", "vec3i", vec3i(18, 25, 18));
     createChild("gridOrigin", "vec3f", vec3f(-1.f));
     createChild("gridSpacing", "vec3f", vec3f(2.f / 100));
 
@@ -108,7 +108,6 @@ namespace ospray::sg {
     if (!fileLoaded) {
       auto &voxelType          = child("voxelType").valueAs<int>();
       FileName realFileName    = fileNameAbs;
-      std::string fileNameBase = fileNameAbs;
       FILE *file = fopen(realFileName.c_str(), "r");
 
       if (!file) {
@@ -135,5 +134,5 @@ namespace ospray::sg {
     }
   }
 
-  OSP_REGISTER_SG_NODE_NAME(StructuredVolume, volume_structured);
+  OSP_REGISTER_SG_NODE_NAME(StructuredVolume, structuredRegular);
 }  // namespace ospray::sg
