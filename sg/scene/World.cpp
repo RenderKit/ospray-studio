@@ -35,7 +35,7 @@ namespace ospray::sg {
       lightObjects.push_back(l);
     }
 
-    ospWorld.setParam("light", cpp::Data(lightObjects));
+    ospWorld.setParam("light", cpp::CopiedData(lightObjects));
   }
 
   void World::postCommit() {

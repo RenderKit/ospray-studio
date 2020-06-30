@@ -15,8 +15,8 @@
 // ======================================================================== //
 
 #include "ImageExporter.h"
-// ospcommon
-#include "ospcommon/os/FileName.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
 // stb
 #include "stb_image_write.h"
 

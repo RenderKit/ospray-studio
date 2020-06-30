@@ -15,8 +15,8 @@
 // ======================================================================== //
 
 #include "ImageExporter.h"
-// ospcommon
-#include "ospcommon/os/FileName.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
 // openexr
 #include "OpenEXR/ImfChannelList.h"
 #include "OpenEXR/ImfOutputFile.h"

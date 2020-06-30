@@ -15,9 +15,9 @@
 // ======================================================================== //
 
 #include "ImageExporter.h"
-// ospcommon
-#include "ospcommon/os/FileName.h"
-#include "ospcommon/utility/SaveImage.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
+#include "rkcommon/utility/SaveImage.h"
 
 namespace ospray::sg {
 
@@ -58,10 +58,10 @@ namespace ospray::sg {
       else
         file = FileName(fn.substr(0, dot+1) + "pfm");
 
-      ospcommon::utility::writePFM(
+      rkcommon::utility::writePFM(
           file.c_str(), size.x, size.y, (const vec4f *)fb);
     } else {
-      ospcommon::utility::writePPM(
+      rkcommon::utility::writePPM(
           file.c_str(), size.x, size.y, (const uint32_t *)fb);
     }
 

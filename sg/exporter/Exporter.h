@@ -17,7 +17,7 @@
 #pragma once
 
 #include "../Node.h"
-#include "ospcommon/os/FileName.h"
+#include "rkcommon/os/FileName.h"
 
 namespace ospray::sg {
 
@@ -42,7 +42,7 @@ namespace ospray::sg {
       {"hdr", "exporter_hdr"},
   };
 
-  inline std::string getExporter(ospcommon::FileName fileName)
+  inline std::string getExporter(rkcommon::FileName fileName)
   {
     auto fnd = exporterMap.find(fileName.ext());
     if (fnd == exporterMap.end())
