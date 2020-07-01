@@ -24,6 +24,8 @@ if(OSPSG_OPENIMAGEIO)
   find_package(OpenImageIO 2.2.3.0)
   if (NOT OpenImageIO_FOUND)
     message(STATUS "OpenImageIO not found. Using stb_image instead.")
+  else()
+    set(OPENIMAGEIO_TARGET OpenImageIO::OpenImageIO)
   endif()
 endif()
 
@@ -127,7 +129,7 @@ target_link_libraries(ospray_sg
 PUBLIC
   rkcommon::rkcommon
   ospray::ospray
-  OpenImageIO::OpenImageIO
+  ${OPENIMAGEIO_TARGET}
 PRIVATE
   stb_image
   ${OPENEXR_TARGET}

@@ -178,7 +178,7 @@ namespace ospray::sg {
       }
 
       in->close();
-#if OIIO_VERSION < 10903
+#if OIIO_VERSION < 10903 && OIIO_VERSION > 10603
       ImageInput::destroy(in);
 #endif
     }
