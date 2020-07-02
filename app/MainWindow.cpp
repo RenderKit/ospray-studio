@@ -1059,6 +1059,10 @@ void MainWindow::buildWindowLightEditor()
                lightTypeUI_callback,
                nullptr,
                g_lightTypes.size());
+  if (whichLightType < 0 or whichLightType > g_lightTypes.size())
+  {
+    return;
+  }
 
   static bool lightNameWarning = false;
   static char lightName[64] = "";
