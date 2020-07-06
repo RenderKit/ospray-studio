@@ -186,6 +186,9 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
 
   glfwMakeContextCurrent(glfwWindow);
 
+  // Turn on SRGB conversion for OSPRay frame
+  glEnable(GL_FRAMEBUFFER_SRGB);
+
   glfwSetKeyCallback(
       glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
       auto &io = ImGui::GetIO();
@@ -454,19 +457,15 @@ void MainWindow::display()
         (void *)frame->mapFrame(showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR);
 
     // This needs to query the actual framebuffer format
-    const GLint glFormat = showAlbedo ? GL_RGB : GL_RGBA;
-    // const GLenum glType  = (showAlbedo || screenshotFiletype == ImageType::HDR)
-    //                          ? GL_FLOAT
-    //                          : GL_UNSIGNED_BYTE;
     const GLenum glType = GL_FLOAT;  // required for denoiser
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
-                 glFormat,
+                 showAlbedo ? GL_RGB32F : GL_RGBA32F,
                  windowSize.x,
                  windowSize.y,
                  0,
-                 glFormat,
+                 showAlbedo ? GL_RGB : GL_RGBA,
                  glType,
                  fb);
 
