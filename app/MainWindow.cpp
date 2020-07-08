@@ -43,6 +43,7 @@
 // tiny_file_dialogs
 #include "sg/scene/volume/StructuredSpherical.h"
 #include "sg/scene/volume/Structured.h"
+#include "sg/scene/volume/Vdb.h"
 #include "tinyfiledialogs.h"
 
 // GUI mode entry point
@@ -72,7 +73,10 @@ static const std::vector<std::string> g_scenes = {"empty",
                                                   "tutorial_scene",
                                                   "random_spheres",
                                                   "wavelet",
-                                                  "unstructured_volume"};
+                                                  "import volume",
+                                                  "import",
+                                                  "unstructured_volume",
+                                                  "clouds"};
 
 static const std::vector<std::string> g_renderers = {
     "scivis", "pathtracer", "debug"};
@@ -763,11 +767,25 @@ bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
       "Import a volume from a file", "", 0, nullptr, nullptr, 0);
 
   if (file) {
-    std::shared_ptr<sg::StructuredVolume> volumeImport =
-        std::static_pointer_cast<sg::StructuredVolume>(
-            sg::createNode("volume", "structuredRegular"));
+    const std::string fs(file);
+    std::shared_ptr<sg::Volume> volumeImport;
+    if (fs.length() > 4 && fs.substr(fs.length()-4) == ".vdb")
+    {
+      auto vol =
+          std::static_pointer_cast<sg::VdbVolume>(
+              sg::createNode("volume", "volume_vdb"));
+      vol->load(file);
+      volumeImport = vol;
+    }
+    else
+    {
+      auto vol =
+          std::static_pointer_cast<sg::StructuredVolume>(
+              sg::createNode("volume", "structuredRegular"));
+      vol->load(file);
+      volumeImport = vol;
+    }
 
-    volumeImport->load(file);
     auto &tf = world->createChild("transferFunction", "transfer_function_jet");
     tf.add(volumeImport);
 

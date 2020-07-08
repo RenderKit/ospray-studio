@@ -64,6 +64,7 @@ add_library(ospray_sg SHARED
   generator/TestSphere.cpp
   generator/TextureVolumeTest.cpp
   generator/Torus.cpp
+  generator/Clouds.cpp
 
   importer/Importer.cpp
   importer/OBJ.cpp
@@ -109,6 +110,7 @@ add_library(ospray_sg SHARED
   scene/volume/Structured.cpp
   scene/volume/Unstructured.cpp
   scene/volume/StructuredSpherical.cpp
+  scene/volume/Vdb.cpp
   scene/volume/Volume.cpp
   scene/volume/RawFileStructuredVolume.cpp
 
@@ -158,6 +160,11 @@ target_compile_definitions(ospray_sg
   PUBLIC
   $<$<BOOL:${ENABLE_EXR}>:STUDIO_OPENEXR>
 )
+
+if (OpenVDB_FOUND)
+  target_compile_definitions(ospray_sg PUBLIC -DUSE_OPENVDB)
+  target_link_libraries(ospray_sg PUBLIC OpenVDB::openvdb)
+endif()
 
 ## Build Tests ##
 

@@ -58,6 +58,28 @@ find_package(glfw3 REQUIRED)
 find_package(rkcommon 1.4.0 REQUIRED)
 find_package(ospray 2.2.0 REQUIRED)
 
+if (DEFINED OpenVDB_ROOT)
+  # Monitor <PackageName>_ROOT variables, as this mechanism is used a lot
+  # in OpenVDB.
+  if(POLICY CMP0074)
+    cmake_policy(SET CMP0074 NEW)
+  endif()
+
+  # OpenVDB comes with a set of cmake scripts that help find its dependencies.
+  # We must set the module path to find these scripts.
+  list(APPEND CMAKE_MODULE_PATH ${OpenVDB_ROOT}/lib/cmake/OpenVDB)
+  find_package(OpenVDB 7.0.0 COMPONENTS openvdb)
+
+  if (OpenVDB_FOUND)
+    message(STATUS "Building with OpenVDB support: ${OpenVDB_openvdb_LIBRARY}.")
+  else()
+    message(STATUS "Failed to find OpenVDB at OpenVDB_ROOT (${OpenVDB_ROOT}).")
+  endif()
+
+else()
+  message(STATUS "Building without OpenVDB support.")
+endif()
+
 # imgui (since v1.74) now includes this define, making this
 # redundant
 ## Prevent OSX 10.14+ OGL deprecation warnings
