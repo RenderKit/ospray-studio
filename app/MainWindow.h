@@ -29,6 +29,21 @@ using namespace rkcommon::math;
 using namespace ospray;
 using rkcommon::make_unique;
 
+// on Windows often only GL 1.1 headers are present
+// and Mac may be missing the float defines
+#ifndef GL_CLAMP_TO_BORDER
+#define GL_CLAMP_TO_BORDER 0x812D
+#endif
+#ifndef GL_FRAMEBUFFER_SRGB
+#define GL_FRAMEBUFFER_SRGB 0x8DB9
+#endif
+#ifndef GL_RGBA32F
+#define GL_RGBA32F 0x8814
+#endif
+#ifndef GL_RGB32F
+#define GL_RGB32F 0x8815
+#endif
+
 enum class OSPRayRendererType
 {
   SCIVIS,
