@@ -68,7 +68,6 @@ class MainWindow
   void refreshRenderer();
   void refreshScene();
   void refreshMaterialRegistry();
-  void refreshEnvironmentalLight();
   void addLight();
   void removeLight();
   void refreshMaterial();
@@ -116,7 +115,6 @@ class MainWindow
   std::string matTypeStr{"obj"};
   bool useTestTex     = false;
   bool useImportedTex = false;
-  bool useImportedHDRI = false;
 
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;

@@ -86,7 +86,7 @@ static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
                                                               "volume"};
 
 static const std::vector<std::string> g_lightTypes = {
-    "ambient", "distant", "spot", "sphere", "quad"};
+    "ambient", "distant", "hdri", "spot", "sphere", "quad"};
 
 std::vector<std::string> g_matTypes = {
     "obj", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
@@ -658,12 +658,6 @@ void MainWindow::buildUI()
     }
   }
 
-  if (rendererType == OSPRayRendererType::PATHTRACER) {
-    if (ImGui::Checkbox("import hdri texture", &useImportedHDRI)) {
-      refreshEnvironmentalLight();
-    }
-  }
-
   ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
   ImGui::Checkbox("show albedo", &showAlbedo);
 
@@ -751,24 +745,6 @@ void MainWindow::refreshScene()
   arcballCamera.reset(
       new ArcballCamera(frame->child("world").bounds(), windowSize));
   updateCamera();
-}
-
-void MainWindow::refreshEnvironmentalLight()
-{
-  if (useImportedHDRI) {
-    auto &world = frame->child("world");
-    auto &lightMan = world.childAs<sg::Lights>("lights");
-    lightMan.addLight("hdri", "hdri");
-
-    auto &lightNode = lightMan.child("hdri");
-
-    const char *file = tinyfd_openFileDialog(
-        "Import an HDRI texture from a file", "", 0, nullptr, nullptr, 0);
-
-    auto &hdriTex = lightNode.createChild("map", "texture_2d");
-    std::shared_ptr<sg::Texture2D> ast2d = hdriTex.nodeAs<sg::Texture2D>();
-    ast2d->load(file, false, false);
-  }
 }
 
 void MainWindow::parseCommandLine(int &ac, const char **&av)
@@ -1081,6 +1057,7 @@ void MainWindow::buildWindowLightEditor()
 
     if (whichLight != -1) {
       ImGui::Text("edit");
+      // TODO: remove push requirement external to the ImGui widget visitor
       ImGui::TreePush();
 
       lightMan.child(selectedLight).traverse<sg::GenerateImGuiWidgets>();
@@ -1108,15 +1085,35 @@ void MainWindow::buildWindowLightEditor()
                g_lightTypes.size());
 
   static bool lightNameWarning = false;
+  static bool lightTexWarning = false;
   static char lightName[64] = "";
   if (ImGui::InputText("name", lightName, 64))
     lightNameWarning = false;
 
   if (ImGui::Button("add")) {
+    lightTexWarning = false;
     if (whichLightType > -1 && whichLightType < g_lightTypes.size()) {
       std::string lightType = g_lightTypes[whichLightType];
 
-      if (!lightMan.addLight(lightName, lightType)) {
+      if (lightMan.addLight(lightName, lightType)) {
+        // actually load the texture if add was successful
+        if (lightType == "hdri") {
+          auto &hdri = lightMan.child(lightName);
+          const char *file = tinyfd_openFileDialog(
+              "Import an HDRI texture from a file", "", 0, nullptr, nullptr, 0);
+
+          if (file != NULL) {
+            auto &hdriTex = hdri.createChild("map", "texture_2d");
+            std::shared_ptr<sg::Texture2D> ast2d =
+                hdriTex.nodeAs<sg::Texture2D>();
+            ast2d->load(file, false, false);
+          } else {
+            // the user probably hit cancel in the dialog, or bad file
+            lightTexWarning = true;
+            lightMan.removeLight(lightName);
+          }
+        }
+      } else {
         lightNameWarning = true;
       }
     }
@@ -1125,6 +1122,8 @@ void MainWindow::buildWindowLightEditor()
   if (lightNameWarning)
     ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
                        "Light must have unique non-empty name");
+  if (lightTexWarning)
+    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "No texture provided");
 
   ImGui::End();
 }
