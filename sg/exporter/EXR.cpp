@@ -75,22 +75,45 @@ namespace ospray::sg {
     };
 
     // although openexr provides a LineOrder parameter, it doesn't seem to
-    // actually flip the image...
-    float *flippedfb = flipBuffer(fb);
-    float *flippedz  = nullptr;
+    // actually flip the image, so we need to do it manually.
+    // This map will hold any channels we need until we write the image;
+    // only then can we free the pointers. Not pretty, I know
+    std::map<std::string, float *> flippedBuffers;
+    flippedBuffers["fb"] = flipBuffer(fb);
 
     Imf::FrameBuffer exrFb;
-    // generic API requires channels individually
-    exrFb.insert("R", makeSlice(flippedfb, 0));
-    exrFb.insert("G", makeSlice(flippedfb, 1));
-    exrFb.insert("B", makeSlice(flippedfb, 2));
-    exrFb.insert("A", makeSlice(flippedfb, 3));
+    exrFb.insert("R", makeSlice(flippedBuffers["fb"], 0));
+    exrFb.insert("G", makeSlice(flippedBuffers["fb"], 1));
+    exrFb.insert("B", makeSlice(flippedBuffers["fb"], 2));
+    exrFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
 
-    if (hasChild("depth")) {
+    if (hasChild("albedo")) {
+      exrHeader.channels().insert("albedo.R", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("albedo.G", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("albedo.B", Imf::Channel(IMF::FLOAT));
+      const void *albedo = child("albedo").valueAs<const void *>();
+      flippedBuffers["albedo"] = flipBuffer(albedo, 3);
+      exrFb.insert("albedo.R", makeSlice(flippedBuffers["albedo"], 0, 3));
+      exrFb.insert("albedo.G", makeSlice(flippedBuffers["albedo"], 1, 3));
+      exrFb.insert("albedo.B", makeSlice(flippedBuffers["albedo"], 2, 3));
+    }
+
+    if (hasChild("Z")) {
       exrHeader.channels().insert("Z", Imf::Channel(IMF::FLOAT));
-      const void *depth = child("depth").valueAs<const void *>();
-      flippedz          = flipBuffer(depth, 1);
-      exrFb.insert("Z", makeSlice(flippedz, 0, 1));
+      const void *z = child("Z").valueAs<const void *>();
+      flippedBuffers["Z"] = flipBuffer(z, 1);
+      exrFb.insert("Z", makeSlice(flippedBuffers["Z"], 0, 1));
+    }
+
+    if (hasChild("normal")) {
+      exrHeader.channels().insert("normal.X", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("normal.Y", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("normal.Z", Imf::Channel(IMF::FLOAT));
+      const void *normal = child("normal").valueAs<const void *>();
+      flippedBuffers["normal"] = flipBuffer(normal, 3);
+      exrFb.insert("normal.X", makeSlice(flippedBuffers["normal"], 0, 3));
+      exrFb.insert("normal.Y", makeSlice(flippedBuffers["normal"], 1, 3));
+      exrFb.insert("normal.Z", makeSlice(flippedBuffers["normal"], 2, 3));
     }
 
     Imf::OutputFile exrFile(file.c_str(), exrHeader);
@@ -99,9 +122,8 @@ namespace ospray::sg {
 
     std::cout << "Saved to " << file << std::endl;
 
-    free(flippedfb);
-    if (flippedz != nullptr)
-      free(flippedz);
+    for (auto ptr : flippedBuffers)
+      free(ptr.second);
   }
 
   float *EXRExporter::flipBuffer(const void *buf, int ncomp)

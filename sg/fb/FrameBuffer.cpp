@@ -58,10 +58,12 @@ namespace ospray::sg {
     auto size           = child("size").valueAs<vec2i>();
     auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
-    auto fb = cpp::FrameBuffer(
-        size.x, size.y,
-        colorFormats[colorFormatStr],
-        OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO | OSP_FB_VARIANCE | OSP_FB_DEPTH);
+    auto fb =
+        cpp::FrameBuffer(size.x,
+                         size.y,
+                         colorFormats[colorFormatStr],
+                         OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO |
+                             OSP_FB_VARIANCE | OSP_FB_DEPTH | OSP_FB_NORMAL);
 
     setHandle(fb);
   }
@@ -79,11 +81,12 @@ namespace ospray::sg {
     handle().commit();
   }
 
-  void FrameBuffer::saveFrame(std::string filename, bool depth)
+  void FrameBuffer::saveFrame(std::string filename, int flags)
   {
     auto exporter = getExporter(FileName(filename));
     if (exporter == "") {
-      std::cout << "No exporter found for type " << FileName(filename).ext() << std::endl;
+      std::cout << "No exporter found for type " << FileName(filename).ext()
+                << std::endl;
       return;
     }
     auto &exp = createChildAs<ImageExporter>("exporter", exporter);
@@ -92,21 +95,47 @@ namespace ospray::sg {
     auto fb    = map(OSP_FB_COLOR);
     auto size  = child("size").valueAs<vec2i>();
     auto fmt   = child("colorFormat").valueAs<std::string>();
+    void *abuf = nullptr;
     void *zbuf = nullptr;
+    void *nbuf = nullptr;
 
     exp.setImageData(fb, size, fmt);
+
+    bool albedo = flags & 0b1;
+    bool depth = flags & 0b10;
+    bool normal = flags & 0b100;
+    size_t npixels = size.long_product();
+
+    if (albedo) {
+      abuf = (void *)map(OSP_FB_ALBEDO);
+      exp.setAdditionalLayer("albedo", abuf);
+    } else {
+      exp.clearLayer("albedo");
+    }
+
     if (depth) {
       zbuf = (void *)map(OSP_FB_DEPTH);
-      exp.setDepthData(zbuf);
+      exp.setAdditionalLayer("Z", zbuf);
     } else {
-      exp.clearDepthData();
+      exp.clearLayer("Z");
+    }
+
+    if (normal) {
+      nbuf = (void *)map(OSP_FB_NORMAL);
+      exp.setAdditionalLayer("normal", nbuf);
+    } else {
+      exp.clearLayer("normal");
     }
 
     exp.doExport();
 
     unmap(fb);
+    if (albedo)
+      unmap(abuf);
     if (depth)
       unmap(zbuf);
+    if (normal)
+      unmap(nbuf);
   }
 
   OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);

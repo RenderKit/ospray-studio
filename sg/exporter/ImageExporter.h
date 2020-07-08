@@ -28,8 +28,8 @@ namespace ospray::sg {
     ~ImageExporter() = default;
 
     void setImageData(const void *fb, vec2i size, std::string format);
-    void setDepthData(const void *fb);
-    void clearDepthData();
+    void setAdditionalLayer(std::string layerName, const void *fb);
+    void clearLayer(std::string layerName);
 
    protected:
     void floatToChar();
@@ -47,14 +47,15 @@ namespace ospray::sg {
     createChild("format", "string", format);
   }
 
-  inline void ImageExporter::setDepthData(const void *fb)
+  inline void ImageExporter::setAdditionalLayer(std::string layerName,
+                                                const void *fb)
   {
-    createChild("depth", "void_ptr", fb);
+    createChild(layerName, "void_ptr", fb);
   }
 
-  inline void ImageExporter::clearDepthData()
+  inline void ImageExporter::clearLayer(std::string layerName)
   {
-    remove("depth");
+    remove(layerName);
   }
 
   inline void ImageExporter::floatToChar()

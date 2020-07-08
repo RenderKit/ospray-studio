@@ -39,7 +39,7 @@ namespace ospray::sg {
 
     const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmapFrame(void *mem);
-    void saveFrame(std::string filename, bool depth=false);
+    void saveFrame(std::string filename, int flags);
 
    private:
     void refreshFrameOperations();

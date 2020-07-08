@@ -775,10 +775,9 @@ void MainWindow::saveCurrentFrame()
 {
   std::string filename("studio.");
   filename += screenshotFiletype;
-  if (screenshotFiletype == "exr")
-    frame->saveFrame(filename, screenshotDepth);
-  else
-    frame->saveFrame(filename);
+  int screenshotFlags =
+      screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
+  frame->saveFrame(filename, screenshotFlags);
 }
 
 // Main menu //////////////////////////////////////////////////////////////////
@@ -905,9 +904,12 @@ void MainWindow::buildMainMenuEdit()
     ImGui::Text("export");
     static const std::vector<std::string> screenshotFiletypes =
         sg::getExporterTypes();
+
     static int screenshotFiletypeChoice = std::distance(
         screenshotFiletypes.begin(),
-        std::find(screenshotFiletypes.begin(), screenshotFiletypes.end(), "png"));
+        std::find(
+            screenshotFiletypes.begin(), screenshotFiletypes.end(), "png"));
+
     if (ImGui::Combo("Screenshot filetype",
                      (int *)&screenshotFiletypeChoice,
                      stringVec_callback,
@@ -915,8 +917,12 @@ void MainWindow::buildMainMenuEdit()
                      screenshotFiletypes.size())) {
       screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
     }
+
     if (screenshotFiletype == "exr") {
-      ImGui::Checkbox("Include depth buffer", &screenshotDepth);
+      ImGui::Text("additional layers");
+      ImGui::Checkbox("albedo", &screenshotAlbedo);
+      ImGui::Checkbox("depth", &screenshotDepth);
+      ImGui::Checkbox("normal", &screenshotNormal);
     }
 
     ImGui::EndMenu();
