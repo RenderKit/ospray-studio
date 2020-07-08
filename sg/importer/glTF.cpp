@@ -692,75 +692,88 @@ namespace ospray {
     //     << "        .baseColorFactor.alpha:" << (float)pbr.baseColorFactor[4]
     //     << "\n";
 
-    auto ospMat = createNode(matName, "principled");
-    ospMat->createChild("baseColor", "rgb") = vec3f(
-        pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
-    ospMat->createChild("metallic", "float")  = (float)pbr.metallicFactor;
-    ospMat->createChild("roughness", "float") = (float)pbr.roughnessFactor;
-
-    // XXX will require texture tweaks to get closer to glTF spec, if needed
-    // BLEND is always used, so OPAQUE can be achieved by setting all texture
-    // texels alpha to 1.0.  OSPRay doesn't support alphaCutoff for MASK mode.
-    if (mat.alphaMode == "OPAQUE")
-      ospMat->createChild("opacity", "float") = 1.f;
-    else if (mat.alphaMode == "BLEND")
-      ospMat->createChild("opacity", "float") = 1.f;
-    else if (mat.alphaMode == "MASK")
-      ospMat->createChild("opacity", "float") = 1.f - (float) mat.alphaCutoff;
-
-    // All textures *can* specify a texcoord other than 0.  OSPRay only
-    // supports one set of texcoords (TEXCOORD_0).
-    if (pbr.baseColorTexture.texCoord != 0
-        || pbr.metallicRoughnessTexture.texCoord != 0
-        || mat.normalTexture.texCoord != 0
-        || mat.emissiveTexture.texCoord != 0) {
-      WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
-           << std::endl;
-    }
-
-    if (pbr.baseColorTexture.index != -1 &&
-        pbr.baseColorTexture.texCoord == 0) {
-      // Used as a color texture, must be sRGB space, not linear
-      setOSPTexture(ospMat, "baseColor", pbr.baseColorTexture.index, false);
-    }
-
-    // XXX Not sure exactly how to map these yet.  Are they single component?
-    if (pbr.metallicRoughnessTexture.index != -1 &&
-        pbr.metallicRoughnessTexture.texCoord == 0) {
-      setOSPTexture(ospMat, "metallic", pbr.metallicRoughnessTexture.index);
-      setOSPTexture(ospMat, "roughness", pbr.metallicRoughnessTexture.index);
-    }
-
-    if (mat.normalTexture.index != -1 && mat.normalTexture.texCoord == 0) {
-      // NormalTextureInfo() : index(-1), texCoord(0), scale(1.0) {}
-      setOSPTexture(ospMat, "normal", mat.normalTexture.index);
-      ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
-    }
-
-#if 0  // No reason to use occlusion in OSPRay
-      if (mat.occlusionTexture.index != -1 &&
-          mat.occlusionTexture.texCoord == 0) {
-        // OcclusionTextureInfo() : index(-1), texCoord(0), strength(1.0) {}
-        setOSPTexture(ospMat, "occlusion", mat.occlusionTexture.index);
-        ospMat->createChild("occlusion", "float", mat.occlusionTexture.scale);
-      }
-#endif
-
-    // XXX TODO Principled material doesn't have emissive params yet
     auto emissiveColor = vec3f(
         mat.emissiveFactor[0], mat.emissiveFactor[1], mat.emissiveFactor[2]);
-    if (emissiveColor != vec3f(0.f)) {
-      WARN << "Material has emissiveFactor = " << emissiveColor << "\n";
-      ospMat->createChild("emissiveColor", "rgb") = emissiveColor;
-    }
+    if (emissiveColor == vec3f(0.f)) {
+        auto ospMat = createNode(matName, "principled");
+        ospMat->createChild("baseColor", "rgb") = vec3f(
+                pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
+        ospMat->createChild("metallic", "float")  = (float)pbr.metallicFactor;
+        ospMat->createChild("roughness", "float") = (float)pbr.roughnessFactor;
 
-    if (mat.emissiveTexture.index != -1 && mat.emissiveTexture.texCoord == 0) {
-      setOSPTexture(ospMat, "emissive", mat.emissiveTexture.index);
-      WARN << "Material has emissiveTexture #" << mat.emissiveTexture.index
-           << "\n";
-    }
+        // XXX will require texture tweaks to get closer to glTF spec, if needed
+        // BLEND is always used, so OPAQUE can be achieved by setting all texture
+        // texels alpha to 1.0.  OSPRay doesn't support alphaCutoff for MASK mode.
+        if (mat.alphaMode == "OPAQUE")
+          ospMat->createChild("opacity", "float") = 1.f;
+        else if (mat.alphaMode == "BLEND")
+          ospMat->createChild("opacity", "float") = 1.f;
+        else if (mat.alphaMode == "MASK")
+          ospMat->createChild("opacity", "float") = 1.f - (float) mat.alphaCutoff;
 
-    return ospMat;
+        // All textures *can* specify a texcoord other than 0.  OSPRay only
+        // supports one set of texcoords (TEXCOORD_0).
+        if (pbr.baseColorTexture.texCoord != 0
+            || pbr.metallicRoughnessTexture.texCoord != 0
+            || mat.normalTexture.texCoord != 0) {
+          WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
+            << std::endl;
+        }
+
+        if (pbr.baseColorTexture.index != -1 &&
+                pbr.baseColorTexture.texCoord == 0) {
+            // Used as a color texture, must be sRGB space, not linear
+            setOSPTexture(ospMat, "baseColor", pbr.baseColorTexture.index, false);
+        }
+
+        // XXX Not sure exactly how to map these yet.  Are they single component?
+        if (pbr.metallicRoughnessTexture.index != -1 &&
+                pbr.metallicRoughnessTexture.texCoord == 0) {
+            setOSPTexture(ospMat, "metallic", pbr.metallicRoughnessTexture.index);
+            setOSPTexture(ospMat, "roughness", pbr.metallicRoughnessTexture.index);
+        }
+
+        if (mat.normalTexture.index != -1 && mat.normalTexture.texCoord == 0) {
+            // NormalTextureInfo() : index(-1), texCoord(0), scale(1.0) {}
+            setOSPTexture(ospMat, "normal", mat.normalTexture.index);
+            ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
+        }
+
+#if 0  // No reason to use occlusion in OSPRay
+        if (mat.occlusionTexture.index != -1 &&
+                mat.occlusionTexture.texCoord == 0) {
+            // OcclusionTextureInfo() : index(-1), texCoord(0), strength(1.0) {}
+            setOSPTexture(ospMat, "occlusion", mat.occlusionTexture.index);
+            ospMat->createChild("occlusion", "float", mat.occlusionTexture.scale);
+        }
+#endif
+
+        return ospMat;
+
+    } else {
+        // XXX TODO Principled material doesn't have emissive params yet
+        // So, use a luminous instead
+        auto ospMat = createNode(matName, "luminous");
+
+        if (emissiveColor != vec3f(0.f)) {
+            WARN << "Material has emissiveFactor = " << emissiveColor << "\n";
+            ospMat->createChild("color", "vec3f") = emissiveColor;
+            ospMat->createChild("intensity", "float") = 10.f;
+        }
+
+        if (mat.emissiveTexture.texCoord != 0) {
+          WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
+            << std::endl;
+        }
+
+        if (mat.emissiveTexture.index != -1 && mat.emissiveTexture.texCoord == 0) {
+            setOSPTexture(ospMat, "emissive", mat.emissiveTexture.index);
+            WARN << "Material has emissiveTexture #" << mat.emissiveTexture.index
+                << "\n";
+        }
+
+        return ospMat;
+    }
   }
 
   NodePtr GLTFData::createOSPTexture(const std::string &texParam,
