@@ -50,15 +50,13 @@ namespace ospray {
           if (ImGui::Checkbox("visible", &b))
             node["visible"].setValue(b);
 
-          if (lightType != "hdri") {
-            f1 = node["intensity"].valueAs<float>();
-            if (ImGui::DragFloat("intensity", &f1, 0.1f, 0.0f, 0.0f, "%.1f"))
-              node["intensity"].setValue(f1);
+          f1 = node["intensity"].valueAs<float>();
+          if (ImGui::DragFloat("intensity", &f1, 0.1f, 0.0f, 0.0f, "%.1f"))
+            node["intensity"].setValue(f1);
 
-            f3 = node["color"].valueAs<vec3f>();
-            if (ImGui::ColorEdit3("color", f3))
-              node["color"].setValue(f3);
-          }
+          f3 = node["color"].valueAs<vec3f>();
+          if (ImGui::ColorEdit3("color", f3))
+            node["color"].setValue(f3);
 
           if (lightType == "distant") {
             f3 = node["direction"].valueAs<vec3f>();
