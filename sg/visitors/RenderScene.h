@@ -143,6 +143,8 @@ namespace ospray::sg {
 
   inline void RenderScene::createGeometry(Node &node)
   {
+    if (!node.child("visible").valueAs<bool>())
+      return;
     auto geom = node.valueAs<cpp::Geometry>();
     cpp::GeometricModel model(geom);
     if (node.hasChild("material")) {

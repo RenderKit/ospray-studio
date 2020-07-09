@@ -950,6 +950,8 @@ void MainWindow::buildMainMenuView()
       g_saveNextFrame = true;
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
       showKeyframes = true;
+    if (ImGui::MenuItem("Geometry...", "", nullptr))
+      showGeometryViewer = true;
     ImGui::EndMenu();
   }
 }
@@ -964,6 +966,8 @@ void MainWindow::buildWindows()
     buildWindowLightEditor();
   if (showMaterialEditor)
     buildWindowMaterialEditor();
+  if (showGeometryViewer)
+    buildWindowGeometryViewer();
 }
 
 void MainWindow::buildWindowKeyframes()
@@ -1168,4 +1172,29 @@ void MainWindow::buildWindowMaterialEditor()
     defaultMaterialIdx = whichMaterial;
     refreshScene(false);
   }
+}
+
+void MainWindow::buildWindowGeometryViewer()
+{
+  if (!ImGui::Begin(
+          "Geometry viewer", &showGeometryViewer, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  auto &world = frame->child("world");
+  for (auto &node : world.children()) {
+    if (node.second->type() == sg::NodeType::GENERATOR ||
+        node.second->type() == sg::NodeType::IMPORTER) {
+      node.second->traverse<sg::GenerateImGuiWidgets>();
+    }
+  }
+
+  if (ImGui::Button("update")) {
+    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+    fb.resetAccumulation();
+    world.render();
+  }
+
+  ImGui::End();
 }

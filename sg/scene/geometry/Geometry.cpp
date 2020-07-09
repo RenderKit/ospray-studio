@@ -21,6 +21,7 @@ namespace ospray::sg {
   Geometry::Geometry(const std::string &osp_type)
   {
     setValue(cpp::Geometry(osp_type));
+    createChild("visible", "bool", true);
   }
 
 }  // namespace ospray::sg

@@ -273,6 +273,7 @@ namespace ospray {
 
     inline void GenerateImGuiWidgets::postChildren(Node &, TraversalContext &ctx)
     {
+      // TreePop (unindent) only after levels that we opened
       if (openLevels.size() > 0 && ctx.level == openLevels.top()) {
         ImGui::TreePop();
         openLevels.pop();
