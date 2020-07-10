@@ -32,6 +32,7 @@
 #include "sg/exporter/Exporter.h"
 #include "sg/visitors/GenerateImGuiWidgets.h"
 #include "sg/visitors/PrintNodes.h"
+#include "sg/visitors/SetParamByNode.h"
 #include "sg/scene/lights/Lights.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
@@ -1194,6 +1195,15 @@ void MainWindow::buildWindowGeometryViewer()
     fb.resetAccumulation();
     world.render();
   }
+  ImGui::SameLine();
+  if (ImGui::Button("show all")) {
+    world.traverse<sg::SetParamByNode>(sg::NodeType::GEOMETRY, "visible", true);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("hide all")) {
+    world.traverse<sg::SetParamByNode>(
+        sg::NodeType::GEOMETRY, "visible", false);
+  }
   bool topButton = ImGui::IsItemVisible();
 
   for (auto &node : world.children()) {
@@ -1209,6 +1219,16 @@ void MainWindow::buildWindowGeometryViewer()
       auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
       fb.resetAccumulation();
       world.render();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("show all")) {
+      world.traverse<sg::SetParamByNode>(
+          sg::NodeType::GEOMETRY, "visible", true);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("hide all")) {
+      world.traverse<sg::SetParamByNode>(
+          sg::NodeType::GEOMETRY, "visible", false);
     }
   }
 
