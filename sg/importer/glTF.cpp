@@ -223,7 +223,7 @@ namespace ospray {
 
   void GLTFData::createMaterials()
   {
-    //DEBUG << "Create Materials\n";
+    // DEBUG << "Create Materials\n";
 
     // Create materials and textures
     // (adding 1 for default material)
@@ -286,7 +286,7 @@ namespace ospray {
 
   void GLTFData::createGeometries()
   {
-    //DEBUG << "Create Geometries\n";
+    // DEBUG << "Create Geometries\n";
 
     ospMeshes.reserve(model.meshes.size());
     for (auto &m : model.meshes) {  // -> Model
@@ -576,7 +576,7 @@ namespace ospray {
       // but set all alpha to 1.f
       if (prim.material == -1 ||
           model.materials[prim.material].alphaMode == "OPAQUE") {
-        //DEBUG << pad("", '.', 6) << "prim. Correcting Alpha\n";
+        // DEBUG << pad("", '.', 6) << "prim. Correcting Alpha\n";
         std::transform(vc.begin(), vc.end(), vc.begin(), [](vec4f c) {
           return vec4f(c.x, c.y, c.z, 1.f);
         });
@@ -681,14 +681,15 @@ namespace ospray {
   {
     static auto nMat = 0;
     auto matName     = mat.name + "_" + pad(std::to_string(nMat++));
-    //DEBUG << pad("", '.', 3) << "material." + matName << "\n";
-    //DEBUG << pad("", '.', 3) << "        .alphaMode:" << mat.alphaMode << "\n";
-    //DEBUG << pad("", '.', 3) << "        .alphaCutoff:" << (float)mat.alphaCutoff
+    // DEBUG << pad("", '.', 3) << "material." + matName << "\n";
+    // DEBUG << pad("", '.', 3) << "        .alphaMode:" << mat.alphaMode <<
+    // "\n"; DEBUG << pad("", '.', 3) << "        .alphaCutoff:" <<
+    // (float)mat.alphaCutoff
     //     << "\n";
 
     auto &pbr = mat.pbrMetallicRoughness;
 
-    //DEBUG << pad("", '.', 3)
+    // DEBUG << pad("", '.', 3)
     //     << "        .baseColorFactor.alpha:" << (float)pbr.baseColorFactor[4]
     //     << "\n";
 
@@ -726,18 +727,18 @@ namespace ospray {
             setOSPTexture(ospMat, "baseColor", pbr.baseColorTexture.index, false);
         }
 
-        // XXX Not sure exactly how to map these yet.  Are they single component?
-        if (pbr.metallicRoughnessTexture.index != -1 &&
-                pbr.metallicRoughnessTexture.texCoord == 0) {
-            setOSPTexture(ospMat, "metallic", pbr.metallicRoughnessTexture.index);
-            setOSPTexture(ospMat, "roughness", pbr.metallicRoughnessTexture.index);
-        }
+    // XXX Not sure exactly how to map these yet.  Are they single component?
+    if (pbr.metallicRoughnessTexture.index != -1 &&
+        pbr.metallicRoughnessTexture.texCoord == 0) {
+      setOSPTexture(ospMat, "metallic", pbr.metallicRoughnessTexture.index);
+      setOSPTexture(ospMat, "roughness", pbr.metallicRoughnessTexture.index);
+    }
 
-        if (mat.normalTexture.index != -1 && mat.normalTexture.texCoord == 0) {
-            // NormalTextureInfo() : index(-1), texCoord(0), scale(1.0) {}
-            setOSPTexture(ospMat, "normal", mat.normalTexture.index);
-            ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
-        }
+    if (mat.normalTexture.index != -1 && mat.normalTexture.texCoord == 0) {
+      // NormalTextureInfo() : index(-1), texCoord(0), scale(1.0) {}
+      setOSPTexture(ospMat, "normal", mat.normalTexture.index);
+      ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
+    }
 
 #if 0  // No reason to use occlusion in OSPRay
         if (mat.occlusionTexture.index != -1 &&
@@ -751,28 +752,29 @@ namespace ospray {
         return ospMat;
 
     } else {
-        // XXX TODO Principled material doesn't have emissive params yet
-        // So, use a luminous instead
-        auto ospMat = createNode(matName, "luminous");
+      // XXX TODO Principled material doesn't have emissive params yet
+      // So, use a luminous instead
+      auto ospMat = createNode(matName, "luminous");
 
-        if (emissiveColor != vec3f(0.f)) {
-            WARN << "Material has emissiveFactor = " << emissiveColor << "\n";
-            ospMat->createChild("color", "vec3f") = emissiveColor;
-            ospMat->createChild("intensity", "float") = 10.f;
-        }
+      if (emissiveColor != vec3f(0.f)) {
+        WARN << "Material has emissiveFactor = " << emissiveColor << "\n";
+        ospMat->createChild("color", "vec3f") = emissiveColor;
+        ospMat->createChild("intensity", "float") = 100.f;
+      }
 
-        if (mat.emissiveTexture.texCoord != 0) {
-          WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
-            << std::endl;
-        }
+      if (mat.emissiveTexture.texCoord != 0) {
+        WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
+          << std::endl;
+      }
 
-        if (mat.emissiveTexture.index != -1 && mat.emissiveTexture.texCoord == 0) {
-            setOSPTexture(ospMat, "emissive", mat.emissiveTexture.index);
-            WARN << "Material has emissiveTexture #" << mat.emissiveTexture.index
-                << "\n";
-        }
+      if (mat.emissiveTexture.index != -1 && mat.emissiveTexture.texCoord == 0) {
+        // EmissiveTextureInfo() : index(-1), texCoord(0) {}
+        setOSPTexture(ospMat, "color", mat.emissiveTexture.index, false);
+        WARN << "Material has emissiveTexture #" << mat.emissiveTexture.index
+          << "\n";
+      }
 
-        return ospMat;
+      return ospMat;
     }
   }
 
@@ -792,16 +794,17 @@ namespace ospray {
     }
     auto texName = img.name + "_" + pad(std::to_string(nTex++)) + "_tex";
 
-    //DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
-    //DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
-    //DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
-    //DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
-    //DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
-    //DEBUG << pad("", '.', 9) << "image bits: " << img.bits << "\n";
-    //if (img.uri.length() < 256)  // The uri can be a stream of data!
+    // DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
+    // DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
+    // DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
+    // DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
+    // DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
+    // DEBUG << pad("", '.', 9) << "image bits: " << img.bits << "\n";
+    // if (img.uri.length() < 256)  // The uri can be a stream of data!
     //  DEBUG << pad("", '.', 9) << "image uri: " << img.uri << "\n";
-    //DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView << "\n";
-    //DEBUG << pad("", '.', 9) << "image data: " << img.image.size() << "\n";
+    // DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView <<
+    // "\n"; DEBUG << pad("", '.', 9) << "image data: " << img.image.size() <<
+    // "\n";
 
     // XXX Only handle pre-loaded images for now
     if (img.image.empty()) {
@@ -822,7 +825,8 @@ namespace ospray {
     if (ospTex.depth != 1)
       ERROR << "Not yet handled pixel depth: " << ospTex.depth << std::endl;
     if (ospTex.channels != 4)
-      ERROR << "Not yet handled number of channels: " << ospTex.channels << std::endl;
+      ERROR << "Not yet handled number of channels: " << ospTex.channels
+            << std::endl;
 
     // XXX better way to do this?!
     std::vector<vec4uc> data(ospTex.size.x * ospTex.size.y);
@@ -865,7 +869,7 @@ namespace ospray {
       //auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
       //DEBUG << pad("", '.', 3) << "        .setChild: " << texParam << "= "
       //     << ospTex.name() << "\n";
-      //DEBUG << pad("", '.', 3) << "            "
+      // DEBUG << pad("", '.', 3) << "            "
       //     << "depth: " << ospTex.depth << " channels: " << ospTex.channels
       //     << " preferLinear: " << preferLinear << "\n";
 
