@@ -682,10 +682,10 @@ namespace ospray {
     static auto nMat = 0;
     auto matName     = mat.name + "_" + pad(std::to_string(nMat++));
     // DEBUG << pad("", '.', 3) << "material." + matName << "\n";
-    // DEBUG << pad("", '.', 3) << "        .alphaMode:" << mat.alphaMode <<
-    // "\n"; DEBUG << pad("", '.', 3) << "        .alphaCutoff:" <<
-    // (float)mat.alphaCutoff
-    //     << "\n";
+    // DEBUG << pad("", '.', 3) << "        .alphaMode:" << mat.alphaMode
+    //       << "\n";
+    // DEBUG << pad("", '.', 3)
+    //       << "        .alphaCutoff:" << (float)mat.alphaCutoff << "\n";
 
     auto &pbr = mat.pbrMetallicRoughness;
 
@@ -727,18 +727,18 @@ namespace ospray {
             setOSPTexture(ospMat, "baseColor", pbr.baseColorTexture.index, false);
         }
 
-    // XXX Not sure exactly how to map these yet.  Are they single component?
-    if (pbr.metallicRoughnessTexture.index != -1 &&
-        pbr.metallicRoughnessTexture.texCoord == 0) {
-      setOSPTexture(ospMat, "metallic", pbr.metallicRoughnessTexture.index);
-      setOSPTexture(ospMat, "roughness", pbr.metallicRoughnessTexture.index);
-    }
+      // XXX Not sure exactly how to map these yet.  Are they single component?
+      if (pbr.metallicRoughnessTexture.index != -1 &&
+          pbr.metallicRoughnessTexture.texCoord == 0) {
+        setOSPTexture(ospMat, "metallic", pbr.metallicRoughnessTexture.index);
+        setOSPTexture(ospMat, "roughness", pbr.metallicRoughnessTexture.index);
+      }
 
-    if (mat.normalTexture.index != -1 && mat.normalTexture.texCoord == 0) {
-      // NormalTextureInfo() : index(-1), texCoord(0), scale(1.0) {}
-      setOSPTexture(ospMat, "normal", mat.normalTexture.index);
-      ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
-    }
+      if (mat.normalTexture.index != -1 && mat.normalTexture.texCoord == 0) {
+        // NormalTextureInfo() : index(-1), texCoord(0), scale(1.0) {}
+        setOSPTexture(ospMat, "normal", mat.normalTexture.index);
+        ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
+      }
 
 #if 0  // No reason to use occlusion in OSPRay
         if (mat.occlusionTexture.index != -1 &&
@@ -749,7 +749,7 @@ namespace ospray {
         }
 #endif
 
-        return ospMat;
+      return ospMat;
 
     } else {
       // XXX TODO Principled material doesn't have emissive params yet
@@ -759,7 +759,8 @@ namespace ospray {
       if (emissiveColor != vec3f(0.f)) {
         WARN << "Material has emissiveFactor = " << emissiveColor << "\n";
         ospMat->createChild("color", "vec3f") = emissiveColor;
-        ospMat->createChild("intensity", "float") = 100.f;
+        ospMat->createChild("intensity", "float") =
+            10.f;  // XXX what's good default intensity?
       }
 
       if (mat.emissiveTexture.texCoord != 0) {
@@ -767,11 +768,12 @@ namespace ospray {
           << std::endl;
       }
 
-      if (mat.emissiveTexture.index != -1 && mat.emissiveTexture.texCoord == 0) {
+      if (mat.emissiveTexture.index != -1 &&
+          mat.emissiveTexture.texCoord == 0) {
         // EmissiveTextureInfo() : index(-1), texCoord(0) {}
         setOSPTexture(ospMat, "color", mat.emissiveTexture.index, false);
         WARN << "Material has emissiveTexture #" << mat.emissiveTexture.index
-          << "\n";
+             << "\n";
       }
 
       return ospMat;
