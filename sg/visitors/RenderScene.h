@@ -239,6 +239,8 @@ namespace ospray::sg {
   {
     if (!instances.empty())
       world.setParam("instance", cpp::CopiedData(instances));
+    else
+      world.removeParam("instance");
   }
 
 }  // namespace ospray::sg
