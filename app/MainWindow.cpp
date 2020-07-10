@@ -1176,13 +1176,26 @@ void MainWindow::buildWindowMaterialEditor()
 
 void MainWindow::buildWindowGeometryViewer()
 {
+  // geometry names can get quite long!
+  ImGui::SetNextWindowSizeConstraints(
+      ImVec2(0, 0), ImVec2(windowSize.x * 0.5f, windowSize.y * 0.8f));
   if (!ImGui::Begin(
-          "Geometry viewer", &showGeometryViewer, g_imguiWindowFlags)) {
+          "Geometry viewer",
+          &showGeometryViewer,
+          ImGuiWindowFlags_HorizontalScrollbar | g_imguiWindowFlags)) {
     ImGui::End();
     return;
   }
 
   auto &world = frame->child("world");
+
+  if (ImGui::Button("update")) {
+    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+    fb.resetAccumulation();
+    world.render();
+  }
+  bool topButton = ImGui::IsItemVisible();
+
   for (auto &node : world.children()) {
     if (node.second->type() == sg::NodeType::GENERATOR ||
         node.second->type() == sg::NodeType::IMPORTER) {
@@ -1190,10 +1203,13 @@ void MainWindow::buildWindowGeometryViewer()
     }
   }
 
-  if (ImGui::Button("update")) {
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-    fb.resetAccumulation();
-    world.render();
+  // put a button on top and bottom for long lists
+  if (!topButton) {
+    if (ImGui::Button("update")) {
+      auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+      fb.resetAccumulation();
+      world.render();
+    }
   }
 
   ImGui::End();
