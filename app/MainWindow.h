@@ -100,11 +100,13 @@ class MainWindow
   void buildWindowPreferences();
   void buildWindowKeyframes();
   void buildWindowLightEditor();
+  void buildWindowMaterialEditor();
 
   // imgui window visibility toggles
   bool showPreferences{false};
   bool showKeyframes{false};
   bool showLightEditor{false};
+  bool showMaterialEditor{false};
 
   // imgui-controlled options
   std::string screenshotFiletype{"png"};

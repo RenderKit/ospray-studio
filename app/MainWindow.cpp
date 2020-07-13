@@ -780,19 +780,19 @@ void MainWindow::importFiles()
         imp.traverse<sg::PrintNodes>();
 #endif
 
-      if (baseMaterialRegistry->matImportsList.size() != 0) {
-        for (auto &newMat : baseMaterialRegistry->matImportsList)
-          g_matTypes.insert(g_matTypes.begin(), newMat);
-      }
+        if (baseMaterialRegistry->matImportsList.size() != 0) {
+          for (auto &newMat : baseMaterialRegistry->matImportsList)
+            g_matTypes.insert(g_matTypes.begin(), newMat);
+        }
 
-      if (oldRegistrySize != baseMaterialRegistry->children().size()) {
-        auto newMats =
-            baseMaterialRegistry->children().size() - oldRegistrySize;
-        std::cout << "Importer added " << newMats << " material(s)"
-                  << std::endl;
-        refreshRenderer();
+        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
+          auto newMats =
+              baseMaterialRegistry->children().size() - oldRegistrySize;
+          std::cout << "Importer added " << newMats << " material(s)"
+                    << std::endl;
+          refreshRenderer();
+        }
       }
-    }
     //    } catch (...) {
     //      std::cerr << "Failed to open file '" << file << "'!\n";
     //    }
@@ -912,6 +912,8 @@ void MainWindow::buildMainMenuEdit()
   if (ImGui::BeginMenu("Edit")) {
     if (ImGui::MenuItem("Lights...", "", nullptr))
       showLightEditor = true;
+    if (ImGui::MenuItem("Materials...", "", nullptr))
+      showMaterialEditor = true;
     if (ImGui::MenuItem("Preferences...", nullptr))
       showPreferences = true;
     ImGui::EndMenu();
@@ -939,6 +941,8 @@ void MainWindow::buildWindows()
     buildWindowKeyframes();
   if (showLightEditor)
     buildWindowLightEditor();
+  if (showMaterialEditor)
+    buildWindowMaterialEditor();
 }
 
 void MainWindow::buildWindowPreferences()
@@ -1124,5 +1128,29 @@ void MainWindow::buildWindowLightEditor()
   if (lightTexWarning)
     ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "No texture provided");
 
+  ImGui::End();
+}
+
+void MainWindow::buildWindowMaterialEditor()
+{
+  if (!ImGui::Begin("Material editor", &showMaterialEditor, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  ImGui::Text("available materials:");
+
+  if (!baseMaterialRegistry->sgMaterialList.size())
+  {
+    ImGui::Text("  no materials in the scene");
+  }
+
+  for (auto &aMat : baseMaterialRegistry->sgMaterialList)
+  {
+    if (matTypeStr == aMat->osprayMaterialType())
+      ImGui::Text("  * %s", aMat->osprayMaterialType().c_str());
+    else
+      ImGui::Text("  %s", aMat->osprayMaterialType().c_str());
+  }
   ImGui::End();
 }
