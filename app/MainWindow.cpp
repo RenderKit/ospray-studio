@@ -562,7 +562,6 @@ void MainWindow::buildUI()
   static int whichScene        = 0;
   static int whichRenderer     = 0;
   static int whichDebuggerType = 0;
-  static int whichMatType      = 0;
   if (ImGui::Combo("scene##whichScene",
                    &whichScene,
                    sceneUI_callback,
@@ -573,8 +572,6 @@ void MainWindow::buildUI()
     auto numImportedMats = baseMaterialRegistry->matImportsList.size();
     g_matTypes.erase(g_matTypes.begin(), g_matTypes.begin() + numImportedMats);
     baseMaterialRegistry->rmMatImports();
-
-    whichMatType = 0;  // necessary to reset menu material name on scene change
 
     refreshRenderer();
     refreshScene();
@@ -637,15 +634,6 @@ void MainWindow::buildUI()
                      nullptr,
                      g_debugRendererTypes.size())) {
       renderer["method"] = g_debugRendererTypes[whichDebuggerType];
-    }
-  } else if (rendererType == OSPRayRendererType::PATHTRACER) {
-    if (ImGui::Combo("material type##whichMatType",
-                     &whichMatType,
-                     matTypeUI_callback,
-                     nullptr,
-                     g_matTypes.size())) {
-      matTypeStr = g_matTypes[whichMatType];
-      refreshMaterial();
     }
   }
 
@@ -710,18 +698,11 @@ void MainWindow::refreshRenderer()
   }
 }
 
-void MainWindow::refreshMaterial()
-{
-  baseMaterialRegistry->refreshMaterialList(matTypeStr, rendererTypeStr);
-  auto &r = frame->child("renderer");
-  r.createChildData("material", baseMaterialRegistry->cppMaterialList);
-}
-
 void MainWindow::refreshScene()
 {
   auto world = sg::createNode("world", "world");
 
-  world->createChild("materialref", "reference_to_material", 0);
+  world->createChild("materialref", "reference_to_material", defaultMaterialIdx);
 
   if (scene == "import") {
     if (!importGeometry(world)) {
@@ -1138,19 +1119,49 @@ void MainWindow::buildWindowMaterialEditor()
     return;
   }
 
+  if (rendererType != OSPRayRendererType::PATHTRACER) {
+    ImGui::Text("materials only apply to pathtracer");
+    ImGui::End();
+    return;
+  }
+
   ImGui::Text("available materials:");
+
+  bool changed = false;
+  int whichMaterial = -1;
 
   if (!baseMaterialRegistry->sgMaterialList.size())
   {
     ImGui::Text("  no materials in the scene");
+  } else {
+
+    if (ImGui::ListBoxHeader("", 7)) {
+      int i = 0;
+      for (auto &aMat : baseMaterialRegistry->sgMaterialList) {
+        std::string toShow;
+        if (i == defaultMaterialIdx)
+          toShow = std::string(" *") + aMat->osprayMaterialType().c_str();
+        else
+          toShow = std::string("  ") + aMat->osprayMaterialType().c_str();
+
+        if (ImGui::Selectable(toShow.c_str(), (whichMaterial == i)) && whichMaterial != defaultMaterialIdx) {
+          whichMaterial = i;
+          changed = true;
+        }
+        i++;
+      }
+      ImGui::ListBoxFooter();
+    }
   }
 
-  for (auto &aMat : baseMaterialRegistry->sgMaterialList)
-  {
-    if (matTypeStr == aMat->osprayMaterialType())
-      ImGui::Text("  * %s", aMat->osprayMaterialType().c_str());
-    else
-      ImGui::Text("  %s", aMat->osprayMaterialType().c_str());
-  }
   ImGui::End();
+
+  if (changed && whichMaterial != -1) {
+    defaultMaterialIdx = whichMaterial;
+    if (frame && frame->hasChild("world"))
+    {
+      //auto &world    = frame->child("world"); -- THIS WILL GO BOOM IDKY
+      //so unfortunately you have to reload the scene
+    }
+  }
 }

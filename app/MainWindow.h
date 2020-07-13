@@ -85,7 +85,6 @@ class MainWindow
   void refreshMaterialRegistry();
   void addLight();
   void removeLight();
-  void refreshMaterial();
   void addPTMaterials();
   bool importGeometry(std::shared_ptr<sg::Node> &world);
   bool importVolume(std::shared_ptr<sg::Node> &world);
@@ -129,7 +128,7 @@ class MainWindow
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   std::string rendererTypeStr{"scivis"};
   std::string lightTypeStr{"ambient"};
-  std::string matTypeStr{"obj"};
+  int defaultMaterialIdx = 0;
   bool useTestTex     = false;
   bool useImportedTex = false;
 

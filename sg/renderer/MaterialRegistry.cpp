@@ -26,27 +26,31 @@ namespace ospray::sg {
       createChild(matType, matType);
   }
 
+  /*
   void MaterialRegistry::refreshMaterialList(const std::string &matType, const std::string &rType)
   {
     cppMaterialList.clear();
 
+    //puts the provided material first in the list so that it will be used by default
+    //however doing so will also break other items because their indexes will be wrong
     for (auto mat_it = sgMaterialList.begin(); mat_it != sgMaterialList.end(); ++mat_it) {
       auto &materialNode = *(*mat_it);
       if (materialNode.name() == matType) {
         auto mat_x = *mat_it;
         sgMaterialList.erase(mat_it);
         sgMaterialList.insert(sgMaterialList.begin(), mat_x);
-        break;     
+        break;
       }
     }
 
     for (auto mat_it = sgMaterialList.begin(); mat_it != sgMaterialList.end(); ++mat_it) {
-      auto &materialNode = *(*mat_it);      
+      auto &materialNode = *(*mat_it);
       auto &ospHandleNode = materialNode.child("handles").child(rType);
       auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
       cppMaterialList.push_back(cppMaterial);
     }
   }
+  */
 
   void MaterialRegistry::createCPPMaterials(const std::string &rType) 
   {
@@ -83,6 +87,6 @@ namespace ospray::sg {
     }
   } 
 
-    OSP_REGISTER_SG_NODE_NAME(MaterialRegistry, materialRegistry);
+  OSP_REGISTER_SG_NODE_NAME(MaterialRegistry, materialRegistry);
 
 }  // namespace ospray::sg
