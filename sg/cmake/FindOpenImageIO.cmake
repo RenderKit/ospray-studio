@@ -68,6 +68,31 @@ if(OPENIMAGEIO_FOUND)
   set(OPENIMAGEIO_INCLUDE_DIRS ${OPENIMAGEIO_INCLUDE_DIR})
   set(OPENIMAGEIO_LIBRARIES ${OPENIMAGEIO_LIBRARY})
 
+  # Extract the version we found in our root.
+  file(READ ${OPENIMAGEIO_INCLUDE_DIR}/OpenImageIO/oiioversion.h VERSION_HEADER_CONTENT)
+  string(REGEX MATCH "#define OIIO_VERSION_MAJOR ([0-9]+)" DUMMY "${VERSION_HEADER_CONTENT}")
+  set(OIIO_VERSION_MAJOR ${CMAKE_MATCH_1})
+  string(REGEX MATCH "#define OIIO_VERSION_MINOR ([0-9]+)" DUMMY "${VERSION_HEADER_CONTENT}")
+  set(OIIO_VERSION_MINOR ${CMAKE_MATCH_1})
+  string(REGEX MATCH "#define OIIO_VERSION_PATCH ([0-9]+)" DUMMY "${VERSION_HEADER_CONTENT}")
+  set(OIIO_VERSION_PATCH ${CMAKE_MATCH_1})
+  set(OIIO_VERSION "${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}")
+  set(OIIO_VERSION_STRING "${OIIO_VERSION}")
+
+  message(STATUS "Found OpenImageIO version ${OIIO_VERSION}.")
+
+  # If the user provided information about required versions, check them!
+  if (OPENIMAGEIO_FIND_VERSION)
+    if (${OPENIMAGEIO_FIND_VERSION_EXACT} AND NOT
+        OIIO_VERSION VERSION_EQUAL ${OPENIMAGEIO_FIND_VERSION})
+      message(ERROR "Requested exact OpenImageIO version ${OPENIMAGEIO_FIND_VERSION},"
+        " but found ${OIIO_VERSION}")
+    elseif(OIIO_VERSION VERSION_LESS ${OPENIMAGEIO_FIND_VERSION})
+      message(ERROR "Requested minimum OpenImageIO version ${OPENIMAGEIO_FIND_VERSION},"
+        " but found ${OIIO_VERSION}")
+    endif()
+  endif()
+
   add_library(OpenImageIO::OpenImageIO UNKNOWN IMPORTED)
   set_target_properties(OpenImageIO::OpenImageIO PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${OPENIMAGEIO_INCLUDE_DIRS}")

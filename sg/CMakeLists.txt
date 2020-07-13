@@ -18,25 +18,41 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ## OpenImageIO support ##
 
-option(OSPSG_OPENIMAGEIO "Enable OpenImageIO support" ON)
+option(ENABLE_OPENIMAGEIO "Enable OpenImageIO support" ON)
 
-if(OSPSG_OPENIMAGEIO)
-  find_package(OpenImageIO 2.2.3.0)
+if(ENABLE_OPENIMAGEIO)
+  find_package(OpenImageIO REQUIRED)
   if (NOT OpenImageIO_FOUND)
     message(STATUS "OpenImageIO not found. Using stb_image instead.")
-  else()
-    set(OPENIMAGEIO_TARGET OpenImageIO::OpenImageIO)
   endif()
+else()
+  message(STATUS "Building without OpenVDB support. Using stb_image instead.")
 endif()
 
-## Build Library ##
+## OpenVDB support ##
+
+option(ENABLE_OPENVDB "Enable OpenVDB support" OFF)
+
+if(ENABLE_OPENVDB)
+  # Monitor <PackageName>_ROOT variables, as this mechanism is used a lot in OpenVDB.
+  if(POLICY CMP0074)
+    cmake_policy(SET CMP0074 NEW)
+  endif()
+  find_package(OpenVDB 7.0.0 REQUIRED)
+else()
+  message(STATUS "Building without OpenVDB support.")
+endif()
+
+## OpenEXR support ##
 
 option(ENABLE_EXR "Enable EXR format image writing" ON)
 if (ENABLE_EXR)
   find_package(OpenEXR REQUIRED)
-  set(OPENEXR_TARGET OpenEXR::IlmImf)
-  set(EXR_EXPORTER "exporter/EXR.cpp")
+else()
+  message(STATUS "Building without OpenVDB support.")
 endif()
+
+## Build Library ##
 
 add_library(ospray_sg SHARED
   Data.cpp
@@ -51,7 +67,7 @@ add_library(ospray_sg SHARED
   exporter/JPG.cpp
   exporter/PPM.cpp
   exporter/HDR.cpp
-  ${EXR_EXPORTER}
+  exporter/EXR.cpp
 
   fb/FrameBuffer.cpp
 
@@ -135,10 +151,8 @@ target_link_libraries(ospray_sg
 PUBLIC
   rkcommon::rkcommon
   ospray::ospray
-  ${OPENIMAGEIO_TARGET}
 PRIVATE
   stb_image
-  ${OPENEXR_TARGET}
   tiny_obj_loader
   tiny_gltf
 )
@@ -153,14 +167,20 @@ target_include_directories(ospray_sg
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
 )
 
-if(OSPSG_OPENIMAGEIO AND OpenImageIO_FOUND)
+if (OpenImageIO_FOUND)
   target_compile_definitions(ospray_sg PRIVATE -DUSE_OPENIMAGEIO)
+  target_link_libraries(ospray_sg PUBLIC OpenImageIO::OpenImageIO)
 endif()
 
 target_compile_definitions(ospray_sg
   PUBLIC
   $<$<BOOL:${ENABLE_EXR}>:STUDIO_OPENEXR>
 )
+
+if (OpenEXR_FOUND)
+  target_compile_definitions(ospray_sg PRIVATE -DUSE_OPENEXR)
+  target_link_libraries(ospray_sg PRIVATE OpenEXR::IlmImf)
+endif()
 
 if (OpenVDB_FOUND)
   target_compile_definitions(ospray_sg PUBLIC -DUSE_OPENVDB)

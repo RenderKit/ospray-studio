@@ -14,6 +14,8 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+#if defined(USE_OPENEXR)
+
 #include "ImageExporter.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
@@ -272,4 +274,6 @@ namespace ospray::sg {
   }
 
 }  // namespace ospray::sg
+
+#endif
 
