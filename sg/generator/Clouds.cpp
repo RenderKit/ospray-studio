@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 #include "Generator.h"
+#include "sg/scene/volume/Vdb.h"
 // std
 #include <random>
 // rkcommon
@@ -48,42 +49,18 @@ namespace ospray::sg {
   void Clouds::generateData()
   {
     remove("clouds");
-    /*
-    remove("wavelet");
 
-    // Create voxel data
+    auto &xfm =
+        createChild("clouds", "Transform", affine3f::translate(vec3f(0.1f)));
 
-    auto &parameters = child("parameters");
+    xfm.createChild("sky", "sunsky");
+    auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
 
-    auto dimensions  = parameters["dimensions"].valueAs<vec3i>();
-    auto gridOrigin  = parameters["gridOrigin"].valueAs<vec3f>();
-    auto gridSpacing = parameters["gridSpacing"].valueAs<vec3f>();
-
-    std::vector<float> voxels(dimensions.long_product());
-
-    auto transformLocalToObject = [&](const vec3f &localCoordinates) {
-      return gridOrigin + localCoordinates * gridSpacing;
-    };
-
-    tasking::parallel_for(dimensions.z, [&](int z) {
-      for (size_t y = 0; y < dimensions.y; y++) {
-        for (size_t x = 0; x < dimensions.x; x++) {
-          size_t index = z * dimensions.y * dimensions.x + y * dimensions.x + x;
-          vec3f objectCoordinates = transformLocalToObject(vec3f(x, y, z));
-          voxels[index]           = getWaveletValue(objectCoordinates);
-        }
-      }
-    });
-
-    // Create sg subtree
-    auto &tf     = createChild("transferFunction", "transfer_function_jet");
-    auto &volume = tf.createChild("wavelet", "volume_structured");     
-    volume["voxelType"]   = int(OSP_FLOAT);
-    volume["gridOrigin"]  = gridOrigin;
-    volume["gridSpacing"] = gridSpacing;
-    volume["dimensions"]  = dimensions;
-    volume.createChildData("data", dimensions, 0, voxels.data());
-    */
+    auto vol =
+        std::static_pointer_cast<sg::VdbVolume>(
+            sg::createNode("volume", "volume_vdb"));
+    vol->load("/home/johannes/gfx/vdb/bunny_cloud.vdb");
+    tf.add(vol);
   }
 
 }  // namespace ospray::sg
