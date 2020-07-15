@@ -18,17 +18,17 @@
 
 namespace ospray::sg {
 
-  struct OSPSG_INTERFACE Sunsky : public Light
+  struct OSPSG_INTERFACE SunSky : public Light
   {
-    Sunsky();
-    virtual ~Sunsky() override = default;
+    SunSky();
+    virtual ~SunSky() override = default;
   };
 
-  OSP_REGISTER_SG_NODE_NAME(Sunsky, sunsky);
+  OSP_REGISTER_SG_NODE_NAME(SunSky, sunsky);
 
   // Sunsky definitions //////////////////////////////////////////////////////
 
-  Sunsky::Sunsky() : Light("sunSky")
+  SunSky::SunSky() : Light("sunSky")
   {
   }
 

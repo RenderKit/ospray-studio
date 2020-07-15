@@ -51,14 +51,13 @@ namespace ospray::sg {
     remove("clouds");
 
     auto &xfm =
-        createChild("clouds", "Transform", affine3f::translate(vec3f(0.1f)));
+        createChild("clouds", "Transform", affine3f::translate(vec3f(0.0f)));
 
     xfm.createChild("sky", "sunsky");
     auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
 
     auto vol =
-        std::static_pointer_cast<sg::VdbVolume>(
-            sg::createNode("volume", "volume_vdb"));
+        std::static_pointer_cast<sg::VdbVolume>(sg::createNode("volume", "volume_vdb"));
     vol->load("/home/johannes/gfx/vdb/bunny_cloud.vdb");
     tf.add(vol);
   }

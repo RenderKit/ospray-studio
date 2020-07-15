@@ -122,7 +122,7 @@ add_library(ospray_sg SHARED
   scene/lights/PointLight.cpp
   scene/lights/QuadLight.cpp
   scene/lights/HDRILight.cpp
-  scene/lights/Sunsky.cpp
+  scene/lights/SunSky.cpp
 
   texture/Texture.cpp
   texture/Texture2D.cpp
