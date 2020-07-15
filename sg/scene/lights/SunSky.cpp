@@ -30,6 +30,12 @@ namespace ospray::sg {
 
   SunSky::SunSky() : Light("sunSky")
   {
+    createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f));
+    createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
+    createChild("albedo", "float", 0.18f);
+    createChild("turbidity", "float", 3.f);
+    createChild("color", "vec3f", vec3f(1.f));
+    createChild("intensity", "float", 1.f);
   }
 
 }  // namespace ospray::sg

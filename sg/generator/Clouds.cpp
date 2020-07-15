@@ -38,12 +38,6 @@ namespace ospray::sg {
   Clouds::Clouds()
   {
     auto &parameters = child("parameters");
-    /*
-
-    parameters.createChild("dimensions", "vec3i", vec3i(128));
-    parameters.createChild("gridOrigin", "vec3f", vec3f(-1.f));
-    parameters.createChild("gridSpacing", "vec3f", vec3f(2.f / 100));
-    */
   }
 
   void Clouds::generateData()
@@ -53,12 +47,17 @@ namespace ospray::sg {
     auto &xfm =
         createChild("clouds", "Transform", affine3f::translate(vec3f(0.0f)));
 
-    xfm.createChild("sky", "sunsky");
-    auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
+    auto &sky = xfm.createChild("sky", "sunsky");
+    sky.createChild("intensity", "float", 1.f);
+    sky.createChild("direction", "vec3f", vec3f(0.f, -0.25f, -1.f));
+
+    auto &tf = xfm.createChild("transferFunction", "transfer_function_cloud");
 
     auto vol =
         std::static_pointer_cast<sg::VdbVolume>(sg::createNode("volume", "volume_vdb"));
-    vol->load("/home/johannes/gfx/vdb/bunny_cloud.vdb");
+    vol->load("/home/johannes/gfx/wdas_cloud/wdas_cloud.vdb");
+    vol->createChild("densityScale", "float", 1.f);
+    vol->createChild("anisotropy", "float", 0.6f);
     tf.add(vol);
   }
 

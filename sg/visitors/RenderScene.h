@@ -170,6 +170,10 @@ namespace ospray::sg {
                      node["transferFunction"].valueAs<cpp::TransferFunction>());
     } else
       model.setParam("transferFunction", tfns.top());
+    if (node.hasChild("densityScale"))
+      model.setParam("densityScale", node["densityScale"].valueAs<float>());
+    if (node.hasChild("anisotropy"))
+      model.setParam("anisotropy", node["anisotropy"].valueAs<float>());
     model.commit();
     if (setTextureVolume) {
       auto &tex = *current.textures.begin();
