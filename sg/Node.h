@@ -117,7 +117,7 @@ namespace ospray::sg {
 
     void operator=(Any val);
 
-    // Parent-child structual interface ///////////////////////////////////////
+    // Parent-child structural interface ///////////////////////////////////////
 
     using NodeLink = std::pair<std::string, NodePtr>;
 
