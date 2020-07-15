@@ -102,7 +102,6 @@ class MainWindow
   void buildWindowMaterialEditor();
 
   // imgui window visibility toggles
-  bool showPreferences{false};
   bool showKeyframes{false};
   bool showLightEditor{false};
   bool showMaterialEditor{false};
@@ -129,7 +128,6 @@ class MainWindow
   std::string rendererTypeStr{"scivis"};
   std::string lightTypeStr{"ambient"};
   int defaultMaterialIdx = 0;
-  bool useTestTex     = false;
   bool useImportedTex = false;
 
   // GLFW window instance

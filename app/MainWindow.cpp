@@ -61,14 +61,13 @@ static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
 
-static const std::vector<std::string> g_scenes = {"multilevel_hierarchy",
+static const std::vector<std::string> g_scenes = {"empty",
+                                                  "multilevel_hierarchy",
                                                   "torus",
                                                   "texture_volume_test",
                                                   "tutorial_scene",
                                                   "random_spheres",
                                                   "wavelet",
-                                                  "import volume",
-                                                  "import",
                                                   "unstructured_volume"};
 
 static const std::vector<std::string> g_renderers = {
@@ -104,12 +103,6 @@ std::string quatToString(quaternionf &q)
   std::stringstream ss;
   ss << q;
   return ss.str();
-}
-
-bool sceneUI_callback(void *, int index, const char **out_text)
-{
-  *out_text = g_scenes[index].c_str();
-  return true;
 }
 
 bool rendererUI_callback(void *, int index, const char **out_text)
@@ -509,6 +502,8 @@ void MainWindow::display()
   if (showUi) {
     ImGui::Render();
     ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+  } else {
+    ImGui::EndFrame();
   }
 
   // swap buffers
@@ -558,115 +553,9 @@ void MainWindow::buildUI()
   // build window UIs as needed
   buildWindows();
 
-  ImGui::Begin("press 'g' to hide/show UI", nullptr, g_imguiWindowFlags);
-
-  static int whichScene        = 0;
-  static int whichRenderer     = 0;
-  static int whichDebuggerType = 0;
-  if (ImGui::Combo("scene##whichScene",
-                   &whichScene,
-                   sceneUI_callback,
-                   nullptr,
-                   g_scenes.size())) {
-    scene = g_scenes[whichScene];
-
-    auto numImportedMats = baseMaterialRegistry->matImportsList.size();
-    g_matTypes.erase(g_matTypes.begin(), g_matTypes.begin() + numImportedMats);
-    baseMaterialRegistry->rmMatImports();
-
-    refreshRenderer();
-    refreshScene(true);
-  }
-
-  if (ImGui::Combo("renderer##whichRenderer",
-                   &whichRenderer,
-                   rendererUI_callback,
-                   nullptr,
-                   g_renderers.size())) {
-    rendererTypeStr = g_renderers[whichRenderer];
-
-    if (rendererType == OSPRayRendererType::DEBUGGER)
-      whichDebuggerType = 0;  // reset UI if switching away from debug renderer
-
-    if (rendererTypeStr == "scivis")
-      rendererType = OSPRayRendererType::SCIVIS;
-    else if (rendererTypeStr == "pathtracer")
-      rendererType = OSPRayRendererType::PATHTRACER;
-    else if (rendererTypeStr == "debug")
-      rendererType = OSPRayRendererType::DEBUGGER;
-    else
-      rendererType = OSPRayRendererType::OTHER;
-
-    refreshRenderer();
-  }
-
-  auto &renderer = frame->child("renderer");
-
-  int spp = renderer["pixelSamples"].valueAs<int>();
-  if (ImGui::SliderInt("pixelSamples", &spp, 1, 64))
-    renderer["pixelSamples"] = spp;
-
-  sg::rgba bgColor = renderer["backgroundColor"].valueAs<sg::rgba>();
-  if (ImGui::ColorEdit4("backgroundColor", bgColor))
-    renderer["backgroundColor"] = bgColor;
-
-  if (rendererType == OSPRayRendererType::PATHTRACER) {
-    int maxDepth = renderer["maxPathLength"].valueAs<int>();
-    if (ImGui::SliderInt("maxPathLength", &maxDepth, 1, 64))
-      renderer["maxPathLength"] = maxDepth;
-
-    int rouletteDepth = renderer["roulettePathLength"].valueAs<int>();
-    if (ImGui::SliderInt("roulettePathLength", &rouletteDepth, 1, 64))
-      renderer["roulettePathLength"] = rouletteDepth;
-  } else if (rendererType == OSPRayRendererType::SCIVIS) {
-    int aoSamples = renderer["aoSamples"].valueAs<int>();
-    if (ImGui::SliderInt("aoSamples", &aoSamples, 0, 64))
-      renderer["aoSamples"] = aoSamples;
-
-    float aoIntensity = renderer["aoIntensity"].valueAs<float>();
-    if (ImGui::SliderFloat("aoIntensity", &aoIntensity, 0.f, 1.f))
-      renderer["aoIntensity"] = aoIntensity;
-  }
-
-  if (rendererType == OSPRayRendererType::DEBUGGER) {
-    if (ImGui::Combo("debug type##whichDebugType",
-                     &whichDebuggerType,
-                     debugTypeUI_callback,
-                     nullptr,
-                     g_debugRendererTypes.size())) {
-      renderer["method"] = g_debugRendererTypes[whichDebuggerType];
-    }
-  }
-
-  if (rendererType == OSPRayRendererType::SCIVIS ||
-      rendererType == OSPRayRendererType::PATHTRACER) {
-    if (ImGui::Checkbox("backplate texture", &useTestTex) ||
-        ImGui::Checkbox("import backplate texture", &useImportedTex)) {
-      refreshRenderer();
-    }
-  }
-
-  ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
-  ImGui::Checkbox("show albedo", &showAlbedo);
-
-  if (denoiserAvailable) {
-    if (ImGui::Checkbox("denoiser", &frame->denoiserEnabled))
-      frame->updateFrameOpsNextFrame = true;
-  }
-
-  ImGui::Checkbox("auto rotate", &autorotate);
-  if (autorotate) {
-    ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
-  }
-
-  ImGui::Separator();
-
   if (uiCallback) {
-    ImGui::Separator();
-    uiCallback();
+      uiCallback();
   }
-
-  ImGui::End();
 }
 
 void MainWindow::refreshRenderer()
@@ -678,16 +567,7 @@ void MainWindow::refreshRenderer()
   }
   if (rendererTypeStr == "scivis" ||
       rendererTypeStr == "pathtracer") {
-    if (useTestTex) {
-      auto &backplateTex = r.createChild("map_backplate", "texture_2d");
-      std::vector<vec4f> backplate;
-      backplate.push_back(vec4f(0.8f, 0.2f, 0.2f, 1.0f));
-      backplate.push_back(vec4f(0.2f, 0.8f, 0.2f, 1.0f));
-      backplate.push_back(vec4f(0.2f, 0.2f, 0.8f, 1.0f));
-      backplate.push_back(vec4f(0.4f, 0.2f, 0.4f, 1.0f));
-      backplateTex.createChild("format", "int", 2);
-      backplateTex.createChildData("data", vec2ul(2, 2), backplate.data());
-    } else if (useImportedTex) {
+    if (useImportedTex) {
       const char *file = tinyfd_openFileDialog(
           "Import a texture from a file", "", 0, nullptr, nullptr, 0);
       std::shared_ptr<sg::Texture2D> backplateTex =
@@ -714,9 +594,12 @@ void MainWindow::refreshScene(bool resetCam)
       return;
     }
   } else {
-    auto &gen =
-        world->createChildAs<sg::Generator>("generator", "generator_" + scene);
-    gen.generateData();
+    if (scene != "empty")
+    {
+      auto &gen =
+          world->createChildAs<sg::Generator>("generator", "generator_" + scene);
+      gen.generateData();
+    }
   }
 
   world->render();
@@ -877,14 +760,24 @@ void MainWindow::buildMainMenu()
 void MainWindow::buildMainMenuFile()
 {
   if (ImGui::BeginMenu("File")) {
-    if (ImGui::BeginMenu("Import")) {
-      if (ImGui::MenuItem("Import geometry...", nullptr)) {
-        scene = "import";
-        refreshScene(true);
-      }
-      if (ImGui::MenuItem("Import volume...", nullptr)) {
-        scene = "import volume";
-        refreshScene(true);
+    if (ImGui::MenuItem("Import geometry...", nullptr)) {
+      scene = "import";
+      refreshScene(true);
+    }
+    if (ImGui::MenuItem("Import volume...", nullptr)) {
+      scene = "import volume";
+      refreshScene(true);
+    }
+    if (ImGui::BeginMenu("Demo Scene")) {
+      //g_scene[0]='empty' works fine but not sure it makes sense as an user visible option
+      for (int i = 1; i < g_scenes.size(); ++i) {
+        if (ImGui::MenuItem(g_scenes[i].c_str(), nullptr)) {
+           scene = g_scenes[i];
+           auto numImportedMats = baseMaterialRegistry->matImportsList.size();
+           g_matTypes.erase(g_matTypes.begin(), g_matTypes.begin() + numImportedMats);
+           baseMaterialRegistry->rmMatImports();
+           refreshScene(true);
+        }
       }
       ImGui::EndMenu();
     }
@@ -895,12 +788,119 @@ void MainWindow::buildMainMenuFile()
 void MainWindow::buildMainMenuEdit()
 {
   if (ImGui::BeginMenu("Edit")) {
+
+    ImGui::Text("general");
+
+    static int whichRenderer     = 0;
+    static int whichDebuggerType = 0;
+    if (ImGui::Combo("renderer##whichRenderer",
+                     &whichRenderer,
+                     rendererUI_callback,
+                     nullptr,
+                     g_renderers.size())) {
+      rendererTypeStr = g_renderers[whichRenderer];
+
+      if (rendererType == OSPRayRendererType::DEBUGGER)
+        whichDebuggerType = 0;  // reset UI if switching away from debug renderer
+
+      if (rendererTypeStr == "scivis")
+        rendererType = OSPRayRendererType::SCIVIS;
+      else if (rendererTypeStr == "pathtracer")
+        rendererType = OSPRayRendererType::PATHTRACER;
+      else if (rendererTypeStr == "debug")
+        rendererType = OSPRayRendererType::DEBUGGER;
+      else
+        rendererType = OSPRayRendererType::OTHER;
+
+      refreshRenderer();
+    }
+
+    auto &renderer = frame->child("renderer");
+
+    if (rendererType == OSPRayRendererType::DEBUGGER) {
+      if (ImGui::Combo("debug type##whichDebugType",
+                       &whichDebuggerType,
+                       debugTypeUI_callback,
+                       nullptr,
+                       g_debugRendererTypes.size())) {
+        renderer["method"] = g_debugRendererTypes[whichDebuggerType];
+      }
+    }
+
+    int spp = renderer["pixelSamples"].valueAs<int>();
+    if (ImGui::SliderInt("pixelSamples", &spp, 1, 64))
+      renderer["pixelSamples"] = spp;
+
+    if (rendererType == OSPRayRendererType::PATHTRACER) {
+      int maxDepth = renderer["maxPathLength"].valueAs<int>();
+      if (ImGui::SliderInt("maxPathLength", &maxDepth, 1, 64))
+        renderer["maxPathLength"] = maxDepth;
+
+      int rouletteDepth = renderer["roulettePathLength"].valueAs<int>();
+      if (ImGui::SliderInt("roulettePathLength", &rouletteDepth, 1, 64))
+        renderer["roulettePathLength"] = rouletteDepth;
+    } else if (rendererType == OSPRayRendererType::SCIVIS) {
+      int aoSamples = renderer["aoSamples"].valueAs<int>();
+      if (ImGui::SliderInt("aoSamples", &aoSamples, 0, 64))
+        renderer["aoSamples"] = aoSamples;
+
+      float aoIntensity = renderer["aoIntensity"].valueAs<float>();
+      if (ImGui::SliderFloat("aoIntensity", &aoIntensity, 0.f, 1.f))
+        renderer["aoIntensity"] = aoIntensity;
+    }
+
+    if (denoiserAvailable) {
+      if (ImGui::Checkbox("denoiser", &frame->denoiserEnabled))
+        frame->updateFrameOpsNextFrame = true;
+    }
+
+    ImGui::Checkbox("show albedo", &showAlbedo);
+
+    ImGui::Separator();
+    ImGui::Text("scene");
+
+    sg::rgba bgColor = renderer["backgroundColor"].valueAs<sg::rgba>();
+    if (ImGui::ColorEdit4("backgroundColor", bgColor))
+      renderer["backgroundColor"] = bgColor;
+
+    if (rendererType == OSPRayRendererType::SCIVIS ||
+        rendererType == OSPRayRendererType::PATHTRACER) {
+      if (ImGui::Checkbox("import backplate texture", &useImportedTex)) {
+        refreshRenderer();
+      }
+    }
+
     if (ImGui::MenuItem("Lights...", "", nullptr))
       showLightEditor = true;
     if (ImGui::MenuItem("Materials...", "", nullptr))
       showMaterialEditor = true;
-    if (ImGui::MenuItem("Preferences...", nullptr))
-      showPreferences = true;
+
+    ImGui::Separator();
+    ImGui::Text("interaction");
+    ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
+    ImGui::Checkbox("auto rotate", &autorotate);
+    if (autorotate) {
+      ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
+    }
+
+    ImGui::Separator();
+    ImGui::Text("export");
+    static const std::vector<std::string> screenshotFiletypes =
+        sg::getExporterTypes();
+    static int screenshotFiletypeChoice = std::distance(
+        screenshotFiletypes.begin(),
+        std::find(screenshotFiletypes.begin(), screenshotFiletypes.end(), "png"));
+    if (ImGui::Combo("Screenshot filetype",
+                     (int *)&screenshotFiletypeChoice,
+                     stringVec_callback,
+                     (void *)screenshotFiletypes.data(),
+                     screenshotFiletypes.size())) {
+      screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
+    }
+    if (screenshotFiletype == "exr") {
+      ImGui::Checkbox("Include depth buffer", &screenshotDepth);
+    }
+
     ImGui::EndMenu();
   }
 }
@@ -920,44 +920,12 @@ void MainWindow::buildMainMenuView()
 
 void MainWindow::buildWindows()
 {
-  if (showPreferences)
-    buildWindowPreferences();
   if (showKeyframes)
     buildWindowKeyframes();
   if (showLightEditor)
     buildWindowLightEditor();
   if (showMaterialEditor)
     buildWindowMaterialEditor();
-}
-
-void MainWindow::buildWindowPreferences()
-{
-  if (!ImGui::Begin("Preferences", &showPreferences, g_imguiWindowFlags)) {
-    ImGui::End();
-    return;
-  }
-
-  // are these names too terse?
-  static const std::vector<std::string> screenshotFiletypes =
-      sg::getExporterTypes();
-
-  static int screenshotFiletypeChoice = std::distance(
-      screenshotFiletypes.begin(),
-      std::find(screenshotFiletypes.begin(), screenshotFiletypes.end(), "png"));
-
-  if (ImGui::Combo("Screenshot filetype",
-                   (int *)&screenshotFiletypeChoice,
-                   stringVec_callback,
-                   (void *)screenshotFiletypes.data(),
-                   screenshotFiletypes.size())) {
-    screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
-  }
-
-  if (screenshotFiletype == "exr") {
-    ImGui::Checkbox("Include depth buffer", &screenshotDepth);
-  }
-
-  ImGui::End();
 }
 
 void MainWindow::buildWindowKeyframes()
