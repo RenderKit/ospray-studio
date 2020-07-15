@@ -81,7 +81,7 @@ class MainWindow
   void updateTitleBar();
   void buildUI();
   void refreshRenderer();
-  void refreshScene();
+  void refreshScene(bool resetCamera);
   void refreshMaterialRegistry();
   void addLight();
   void removeLight();

@@ -26,6 +26,7 @@
 #include <iostream>
 #include <stdexcept>
 // ospray_sg
+#include "sg/fb/FrameBuffer.h"
 #include "sg/generator/Generator.h"
 #include "sg/importer/Importer.h"
 #include "sg/exporter/Exporter.h"
@@ -274,7 +275,7 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
   }
 
   refreshRenderer();
-  refreshScene();
+  refreshScene(true);
 
   // trigger window reshape events with current window size
   glfwGetFramebufferSize(glfwWindow, &this->windowSize.x, &this->windowSize.y);
@@ -574,7 +575,7 @@ void MainWindow::buildUI()
     baseMaterialRegistry->rmMatImports();
 
     refreshRenderer();
-    refreshScene();
+    refreshScene(true);
   }
 
   if (ImGui::Combo("renderer##whichRenderer",
@@ -698,7 +699,7 @@ void MainWindow::refreshRenderer()
   }
 }
 
-void MainWindow::refreshScene()
+void MainWindow::refreshScene(bool resetCam)
 {
   auto world = sg::createNode("world", "world");
 
@@ -722,9 +723,12 @@ void MainWindow::refreshScene()
 
   frame->add(world);
 
-  arcballCamera.reset(
+  if (resetCam)
+    arcballCamera.reset(
       new ArcballCamera(frame->child("world").bounds(), windowSize));
   updateCamera();
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  fb.resetAccumulation();
 }
 
 void MainWindow::parseCommandLine(int &ac, const char **&av)
@@ -876,11 +880,11 @@ void MainWindow::buildMainMenuFile()
     if (ImGui::BeginMenu("Import")) {
       if (ImGui::MenuItem("Import geometry...", nullptr)) {
         scene = "import";
-        refreshScene();
+        refreshScene(true);
       }
       if (ImGui::MenuItem("Import volume...", nullptr)) {
         scene = "import volume";
-        refreshScene();
+        refreshScene(true);
       }
       ImGui::EndMenu();
     }
@@ -1158,10 +1162,6 @@ void MainWindow::buildWindowMaterialEditor()
 
   if (changed && whichMaterial != -1) {
     defaultMaterialIdx = whichMaterial;
-    if (frame && frame->hasChild("world"))
-    {
-      //auto &world    = frame->child("world"); -- THIS WILL GO BOOM IDKY
-      //so unfortunately you have to reload the scene
-    }
+    refreshScene(false);
   }
 }
