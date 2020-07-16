@@ -49,7 +49,8 @@ namespace ospray::sg {
 
     auto &sky = xfm.createChild("sky", "sunsky");
     sky.createChild("intensity", "float", 1.f);
-    sky.createChild("direction", "vec3f", vec3f(0.f, -0.25f, -1.f));
+    sky.createChild("direction", "vec3f", vec3f(0.f, -0.75f, -1.f));
+    sky.createChild("turbidity", "float", 2.f);
 
     auto &tf = xfm.createChild("transferFunction", "transfer_function_cloud");
 

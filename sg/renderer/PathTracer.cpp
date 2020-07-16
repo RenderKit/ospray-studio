@@ -31,8 +31,8 @@ namespace ospray::sg {
 
   PathTracer::PathTracer() : Renderer("pathtracer")
   {
-    createChild("maxPathLength", "int", 5);
-    createChild("roulettePathLength", "int", 5);
+    createChild("maxPathLength", "int", 100);
+    createChild("roulettePathLength", "int", 10000);
     createChild("geometryLights", "bool", true);
     createChild("lightSamples", "int", -1);
     createChild("maxContribution", "float", (float)1e6);
