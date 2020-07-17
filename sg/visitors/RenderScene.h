@@ -71,7 +71,7 @@ namespace ospray::sg {
     xfms.emplace(math::one);
   }
 
-  inline bool RenderScene::operator()(Node &node, TraversalContext &)
+  inline bool RenderScene::operator()(Node &node, TraversalContext &ctx)
   {
     bool traverseChildren = true;
 
@@ -145,6 +145,7 @@ namespace ospray::sg {
   {
     if (!node.child("visible").valueAs<bool>())
       return;
+
     auto geom = node.valueAs<cpp::Geometry>();
     cpp::GeometricModel model(geom);
     if (node.hasChild("material")) {
@@ -204,6 +205,7 @@ namespace ospray::sg {
     std::cout << "number of geometries : " << current.geometries.size()
               << std::endl;
     #endif
+
     if (current.geometries.empty() && current.volumes.empty())
       return;
 

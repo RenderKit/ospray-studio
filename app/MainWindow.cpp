@@ -1188,47 +1188,71 @@ void MainWindow::buildWindowGeometryViewer()
     return;
   }
 
-  auto &world = frame->child("world");
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+
+  auto replaceWorld = [&]() {
+    auto aWholeNewWorld = sg::createNode("world", "world");
+    auto weAreTheWorld = frame->child("world").children();
+
+    for (auto &child : weAreTheWorld) {
+      child.second->removeAllParents();
+      aWholeNewWorld->add(child.second);
+    }
+    aWholeNewWorld->render();
+
+    frame->remove("world");
+    frame->add(aWholeNewWorld);
+  };
 
   if (ImGui::Button("update")) {
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+    replaceWorld();
     fb.resetAccumulation();
-    world.render();
   }
+
   ImGui::SameLine();
   if (ImGui::Button("show all")) {
-    world.traverse<sg::SetParamByNode>(sg::NodeType::GEOMETRY, "visible", true);
+    frame->child("world").traverse<sg::SetParamByNode>(
+        sg::NodeType::GEOMETRY, "visible", true);
+    replaceWorld();
+    fb.resetAccumulation();
   }
+
   ImGui::SameLine();
   if (ImGui::Button("hide all")) {
-    world.traverse<sg::SetParamByNode>(
+    frame->child("world").traverse<sg::SetParamByNode>(
         sg::NodeType::GEOMETRY, "visible", false);
+    replaceWorld();
+    fb.resetAccumulation();
   }
+
   bool topButton = ImGui::IsItemVisible();
 
-  for (auto &node : world.children()) {
+  for (auto &node : frame->child("world").children()) {
     if (node.second->type() == sg::NodeType::GENERATOR ||
         node.second->type() == sg::NodeType::IMPORTER) {
       node.second->traverse<sg::GenerateImGuiWidgets>();
     }
   }
 
-  // put a button on top and bottom for long lists
+  // put buttons on the bottom for long lists
   if (!topButton) {
     if (ImGui::Button("update")) {
-      auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+      replaceWorld();
       fb.resetAccumulation();
-      world.render();
     }
     ImGui::SameLine();
     if (ImGui::Button("show all")) {
-      world.traverse<sg::SetParamByNode>(
+      frame->child("world").traverse<sg::SetParamByNode>(
           sg::NodeType::GEOMETRY, "visible", true);
+      replaceWorld();
+      fb.resetAccumulation();
     }
     ImGui::SameLine();
     if (ImGui::Button("hide all")) {
-      world.traverse<sg::SetParamByNode>(
+      frame->child("world").traverse<sg::SetParamByNode>(
           sg::NodeType::GEOMETRY, "visible", false);
+      replaceWorld();
+      fb.resetAccumulation();
     }
   }
 
