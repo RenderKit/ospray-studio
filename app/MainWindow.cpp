@@ -541,20 +541,17 @@ void MainWindow::waitOnOSPRayFrame()
 
 void MainWindow::updateTitleBar()
 {
-  // if (windowTitle.str().empty() == 0) {
-    windowTitle << "OSPRay Studio: " << std::setprecision(3) << latestFPS
-                << " fps";
-  // }
-  if (latestFPS < 2.f) {       
+  std::stringstream windowTitle;
+  windowTitle << "OSPRay Studio: " << std::setprecision(3) << latestFPS
+              << " fps";
+  if (latestFPS < 2.f) {
     float progress = frame->frameProgress();
     windowTitle << " | ";
     int barWidth = 20;
     std::string progBar;
     progBar.resize(barWidth + 2);
-
     auto start = progBar.begin() + 1;
     auto end   = start + progress * barWidth;
-
     std::fill(start, end, '=');
     std::fill(end, progBar.end(), '_');
     *end            = '>';
