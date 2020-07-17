@@ -13,7 +13,7 @@
 
 using namespace std;
 
-using namespace ospcommon::math;
+using namespace rkcommon::math;
 
 class TimeSeriesWindow : public MainWindow
 {
@@ -88,10 +88,10 @@ class TimeSeriesWindow : public MainWindow
   std::unordered_map<int, std::shared_ptr<sg::FrameBuffer>> framebuffersPerTimestep;
 
   // last time at which reset accumulation was required
-  ospcommon::utility::TimeStamp framebufferResetRequired;
+  rkcommon::utility::TimeStamp framebufferResetRequired;
 
   // indicates when frame buffer for given time step was last reset
-  std::unordered_map<int, ospcommon::utility::TimeStamp> framebufferLastReset;
+  std::unordered_map<int, rkcommon::utility::TimeStamp> framebufferLastReset;
 
   // allow window to redraw but do not render new frames (display current
   // framebuffer only)

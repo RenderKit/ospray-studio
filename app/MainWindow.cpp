@@ -295,6 +295,10 @@ MainWindow *MainWindow::getActiveWindow()
   return activeWindow;
 }
 
+std::shared_ptr<sg::Frame> MainWindow::getFrame() {
+  return frame;
+}
+
 void MainWindow::registerDisplayCallback(
     std::function<void(MainWindow *)> callback)
 {
@@ -604,21 +608,29 @@ void MainWindow::refreshScene(bool resetCam)
 {
   auto world = sg::createNode("world", "world");
 
-  world->createChild("materialref", "reference_to_material", defaultMaterialIdx);
+  world->createChild(
+      "materialref", "reference_to_material", defaultMaterialIdx);
+
+  // very bad hack below; for some reason timeseries first timestep frame does
+  // not take effect when the world here is empty
+  // if (timeseriesMode)
+  world->createChild("buffergeom", "geometry_boxes");
 
   if (scene == "import") {
+    world->remove("buffergeom");
     if (!importGeometry(world)) {
       return;
     }
   } else if (scene == "import volume") {
+    world->remove("buffergeom");
     if (!importVolume(world)) {
       return;
     }
   } else {
-    if (scene != "empty")
-    {
-      auto &gen =
-          world->createChildAs<sg::Generator>("generator", "generator_" + scene);
+    if (scene != "empty") {
+      world->remove("buffergeom");
+      auto &gen = world->createChildAs<sg::Generator>("generator",
+                                                      "generator_" + scene);
       gen.generateData();
     }
   }
@@ -629,7 +641,7 @@ void MainWindow::refreshScene(bool resetCam)
 
   if (resetCam)
     arcballCamera.reset(
-      new ArcballCamera(frame->child("world").bounds(), windowSize));
+        new ArcballCamera(frame->child("world").bounds(), windowSize));
   updateCamera();
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();
@@ -777,9 +789,11 @@ void MainWindow::buildMainMenu()
 {
   // build main menu bar and options
   ImGui::BeginMainMenuBar();
-  buildMainMenuFile();
-  buildMainMenuEdit();
-  buildMainMenuView();
+  if (!timeseriesMode) {
+    buildMainMenuFile();
+    buildMainMenuEdit();
+    buildMainMenuView();
+  }
   ImGui::EndMainMenuBar();
 }
 

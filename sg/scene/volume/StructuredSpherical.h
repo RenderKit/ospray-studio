@@ -20,7 +20,7 @@
 #include "../../Data.h"
 #include "Volume.h"
 // ospcommon
-#include "ospcommon/os/FileName.h"
+#include "rkcommon/os/FileName.h"
 
 namespace ospray::sg {
 

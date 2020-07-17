@@ -31,10 +31,10 @@
 #endif
 
 #include <ospray/ospray.h>
-#include "ospcommon/math/vec.h"
+#include "rkcommon/math/vec.h"
 #include "../../sg/scene/transfer_function/TransferFunction.h"
 
-using namespace ospcommon::math;
+using namespace rkcommon::math;
 
 using ColorPoint   = vec4f;
 using OpacityPoint = vec2f;

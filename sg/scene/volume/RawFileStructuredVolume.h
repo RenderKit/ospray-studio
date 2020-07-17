@@ -18,9 +18,9 @@
 
 #include <fstream>
 #include <vector>
-#include "ospcommon/math/vec.h"
+#include "rkcommon/math/vec.h"
 
-using namespace ospcommon::math;
+using namespace rkcommon::math;
 
 namespace ospray::sg{
 

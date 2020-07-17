@@ -22,13 +22,13 @@
 #include "../../Node.h"
 #include "RawFileStructuredVolume.h"
 #include "Volume.h"
-#include "ospcommon/math/vec.h"
-#include "ospcommon/tasking/AsyncTask.h"
+#include "rkcommon/math/vec.h"
+#include "rkcommon/tasking/AsyncTask.h"
 
-#include "ospcommon/tasking/parallel_for.h"
+#include "rkcommon/tasking/parallel_for.h"
 
-using namespace ospcommon;
-using namespace ospcommon::math;
+using namespace rkcommon;
+using namespace rkcommon::math;
 
 // the following struct implements one Volume time step for the time series.
 

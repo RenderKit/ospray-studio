@@ -81,7 +81,7 @@ class MainWindow
 
   std::shared_ptr<sg::Frame> getFrame();
 
-  bool examplePanel = true;
+  bool timeseriesMode = false;
 
   std::stringstream windowTitle;
 

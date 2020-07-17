@@ -16,7 +16,7 @@
 
 #include "Importer.h"
 // ospcommon
-#include "ospcommon/os/FileName.h"
+#include "rkcommon/os/FileName.h"
 #include "../scene/volume/StructuredSpherical.h"
 
 namespace ospray::sg {

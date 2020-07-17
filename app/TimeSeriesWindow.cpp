@@ -18,8 +18,8 @@
 #include "../sg/scene/transfer_function/TransferFunction.h"
 // imgui
 #include "imgui.h"
-// ospcommon
-#include "ospcommon/tasking/parallel_for.h"
+// rkcommon
+#include "rkcommon/tasking/parallel_for.h"
 
 using namespace ospray::sg;
 
@@ -29,8 +29,8 @@ bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
 void start_TimeSeries_mode(int argc, const char *argv[])
 {
   std::cout << "***** Timeseries Mode *****" << std::endl;
-  MainWindow *mw = new MainWindow(vec2i(1024, 1024), denoiser);
-  auto window    = ospcommon::make_unique<TimeSeriesWindow>(mw);
+  MainWindow *mw = new MainWindow(vec2i(1024, 768), denoiser);
+  auto window    = rkcommon::make_unique<TimeSeriesWindow>(mw);
   window->parseCommandLine(argc, argv);
   window->mainLoop();
   window.reset();
@@ -85,7 +85,7 @@ void TimeSeriesWindow::mainLoop()
         createNode("world", "world"));
     g_allWorlds.push_back(world);
     if (rendererTypeStr == "pathtracer") {
-      world->createChild("light", "ambient");
+      world->createChild("light", "distant");
     }
   }
 
@@ -151,7 +151,7 @@ void TimeSeriesWindow::mainLoop()
   //         MainWindow *, int key, int scancode, int action, int
   //         mods)> keyCallback);
 
-  activeMainWindow->examplePanel = false;
+  activeMainWindow->timeseriesMode = true;
   activeMainWindow->mainLoop();
 }
 
@@ -574,7 +574,7 @@ void TimeSeriesWindow::setTimestepFb(int timestep)
 
     framebuffersPerTimestep[currentTimestep] = currentFb;
 
-    framebufferLastReset[currentTimestep] = ospcommon::utility::TimeStamp();
+    framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
   }
 
   framebuffer = framebuffersPerTimestep[currentTimestep];
@@ -583,13 +583,13 @@ void TimeSeriesWindow::setTimestepFb(int timestep)
   if (framebufferLastReset.count(currentTimestep) == 0 ||
       framebufferLastReset[currentTimestep] < framebufferResetRequired) {
     framebuffer->resetAccumulation();
-    framebufferLastReset[currentTimestep] = ospcommon::utility::TimeStamp();
+    framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
   }
 }
 
 void TimeSeriesWindow::resetAccumulation()
 {
-  framebufferResetRequired = ospcommon::utility::TimeStamp();
+  framebufferResetRequired = rkcommon::utility::TimeStamp();
 
   // reset accumulation for current frame buffer only
   if (framebuffer) {
