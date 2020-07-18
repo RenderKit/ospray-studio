@@ -32,8 +32,11 @@ namespace ospray::sg {
   {
     createChild("position", "vec3f", vec3f(0.f));   
     createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
+    child("direction").setMinMax(-1.f, 1.f); // per component min/max
     createChild("openingAngle", "float", 180.f);
+    child("openingAngle").setMinMax(0.f, 180.f);
     createChild("penumbraAngle", "float", 5.f);
+    child("penumbraAngle").setMinMax(0.f, 180.f);
     createChild("radius", "float", 0.f);
   }
 

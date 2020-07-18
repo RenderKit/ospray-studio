@@ -31,7 +31,9 @@ namespace ospray::sg {
   DirectionalLight::DirectionalLight() : Light("distant")
   {
     createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
+    child("direction").setMinMax(-1.f, 1.f); // per component min/max
     createChild("angularDiameter", "float", 0.f);
+    child("direction").setMinMax(0.f, 10.f);
   }
 
 }  // namespace ospray::sg

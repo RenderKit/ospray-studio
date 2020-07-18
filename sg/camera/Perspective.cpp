@@ -26,7 +26,9 @@ namespace ospray::sg {
   Perspective::Perspective() : Camera("perspective")
   {
     createChild("fovy", "float", "Field-of-view in degrees", 60.f);
+    child("fovy").setMinMax(0.f, 180.f);
     createChild("aspect", "float", 1.f);
+    child("aspect").setReadOnly();
   }
 
   OSP_REGISTER_SG_NODE_NAME(Perspective, camera_perspective);

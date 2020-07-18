@@ -22,6 +22,7 @@ namespace ospray::sg {
   FrameBuffer::FrameBuffer()
   {
     createChild("size", "vec2i", vec2i(1024, 768));
+    child("size").setReadOnly();
     createChild("colorFormat", "string", std::string("float"));
 
     updateHandle();

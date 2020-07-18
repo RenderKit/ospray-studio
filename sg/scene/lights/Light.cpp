@@ -24,7 +24,7 @@ namespace ospray::sg {
     setHandle(handle);
     createChild("visible", "bool", true);
     createChild("intensity", "float", 1.f);
-    createChild("color", "vec3f", vec3f(1.f));
+    createChild("color", "rgb", vec3f(1.f));
     createChild("type", "string", type);
   }
 
