@@ -33,6 +33,7 @@ namespace ospray::sg {
     properties.type        = NodeType::GENERIC;
     properties.subType     = "Node";
     properties.description = "<no description>";
+    properties.readOnly    = false;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -223,6 +224,42 @@ namespace ospray::sg {
     GetBounds visitor;
     traverse(visitor);
     return visitor.bounds;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // UI Generation ////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  Any Node::min() const
+  {
+    return properties.minMax[0];
+  }
+
+  Any Node::max() const
+  {
+    return properties.minMax[1];
+  }
+
+  void Node::setMinMax(const Any &minVal, const Any &maxVal)
+  {
+    properties.minMax.resize(2);
+    properties.minMax[0] = minVal;
+    properties.minMax[1] = maxVal;
+  }
+
+  bool Node::hasMinMax() const
+  {
+    return (properties.minMax.size() > 1);
+  }
+
+  bool Node::readOnly() const
+  {
+    return properties.readOnly;
+  }
+
+  void Node::setReadOnly()
+  {
+    properties.readOnly = true;
   }
 
   /////////////////////////////////////////////////////////////////////////////

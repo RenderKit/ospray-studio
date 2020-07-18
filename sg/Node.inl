@@ -157,6 +157,18 @@ namespace ospray::sg {
     visitor.postChildren(*this, ctx);
   }
 
+  template <typename T>
+  inline const T &Node::minAs() const
+  {
+    return properties.minMax[0].get<T>();
+  }
+
+  template <typename T>
+  inline const T &Node::maxAs() const
+  {
+    return properties.minMax[1].get<T>();
+  }
+
   inline bool Node::subtreeModifiedButNotCommitted() const
   {
     return (lastModified() > lastCommitted()) ||

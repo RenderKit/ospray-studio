@@ -1050,9 +1050,6 @@ void MainWindow::buildWindowLightEditor()
 
     if (whichLight != -1) {
       ImGui::Text("edit");
-      // TODO: remove push requirement external to the ImGui widget visitor
-      ImGui::TreePush();
-
       lightMan.child(selectedLight).traverse<sg::GenerateImGuiWidgets>();
     }
   }

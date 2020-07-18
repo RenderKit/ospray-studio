@@ -19,6 +19,8 @@
 #include "../Node.h"
 #include "imgui.h"
 
+#include <stack>
+
 namespace ospray {
   namespace sg {
 
@@ -27,7 +29,205 @@ namespace ospray {
       GenerateImGuiWidgets() = default;
 
       bool operator()(Node &node, TraversalContext &ctx) override;
-      void postChildren(Node &, TraversalContext &) override;
+      void postChildren(Node &, TraversalContext &ctx) override;
+
+     private:
+      std::stack<int> openLevels;
+    };
+
+    // Specialized widget generators //////////////////////////////////////////
+
+    void generateWidget_bool(const std::string &title, Node &node)
+    {
+      bool b = node.valueAs<bool>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + (b ? "true" : "false")).c_str());
+        return;
+      }
+
+      if (ImGui::Checkbox(title.c_str(), &b))
+        node.setValue(b);
+    }
+
+    void generateWidget_int(const std::string &title, Node &node)
+    {
+      int i = node.valueAs<int>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + std::to_string(i)).c_str());
+        return;
+      }
+
+      if (node.hasMinMax()) {
+        const int min = node.minAs<int>();
+        const int max = node.maxAs<int>();
+        if (ImGui::SliderInt(title.c_str(), &i, min, max))
+          node.setValue(i);
+      } else {
+        if (ImGui::DragInt(title.c_str(), &i, 1))
+          node.setValue(i);
+      }
+    }
+
+    void generateWidget_float(const std::string &title, Node &node)
+    {
+      float f = node.valueAs<float>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + std::to_string(f)).c_str());
+        return;
+      }
+
+      if (node.hasMinMax()) {
+        const float min = node.minAs<float>();
+        const float max = node.maxAs<float>();
+        if (ImGui::SliderFloat(title.c_str(), &f, min, max))
+          node.setValue(f);
+      } else {
+        if (ImGui::DragFloat(title.c_str(), &f, 0.01f))
+          node.setValue(f);
+      }
+    }
+
+    void generateWidget_vec2i(const std::string &title, Node &node)
+    {
+      vec2i v = node.valueAs<vec2i>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+                     std::to_string(v.y))
+                        .c_str());
+        return;
+      }
+
+      if (node.hasMinMax()) {
+        const int min = node.minAs<int>();
+        const int max = node.maxAs<int>();
+        if (ImGui::SliderInt2(title.c_str(), v, min, max))
+          node.setValue(v);
+      } else {
+        if (ImGui::DragInt2(title.c_str(), v))
+          node.setValue(v);
+      }
+    }
+
+    void generateWidget_vec2f(const std::string &title, Node &node)
+    {
+      vec2f v = node.valueAs<vec2f>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+                     std::to_string(v.y))
+                        .c_str());
+        return;
+      }
+
+      if (node.hasMinMax()) {
+        const float min = node.minAs<float>();
+        const float max = node.maxAs<float>();
+        if (ImGui::SliderFloat2(title.c_str(), v, min, max))
+          node.setValue(v);
+      } else {
+        if (ImGui::DragFloat2(title.c_str(), v))
+          node.setValue(v);
+      }
+    }
+
+    void generateWidget_vec3i(const std::string &title, Node &node)
+    {
+      vec3i v = node.valueAs<vec3i>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+                     std::to_string(v.y) + ", " + std::to_string(v.z))
+                        .c_str());
+        return;
+      }
+
+      if (node.hasMinMax()) {
+        const int min = node.minAs<int>();
+        const int max = node.maxAs<int>();
+        if (ImGui::SliderInt3(title.c_str(), v, min, max))
+          node.setValue(v);
+      } else {
+        if (ImGui::DragInt3(title.c_str(), v))
+          node.setValue(v);
+      }
+    }
+
+    void generateWidget_vec3f(const std::string &title, Node &node)
+    {
+      vec3f v = node.valueAs<vec3f>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+                     std::to_string(v.y) + ", " + std::to_string(v.z))
+                        .c_str());
+        return;
+      }
+
+      if (node.hasMinMax()) {
+        const float min = node.minAs<float>();
+        const float max = node.maxAs<float>();
+        if (ImGui::SliderFloat3(title.c_str(), v, min, max))
+          node.setValue(v);
+      } else {
+        if (ImGui::DragFloat3(title.c_str(), v))
+          node.setValue(v);
+      }
+    }
+
+    void generateWidget_rgb(const std::string &title, Node &node)
+    {
+      vec3f v = node.valueAs<vec3f>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+                     std::to_string(v.y) + ", " + std::to_string(v.z))
+                        .c_str());
+        return;
+      }
+
+      if (ImGui::ColorEdit3(title.c_str(), v))
+        node.setValue(v);
+    }
+
+    void generateWidget_rgba(const std::string &title, Node &node)
+    {
+      vec4f v = node.valueAs<vec4f>();
+
+      if (node.readOnly()) {
+        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+                     std::to_string(v.y) + ", " + std::to_string(v.z) + ", " +
+                     std::to_string(v.w))
+                        .c_str());
+        return;
+      }
+
+      if (ImGui::ColorEdit4(title.c_str(), v))
+        node.setValue(v);
+    }
+
+    void generateWidget_string(const std::string &title, Node &node)
+    {
+      std::string s = node.valueAs<std::string>();
+
+      ImGui::Text((node.name() + ": \"" + s + "\"").c_str());
+    }
+
+    using WidgetGenerator = void (*)(const std::string &, Node &);
+    static std::map<std::string, WidgetGenerator> widgetGenerators = {
+        {"bool", generateWidget_bool},
+        {"int", generateWidget_int},
+        {"float", generateWidget_float},
+        {"vec2i", generateWidget_vec2i},
+        {"vec2f", generateWidget_vec2f},
+        {"vec3i", generateWidget_vec3i},
+        {"vec3f", generateWidget_vec3f},
+        {"rgb", generateWidget_rgb},
+        {"rgba", generateWidget_rgba},
+        {"string", generateWidget_string},
     };
 
     // Inlined definitions ////////////////////////////////////////////////////
@@ -35,108 +235,33 @@ namespace ospray {
     inline bool GenerateImGuiWidgets::operator()(Node &node,
                                                  TraversalContext &ctx)
     {
-      // ALOK: used to copy and assign values from/to children.
-      // if we don't, sg doesn't know the node was updated
-      static bool b;
-      static float f1;
-      static vec3f f3;
+      std::string widgetName = node.name();
 
-      if (ImGui::TreeNode(node.name().c_str())) {
-        if (node.type() == NodeType::LIGHT) {
+      auto generator = widgetGenerators[node.subType()];
 
-          std::string lightType = node["type"].valueAs<std::string>();
-
-          b = node["visible"].valueAs<bool>();
-          if (ImGui::Checkbox("visible", &b))
-            node["visible"].setValue(b);
-
-          f1 = node["intensity"].valueAs<float>();
-          if (ImGui::DragFloat("intensity", &f1, 0.1f, 0.0f, 0.0f, "%.1f"))
-            node["intensity"].setValue(f1);
-
-          f3 = node["color"].valueAs<vec3f>();
-          if (ImGui::ColorEdit3("color", f3))
-            node["color"].setValue(f3);
-
-          if (lightType == "distant") {
-            f3 = node["direction"].valueAs<vec3f>();
-            if (ImGui::SliderFloat3("direction", f3, -1.f, 1.f))
-              node["direction"].setValue(f3);
-
-            f1 = node["angularDiameter"].valueAs<float>();
-            if (ImGui::SliderFloat("angular diameter", &f1, 0.f, 1.f))
-              node["angularDiameter"].setValue(f1);
-
-          } else if (lightType == "sphere") {
-            f3 = node["position"].valueAs<vec3f>();
-            if (ImGui::DragFloat3("position", f3, 0.1f))
-              node["position"].setValue(f3);
-
-            f1 = node["radius"].valueAs<float>();
-            if (ImGui::DragFloat("radius", &f1, 0.1f, 0.f, 0.f, "%.1f"))
-              node["radius"].setValue(f1);
-
-          } else if (lightType == "spot") {
-            f3 = node["position"].valueAs<vec3f>();
-            if (ImGui::DragFloat3("position", f3, 0.1f))
-              node["position"].setValue(f3);
-
-            f3 = node["direction"].valueAs<vec3f>();
-            if (ImGui::SliderFloat3("direction", f3, -1.f, 1.f))
-              node["direction"].setValue(f3);
-
-            f1 = node["openingAngle"].valueAs<float>();
-            if (ImGui::SliderFloat(
-                    "opening angle", &f1, 0.f, 180.f, "%.0f", 1.f))
-              node["openingAngle"].setValue(f1);
-
-            f1 = node["penumbraAngle"].valueAs<float>();
-            if (ImGui::SliderFloat(
-                    "penumbra angle", &f1, 0.f, 180.f, "%.0f", 1.f))
-              node["penumbraAngle"].setValue(f1);
-
-            f1 = node["radius"].valueAs<float>();
-            if (ImGui::DragFloat("radius", &f1, 0.1f, 0.f, 0.f, "%.1f"))
-              node["radius"].setValue(f1);
-
-          } else if (lightType == "quad") {
-            f3 = node["position"].valueAs<vec3f>();
-            if (ImGui::DragFloat3("position", f3, 0.1f))
-              node["position"].setValue(f3);
-
-            f3 = node["edge1"].valueAs<vec3f>();
-            if (ImGui::DragFloat3("edge 1", f3, 0.1f))
-              node["edge1"].setValue(f3);
-
-            f3 = node["edge2"].valueAs<vec3f>();
-            if (ImGui::DragFloat3("edge 2", f3, 0.1f))
-              node["edge2"].setValue(f3);
-
-          } else if (lightType == "hdri") {
-              f3 = node["up"].valueAs<vec3f>();
-              if (ImGui::SliderFloat3("up", f3, -1.f, 1.f))
-                node["up"].setValue(f3);
-
-              f3 = node["direction"].valueAs<vec3f>();
-              if (ImGui::SliderFloat3("direction", f3, -1.f, 1.f))
-                node["direction"].setValue(f3);
-
-          }
-
-          ImGui::TreePop();
-
-          return false;
+      if (generator) {
+        widgetName += "##" + std::to_string(node.uniqueID());
+        generator(widgetName, node);
+      } else if (node.hasChildren()) {
+        if (ImGui::TreeNode(widgetName.c_str())) {
+          openLevels.push(ctx.level);
+        } else {
+          return false; // tree closed, don't process children
         }
-        return true;
       } else {
-        // the tree is closed, no need to continue
-        return false;
+        widgetName += ": " + node.subType();
+        ImGui::Text(widgetName.c_str());
       }
+
+      return true;
     }
 
-    inline void GenerateImGuiWidgets::postChildren(Node &, TraversalContext &)
+    inline void GenerateImGuiWidgets::postChildren(Node &, TraversalContext &ctx)
     {
-      ImGui::TreePop();
+      if (openLevels.size() > 0 && ctx.level == openLevels.top()) {
+        ImGui::TreePop();
+        openLevels.pop();
+      }
     }
 
   }  // namespace sg

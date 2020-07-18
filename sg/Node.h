@@ -47,7 +47,8 @@
 #endif
 #endif
 
-namespace ospray::sg {
+namespace ospray {
+namespace sg {
 
   using namespace rkcommon;
   using namespace rkcommon::math;
@@ -180,6 +181,27 @@ namespace ospray::sg {
 
     virtual void setOSPRayParam(std::string param, OSPObject handle);
 
+    // UI generation //////////////////////////////////////////////////////////
+
+    // limits on UI elements
+    Any min() const;
+
+    Any max() const;
+
+    template <typename T>
+    const T &minAs() const;
+
+    template <typename T>
+    const T &maxAs() const;
+
+    void setMinMax(const Any &minVal, const Any &maxVal);
+
+    bool hasMinMax() const;
+
+    // prevent user adjustment to this Node *via the UI*
+    bool readOnly() const;
+    void setReadOnly();
+
    protected:
     virtual void preCommit();
     virtual void postCommit();
@@ -208,6 +230,9 @@ namespace ospray::sg {
       std::string description;
 
       Any value;
+      // vectors allows using length to determine if min/max is set
+      std::vector<Any> minMax;
+      bool readOnly;
 
       FlatMap<std::string, NodePtr> children;
       std::vector<Node *> parents;
@@ -342,5 +367,6 @@ namespace ospray::sg {
   OSP_REGISTER_SG_NODE_NAME(InternalClassName, InternalClassName)
 
 }  // namespace ospray::sg
+}
 
 #include "Node.inl"
