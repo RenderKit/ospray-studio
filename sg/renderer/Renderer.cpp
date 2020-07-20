@@ -44,7 +44,6 @@ namespace ospray::sg {
     if (c.empty())
       return;
     for (auto &child : c) {
-      std::cout << child.first << std::endl;
       if (child.second->type() == NodeType::PARAMETER) {
         child.second->setOSPRayParam(child.first, ren.handle());
       }

@@ -865,27 +865,6 @@ void MainWindow::buildMainMenuEdit()
       }
     }
 
-    int spp = renderer["pixelSamples"].valueAs<int>();
-    if (ImGui::SliderInt("pixelSamples", &spp, 1, 64))
-      renderer["pixelSamples"] = spp;
-
-    if (rendererType == OSPRayRendererType::PATHTRACER) {
-      int maxDepth = renderer["maxPathLength"].valueAs<int>();
-      if (ImGui::SliderInt("maxPathLength", &maxDepth, 1, 64))
-        renderer["maxPathLength"] = maxDepth;
-
-      int rouletteDepth = renderer["roulettePathLength"].valueAs<int>();
-      if (ImGui::SliderInt("roulettePathLength", &rouletteDepth, 1, 64))
-        renderer["roulettePathLength"] = rouletteDepth;
-    } else if (rendererType == OSPRayRendererType::SCIVIS) {
-      int aoSamples = renderer["aoSamples"].valueAs<int>();
-      if (ImGui::SliderInt("aoSamples", &aoSamples, 0, 64))
-        renderer["aoSamples"] = aoSamples;
-
-      float aoIntensity = renderer["aoIntensity"].valueAs<float>();
-      if (ImGui::SliderFloat("aoIntensity", &aoIntensity, 0.f, 1.f))
-        renderer["aoIntensity"] = aoIntensity;
-    }
     renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
 
     if (denoiserAvailable) {
