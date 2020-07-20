@@ -885,6 +885,7 @@ void MainWindow::buildMainMenuEdit()
       if (ImGui::SliderFloat("aoIntensity", &aoIntensity, 0.f, 1.f))
         renderer["aoIntensity"] = aoIntensity;
     }
+    renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
 
     if (denoiserAvailable) {
       if (ImGui::Checkbox("denoiser", &frame->denoiserEnabled))
@@ -1050,7 +1051,8 @@ void MainWindow::buildWindowLightEditor()
 
     if (whichLight != -1) {
       ImGui::Text("edit");
-      lightMan.child(selectedLight).traverse<sg::GenerateImGuiWidgets>();
+      lightMan.child(selectedLight)
+          .traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
     }
   }
 

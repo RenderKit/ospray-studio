@@ -24,15 +24,23 @@
 namespace ospray {
   namespace sg {
 
+    enum class TreeState
+    {
+      ALLOPEN,
+      ALLCLOSED,
+      ROOTOPEN
+    };
+
     struct GenerateImGuiWidgets : public Visitor
     {
-      GenerateImGuiWidgets() = default;
+      GenerateImGuiWidgets(TreeState state=TreeState::ALLCLOSED);
 
       bool operator()(Node &node, TraversalContext &ctx) override;
       void postChildren(Node &, TraversalContext &ctx) override;
 
      private:
       std::stack<int> openLevels;
+      TreeState initState;
     };
 
     // Specialized widget generators //////////////////////////////////////////
@@ -232,6 +240,8 @@ namespace ospray {
 
     // Inlined definitions ////////////////////////////////////////////////////
 
+    GenerateImGuiWidgets::GenerateImGuiWidgets(TreeState state) : initState(state) {}
+
     inline bool GenerateImGuiWidgets::operator()(Node &node,
                                                  TraversalContext &ctx)
     {
@@ -243,7 +253,12 @@ namespace ospray {
         widgetName += "##" + std::to_string(node.uniqueID());
         generator(widgetName, node);
       } else if (node.hasChildren()) {
-        if (ImGui::TreeNode(widgetName.c_str())) {
+        ImGuiTreeNodeFlags open =
+            (initState == TreeState::ALLOPEN ||
+             (initState == TreeState::ROOTOPEN && ctx.level == 0))
+                ? ImGuiTreeNodeFlags_DefaultOpen
+                : ImGuiTreeNodeFlags_None;
+        if (ImGui::TreeNodeEx(widgetName.c_str(), open)) {
           openLevels.push(ctx.level);
         } else {
           return false; // tree closed, don't process children
