@@ -648,9 +648,9 @@ void MainWindow::refreshScene(bool resetCam)
 void MainWindow::parseCommandLine(int &ac, const char **&av)
 {
   for (int i = 1; i < ac; i++) {
-    const std::string arg = av[i];
-
-    filesToImport.push_back(arg);
+  const auto arg = std::string(av[i]);
+    if (arg.rfind("-", 0) != 0)
+      filesToImport.push_back(arg);
   }
 
   if (!filesToImport.empty()) {
@@ -664,7 +664,7 @@ void MainWindow::importFiles()
   auto world = sg::createNode("world", "world");
 
   for (auto file : filesToImport) {
-//    try {
+    try {
       rkcommon::FileName fileName(file);
       std::string nodeName = fileName.base() + "_importer";
 
@@ -676,9 +676,6 @@ void MainWindow::importFiles()
         imp["file"] = std::string(file);
         imp.importScene(baseMaterialRegistry);
 
-#if 0  // BMCDEBUG, just for testing
-        // imp.traverse<sg::PrintNodes>();
-#endif
         if (baseMaterialRegistry->matImportsList.size() != 0) {
           for (auto &newMat : baseMaterialRegistry->matImportsList)
             g_matTypes.insert(g_matTypes.begin(), newMat);
@@ -691,15 +688,15 @@ void MainWindow::importFiles()
 
         if (oldRegistrySize != baseMaterialRegistry->children().size()) {
           auto newMats =
-              baseMaterialRegistry->children().size() - oldRegistrySize;
+            baseMaterialRegistry->children().size() - oldRegistrySize;
           std::cout << "Importer added " << newMats << " material(s)"
-                    << std::endl;
+            << std::endl;
           refreshRenderer();
         }
       }
-    //    } catch (...) {
-    //      std::cerr << "Failed to open file '" << file << "'!\n";
-    //    }
+    } catch (...) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
+    }
   }
 
   world->render();
