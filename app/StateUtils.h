@@ -21,6 +21,8 @@
 #include "imgui.h"
 #include "widgets/TransferFunctionWidget.h"
 
+using namespace rkcommon::math;
+
 namespace ospray::sg {
   
 struct VolumeParameters
@@ -30,15 +32,19 @@ struct VolumeParameters
   bool useLogScale  = true;
 };
 
-struct PathtracerParameters
+struct LightParameters
 {
-  int maxNumScatters                    = 1;
-  float henyeyGreenCoeff                = 0.f;
   float ambientLightIntensity           = 1.f;
   float directionalLightIntensity       = 1.f;
   float directionalLightAngularDiameter = 45.f;
-  float directionalLightAzimuth         = 0.f;
-  float directionalLightElevation       = 90.f;
+  vec3f directionalLightDirection       = vec3f(0.f, 0.f, 1.f);
+};
+
+struct PathtracerParameters
+{
+  int lightSamples                    = 1;
+  int roulettePathLength                = 5.f;
+  float maxContribution                 = 0.f;
 };
 
   struct State

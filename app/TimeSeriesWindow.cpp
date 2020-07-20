@@ -16,6 +16,7 @@
 
 #include "TimeSeriesWindow.h"
 #include "../sg/scene/transfer_function/TransferFunction.h"
+#include "sg/scene/lights/Lights.h"
 // imgui
 #include "imgui.h"
 // rkcommon
@@ -48,8 +49,6 @@ TimeSeriesWindow::TimeSeriesWindow(MainWindow *mainWindow)
     : MainWindow(mainWindow)
 {
   activeMainWindow = mainWindow;
-  PathtracerParameters ptParams;
-  g_pathtracerParameters = ptParams;
 }
 
 TimeSeriesWindow::~TimeSeriesWindow() {}
@@ -60,6 +59,10 @@ void TimeSeriesWindow::mainLoop()
 
   if (allVariablesData.size() == 0) {
     throw std::runtime_error("no data provided!");
+  }
+
+  if (rendererTypeStr == "scivis" && lightTypeStr == "distant") {
+    throw std::runtime_error("wrong renderer and light type combination");
   }
 
   int numTimesteps = allVariablesData[0].size();
@@ -85,7 +88,10 @@ void TimeSeriesWindow::mainLoop()
         createNode("world", "world"));
     g_allWorlds.push_back(world);
     if (rendererTypeStr == "pathtracer") {
-      world->createChild("light", "distant");
+      // world->createChild("light", lightTypeStr);
+      auto &lights = world->childAs<sg::Lights>("lights");
+      lights.removeLight("ambient");
+      lights.addLight("light", lightTypeStr);
     }
   }
 
@@ -121,12 +127,19 @@ void TimeSeriesWindow::mainLoop()
   // set initial timestep
   setTimestep(0);
 
+  g_pathtracerParameters = PathtracerParameters();
+  g_LightParameters      = LightParameters();
+
+  auto &renderer = frame->child("renderer");
+
   activeMainWindow->registerImGuiCallback([&]() {
     addTimeseriesUI();
 
     bool volumeParametersChanged = addVolumeUI(false);
 
     bool pathtracerParametersChanged = addPathTracerUI(false);
+
+    bool lightsParametersChanged = addLightsUI(false);
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -135,11 +148,11 @@ void TimeSeriesWindow::mainLoop()
     static int spp = 1;
 
     if (ImGui::SliderInt("spp", &spp, 1, 32)) {
-      renderer->createChild("spp", "int", spp);
+      renderer.createChild("spp", "int", spp);
     }
 
     if (volumeParametersChanged || pathtracerParametersChanged) {
-      this->resetAccumulation();
+      frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
     }
   });
 
@@ -187,6 +200,10 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
 
     if (switchArg == "-renderer") {
       rendererTypeStr = argv[argIndex++];
+    }
+
+    else if (switchArg == "-light") {
+      lightTypeStr = argv[argIndex++];
     }
 
     else if (switchArg == "-numInstances") {
@@ -480,127 +497,144 @@ bool TimeSeriesWindow::addVolumeUI(bool changed)
 
 bool TimeSeriesWindow::addPathTracerUI(bool changed)
 {
+  auto &renderer = frame->child("renderer");
+
   if (rendererTypeStr == "pathtracer") {
     if (ImGui::SliderInt(
-            "maxNumScatters", &g_pathtracerParameters.maxNumScatters, 1, 32)) {
+            "lightSamples", &g_pathtracerParameters.lightSamples, 1, 32)) {
       changed = true;
+      renderer.createChild(
+          "lightSamples", "int", g_pathtracerParameters.lightSamples);
     }
 
-    if (ImGui::SliderFloat("henyeyGreenCoeff",
-                           &g_pathtracerParameters.henyeyGreenCoeff,
+    if (ImGui::SliderInt("roulettePathLength",
+                         &g_pathtracerParameters.roulettePathLength,
+                         1,
+                         32)) {
+      changed = true;
+      renderer.createChild("roulettePathLength",
+                           "int",
+                           g_pathtracerParameters.roulettePathLength);
+    }
+
+    if (ImGui::SliderFloat("maxContribution",
+                           &g_pathtracerParameters.maxContribution,
                            -1.f,
                            1.f)) {
       changed = true;
-    }
-
-    if (ImGui::SliderFloat("ambientLightIntensity",
-                           &g_pathtracerParameters.ambientLightIntensity,
-                           0.f,
-                           10.f)) {
-      changed = true;
-    }
-
-    if (ImGui::SliderFloat("directionalLightIntensity",
-                           &g_pathtracerParameters.directionalLightIntensity,
-                           0.f,
-                           10.f)) {
-      changed = true;
-    }
-
-    if (ImGui::SliderFloat(
-            "directionalLightAngularDiameter",
-            &g_pathtracerParameters.directionalLightAngularDiameter,
-            0.f,
-            180.f)) {
-      changed = true;
-    }
-
-    if (ImGui::SliderFloat("directionalLightAzimuth",
-                           &g_pathtracerParameters.directionalLightAzimuth,
-                           -180.f,
-                           180.f)) {
-      changed = true;
-    }
-
-    if (ImGui::SliderFloat("directionalLightElevation",
-                           &g_pathtracerParameters.directionalLightElevation,
-                           -90.f,
-                           90.f)) {
-      changed = true;
-    }
-    if (changed) {
-      renderer->createChild(
-          "maxNumScatters", "int", g_pathtracerParameters.maxNumScatters);
-      renderer->createChild(
-          "henyeyGreenCoeff", "float", g_pathtracerParameters.henyeyGreenCoeff);
-      renderer->createChild("ambientLightIntensity",
-                            "float",
-                            g_pathtracerParameters.ambientLightIntensity);
-      renderer->createChild("directionalLightIntensity",
-                            "float",
-                            g_pathtracerParameters.directionalLightIntensity);
-      renderer->createChild(
-          "directionalLightAngularDiameter",
-          "float",
-          g_pathtracerParameters.directionalLightAngularDiameter);
-      renderer->createChild("directionalLightAzimuth",
-                            "float",
-                            g_pathtracerParameters.directionalLightAzimuth);
-      renderer->createChild("directionalLightElevation",
-                            "float",
-                            g_pathtracerParameters.directionalLightElevation);
+      renderer.createChild(
+          "maxContribution", "float", g_pathtracerParameters.maxContribution);
     }
   }
   return changed;
 }
 
-void TimeSeriesWindow::setTimestepFb(int timestep)
+bool TimeSeriesWindow::addLightsUI(bool changed)
 {
-  if (currentTimestep == timestep) {
-    return;
+  if (lightTypeStr == "distant") {
+    if (ImGui::SliderFloat("directionalLightIntensity",
+                           &g_LightParameters.directionalLightIntensity,
+                           0.f,
+                           1.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light        = g_allWorlds[i]->child("lights").child("light");
+        light["intensity"] = g_LightParameters.directionalLightIntensity;
+      }
+    }
+    if (ImGui::SliderFloat("directionalLightAngularDiameter",
+                           &g_LightParameters.directionalLightAngularDiameter,
+                           0.f,
+                           180.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light = g_allWorlds[i]->child("lights").child("light");
+        light["angularDiameter"] =
+            g_LightParameters.directionalLightAngularDiameter;
+      }
+    }
+
+    if (ImGui::SliderFloat3("directionalLightDirection",
+                           g_LightParameters.directionalLightDirection,
+                           -1.f,
+                           1.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light = g_allWorlds[i]->child("lights").child("light");
+        light["direction"] =
+            g_LightParameters.directionalLightDirection;
+      }
+    }
+  } else {
+    if (ImGui::SliderFloat(
+            "ambientLightIntensity", &g_LightParameters.ambientLightIntensity, 0.f, 1.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light        = g_allWorlds[i]->child("lights").child("light");
+        light["intensity"] = g_LightParameters.ambientLightIntensity;
+      }
+    }
   }
-
-  currentTimestep = timestep;
-
-  // SG frameBuffer operations here
-  // use frame from mainwindow to do this
-
-  if (framebuffersPerTimestep.count(currentTimestep) == 0) {
-    std::shared_ptr<sg::FrameBuffer> currentFb =
-        std::static_pointer_cast<sg::FrameBuffer>(
-            sg::createNode("framebuffer", "framebuffer"));
-    currentFb->createChild("colorFormat", "string", std::string("sRGB"));
-    currentFb->createChild("size", "vec2i", framebufferSize);
-
-    framebuffersPerTimestep[currentTimestep] = currentFb;
-
-    framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
-  }
-
-  framebuffer = framebuffersPerTimestep[currentTimestep];
-  frame->add(framebuffer);
-
-  if (framebufferLastReset.count(currentTimestep) == 0 ||
-      framebufferLastReset[currentTimestep] < framebufferResetRequired) {
-    framebuffer->resetAccumulation();
-    framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
-  }
+  return changed;
 }
 
-void TimeSeriesWindow::resetAccumulation()
-{
-  framebufferResetRequired = rkcommon::utility::TimeStamp();
+  void TimeSeriesWindow::setTimestepFb(int timestep)
+  {
+    if (currentTimestep == timestep) {
+      return;
+    }
 
-  // reset accumulation for current frame buffer only
-  if (framebuffer) {
-    framebuffer->resetAccumulation();
-    framebufferLastReset[currentTimestep] = framebufferResetRequired;
+    currentTimestep = timestep;
+
+    // SG frameBuffer operations here
+    // use frame from mainwindow to do this
+
+    auto &framebuffer = frame->child("framebuffer");
+
+    if (framebuffersPerTimestep.count(currentTimestep) == 0) {
+      std::shared_ptr<sg::FrameBuffer> currentFb =
+          std::static_pointer_cast<sg::FrameBuffer>(
+              sg::createNode("framebuffer", "framebuffer"));
+      currentFb->createChild("colorFormat", "string", std::string("sRGB"));
+      currentFb->createChild("size", "vec2i", framebufferSize);
+
+      framebuffersPerTimestep[currentTimestep] = currentFb;
+
+      framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
+    }
+
+    framebuffer = framebuffersPerTimestep[currentTimestep];
+
+    frame->add(framebuffer);
+
+    if (framebufferLastReset.count(currentTimestep) == 0 ||
+        framebufferLastReset[currentTimestep] < framebufferResetRequired) {
+      frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
+      framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
+    }
   }
-}
 
-bool TimeSeriesWindow::isTimestepLoaded(int timestep)
-{
-  bool loaded = true;
+  void TimeSeriesWindow::resetAccumulation()
+  {
+    framebufferResetRequired = rkcommon::utility::TimeStamp();
+
+    if (frame->hasChild("framebuffer")) {
+      auto &framebuffer = frame->childAs<FrameBuffer>("framebuffer");
+
+      // reset accumulation for current frame buffer only
+
+      framebuffer.resetAccumulation();
+      framebufferLastReset[currentTimestep] = framebufferResetRequired;
+    }
+  }
+
+  bool TimeSeriesWindow::isTimestepLoaded(int timestep)
+  {
+    bool loaded = true;
 
     if (timestep >= g_allWorlds.size()) {
       throw std::runtime_error("out of bounds timestep selected");

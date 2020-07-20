@@ -34,6 +34,8 @@ class TimeSeriesWindow : public MainWindow
 
   bool addPathTracerUI(bool changed = false);
 
+  bool addLightsUI(bool changed = false);
+
   void updateWindowTitle(std::string &updatedTitle);
 
   void setTimestepFb(int timestep);
@@ -42,6 +44,7 @@ class TimeSeriesWindow : public MainWindow
 
   bool isTimestepLoaded(int timestep);
   void setTimestep(int timestep);
+
   void printHelp();
 
   std::vector<std::vector<ospray::sg::VolumeTimestep>> g_allVariablesTimeseries;
@@ -58,6 +61,9 @@ class TimeSeriesWindow : public MainWindow
   vec3f gridSpacing{-1.f};
 
   int numInstances{0};
+
+  std::string lightTypeStr{"distant"};
+  std::string rendererTypeStr{"pathtracer"};
 
   struct TimeseriesParameters
   {
@@ -79,8 +85,6 @@ class TimeSeriesWindow : public MainWindow
 
  protected:
   std::shared_ptr<ospray::sg::Frame> frame;
-  std::shared_ptr<ospray::sg::Renderer> renderer;
-  std::shared_ptr<ospray::sg::FrameBuffer> framebuffer;
   float framebufferScale = 1.f;
   vec2i framebufferSize;
 
@@ -105,6 +109,8 @@ class TimeSeriesWindow : public MainWindow
   MainWindow *activeMainWindow;
 
   sg::PathtracerParameters g_pathtracerParameters;
+
+  sg::LightParameters g_LightParameters;
 
   bool g_localLoading;
   bool g_lowResMode;
