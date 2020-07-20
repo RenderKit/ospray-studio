@@ -50,7 +50,7 @@ namespace ospray {
       bool b = node.valueAs<bool>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + (b ? "true" : "false")).c_str());
+        ImGui::Text("%s", (node.name() + ": " + (b ? "true" : "false")).c_str());
         return;
       }
 
@@ -63,7 +63,7 @@ namespace ospray {
       int i = node.valueAs<int>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + std::to_string(i)).c_str());
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(i)).c_str());
         return;
       }
 
@@ -83,7 +83,7 @@ namespace ospray {
       float f = node.valueAs<float>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + std::to_string(f)).c_str());
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(f)).c_str());
         return;
       }
 
@@ -103,7 +103,7 @@ namespace ospray {
       vec2i v = node.valueAs<vec2i>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y))
                         .c_str());
         return;
@@ -125,7 +125,7 @@ namespace ospray {
       vec2f v = node.valueAs<vec2f>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y))
                         .c_str());
         return;
@@ -147,7 +147,7 @@ namespace ospray {
       vec3i v = node.valueAs<vec3i>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y) + ", " + std::to_string(v.z))
                         .c_str());
         return;
@@ -169,7 +169,7 @@ namespace ospray {
       vec3f v = node.valueAs<vec3f>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y) + ", " + std::to_string(v.z))
                         .c_str());
         return;
@@ -191,7 +191,7 @@ namespace ospray {
       vec3f v = node.valueAs<vec3f>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y) + ", " + std::to_string(v.z))
                         .c_str());
         return;
@@ -206,7 +206,7 @@ namespace ospray {
       vec4f v = node.valueAs<vec4f>();
 
       if (node.readOnly()) {
-        ImGui::Text((node.name() + ": " + std::to_string(v.x) + ", " +
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y) + ", " + std::to_string(v.z) + ", " +
                      std::to_string(v.w))
                         .c_str());
@@ -221,7 +221,7 @@ namespace ospray {
     {
       std::string s = node.valueAs<std::string>();
 
-      ImGui::Text((node.name() + ": \"" + s + "\"").c_str());
+      ImGui::Text("%s", (node.name() + ": \"" + s + "\"").c_str());
     }
 
     using WidgetGenerator = void (*)(const std::string &, Node &);
@@ -265,7 +265,7 @@ namespace ospray {
         }
       } else {
         widgetName += ": " + node.subType();
-        ImGui::Text(widgetName.c_str());
+        ImGui::Text("%s", widgetName.c_str());
       }
 
       return true;
