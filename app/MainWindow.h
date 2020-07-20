@@ -183,4 +183,8 @@ class MainWindow
 
   // auto rotation speed, 1=0.1% window width mouse movement, 100=10%
   int autorotateSpeed{1};
+
+  // format used by glTexImage2D, as determined at context creation time
+  GLenum gl_rgb_format;
+  GLenum gl_rgba_format;
 };

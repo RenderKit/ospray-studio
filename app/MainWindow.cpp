@@ -186,6 +186,16 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
   // Turn on SRGB conversion for OSPRay frame
   glEnable(GL_FRAMEBUFFER_SRGB);
 
+  // Determine whether GL framebuffer has float format
+  // and set format used by glTexImage2D correctly.
+  if (glfwGetWindowAttrib(glfwWindow, GLFW_CONTEXT_VERSION_MAJOR) < 3) {
+    gl_rgb_format = GL_RGB16;
+    gl_rgba_format = GL_RGBA16;
+  } else {
+    gl_rgb_format = GL_RGB32F;
+    gl_rgba_format = GL_RGBA32F;
+  }
+
   glfwSetKeyCallback(
       glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
       auto &io = ImGui::GetIO();
@@ -474,7 +484,7 @@ void MainWindow::display()
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
-                 showAlbedo ? GL_RGB32F : GL_RGBA32F,
+                 showAlbedo ? gl_rgb_format : gl_rgba_format,
                  windowSize.x,
                  windowSize.y,
                  0,
