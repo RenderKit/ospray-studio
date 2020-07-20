@@ -129,6 +129,7 @@ class MainWindow
   bool screenshotAlbedo{false};
   bool screenshotDepth{false};
   bool screenshotNormal{false};
+  bool screenshotLayers{false};
 
   static MainWindow *activeWindow;
 

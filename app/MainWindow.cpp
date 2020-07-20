@@ -775,8 +775,8 @@ void MainWindow::saveCurrentFrame()
 {
   std::string filename("studio.");
   filename += screenshotFiletype;
-  int screenshotFlags =
-      screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
+  int screenshotFlags = screenshotLayers << 3 | screenshotNormal << 2 |
+                        screenshotDepth << 1 | screenshotAlbedo;
   frame->saveFrame(filename, screenshotFlags);
 }
 
@@ -921,6 +921,8 @@ void MainWindow::buildMainMenuEdit()
     if (screenshotFiletype == "exr") {
       ImGui::Text("additional layers");
       ImGui::Checkbox("albedo", &screenshotAlbedo);
+      ImGui::SameLine();
+      ImGui::Checkbox("layers as separate files", &screenshotLayers);
       ImGui::Checkbox("depth", &screenshotDepth);
       ImGui::Checkbox("normal", &screenshotNormal);
     }

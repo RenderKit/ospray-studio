@@ -104,6 +104,7 @@ namespace ospray::sg {
     bool albedo = flags & 0b1;
     bool depth = flags & 0b10;
     bool normal = flags & 0b100;
+    bool asLayers = flags & 0b1000;
     size_t npixels = size.long_product();
 
     if (albedo) {
@@ -125,6 +126,12 @@ namespace ospray::sg {
       exp.setAdditionalLayer("normal", nbuf);
     } else {
       exp.clearLayer("normal");
+    }
+
+    if (asLayers) {
+      exp.createChild("asLayers", "bool", false);
+    } else {
+      exp.createChild("asLayers", "bool", true);
     }
 
     exp.doExport();
