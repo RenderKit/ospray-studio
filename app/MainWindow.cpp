@@ -1171,13 +1171,9 @@ void MainWindow::buildWindowMaterialEditor()
 
 void MainWindow::buildWindowGeometryViewer()
 {
-  // geometry names can get quite long!
-  ImGui::SetNextWindowSizeConstraints(
-      ImVec2(0, 0), ImVec2(windowSize.x * 0.5f, windowSize.y * 0.8f));
   if (!ImGui::Begin(
           "Geometry viewer",
-          &showGeometryViewer,
-          ImGuiWindowFlags_HorizontalScrollbar | g_imguiWindowFlags)) {
+          &showGeometryViewer)) {
     ImGui::End();
     return;
   }
@@ -1219,36 +1215,15 @@ void MainWindow::buildWindowGeometryViewer()
     fb.resetAccumulation();
   }
 
-  bool topButton = ImGui::IsItemVisible();
-
+  ImGui::BeginChild(
+      "geometry", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
   for (auto &node : frame->child("world").children()) {
     if (node.second->type() == sg::NodeType::GENERATOR ||
         node.second->type() == sg::NodeType::IMPORTER) {
       node.second->traverse<sg::GenerateImGuiWidgets>();
     }
   }
-
-  // put buttons on the bottom for long lists
-  if (!topButton) {
-    if (ImGui::Button("update")) {
-      replaceWorld();
-      fb.resetAccumulation();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("show all")) {
-      frame->child("world").traverse<sg::SetParamByNode>(
-          sg::NodeType::GEOMETRY, "visible", true);
-      replaceWorld();
-      fb.resetAccumulation();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("hide all")) {
-      frame->child("world").traverse<sg::SetParamByNode>(
-          sg::NodeType::GEOMETRY, "visible", false);
-      replaceWorld();
-      fb.resetAccumulation();
-    }
-  }
+  ImGui::EndChild();
 
   ImGui::End();
 }
