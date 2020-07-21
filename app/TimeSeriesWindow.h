@@ -4,7 +4,7 @@
 
 #include "MainWindow.h"
 #include "StateUtils.h"
-#include "../sg/scene/volume/VolumeTimeStep.h"
+#include "../sg/scene/volume/VDBVolumeTimeStep.h"
 #include "../sg/fb/FrameBuffer.h"
 #include "../sg/Frame.h"
 #include "../sg/scene/World.h"
@@ -47,7 +47,7 @@ class TimeSeriesWindow : public MainWindow
 
   void printHelp();
 
-  std::vector<std::vector<ospray::sg::VolumeTimestep>> g_allVariablesTimeseries;
+  std::vector<std::vector<ospray::sg::VDBVolumeTimestep>> g_allVariablesTimeseries;
   std::vector<ospray::sg::VolumeParameters> g_volumeParameters;
   std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;
 
@@ -62,7 +62,7 @@ class TimeSeriesWindow : public MainWindow
 
   int numInstances{0};
 
-  std::string lightTypeStr{"distant"};
+  std::string lightTypeStr{"sunsky"};
   std::string rendererTypeStr{"pathtracer"};
 
   struct TimeseriesParameters

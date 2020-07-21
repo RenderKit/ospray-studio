@@ -98,21 +98,22 @@ void TimeSeriesWindow::mainLoop()
   // pre generate volumes/data for every timestep/world
   for (int i = 0; i < allVariablesData.size(); i++) {
     for (int f = 0; f < allVariablesData[i].size(); f++) {
-      auto volumeTimestep = VolumeTimestep(allVariablesData[i][f],
-                                           voxelType,
-                                           dimensions,
-                                           gridOrigin,
-                                           gridSpacing);
+      // auto volumeTimestep = VolumeTimestep(allVariablesData[i][f],
+      //                                      voxelType,
+      //                                      dimensions,
+      //                                      gridOrigin,
+      //                                      gridSpacing);
+      auto volumeTimestep = VDBVolumeTimestep(allVariablesData[i][f]);
 
       auto vol = volumeTimestep.createSGVolume();
 
       auto tfn = std::static_pointer_cast<sg::TransferFunction>(
-          sg::createNode("tfn_" + to_string(i), "transfer_function_jet"));
+          sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
 
       tfn->add(vol);
 
-      for (int i = 0; i < numInstances; i++) {
-        auto xfm  = affine3f::translate(vec3f(i, 0, 0)) * affine3f{one};
+      for (int i = 0; i < 1; i++) {
+        auto xfm  = affine3f::translate(vec3f(i + 2*i, 0, 0)) * affine3f{one};
         auto newX = createNode("geomXfm" + to_string(i), "Transform", xfm);
         newX->add(vol);
         tfn->add(newX);
@@ -152,7 +153,7 @@ void TimeSeriesWindow::mainLoop()
     }
 
     if (volumeParametersChanged || pathtracerParametersChanged) {
-      frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
+      TimeSeriesWindow::resetAccumulation();
     }
   });
 
@@ -568,7 +569,8 @@ bool TimeSeriesWindow::addLightsUI(bool changed)
             g_LightParameters.directionalLightDirection;
       }
     }
-  } else {
+  } else if (lightTypeStr == "sunsky") {}
+  else {
     if (ImGui::SliderFloat(
             "ambientLightIntensity", &g_LightParameters.ambientLightIntensity, 0.f, 1.f)) {
       changed = true;
@@ -582,63 +584,52 @@ bool TimeSeriesWindow::addLightsUI(bool changed)
   return changed;
 }
 
-  void TimeSeriesWindow::setTimestepFb(int timestep)
-  {
-    if (currentTimestep == timestep) {
-      return;
-    }
-
-    currentTimestep = timestep;
-
-    // SG frameBuffer operations here
-    // use frame from mainwindow to do this
-
-    auto &framebuffer = frame->child("framebuffer");
-
-    if (framebuffersPerTimestep.count(currentTimestep) == 0) {
-      std::shared_ptr<sg::FrameBuffer> currentFb =
-          std::static_pointer_cast<sg::FrameBuffer>(
-              sg::createNode("framebuffer", "framebuffer"));
-      currentFb->createChild("colorFormat", "string", std::string("sRGB"));
-      currentFb->createChild("size", "vec2i", framebufferSize);
-
-      framebuffersPerTimestep[currentTimestep] = currentFb;
-
-      framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
-    }
-
-    framebuffer = framebuffersPerTimestep[currentTimestep];
-
-    frame->add(framebuffer);
-
-    if (framebufferLastReset.count(currentTimestep) == 0 ||
-        framebufferLastReset[currentTimestep] < framebufferResetRequired) {
-      frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
-      framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
-    }
+void TimeSeriesWindow::setTimestepFb(int timestep)
+{
+  if (currentTimestep == timestep) {
+    return;
   }
 
-  void TimeSeriesWindow::resetAccumulation()
-  {
-    framebufferResetRequired = rkcommon::utility::TimeStamp();
+  currentTimestep = timestep;
 
-    if (frame->hasChild("framebuffer")) {
-      auto &framebuffer = frame->childAs<FrameBuffer>("framebuffer");
+  if (framebuffersPerTimestep.count(currentTimestep) == 0) {
+    std::shared_ptr<sg::FrameBuffer> currentFb =
+        std::static_pointer_cast<sg::FrameBuffer>(
+            sg::createNode("framebuffer", "framebuffer"));
 
-      // reset accumulation for current frame buffer only
+    framebuffersPerTimestep[currentTimestep] = currentFb;
 
-      framebuffer.resetAccumulation();
-      framebufferLastReset[currentTimestep] = framebufferResetRequired;
-    }
+    framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
   }
 
-  bool TimeSeriesWindow::isTimestepLoaded(int timestep)
-  {
-    bool loaded = true;
+  frame->add(framebuffersPerTimestep[currentTimestep]);
 
-    if (timestep >= g_allWorlds.size()) {
-      throw std::runtime_error("out of bounds timestep selected");
+  if (framebufferLastReset.count(currentTimestep) == 0 ||
+      framebufferLastReset[currentTimestep] < framebufferResetRequired) {
+    frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
+    framebufferLastReset[currentTimestep] = rkcommon::utility::TimeStamp();
+  }
+}
 
+void TimeSeriesWindow::resetAccumulation()
+{
+  framebufferResetRequired = rkcommon::utility::TimeStamp();
+
+  if (frame->hasChild("framebuffer")) {
+    auto &framebuffer = frame->childAs<FrameBuffer>("framebuffer");
+
+    // reset accumulation for current frame buffer only
+    framebuffer.resetAccumulation();
+    framebufferLastReset[currentTimestep] = framebufferResetRequired;
+  }
+}
+
+bool TimeSeriesWindow::isTimestepLoaded(int timestep)
+{
+  bool loaded = true;
+
+  if (timestep >= g_allWorlds.size()) {
+    throw std::runtime_error("out of bounds timestep selected");
 
     if (!g_allWorlds[timestep]->hasChildren()) {
       loaded = false;
@@ -654,7 +645,10 @@ void TimeSeriesWindow::setTimestep(int timestep)
   world->render();
   frame->add(world);
 
-  frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
+  // frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
+
+  //set up separate framebuffers
+  setTimestepFb(timestep);
 }
 
 void TimeSeriesWindow::printHelp()
