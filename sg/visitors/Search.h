@@ -23,18 +23,18 @@ namespace ospray {
 
     struct Search : public Visitor
     {
-      Search(const std::string &s, std::vector<NodePtr> &v);
+      Search(const std::string &s, std::vector<Node *> &v);
 
       bool operator()(Node &node, TraversalContext &ctx) override;
 
      private:
       std::string term;
-      std::vector<NodePtr> &results;
+      std::vector<Node *> &results;
     };
 
     // Inlined definitions ////////////////////////////////////////////////////
 
-    Search::Search(const std::string &s, std::vector<NodePtr> &v)
+    Search::Search(const std::string &s, std::vector<Node *> &v)
         : term(s), results(v)
     {
     }
@@ -42,7 +42,7 @@ namespace ospray {
     inline bool Search::operator()(Node &node, TraversalContext &ctx)
     {
       if (node.name().find(term) != std::string::npos) {
-        results.push_back(NodePtr(&node));
+        results.push_back(&node);
       }
       return true;
     }

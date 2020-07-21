@@ -31,6 +31,7 @@
 #include "sg/importer/Importer.h"
 #include "sg/exporter/Exporter.h"
 #include "sg/visitors/GenerateImGuiWidgets.h"
+#include "sg/visitors/Search.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/SetParamByNode.h"
 #include "sg/scene/lights/Lights.h"
@@ -1194,34 +1195,84 @@ void MainWindow::buildWindowGeometryViewer()
     frame->add(aWholeNewWorld);
   };
 
+  static char searchTerm[1024] = "";
+  static bool searched         = false;
+  static std::vector<sg::Node *> results;
+  if (ImGui::InputTextWithHint("##findgeometryviewer",
+                               "search...",
+                               searchTerm,
+                               1024,
+                               ImGuiInputTextFlags_CharsNoBlank |
+                                   ImGuiInputTextFlags_AutoSelectAll |
+                                   ImGuiInputTextFlags_EnterReturnsTrue)) {
+    searched = true;
+    results.clear();
+    frame->traverse<sg::Search>(std::string(searchTerm), results);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("find")) {
+    searched = true;
+    results.clear();
+    frame->traverse<sg::Search>(std::string(searchTerm), results);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("clear")) {
+    searched = false;
+    results.clear();
+    searchTerm[0] = '\0';
+  }
+
   if (ImGui::Button("show all")) {
-    frame->child("world").traverse<sg::SetParamByNode>(
-        sg::NodeType::GEOMETRY, "visible", true);
+    if (searched) {
+      for (auto result : results)
+        result->child("visible").setValue(true);
+    } else {
+      frame->child("world").traverse<sg::SetParamByNode>(
+          sg::NodeType::GEOMETRY, "visible", true);
+    }
     replaceWorld();
     fb.resetAccumulation();
   }
 
   ImGui::SameLine();
   if (ImGui::Button("hide all")) {
-    frame->child("world").traverse<sg::SetParamByNode>(
-        sg::NodeType::GEOMETRY, "visible", false);
+    if (searched) {
+      for (auto result : results)
+        result->child("visible").setValue(false);
+    } else {
+      frame->child("world").traverse<sg::SetParamByNode>(
+          sg::NodeType::GEOMETRY, "visible", false);
+    }
     replaceWorld();
     fb.resetAccumulation();
+  }
+
+  if (searched) {
+    ImGui::SameLine();
+    ImGui::Text(
+        "%lu %s", results.size(), (results.size() == 1 ? "result" : "results"));
   }
 
   ImGui::BeginChild(
       "geometry", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
   bool userUpdated = false;
-  for (auto &node : frame->child("world").children()) {
-    if (node.second->type() == sg::NodeType::GENERATOR ||
-        node.second->type() == sg::NodeType::IMPORTER) {
-      node.second->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN,
-                                                      userUpdated);
-      if (userUpdated) {
-        replaceWorld();
-        fb.resetAccumulation();
+  if (searched) {
+    for (auto result : results) {
+      result->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ALLCLOSED,
+                                                 userUpdated);
+    }
+  } else {
+    for (auto &node : frame->child("world").children()) {
+      if (node.second->type() == sg::NodeType::GENERATOR ||
+          node.second->type() == sg::NodeType::IMPORTER) {
+        node.second->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN,
+                                                        userUpdated);
       }
     }
+  }
+  if (userUpdated) {
+    replaceWorld();
+    fb.resetAccumulation();
   }
   ImGui::EndChild();
 
