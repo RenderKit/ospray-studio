@@ -1194,12 +1194,6 @@ void MainWindow::buildWindowGeometryViewer()
     frame->add(aWholeNewWorld);
   };
 
-  if (ImGui::Button("update")) {
-    replaceWorld();
-    fb.resetAccumulation();
-  }
-
-  ImGui::SameLine();
   if (ImGui::Button("show all")) {
     frame->child("world").traverse<sg::SetParamByNode>(
         sg::NodeType::GEOMETRY, "visible", true);
@@ -1217,10 +1211,16 @@ void MainWindow::buildWindowGeometryViewer()
 
   ImGui::BeginChild(
       "geometry", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+  bool userUpdated = false;
   for (auto &node : frame->child("world").children()) {
     if (node.second->type() == sg::NodeType::GENERATOR ||
         node.second->type() == sg::NodeType::IMPORTER) {
-      node.second->traverse<sg::GenerateImGuiWidgets>();
+      node.second->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN,
+                                                      userUpdated);
+      if (userUpdated) {
+        replaceWorld();
+        fb.resetAccumulation();
+      }
     }
   }
   ImGui::EndChild();
