@@ -63,6 +63,8 @@ namespace ospray {
         node.setValue(b);
         return true;
       }
+
+      return false;
     }
 
     bool generateWidget_int(const std::string &title, Node &node)
@@ -87,6 +89,8 @@ namespace ospray {
           return true;
         }
       }
+
+      return false;
     }
 
     bool generateWidget_float(const std::string &title, Node &node)
@@ -111,6 +115,8 @@ namespace ospray {
           return true;
         }
       }
+
+      return false;
     }
 
     bool generateWidget_vec2i(const std::string &title, Node &node)
@@ -138,6 +144,8 @@ namespace ospray {
           return true;
         }
       }
+
+      return false;
     }
 
     bool generateWidget_vec2f(const std::string &title, Node &node)
@@ -165,6 +173,8 @@ namespace ospray {
           return true;
         }
       }
+
+      return false;
     }
 
     bool generateWidget_vec3i(const std::string &title, Node &node)
@@ -192,6 +202,8 @@ namespace ospray {
           return true;
         }
       }
+
+      return false;
     }
 
     bool generateWidget_vec3f(const std::string &title, Node &node)
@@ -219,6 +231,8 @@ namespace ospray {
           return true;
         }
       }
+
+      return false;
     }
 
     bool generateWidget_rgb(const std::string &title, Node &node)
@@ -237,6 +251,8 @@ namespace ospray {
         node.setValue(v);
         return true;
       }
+
+      return false;
     }
 
     bool generateWidget_rgba(const std::string &title, Node &node)
@@ -256,6 +272,8 @@ namespace ospray {
         node.setValue(v);
         return true;
       }
+
+      return false;
     }
 
     bool generateWidget_affine3f(const std::string &title, Node &node)
@@ -280,6 +298,8 @@ namespace ospray {
         node.setValue(a);
         return true;
       }
+
+      return false;
     }
 
     bool generateWidget_string(const std::string &title, Node &node)
