@@ -1198,6 +1198,16 @@ void MainWindow::buildWindowGeometryViewer()
   static char searchTerm[1024] = "";
   static bool searched         = false;
   static std::vector<sg::Node *> results;
+
+  auto doSearch = [&]() {
+    if (std::string(searchTerm).size() > 0) {
+      searched = true;
+      results.clear();
+      frame->traverse<sg::Search>(
+          std::string(searchTerm), sg::NodeType::GEOMETRY, results);
+    }
+  };
+
   if (ImGui::InputTextWithHint("##findgeometryviewer",
                                "search...",
                                searchTerm,
@@ -1205,15 +1215,11 @@ void MainWindow::buildWindowGeometryViewer()
                                ImGuiInputTextFlags_CharsNoBlank |
                                    ImGuiInputTextFlags_AutoSelectAll |
                                    ImGuiInputTextFlags_EnterReturnsTrue)) {
-    searched = true;
-    results.clear();
-    frame->traverse<sg::Search>(std::string(searchTerm), results);
+    doSearch();
   }
   ImGui::SameLine();
   if (ImGui::Button("find")) {
-    searched = true;
-    results.clear();
-    frame->traverse<sg::Search>(std::string(searchTerm), results);
+    doSearch();
   }
   ImGui::SameLine();
   if (ImGui::Button("clear")) {
