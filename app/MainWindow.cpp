@@ -1199,12 +1199,19 @@ void MainWindow::buildWindowGeometryViewer()
   static bool searched         = false;
   static std::vector<sg::Node *> results;
 
+  auto doClear  = [&]() {
+    searched = false;
+    results.clear();
+    searchTerm[0] = '\0';
+  };
   auto doSearch = [&]() {
     if (std::string(searchTerm).size() > 0) {
       searched = true;
       results.clear();
       frame->traverse<sg::Search>(
           std::string(searchTerm), sg::NodeType::GEOMETRY, results);
+    } else {
+      doClear();
     }
   };
 
@@ -1223,9 +1230,7 @@ void MainWindow::buildWindowGeometryViewer()
   }
   ImGui::SameLine();
   if (ImGui::Button("clear")) {
-    searched = false;
-    results.clear();
-    searchTerm[0] = '\0';
+    doClear();
   }
 
   if (ImGui::Button("show all")) {
