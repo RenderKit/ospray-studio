@@ -258,6 +258,30 @@ namespace ospray {
       }
     }
 
+    bool generateWidget_affine3f(const std::string &title, Node &node)
+    {
+      affine3f a = node.valueAs<affine3f>();
+
+      if (node.readOnly()) {
+        ImGui::Text("%s", (node.name() + ": affine3f").c_str());
+        return false;
+      }
+
+      ImGui::Text("%s", "linear space");
+      if (ImGui::DragFloat3("l.vx", a.l.vx) ||
+          ImGui::DragFloat3("l.vy", a.l.vy) ||
+          ImGui::DragFloat3("l.vz", a.l.vz)) {
+        node.setValue(a);
+        return true;
+      }
+
+      ImGui::Text("%s", "affine space");
+      if (ImGui::DragFloat3("p", a.p)) {
+        node.setValue(a);
+        return true;
+      }
+    }
+
     bool generateWidget_string(const std::string &title, Node &node)
     {
       std::string s = node.valueAs<std::string>();
@@ -277,6 +301,7 @@ namespace ospray {
         {"vec3f", generateWidget_vec3f},
         {"rgb", generateWidget_rgb},
         {"rgba", generateWidget_rgba},
+        {"affine3f", generateWidget_affine3f},
         {"string", generateWidget_string},
     };
 
@@ -304,12 +329,22 @@ namespace ospray {
              (initState == TreeState::ROOTOPEN && ctx.level == 0))
                 ? ImGuiTreeNodeFlags_DefaultOpen
                 : ImGuiTreeNodeFlags_None;
+
         if (ImGui::TreeNodeEx(widgetName.c_str(), open)) {
           openLevels.push(ctx.level);
+
+          // this node may be strongly-typed and contain a parameter
+          if (node.type() == NodeType::TRANSFORM) {
+            widgetName += "##" + std::to_string(node.uniqueID());
+            if (generateWidget_affine3f(widgetName, node))
+              updated = true;
+          }  // else if (other types) {}
+
         } else {
           return false; // tree closed, don't process children
         }
       } else {
+        // there is no generator for this type
         widgetName += ": " + node.subType();
         ImGui::Text("%s", widgetName.c_str());
       }
