@@ -36,7 +36,7 @@ namespace ospray::sg {
     return NodeType::FRAME;
   }
 
-  void Frame::startNewFrame(bool immediatelyWait)
+  void Frame::startNewFrame()
   {
     auto &fb       = childAs<FrameBuffer>("frameBuffer");
     auto &camera   = childAs<Camera>("camera");

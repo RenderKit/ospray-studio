@@ -90,8 +90,10 @@ int main(int argc, const char *argv[])
 
     frame.render();
 
-    for (int i = 0; i < 10; ++i)
-      frame.startNewFrame(true);
+    for (int i = 0; i < 10; ++i) {
+      frame.immediatelyWait = true;
+      frame.startNewFrame();
+    }
 
     std::cout << "...finished!" << std::endl;
 

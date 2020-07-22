@@ -34,9 +34,6 @@ using namespace rkcommon::math;
 
 // the following struct implements one Volume time step for the time series.
 
-bool g_lowResMode   = false;
-bool g_localLoading = false;
-
 namespace ospray::sg {
 
   struct VDBVolumeTimestep
@@ -47,14 +44,11 @@ namespace ospray::sg {
 
     std::shared_ptr<sg::Volume> createSGVolume()
     {
-    if (fs.length() > 4 && fs.substr(fs.length()-4) == ".vdb")
-    {
       auto vol = std::static_pointer_cast<sg::VdbVolume>(
           sg::createNode("volume", "volume_vdb"));
       vol->load(fs);
       volumeImport = vol;
       return volumeImport;
-    }
     }
 
     std::string fs;

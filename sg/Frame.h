@@ -27,7 +27,7 @@ namespace ospray::sg {
 
     NodeType type() const override;
 
-    void startNewFrame(bool immediatelyWait = false);
+    void startNewFrame();
 
     bool frameIsReady();
     float frameProgress();
@@ -40,6 +40,8 @@ namespace ospray::sg {
     const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmapFrame(void *mem);
     void saveFrame(std::string filename, int flags);
+
+    bool immediatelyWait{false};
 
    private:
     void refreshFrameOperations();

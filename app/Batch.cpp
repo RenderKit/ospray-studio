@@ -155,8 +155,10 @@ void BatchContext::render()
 
   frame.render();
   // Accumulate several frames
-  for (auto i = 0; i < optSPP - 1; i++)
-    frame.startNewFrame(true);
+  for (auto i = 0; i < optSPP - 1; i++) {
+    frame.immediatelyWait = true;
+    frame.startNewFrame();
+  }
 
   // Only denoise the final frame
   // XXX TODO if optDenoiser == 2, save both the noisy and denoised color
@@ -166,8 +168,8 @@ void BatchContext::render()
     frame.denoiserEnabled         = true;
     frame.updateFrameOpsNextFrame = true;
   }
-
-  frame.startNewFrame(true);
+  frame.immediatelyWait = true;
+  frame.startNewFrame();
 
   auto size          = frame["framebuffer"]["size"].valueAs<vec2i>();
   const void *pixels = frame.mapFrame();

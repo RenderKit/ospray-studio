@@ -1,10 +1,25 @@
+// ======================================================================== //
+// Copyright 2020 Intel Corporation                                         //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
 #pragma once
 
 #include <unordered_map>
 
 #include "MainWindow.h"
 #include "StateUtils.h"
-#include "../sg/scene/volume/VDBVolumeTimeStep.h"
 #include "../sg/fb/FrameBuffer.h"
 #include "../sg/Frame.h"
 #include "../sg/scene/World.h"
@@ -30,8 +45,6 @@ class TimeSeriesWindow : public MainWindow
 
   void animateTimesteps();
 
-  bool addVolumeUI(bool changed = false);
-
   bool addPathTracerUI(bool changed = false);
 
   bool addLightsUI(bool changed = false);
@@ -47,7 +60,6 @@ class TimeSeriesWindow : public MainWindow
 
   void printHelp();
 
-  std::vector<std::vector<ospray::sg::VDBVolumeTimestep>> g_allVariablesTimeseries;
   std::vector<ospray::sg::VolumeParameters> g_volumeParameters;
   std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;
 
@@ -60,10 +72,12 @@ class TimeSeriesWindow : public MainWindow
   vec3f gridOrigin{0.f};
   vec3f gridSpacing{-1.f};
 
-  int numInstances{0};
+  int numInstances{1};
 
   std::string lightTypeStr{"sunsky"};
   std::string rendererTypeStr{"pathtracer"};
+
+  bool setSeparateFramebuffers{false};
 
   struct TimeseriesParameters
   {
@@ -84,7 +98,6 @@ class TimeSeriesWindow : public MainWindow
   TimeseriesParameters g_timeseriesParameters;
 
  protected:
-  std::shared_ptr<ospray::sg::Frame> frame;
   float framebufferScale = 1.f;
   vec2i framebufferSize;
 

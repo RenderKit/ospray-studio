@@ -1,5 +1,5 @@
 // ======================================================================== //
-// Copyright 2018 Intel Corporation                                         //
+// Copyright 2020 Intel Corporation                                         //
 //                                                                          //
 // Licensed under the Apache License, Version 2.0 (the "License");          //
 // you may not use this file except in compliance with the License.         //
@@ -21,6 +21,9 @@
 #include "imgui.h"
 // rkcommon
 #include "rkcommon/tasking/parallel_for.h"
+
+#include "../sg/scene/volume/VDBVolumeTimeStep.h"
+#include "../sg/scene/volume/VolumeTimeStep.h"
 
 using namespace ospray::sg;
 
@@ -76,8 +79,8 @@ void TimeSeriesWindow::mainLoop()
   std::cerr << "loaded " << numTimesteps << " timesteps across "
             << allVariablesData.size() << " variables" << std::endl;
 
-  // one global frame
-  frame = activeMainWindow->getFrame();
+  auto frame = activeMainWindow->getFrame();
+  frame->immediatelyWait = true;
 
   // set renderer 
   frame->createChild("renderer", "renderer_" + rendererTypeStr);
@@ -98,21 +101,35 @@ void TimeSeriesWindow::mainLoop()
   // pre generate volumes/data for every timestep/world
   for (int i = 0; i < allVariablesData.size(); i++) {
     for (int f = 0; f < allVariablesData[i].size(); f++) {
-      // auto volumeTimestep = VolumeTimestep(allVariablesData[i][f],
-      //                                      voxelType,
-      //                                      dimensions,
-      //                                      gridOrigin,
-      //                                      gridSpacing);
-      auto volumeTimestep = VDBVolumeTimestep(allVariablesData[i][f]);
+      std::shared_ptr<sg::Volume> vol;
+      if (allVariablesData[i][f].length() > 4 &&
+          allVariablesData[i][f].substr(allVariablesData[i][f].length() - 4) ==
+              ".vdb") {
+        auto volumeTimestep = VDBVolumeTimestep(allVariablesData[i][f]);
+        vol = volumeTimestep.createSGVolume();
+      } else {
 
-      auto vol = volumeTimestep.createSGVolume();
+        if (dimensions.x == -1 || gridSpacing.x == -1) {
+        throw std::runtime_error("improper dimensions or grid spacing specified for volume");
+      } 
+      if (voxelType == 0)
+        throw std::runtime_error("improper voxelType specified for volume");
+
+        auto volumeTimestep = VolumeTimestep(allVariablesData[i][f],
+                                             voxelType,
+                                             dimensions,
+                                             gridOrigin,
+                                             gridSpacing);
+
+       vol = volumeTimestep.createSGVolume();
+      }
 
       auto tfn = std::static_pointer_cast<sg::TransferFunction>(
           sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
 
       tfn->add(vol);
 
-      for (int i = 0; i < 1; i++) {
+      for (int i = 0; i < numInstances; i++) {
         auto xfm  = affine3f::translate(vec3f(i + 2*i, 0, 0)) * affine3f{one};
         auto newX = createNode("geomXfm" + to_string(i), "Transform", xfm);
         newX->add(vol);
@@ -122,6 +139,7 @@ void TimeSeriesWindow::mainLoop()
       auto &world = g_allWorlds[f];
 
       world->add(tfn);
+      world->render();
     }
   }
 
@@ -135,8 +153,6 @@ void TimeSeriesWindow::mainLoop()
 
   activeMainWindow->registerImGuiCallback([&]() {
     addTimeseriesUI();
-
-    bool volumeParametersChanged = addVolumeUI(false);
 
     bool pathtracerParametersChanged = addPathTracerUI(false);
 
@@ -152,7 +168,7 @@ void TimeSeriesWindow::mainLoop()
       renderer.createChild("spp", "int", spp);
     }
 
-    if (volumeParametersChanged || pathtracerParametersChanged) {
+    if (lightsParametersChanged || pathtracerParametersChanged) {
       TimeSeriesWindow::resetAccumulation();
     }
   });
@@ -171,7 +187,7 @@ void TimeSeriesWindow::mainLoop()
 
 void TimeSeriesWindow::updateWindowTitle(std::string &updatedTitle)
 {
-  int numTimesteps = g_allVariablesTimeseries[0].size();
+  int numTimesteps = g_allWorlds.size();
   std::stringstream windowTitle;
   windowTitle << "Stellar radiation timestep "
               << g_timeseriesParameters.currentTimestep << " / "
@@ -188,12 +204,14 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
   if (argc < 2) {
     std::cout << "incomplete/wrong usage of command line params" << std::endl;
 
-    std::cerr << "usage: " << argv[0] << " -renderer scivis | pathtracer"
-              <<" -dimensions <dimX> <dimY> <dimZ> "
+    std::cerr << "usage: " << argv[0] << " timeseries"
+              <<" [-renderer scivis | pathtracer ]"
+              <<" [-dimensions <dimX> <dimY> <dimZ>] "
               << "[-voxelType OSP_FLOAT | OSP_INT] "
               << "[-gridOrigin <x> <y> <z>] "
-                 "[-gridSpacing <x> <y> <z>] <-variable <float.raw>>... "
-              << "[-localLoading]" << std::endl;
+                 "[-gridSpacing <x> <y> <z>] "
+              << "[-numInstances <n>] "
+              << "[-variable <float.raw>>...]" << std::endl;
     return 1;
   }
   while (argIndex < argc) {
@@ -212,9 +230,6 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
     }
     
     else if (switchArg == "-dimensions") {
-      if (argc < argIndex + 3) {
-        throw std::runtime_error("improper -dimensions arguments");
-      }
 
       const std::string dimX(argv[argIndex++]);
       const std::string dimY(argv[argIndex++]);
@@ -224,9 +239,6 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
     }
 
     else if (switchArg == "-voxelType") {
-      if (argc < argIndex + 1) {
-        throw std::runtime_error("improper -voxelType arguments");
-      }
       auto voxelTypeStr = std::string(argv[argIndex++]);
       auto it           = tableDataType.find(voxelTypeStr);
       if (it != tableDataType.end()) {
@@ -237,9 +249,6 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
     }
 
     else if (switchArg == "-gridSpacing") {
-      if (argc < argIndex + 3) {
-        throw std::runtime_error("improper -gridSpacing arguments");
-      }
 
       const std::string gridSpacingX(argv[argIndex++]);
       const std::string gridSpacingY(argv[argIndex++]);
@@ -250,9 +259,6 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
     }
 
     else if (switchArg == "-gridOrigin") {
-      if (argc < argIndex + 3) {
-        throw std::runtime_error("improper -gridOrigin arguments");
-      }
 
       const std::string gridOriginX(argv[argIndex++]);
       const std::string gridOriginY(argv[argIndex++]);
@@ -273,10 +279,6 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
 
         gridOrigin  = vec3f(-0.5f * dimensions * normalizedGridSpacing);
         gridSpacing = vec3f(normalizedGridSpacing);
-      }
-
-      if (dimensions.x == -1) {
-        throw std::runtime_error("improper dimensions specified for volume");
       }
 
       std::vector<std::string> singleVariableData;
@@ -431,73 +433,9 @@ void TimeSeriesWindow::animateTimesteps()
   }
 }
 
-bool TimeSeriesWindow::addVolumeUI(bool changed)
-{
-  static bool initialized = false;
-
-  for (int i = 0; i < g_volumeParameters.size(); i++) {
-    std::stringstream ss;
-    ss << "[" << i << "]";
-
-    if (ImGui::SliderFloat((std::string("sigmaTScale") + ss.str()).c_str(),
-                           &g_volumeParameters[i].sigmaTScale,
-                           0.001f,
-                           100.f)) {
-      changed = true;
-    }
-
-    if (ImGui::SliderFloat((std::string("sigmaSScale") + ss.str()).c_str(),
-                           &g_volumeParameters[i].sigmaSScale,
-                           0.01f,
-                           1.f)) {
-      changed = true;
-    }
-
-    if (ImGui::Checkbox((std::string("log scale") + ss.str()).c_str(),
-                        &g_volumeParameters[i].useLogScale)) {
-      changed = true;
-    }
-
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-  }
-
-  if (!initialized || changed) {
-    std::vector<float> sigmaTScales, sigmaSScales;
-    std::vector<int> useLogScales;
-
-    for (int i = 0; i < g_volumeParameters.size(); i++) {
-      sigmaTScales.push_back(g_volumeParameters[i].sigmaTScale);
-      sigmaSScales.push_back(g_volumeParameters[i].sigmaSScale);
-      useLogScales.push_back(g_volumeParameters[i].useLogScale);
-    }
-
-    // OSPData sigmaTScalesData =
-    //     ospNewData(sigmaTScales.size(), OSP_FLOAT, sigmaTScales.data());
-    // ospSetData(renderer, "sigmaTScales", sigmaTScalesData);
-    // ospRelease(sigmaTScalesData);
-
-    // OSPData sigmaSScalesData =
-    //     ospNewData(sigmaSScales.size(), OSP_FLOAT, sigmaSScales.data());
-    // ospSetData(renderer, "sigmaSScales", sigmaSScalesData);
-    // ospRelease(sigmaSScalesData);
-
-    // OSPData useLogScalesData =
-    //     ospNewData(useLogScales.size(), OSP_INT, useLogScales.data());
-    // ospSetData(renderer, "useLogScales", useLogScalesData);
-    // ospRelease(useLogScalesData);
-
-    // ospCommit(renderer);
-
-    initialized = true;
-  }
-
-  return changed;
-}
-
 bool TimeSeriesWindow::addPathTracerUI(bool changed)
 {
+  auto frame     = activeMainWindow->getFrame();
   auto &renderer = frame->child("renderer");
 
   if (rendererTypeStr == "pathtracer") {
@@ -569,8 +507,72 @@ bool TimeSeriesWindow::addLightsUI(bool changed)
             g_LightParameters.directionalLightDirection;
       }
     }
-  } else if (lightTypeStr == "sunsky") {}
-  else {
+  } else if (lightTypeStr == "sunsky") {
+    if (ImGui::SliderFloat3(
+            "sunsky up vector", g_LightParameters.sunskyUp, -1.f, 1.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light = g_allWorlds[i]->child("lights").child("light");
+        light["up"] = g_LightParameters.sunskyUp;
+      }
+    }
+
+    if (ImGui::SliderFloat3(
+            "sunsky direction", g_LightParameters.sunskyDirection, -1.f, 1.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light        = g_allWorlds[i]->child("lights").child("light");
+        light["direction"] = g_LightParameters.sunskyDirection;
+      }
+    }
+
+    if (ImGui::SliderFloat3(
+            "sunsky color", g_LightParameters.sunskyColor, -1.f, 1.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light    = g_allWorlds[i]->child("lights").child("light");
+        light["color"] = g_LightParameters.sunskyColor;
+      }
+    }
+
+    if (ImGui::SliderFloat(
+            "sunsky albedo", &g_LightParameters.sunskyAlbedo, 0.f, 1.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light     = g_allWorlds[i]->child("lights").child("light");
+        light["albedo"] = g_LightParameters.sunskyAlbedo;
+      }
+    }
+
+    if (ImGui::SliderFloat("sunsky turbidity",
+                           &g_LightParameters.sunskyTurbidity,
+                           0.f,
+                           10.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light        = g_allWorlds[i]->child("lights").child("light");
+        light["turbidity"] = g_LightParameters.sunskyTurbidity;
+      }
+    }
+
+    if (ImGui::SliderFloat("sunsky intensity",
+                           &g_LightParameters.sunskyIntensity,
+                           0.f,
+                           1.f)) {
+      changed = true;
+
+      for (int i = 0; i < g_allWorlds.size(); i++) {
+        auto &light        = g_allWorlds[i]->child("lights").child("light");
+        light["intensity"] = g_LightParameters.sunskyIntensity;
+      }
+    }
+
+  } else {
     if (ImGui::SliderFloat(
             "ambientLightIntensity", &g_LightParameters.ambientLightIntensity, 0.f, 1.f)) {
       changed = true;
@@ -586,6 +588,7 @@ bool TimeSeriesWindow::addLightsUI(bool changed)
 
 void TimeSeriesWindow::setTimestepFb(int timestep)
 {
+  auto frame = activeMainWindow->getFrame();
   if (currentTimestep == timestep) {
     return;
   }
@@ -613,6 +616,7 @@ void TimeSeriesWindow::setTimestepFb(int timestep)
 
 void TimeSeriesWindow::resetAccumulation()
 {
+  auto frame               = activeMainWindow->getFrame();
   framebufferResetRequired = rkcommon::utility::TimeStamp();
 
   if (frame->hasChild("framebuffer")) {
@@ -641,13 +645,14 @@ bool TimeSeriesWindow::isTimestepLoaded(int timestep)
 
 void TimeSeriesWindow::setTimestep(int timestep)
 {
+  auto frame = activeMainWindow->getFrame();
   auto world = g_allWorlds[timestep];
-  world->render();
   frame->add(world);
 
-  // frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
+  frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
 
   //set up separate framebuffers
+  if (setSeparateFramebuffers)
   setTimestepFb(timestep);
 }
 
@@ -657,11 +662,15 @@ void TimeSeriesWindow::printHelp()
       R"text(
   ./ospStudio timeseries [parameters] [files]
 
+  requirement for parameteres depend on the type of volume import.
+
   ospStudio timeseries specific parameters:
+    -renderer       pathtracer | scivis
     -dimensions     <dimX> <dimY> <dimZ>
     -voxelType       OSP_FLOAT | 
     -gridSpacing    <x> <y> <z>
-    -localLoading   true/false
-    -variable       <float.raw>>... )text"
+    -gridOrigin     <x> <y> <z>
+    -numInstances   <number of instances>
+    -variable       <float.extension>>... )text"
             << std::endl;
 }
