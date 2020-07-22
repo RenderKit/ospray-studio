@@ -44,10 +44,17 @@ namespace ospray::sg {
 
     std::shared_ptr<sg::Volume> createSGVolume()
     {
+#if USE_OPENVDB
       auto vol = std::static_pointer_cast<sg::VdbVolume>(
           sg::createNode("volume", "volume_vdb"));
       vol->load(fs);
       volumeImport = vol;
+#else
+      throw std::runtime_error(
+          "OpenVDB not enabled in build.  Rebuild Studio, selecting "
+          "ENABLE_OPENVDB in cmake.");
+      volumeImport = nullptr;
+#endif
       return volumeImport;
     }
 

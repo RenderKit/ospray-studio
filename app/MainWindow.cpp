@@ -771,11 +771,16 @@ bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
     std::shared_ptr<sg::Volume> volumeImport;
     if (fs.length() > 4 && fs.substr(fs.length()-4) == ".vdb")
     {
-      auto vol =
-          std::static_pointer_cast<sg::VdbVolume>(
-              sg::createNode("volume", "volume_vdb"));
+#if USE_OPENVDB
+      auto vol = std::static_pointer_cast<sg::VdbVolume>(
+          sg::createNode("volume", "volume_vdb"));
       vol->load(file);
       volumeImport = vol;
+#else
+      std::cout << "OpenVDB not enabled in build.  Rebuild Studio, selecting "
+                   "ENABLE_OPENVDB in cmake." << std::endl;
+      return false;
+#endif
     }
     else
     {
