@@ -52,13 +52,14 @@ namespace ospray::sg {
       fb.resetAccumulation();
 
     this->commit();
+    if (!pauseRendering) {
+      auto future = fb.handle().renderFrame(
+          renderer.handle(), camera.handle(), world.handle());
+      setHandle(future);
 
-    auto future = fb.handle().renderFrame(
-        renderer.handle(), camera.handle(), world.handle());
-    setHandle(future);
-
-    if (immediatelyWait)
-      waitOnFrame();
+      if (immediatelyWait)
+        waitOnFrame();
+    }
   }
 
   bool Frame::frameIsReady()

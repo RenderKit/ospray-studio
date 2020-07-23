@@ -42,6 +42,7 @@ namespace ospray::sg {
     void saveFrame(std::string filename, int flags);
 
     bool immediatelyWait{false};
+    bool pauseRendering{false};
 
    private:
     void refreshFrameOperations();

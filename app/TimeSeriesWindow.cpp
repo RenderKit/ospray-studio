@@ -91,7 +91,6 @@ void TimeSeriesWindow::mainLoop()
         createNode("world", "world"));
     g_allWorlds.push_back(world);
     if (rendererTypeStr == "pathtracer") {
-      // world->createChild("light", lightTypeStr);
       auto &lights = world->childAs<sg::Lights>("lights");
       lights.removeLight("ambient");
       lights.addLight("light", lightTypeStr);
@@ -309,6 +308,7 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
 
 void TimeSeriesWindow::addTimeseriesUI()
 {
+  auto frame = activeMainWindow->getFrame();
   ImGui::Begin("Time series");
 
   int numTimesteps = g_allWorlds.size();
@@ -391,8 +391,8 @@ void TimeSeriesWindow::addTimeseriesUI()
   if (ImGui::Checkbox("pause rendering",
                       &g_timeseriesParameters.pauseRendering)) {
     if (activeMainWindow) {
-      // activeMainWindow()->setPauseRendering(
-      //     g_timeseriesParameters.pauseRendering);
+      frame->pauseRendering = 
+          g_timeseriesParameters.pauseRendering;
     }
   }
 
