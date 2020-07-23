@@ -28,13 +28,13 @@
 using namespace ospray::sg;
 
 bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
+vec2i windowSize = vec2i(1024, 1024);
 
 // TimeSeriesWindow mode entry point
 void start_TimeSeries_mode(int argc, const char *argv[])
 {
   std::cout << "***** Timeseries Mode *****" << std::endl;
-  MainWindow *mw = new MainWindow(vec2i(1024, 768), denoiser);
-  auto window    = rkcommon::make_unique<TimeSeriesWindow>(mw);
+  auto window    = rkcommon::make_unique<TimeSeriesWindow>();
   window->parseCommandLine(argc, argv);
   window->mainLoop();
   window.reset();
@@ -48,11 +48,8 @@ static std::unordered_map<std::string, OSPDataType> const tableDataType = {
     {"ushort", OSP_USHORT},
     {"double", OSP_DOUBLE}};
 
-TimeSeriesWindow::TimeSeriesWindow(MainWindow *mainWindow)
-    : MainWindow(mainWindow)
-{
-  activeMainWindow = mainWindow;
-}
+TimeSeriesWindow::TimeSeriesWindow() 
+{}
 
 TimeSeriesWindow::~TimeSeriesWindow() {}
 
@@ -79,7 +76,7 @@ void TimeSeriesWindow::mainLoop()
   std::cerr << "loaded " << numTimesteps << " timesteps across "
             << allVariablesData.size() << " variables" << std::endl;
 
-  auto frame = activeMainWindow->getFrame();
+  auto frame = this->activeWindow->getFrame();
   frame->immediatelyWait = true;
 
   // set renderer 
@@ -104,8 +101,9 @@ void TimeSeriesWindow::mainLoop()
       if (allVariablesData[i][f].length() > 4 &&
           allVariablesData[i][f].substr(allVariablesData[i][f].length() - 4) ==
               ".vdb") {
-        auto volumeTimestep = VDBVolumeTimestep(allVariablesData[i][f]);
-        vol = volumeTimestep.createSGVolume();
+        auto vdbVolumeTimestep = VDBVolumeTimestep(allVariablesData[i][f]);
+        vdbVolumeTimestep.localLoading = g_localLoading;
+        vol = vdbVolumeTimestep.createSGVolume();
       } else {
 
         if (dimensions.x == -1 || gridSpacing.x == -1) {
@@ -119,8 +117,8 @@ void TimeSeriesWindow::mainLoop()
                                              dimensions,
                                              gridOrigin,
                                              gridSpacing);
-
-       vol = volumeTimestep.createSGVolume();
+        volumeTimestep.localLoading = g_localLoading;
+        vol = volumeTimestep.createSGVolume();
       }
 
       auto tfn = std::static_pointer_cast<sg::TransferFunction>(
@@ -142,6 +140,10 @@ void TimeSeriesWindow::mainLoop()
     }
   }
 
+  this->activeWindow->arcballCamera.reset(
+      new ArcballCamera(g_allWorlds[0]->bounds(), windowSize));
+  this->activeWindow->updateCamera();
+
   // set initial timestep
   setTimestep(0);
 
@@ -150,7 +152,7 @@ void TimeSeriesWindow::mainLoop()
 
   auto &renderer = frame->child("renderer");
 
-  activeMainWindow->registerImGuiCallback([&]() {
+  this->activeWindow->registerImGuiCallback([&]() {
     addTimeseriesUI();
 
     bool pathtracerParametersChanged = addPathTracerUI(false);
@@ -172,16 +174,16 @@ void TimeSeriesWindow::mainLoop()
     }
   });
 
-  activeMainWindow->registerDisplayCallback(
+  this->activeWindow->registerDisplayCallback(
       [&](MainWindow *) { animateTimesteps(); });
 
-  // activeMainWindow->registerKeyCallback(
+  // this->activeWindow->registerKeyCallback(
   //     std::function<void(
   //         MainWindow *, int key, int scancode, int action, int
   //         mods)> keyCallback);
 
-  activeMainWindow->timeseriesMode = true;
-  activeMainWindow->mainLoop();
+  this->activeWindow->timeseriesMode = true;
+  this->activeWindow->mainLoop();
 }
 
 void TimeSeriesWindow::updateWindowTitle(std::string &updatedTitle)
@@ -293,7 +295,6 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
 
     else if (switchArg == "-localLoading") {
       g_localLoading = true;
-
     } else {
       std::cerr << "switch arg: " << switchArg << std::endl;
       throw std::runtime_error("unknown switch argument");
@@ -308,7 +309,7 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
 
 void TimeSeriesWindow::addTimeseriesUI()
 {
-  auto frame = activeMainWindow->getFrame();
+  auto frame = this->activeWindow->getFrame();
   ImGui::Begin("Time series");
 
   int numTimesteps = g_allWorlds.size();
@@ -390,7 +391,7 @@ void TimeSeriesWindow::addTimeseriesUI()
 
   if (ImGui::Checkbox("pause rendering",
                       &g_timeseriesParameters.pauseRendering)) {
-    if (activeMainWindow) {
+    if (this->activeWindow) {
       frame->pauseRendering = 
           g_timeseriesParameters.pauseRendering;
     }
@@ -435,7 +436,7 @@ void TimeSeriesWindow::animateTimesteps()
 
 bool TimeSeriesWindow::addPathTracerUI(bool changed)
 {
-  auto frame     = activeMainWindow->getFrame();
+  auto frame     = this->activeWindow->getFrame();
   auto &renderer = frame->child("renderer");
 
   if (rendererTypeStr == "pathtracer") {
@@ -588,7 +589,7 @@ bool TimeSeriesWindow::addLightsUI(bool changed)
 
 void TimeSeriesWindow::setTimestepFb(int timestep)
 {
-  auto frame = activeMainWindow->getFrame();
+  auto frame = this->activeWindow->getFrame();
   if (currentTimestep == timestep) {
     return;
   }
@@ -616,7 +617,7 @@ void TimeSeriesWindow::setTimestepFb(int timestep)
 
 void TimeSeriesWindow::resetAccumulation()
 {
-  auto frame               = activeMainWindow->getFrame();
+  auto frame               = this->activeWindow->getFrame();
   framebufferResetRequired = rkcommon::utility::TimeStamp();
 
   if (frame->hasChild("framebuffer")) {
@@ -645,7 +646,7 @@ bool TimeSeriesWindow::isTimestepLoaded(int timestep)
 
 void TimeSeriesWindow::setTimestep(int timestep)
 {
-  auto frame = activeMainWindow->getFrame();
+  auto frame = this->activeWindow->getFrame();
   auto world = g_allWorlds[timestep];
   frame->add(world);
 

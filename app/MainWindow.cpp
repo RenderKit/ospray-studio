@@ -314,10 +314,6 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
   fbSize = this->windowSize;
 }
 
-MainWindow::MainWindow(MainWindow *mainWindow) {
-  activeWindow = mainWindow;
-}
-
 MainWindow::~MainWindow()
 {
   ImGui_ImplOpenGL2_Shutdown();

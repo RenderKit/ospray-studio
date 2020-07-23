@@ -59,7 +59,7 @@ namespace ospray::sg {
     }
 
     std::string fs;
-
+    bool localLoading;
     std::shared_ptr<sg::Volume> volumeImport;
   };
 

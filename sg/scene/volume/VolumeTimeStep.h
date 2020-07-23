@@ -32,9 +32,6 @@ using namespace rkcommon::math;
 
 // the following struct implements one Volume time step for the time series.
 
-bool g_lowResMode   = false;
-bool g_localLoading = false;
-
 namespace ospray::sg {
 
   struct VolumeTimestep
@@ -54,7 +51,7 @@ namespace ospray::sg {
 
     void queueGenerateVoxels()
     {
-      if (g_localLoading) {
+      if (localLoading) {
         return;
       }
 
@@ -77,7 +74,7 @@ namespace ospray::sg {
 
     void waitGenerateVoxels()
     {
-      if (g_localLoading) {
+      if (localLoading) {
         return;
       }
 
@@ -95,14 +92,14 @@ namespace ospray::sg {
     std::shared_ptr<sg::Volume> createSGVolume()
     {
       if (!sgVolume) {
-        if (!g_localLoading && !generateVoxelsTask) {
+        if (!localLoading && !generateVoxelsTask) {
           queueGenerateVoxels();
         }
 
         sgVolume = std::static_pointer_cast<sg::Volume>(
             createNode("sgVolume", "structuredRegular"));
 
-        if (!g_localLoading) {
+        if (!localLoading) {
           std::vector<float> voxels(dimensions.long_product());
           voxels = generateVoxelsTask->get();
           generateVoxelsTask.reset();
@@ -128,6 +125,7 @@ namespace ospray::sg {
     vec3f gridSpacing;
 
     bool fileLoaded{false};
+    bool localLoading = false;
 
     std::shared_ptr<tasking::AsyncTask<std::vector<float>>> generateVoxelsTask;
 

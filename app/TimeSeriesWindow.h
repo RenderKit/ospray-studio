@@ -33,7 +33,7 @@ using namespace rkcommon::math;
 class TimeSeriesWindow : public MainWindow
 {
  public:
-  TimeSeriesWindow(MainWindow *tsmainWindow);
+  TimeSeriesWindow();
 
   ~TimeSeriesWindow();
 
@@ -118,8 +118,6 @@ class TimeSeriesWindow : public MainWindow
   std::function<void(
       TimeSeriesWindow *, int key, int scancode, int action, int mods)>
       keyCallback;
-
-  MainWindow *activeMainWindow;
 
   sg::PathtracerParameters g_pathtracerParameters;
 

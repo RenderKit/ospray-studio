@@ -52,12 +52,13 @@ enum class OSPRayRendererType
   OTHER
 };
 
+static const vec2i defaultWindowSize = vec2i(1024, 768);
+
 class MainWindow
 {
  public:
-  MainWindow(const vec2i &windowSize, bool denoiser = false);
-
-  MainWindow(MainWindow *mainWindow);
+ 
+  MainWindow(const vec2i &windowSize = defaultWindowSize, bool denoiser = false);
 
   ~MainWindow();
 
@@ -87,8 +88,12 @@ class MainWindow
 
   void updateTitleBar();
 
- protected:
+  // Arcball camera instance
+  std::unique_ptr<ArcballCamera> arcballCamera;
+
   void updateCamera();
+
+ protected:
   void buildPanel();
   void reshape(const vec2i &newWindowSize);
   void motion(const vec2f &position);
@@ -153,9 +158,6 @@ class MainWindow
 
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;
-
-  // Arcball camera instance
-  std::unique_ptr<ArcballCamera> arcballCamera;
 
   std::shared_ptr<sg::Frame> frame;
 
