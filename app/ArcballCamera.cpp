@@ -44,6 +44,27 @@ void ArcballCamera::rotate(const vec2f &from, const vec2f &to)
   updateCamera();
 }
 
+void ArcballCamera::constrainedRotate(const vec2f &from, const vec2f &to, int axis)
+{
+  quaternionf nrot = screenToArcball(to) * screenToArcball(from);
+  switch (axis) {
+  case 0:
+      nrot.j = nrot.k = 0;
+      break;
+  case 1:
+      nrot.k = nrot.i = 0;
+      break;
+  case 2:
+      nrot.i = nrot.j = 0;
+      break;
+  default:
+      break;
+  }
+  nrot = normalize(nrot);
+  rotation = nrot * rotation;
+  updateCamera();
+}
+
 void ArcballCamera::zoom(float amount)
 {
   amount *= zoomSpeed;

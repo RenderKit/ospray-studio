@@ -102,6 +102,7 @@ class ArcballCamera
 
   // All mouse positions passed should be in [-1, 1] normalized screen coords
   void rotate(const vec2f &from, const vec2f &to);
+  void constrainedRotate(const vec2f &from, const vec2f &to, int axis /* 0 = x, 1 = y, 2 = z, otherwise none*/);
   void zoom(float amount);
   void pan(const vec2f &delta);
 

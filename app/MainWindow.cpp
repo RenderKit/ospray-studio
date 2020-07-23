@@ -105,6 +105,7 @@ int g_camSelectedAnchorIndex = 0;
 int g_camCurrentPathIndex    = 0;
 int g_camPathSpeed = 5;  // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
 const int g_camPathPause = 2;  // _seconds_ to pause for at end of path
+int g_rotationConstraint = -1;
 
 std::string quatToString(quaternionf &q)
 {
@@ -204,43 +205,62 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
   glfwSetKeyCallback(
       glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
       auto &io = ImGui::GetIO();
-        if (!io.WantCaptureKeyboard && action == GLFW_PRESS) {
-          switch (key) {
-          case GLFW_KEY_G:
-            activeWindow->showUi = !(activeWindow->showUi);
-            break;
-          case GLFW_KEY_Q: {
-            auto showMode =
-                rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
-            // XXX Invoke the "Jim-Q" key, make it more difficult to exit
-            // by mistake.
-            if (showMode && mod != GLFW_MOD_CONTROL)
-              std::cout << "Use ctrl-Q to exit\n";
-            else
-              g_quitNextFrame = true;
-          } break;
-          case GLFW_KEY_P:
-            activeWindow->frame->traverse<sg::PrintNodes>();
-            break;
-          case GLFW_KEY_M:
-            activeWindow->baseMaterialRegistry->traverse<sg::PrintNodes>();
-            break;
-          case GLFW_KEY_B:
-            PRINT(activeWindow->frame->bounds());
-            break;
-          case GLFW_KEY_V:
-            activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
-            break;
-          case GLFW_KEY_S:
-            g_saveNextFrame = true;
-            break;
-          case GLFW_KEY_SPACE:
-            g_animatingPath       = !g_animatingPath;
-            g_camCurrentPathIndex = 0;
-            if (g_animatingPath) {
-              g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
+        if (!io.WantCaptureKeyboard)
+          if (action == GLFW_PRESS) {
+            switch (key) {
+            case GLFW_KEY_X:
+                g_rotationConstraint = 0;
+                break;
+            case GLFW_KEY_Y:
+                g_rotationConstraint = 1;
+                break;
+            case GLFW_KEY_Z:
+                g_rotationConstraint = 2;
+                break;
+            case GLFW_KEY_G:
+                activeWindow->showUi = !(activeWindow->showUi);
+                break;
+            case GLFW_KEY_Q: {
+                auto showMode =
+                        rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
+                // XXX Invoke the "Jim-Q" key, make it more difficult to exit
+                // by mistake.
+                if (showMode && mod != GLFW_MOD_CONTROL)
+                    std::cout << "Use ctrl-Q to exit\n";
+                else
+                    g_quitNextFrame = true;
+            } break;
+            case GLFW_KEY_P:
+                activeWindow->frame->traverse<sg::PrintNodes>();
+                break;
+            case GLFW_KEY_M:
+                activeWindow->baseMaterialRegistry->traverse<sg::PrintNodes>();
+                break;
+            case GLFW_KEY_B:
+                PRINT(activeWindow->frame->bounds());
+                break;
+            case GLFW_KEY_V:
+                activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
+                break;
+            case GLFW_KEY_S:
+                g_saveNextFrame = true;
+                break;
+            case GLFW_KEY_SPACE:
+                g_animatingPath       = !g_animatingPath;
+                g_camCurrentPathIndex = 0;
+                if (g_animatingPath) {
+                    g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
+                }
+                break;
             }
-            break;
+          }
+        if (action == GLFW_RELEASE) {
+          switch (key) {
+          case GLFW_KEY_X:
+          case GLFW_KEY_Y:
+          case GLFW_KEY_Z:
+              g_rotationConstraint = -1;
+              break;
           }
         }
       });
@@ -408,7 +428,7 @@ void MainWindow::motion(const vec2f &position)
           clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
       const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
                           clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
-      arcballCamera->rotate(mouseFrom, lerp(sensitivity, mouseFrom, mouseTo));
+      arcballCamera->constrainedRotate(mouseFrom, lerp(sensitivity, mouseFrom, mouseTo), g_rotationConstraint);
     } else if (rightDown) {
       arcballCamera->zoom((mouse.y - prev.y) * sensitivity);
     } else if (middleDown) {
