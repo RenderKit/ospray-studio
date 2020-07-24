@@ -22,6 +22,9 @@ namespace ospray::sg {
   {
     SunSky();
     virtual ~SunSky() override = default;
+
+    protected:
+    void preCommit() override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(SunSky, sunSky);
@@ -31,11 +34,31 @@ namespace ospray::sg {
   SunSky::SunSky() : Light("sunSky")
   {
     createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f));
+    createChild("azimuth", "float", 0.f);
+    createChild("elevation", "float", 90.f);
     createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
     createChild("albedo", "float", 0.18f);
     createChild("turbidity", "float", 3.f);
     createChild("color", "vec3f", vec3f(1.f));
     createChild("intensity", "float", 1.f);
+  }
+
+  void SunSky::preCommit()
+  {
+    const float azimuth = child("azimuth").valueAs<float>() * M_PI/180.f;
+    const float elevation = child("elevation").valueAs<float>() * M_PI/180.f;
+
+    vec3f direction;
+    direction.x = -cos(azimuth) * cos(elevation);
+    direction.y = -sin(elevation);
+    direction.z = -sin(azimuth) * cos(elevation);
+
+    // this overwrites the "direction" child parameters, making that UI element
+    // not directly useable...
+    auto &directionNode = child("direction");
+    directionNode.setValue(direction);
+
+    Light::preCommit();
   }
 
 }  // namespace ospray::sg
