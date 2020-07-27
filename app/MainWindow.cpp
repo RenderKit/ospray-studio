@@ -94,7 +94,7 @@ static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
                                                               "volume"};
 
 static const std::vector<std::string> g_lightTypes = {
-    "ambient", "distant", "hdri", "spot", "sphere", "quad"};
+    "ambient", "distant", "hdri", "sphere", "spot", "sunSky", "quad"};
 
 std::vector<std::string> g_matTypes = {
     "obj", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};

@@ -24,7 +24,7 @@ namespace ospray::sg {
     virtual ~SunSky() override = default;
   };
 
-  OSP_REGISTER_SG_NODE_NAME(SunSky, sunsky);
+  OSP_REGISTER_SG_NODE_NAME(SunSky, sunSky);
 
   // Sunsky definitions //////////////////////////////////////////////////////
 
