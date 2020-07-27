@@ -108,6 +108,8 @@ class ArcballCamera
 
   vec3f eyePos() const;
   vec3f center() const;
+  void setCenter(const vec3f &newCenter);
+
   vec3f lookDir() const;
   vec3f upDir() const;
 

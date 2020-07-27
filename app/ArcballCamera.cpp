@@ -90,6 +90,12 @@ vec3f ArcballCamera::eyePos() const
   return xfmPoint(invCamera, vec3f(0, 0, 1));
 }
 
+void ArcballCamera::setCenter(const vec3f &newCenter)
+{
+  centerTranslation = AffineSpace3f::translate(-newCenter);
+  updateCamera();
+}
+
 vec3f ArcballCamera::center() const
 {
   return -centerTranslation.p;

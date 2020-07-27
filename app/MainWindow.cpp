@@ -26,15 +26,18 @@
 #include <iostream>
 #include <stdexcept>
 // ospray_sg
+#include "sg/camera/Camera.h"
+#include "sg/exporter/Exporter.h"
 #include "sg/fb/FrameBuffer.h"
 #include "sg/generator/Generator.h"
 #include "sg/importer/Importer.h"
-#include "sg/exporter/Exporter.h"
+#include "sg/renderer/Renderer.h"
+#include "sg/scene/lights/Lights.h"
+#include "sg/scene/World.h"
 #include "sg/visitors/GenerateImGuiWidgets.h"
 #include "sg/visitors/Search.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/SetParamByNode.h"
-#include "sg/scene/lights/Lights.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
 #include "rkcommon/os/FileName.h"
@@ -271,6 +274,15 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
         activeWindow->reshape(vec2i{newWidth, newHeight});
       });
 
+  glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow *win, int, int, int) {
+    ImGuiIO &io = ImGui::GetIO();
+    if (!activeWindow->showUi || !io.WantCaptureMouse) {
+      double x, y;
+      glfwGetCursorPos(win, &x, &y);
+      activeWindow->mouseButton(vec2f{float(x), float(y)});
+    }
+  });
+
   glfwSetCursorPosCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
     ImGuiIO &io = ImGui::GetIO();
     if (!activeWindow->showUi || !io.WantCaptureMouse) {
@@ -398,6 +410,28 @@ void MainWindow::updateCamera()
   camera["up"]        = arcballCamera->upDir();
 }
 
+void MainWindow::pickCenterOfRotation(float x, float y)
+{
+  ospray::cpp::PickResult res;
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto &r = frame->childAs<sg::Renderer>("renderer");
+  auto &c = frame->childAs<sg::Camera>("camera");
+  auto &w = frame->childAs<sg::World>("world");
+
+  x = clamp(x/windowSize.x, 0.f, 1.f);
+  y = 1.f-clamp(y/windowSize.y, 0.f, 1.f);
+  res = fb.handle().pick(r, c, w, x, y);
+  if (res.hasHit)
+  {
+    arcballCamera->setCenter(vec3f(res.worldPosition));
+    if (cancelFrameOnInteraction) {
+      frame->cancelFrame();
+      waitOnOSPRayFrame();
+    }
+    updateCamera();
+  }
+}
+
 void MainWindow::motion(const vec2f &position)
 {
   const vec2f mouse(position.x, position.y);
@@ -442,6 +476,14 @@ void MainWindow::motion(const vec2f &position)
   }
 
   previousMouse = mouse;
+}
+
+void MainWindow::mouseButton(const vec2f &position)
+{
+  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS &&
+      glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    pickCenterOfRotation(position.x,position.y);
+  }
 }
 
 void MainWindow::display()

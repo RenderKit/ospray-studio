@@ -97,6 +97,7 @@ class MainWindow
   void buildPanel();
   void reshape(const vec2i &newWindowSize);
   void motion(const vec2f &position);
+  void mouseButton(const vec2f &position);
   void display();
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
@@ -110,6 +111,7 @@ class MainWindow
   bool importGeometry(std::shared_ptr<sg::Node> &world);
   bool importVolume(std::shared_ptr<sg::Node> &world);
   void saveCurrentFrame();
+  void pickCenterOfRotation(float x, float y);
 
   // menu and window UI
   void buildMainMenu();
