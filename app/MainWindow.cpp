@@ -640,24 +640,16 @@ void MainWindow::refreshScene(bool resetCam)
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
 
-  // very bad hack below; for some reason timeseries first timestep frame does
-  // not take effect when the world here is empty
-  // if (timeseriesMode)
-  world->createChild("buffergeom", "geometry_boxes");
-
   if (scene == "import") {
-    world->remove("buffergeom");
     if (!importGeometry(world)) {
       return;
     }
   } else if (scene == "import volume") {
-    world->remove("buffergeom");
     if (!importVolume(world)) {
       return;
     }
   } else {
     if (scene != "empty") {
-      world->remove("buffergeom");
       auto &gen = world->createChildAs<sg::Generator>("generator",
                                                       "generator_" + scene);
       gen.generateData();
