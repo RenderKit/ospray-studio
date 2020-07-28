@@ -296,6 +296,9 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
     else if (switchArg == "-localLoading") {
       g_localLoading = true;
     } else {
+      // Ignore "--osp:" ospray arguments
+      if (switchArg.rfind("--osp:") != std::string::npos)
+        continue;
       std::cerr << "switch arg: " << switchArg << std::endl;
       throw std::runtime_error("unknown switch argument");
     }
@@ -508,68 +511,68 @@ bool TimeSeriesWindow::addLightsUI(bool changed)
             g_LightParameters.directionalLightDirection;
       }
     }
-  } else if (lightTypeStr == "sunsky") {
+  } else if (lightTypeStr == "sunSky") {
     if (ImGui::SliderFloat3(
-            "sunsky up vector", g_LightParameters.sunskyUp, -1.f, 1.f)) {
+            "sunSky up vector", g_LightParameters.sunSkyUp, -1.f, 1.f)) {
       changed = true;
 
       for (int i = 0; i < g_allWorlds.size(); i++) {
         auto &light = g_allWorlds[i]->child("lights").child("light");
-        light["up"] = g_LightParameters.sunskyUp;
+        light["up"] = g_LightParameters.sunSkyUp;
       }
     }
 
     if (ImGui::SliderFloat3(
-            "sunsky direction", g_LightParameters.sunskyDirection, -1.f, 1.f)) {
+            "sunSky direction", g_LightParameters.sunSkyDirection, -1.f, 1.f)) {
       changed = true;
 
       for (int i = 0; i < g_allWorlds.size(); i++) {
         auto &light        = g_allWorlds[i]->child("lights").child("light");
-        light["direction"] = g_LightParameters.sunskyDirection;
+        light["direction"] = g_LightParameters.sunSkyDirection;
       }
     }
 
     if (ImGui::SliderFloat3(
-            "sunsky color", g_LightParameters.sunskyColor, -1.f, 1.f)) {
+            "sunSky color", g_LightParameters.sunSkyColor, -1.f, 1.f)) {
       changed = true;
 
       for (int i = 0; i < g_allWorlds.size(); i++) {
         auto &light    = g_allWorlds[i]->child("lights").child("light");
-        light["color"] = g_LightParameters.sunskyColor;
+        light["color"] = g_LightParameters.sunSkyColor;
       }
     }
 
     if (ImGui::SliderFloat(
-            "sunsky albedo", &g_LightParameters.sunskyAlbedo, 0.f, 1.f)) {
+            "sunSky albedo", &g_LightParameters.sunSkyAlbedo, 0.f, 1.f)) {
       changed = true;
 
       for (int i = 0; i < g_allWorlds.size(); i++) {
         auto &light     = g_allWorlds[i]->child("lights").child("light");
-        light["albedo"] = g_LightParameters.sunskyAlbedo;
+        light["albedo"] = g_LightParameters.sunSkyAlbedo;
       }
     }
 
-    if (ImGui::SliderFloat("sunsky turbidity",
-                           &g_LightParameters.sunskyTurbidity,
+    if (ImGui::SliderFloat("sunSky turbidity",
+                           &g_LightParameters.sunSkyTurbidity,
                            0.f,
                            10.f)) {
       changed = true;
 
       for (int i = 0; i < g_allWorlds.size(); i++) {
         auto &light        = g_allWorlds[i]->child("lights").child("light");
-        light["turbidity"] = g_LightParameters.sunskyTurbidity;
+        light["turbidity"] = g_LightParameters.sunSkyTurbidity;
       }
     }
 
-    if (ImGui::SliderFloat("sunsky intensity",
-                           &g_LightParameters.sunskyIntensity,
+    if (ImGui::SliderFloat("sunSky intensity",
+                           &g_LightParameters.sunSkyIntensity,
                            0.f,
                            1.f)) {
       changed = true;
 
       for (int i = 0; i < g_allWorlds.size(); i++) {
         auto &light        = g_allWorlds[i]->child("lights").child("light");
-        light["intensity"] = g_LightParameters.sunskyIntensity;
+        light["intensity"] = g_LightParameters.sunSkyIntensity;
       }
     }
 

@@ -38,12 +38,12 @@ struct LightParameters
   float directionalLightIntensity       = 1.f;
   float directionalLightAngularDiameter = 45.f;
   vec3f directionalLightDirection       = vec3f(0.f, 0.f, 1.f);
-  float sunskyAlbedo                    = 0.18f;
-  float sunskyTurbidity = 3.f;
-  float sunskyIntensity = 1.f;
-  vec3f sunskyColor = vec3f(1.f);
-  vec3f sunskyUp    = vec3f(0.f, 1.f, 0.f);
-  vec3f sunskyDirection = vec3f(0.f, 0.f, 1.f);
+  float sunSkyAlbedo                    = 0.18f;
+  float sunSkyTurbidity = 3.f;
+  float sunSkyIntensity = 1.f;
+  vec3f sunSkyColor = vec3f(1.f);
+  vec3f sunSkyUp    = vec3f(0.f, 1.f, 0.f);
+  vec3f sunSkyDirection = vec3f(0.f, 0.f, 1.f);
 };
 
 struct PathtracerParameters

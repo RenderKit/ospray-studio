@@ -74,7 +74,7 @@ class TimeSeriesWindow : public MainWindow
 
   int numInstances{1};
 
-  std::string lightTypeStr{"sunsky"};
+  std::string lightTypeStr{"sunSky"};
   std::string rendererTypeStr{"pathtracer"};
 
   bool setSeparateFramebuffers{false};
