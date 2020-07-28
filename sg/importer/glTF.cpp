@@ -53,6 +53,7 @@ namespace ospray {
     bool parseAsset();
     void createMaterials(MaterialRegistry &materialRegistry);
     void createGeometries();
+    void createCameras(std::vector<NodePtr> &cameras);
     void buildScene();
     void loadAssetInfo(NodePtr sgNode);
     void addReferenceLinkInfo(const int nid, NodePtr sgNode);
@@ -251,6 +252,48 @@ namespace ospray {
     }
   }
 
+  void GLTFData::createCameras(std::vector<NodePtr> &cameras)
+  {
+    cameras.reserve(model.cameras.size());
+    for (auto &m : model.cameras) {
+      static auto nCamera = 0;
+      auto cameraName = "camera_" + std::to_string(nCamera++);
+      if (m.type == "perspective") {
+        auto sgCamera = createNode(cameraName, "camera_perspective");
+
+        // convert radians to degrees for vertical FOV
+        auto fovy = (float)m.perspective.yfov * (180.f / (float)pi);
+
+        sgCamera->createChild("fovy", "float", fovy);
+        sgCamera->createChild("nearClip", "float", (float)m.perspective.znear);
+        if (m.perspective.aspectRatio > 0)
+          sgCamera->createChild("aspect", "float", (float)m.perspective.aspectRatio);
+
+        if (m.perspective.extras.Has("focusDistance"))
+          sgCamera->createChild("focusDistance",
+                                "float",
+                                (float)m.perspective.extras.Get("focusDistance").GetNumberAsDouble());
+
+        if (m.perspective.extras.Has("apertureRadius"))
+          sgCamera->createChild("apertureRadius",
+                                "float",
+                                (float)m.perspective.extras.Get("apertureRadius").GetNumberAsDouble());
+
+        cameras.push_back(sgCamera);
+      } else {
+        auto sgCamera = createNode(cameraName, "camera_orthographic");
+        sgCamera->createChild("height", "float", m.orthographic.ymag);
+
+        // calculate orthographic aspect with horizontal and vertical maginifications
+        auto aspect = m.orthographic.xmag / m.orthographic.ymag;
+        sgCamera->createChild("aspect", "float", aspect);
+        sgCamera->createChild("nearClip", "float", m.orthographic.znear);
+
+        cameras.push_back(sgCamera);
+      }
+    }
+  }
+
   void GLTFData::createGeometries()
   {
     //DEBUG << "Create Geometries\n";
@@ -414,10 +457,6 @@ namespace ospray {
     if (n.mesh != -1) {
       // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
       sgNode->add(ospMeshes[n.mesh]);
-    }
-
-    if (n.camera != -1) {
-      WARN << "unsupported node-type: camera\n";
     }
 
     if (n.skin != -1) {
@@ -890,6 +929,7 @@ namespace ospray {
     gltf.createMaterials(*materialRegistry);
     gltf.createGeometries();
     gltf.buildScene();
+    gltf.createCameras(*cameras);
 
     // load asset extensions as separate SG Asset-Info-nod
     gltf.loadAssetInfo(rootNode);

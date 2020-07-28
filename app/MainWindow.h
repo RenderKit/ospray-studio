@@ -90,8 +90,8 @@ class MainWindow : public StudioContext
   void setCameraState(CameraState &cs) override;
   void refreshScene(bool resetCamera) override;
   int whichLightType{-1};
+  int whichCamera{-1};
   std::string lightTypeStr{"ambient"};
-
 
  protected:
   void buildPanel();

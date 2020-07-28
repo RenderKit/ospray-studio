@@ -56,6 +56,9 @@ static const std::vector<std::string> g_scenes = {"tutorial_scene",
 static const std::vector<std::string> g_renderers = {
     "scivis", "pathtracer", "ao", "debug"};
 
+// list of cameras imported with the scene definition 
+static rkcommon::containers::FlatMap<std::string, sg::NodePtr> g_sceneCameras;
+
 static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
                                                               "primID",
                                                               "geomID",
@@ -110,6 +113,12 @@ bool debugTypeUI_callback(void *, int index, const char **out_text)
 bool lightTypeUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_lightTypes[index].c_str();
+  return true;
+}
+
+bool cameraUI_callback(void *, int index, const char **out_text)
+{
+  *out_text = g_sceneCameras.at_index(index).first.c_str();
   return true;
 }
 
@@ -980,6 +989,9 @@ bool MainWindow::parseCommandLine()
 void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<float> timesteps; // time stamps in units seconds in all files
+
+  std::vector<sg::NodePtr> cameras;
+
   for (auto file : filesToImport) {
     try {
       rkcommon::FileName fileName(file);
@@ -1000,6 +1012,7 @@ void MainWindow::importFiles(sg::NodePtr world)
           // importer will use what it needs.
           imp.setFileName(fileName);
           imp.setMaterialRegistry(baseMaterialRegistry);
+          imp.setCameraList(cameras);
           if (animate) {
             imp.animate = animate;
             imp.setTimesteps(timesteps);
@@ -1023,6 +1036,22 @@ void MainWindow::importFiles(sg::NodePtr world)
     world->traverse<sg::RefLinkNodes>();
 
     // TODO Important: remove empty importer nodes as well
+  }
+
+  if(cameras.size() > 0){
+    auto &mainCamera = frame->child("camera");
+    auto defaultCamera =
+        sg::createNode("default_camera", frame->child("camera").subType());
+    for (auto &c : mainCamera.children()) {
+      defaultCamera->createChild(
+          c.first, c.second->subType(), c.second->value());
+    }
+
+    g_sceneCameras["default camera"] = defaultCamera;
+
+    // populate cameras in camera editor in View menu
+    for (auto &c : cameras)
+      g_sceneCameras[c->name()] = c;
   }
 
   if (animate && timesteps.size() > 0) {
@@ -1464,8 +1493,9 @@ void MainWindow::buildMainMenuView()
     ImGui::Separator();
     if (ImGui::MenuItem("Lights...", "", nullptr))
       showLightEditor = true;
-    if (ImGui::MenuItem("Camera...", "", nullptr))
+    if (ImGui::MenuItem("Camera...", "", nullptr)) {
       showCameraEditor = true;
+    }
     if (ImGui::MenuItem("Center camera", "", nullptr)) {
       arcballCamera.reset(
           new ArcballCamera(frame->child("world").bounds(), windowSize));
@@ -1748,16 +1778,33 @@ void MainWindow::buildWindowLightEditor()
   ImGui::End();
 }
 
+
+
 void MainWindow::buildWindowCameraEditor()
 {
-  if (!ImGui::Begin( "Camera editor", &showCameraEditor)) {
+  if (!ImGui::Begin("Camera editor", &showCameraEditor)) {
     ImGui::End();
     return;
   }
 
+  if (ImGui::Combo("sceneCameras##whichCamera",
+          &whichCamera,
+          cameraUI_callback,
+          nullptr,
+          g_sceneCameras.size())) {
+    if (whichCamera > -1 && whichCamera < g_sceneCameras.size()) {
+      auto &currentCamera = g_sceneCameras.at_index(whichCamera);
+      auto &cameraNode = currentCamera.second->children();
+      auto &camera = frame->childAs<sg::Camera>("camera");
+      for (auto &c : cameraNode){
+        camera.add(c.second);
+      }
+      updateCamera();
+    }
+  }
+
   auto &camera = frame->childAs<sg::Camera>("camera");
   camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-
   ImGui::End();
 }
 
