@@ -867,11 +867,9 @@ void MainWindow::buildMainMenu()
 {
   // build main menu bar and options
   ImGui::BeginMainMenuBar();
-  if (!timeseriesMode) {
-    buildMainMenuFile();
-    buildMainMenuEdit();
-    buildMainMenuView();
-  }
+  buildMainMenuFile();
+  buildMainMenuEdit();
+  buildMainMenuView();
   ImGui::EndMainMenuBar();
 }
 

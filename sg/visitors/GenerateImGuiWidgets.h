@@ -49,7 +49,7 @@ namespace ospray {
 
     // Specialized widget generators //////////////////////////////////////////
 
-    bool generateWidget_bool(const std::string &title, Node &node)
+    inline bool generateWidget_bool(const std::string &title, Node &node)
     {
       bool b = node.valueAs<bool>();
 
@@ -67,7 +67,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_int(const std::string &title, Node &node)
+   inline bool generateWidget_int(const std::string &title, Node &node)
     {
       int i = node.valueAs<int>();
 
@@ -93,7 +93,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_float(const std::string &title, Node &node)
+   inline bool generateWidget_float(const std::string &title, Node &node)
     {
       float f = node.valueAs<float>();
 
@@ -119,7 +119,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_vec2i(const std::string &title, Node &node)
+   inline bool generateWidget_vec2i(const std::string &title, Node &node)
     {
       vec2i v = node.valueAs<vec2i>();
 
@@ -148,7 +148,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_vec2f(const std::string &title, Node &node)
+   inline bool generateWidget_vec2f(const std::string &title, Node &node)
     {
       vec2f v = node.valueAs<vec2f>();
 
@@ -177,7 +177,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_vec3i(const std::string &title, Node &node)
+   inline bool generateWidget_vec3i(const std::string &title, Node &node)
     {
       vec3i v = node.valueAs<vec3i>();
 
@@ -206,7 +206,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_vec3f(const std::string &title, Node &node)
+   inline bool generateWidget_vec3f(const std::string &title, Node &node)
     {
       vec3f v = node.valueAs<vec3f>();
 
@@ -235,7 +235,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_rgb(const std::string &title, Node &node)
+   inline bool generateWidget_rgb(const std::string &title, Node &node)
     {
       vec3f v = node.valueAs<vec3f>();
 
@@ -255,7 +255,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_rgba(const std::string &title, Node &node)
+   inline bool generateWidget_rgba(const std::string &title, Node &node)
     {
       vec4f v = node.valueAs<vec4f>();
 
@@ -276,7 +276,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_affine3f(const std::string &title, Node &node)
+   inline bool generateWidget_affine3f(const std::string &title, Node &node)
     {
       affine3f a = node.valueAs<affine3f>();
 
@@ -302,7 +302,7 @@ namespace ospray {
       return false;
     }
 
-    bool generateWidget_string(const std::string &title, Node &node)
+   inline bool generateWidget_string(const std::string &title, Node &node)
     {
       std::string s = node.valueAs<std::string>();
 
@@ -327,7 +327,7 @@ namespace ospray {
 
     // Inlined definitions ////////////////////////////////////////////////////
 
-    GenerateImGuiWidgets::GenerateImGuiWidgets(TreeState state, bool &u)
+    inline GenerateImGuiWidgets::GenerateImGuiWidgets(TreeState state, bool &u)
         : initState(state), updated(u)
     {
     }

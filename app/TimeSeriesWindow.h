@@ -20,11 +20,12 @@
 
 #include "MainWindow.h"
 #include "StateUtils.h"
-#include "../sg/fb/FrameBuffer.h"
-#include "../sg/Frame.h"
-#include "../sg/scene/World.h"
-#include "../sg/renderer/Renderer.h"
-#include "../sg/visitors/PrintNodes.h"
+#include "sg/fb/FrameBuffer.h"
+#include "sg/Frame.h"
+#include "sg/visitors/GenerateImGuiWidgets.h"
+#include "sg/scene/World.h"
+#include "sg/renderer/Renderer.h"
+#include "sg/visitors/PrintNodes.h"
 
 using namespace std;
 
@@ -44,10 +45,6 @@ class TimeSeriesWindow : public MainWindow
   void addTimeseriesUI();
 
   void animateTimesteps();
-
-  bool addPathTracerUI(bool changed = false);
-
-  bool addLightsUI(bool changed = false);
 
   void updateWindowTitle(std::string &updatedTitle);
 
@@ -73,9 +70,6 @@ class TimeSeriesWindow : public MainWindow
   vec3f gridSpacing{-1.f};
 
   int numInstances{1};
-
-  std::string lightTypeStr{"sunSky"};
-  std::string rendererTypeStr{"pathtracer"};
 
   bool setSeparateFramebuffers{false};
 

@@ -147,31 +147,8 @@ void TimeSeriesWindow::mainLoop()
   // set initial timestep
   setTimestep(0);
 
-  g_pathtracerParameters = PathtracerParameters();
-  g_LightParameters      = LightParameters();
-
-  auto &renderer = frame->child("renderer");
-
   this->activeWindow->registerImGuiCallback([&]() {
     addTimeseriesUI();
-
-    bool pathtracerParametersChanged = addPathTracerUI(false);
-
-    bool lightsParametersChanged = addLightsUI(false);
-
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    static int spp = 1;
-
-    if (ImGui::SliderInt("spp", &spp, 1, 32)) {
-      renderer.createChild("spp", "int", spp);
-    }
-
-    if (lightsParametersChanged || pathtracerParametersChanged) {
-      TimeSeriesWindow::resetAccumulation();
-    }
   });
 
   this->activeWindow->registerDisplayCallback(
@@ -190,7 +167,7 @@ void TimeSeriesWindow::updateWindowTitle(std::string &updatedTitle)
 {
   int numTimesteps = g_allWorlds.size();
   std::stringstream windowTitle;
-  windowTitle << "Stellar radiation timestep "
+  windowTitle << "Cloud Demo timestep "
               << g_timeseriesParameters.currentTimestep << " / "
               << numTimesteps - 1;
 
@@ -219,10 +196,12 @@ bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
     std::string switchArg(argv[argIndex++]);
 
     if (switchArg == "-renderer") {
+      // XXX This doesn't play nicely with the whichRenderer int in MainWindow
       rendererTypeStr = argv[argIndex++];
     }
 
     else if (switchArg == "-light") {
+      // XXX This doesn't play nicely with the whichLight int in MainWindow
       lightTypeStr = argv[argIndex++];
     }
 
@@ -435,159 +414,6 @@ void TimeSeriesWindow::animateTimesteps()
       timestepLastChanged = now;
     }
   }
-}
-
-bool TimeSeriesWindow::addPathTracerUI(bool changed)
-{
-  auto frame     = this->activeWindow->getFrame();
-  auto &renderer = frame->child("renderer");
-
-  if (rendererTypeStr == "pathtracer") {
-    if (ImGui::SliderInt(
-            "lightSamples", &g_pathtracerParameters.lightSamples, 1, 32)) {
-      changed = true;
-      renderer.createChild(
-          "lightSamples", "int", g_pathtracerParameters.lightSamples);
-    }
-
-    if (ImGui::SliderInt("roulettePathLength",
-                         &g_pathtracerParameters.roulettePathLength,
-                         1,
-                         32)) {
-      changed = true;
-      renderer.createChild("roulettePathLength",
-                           "int",
-                           g_pathtracerParameters.roulettePathLength);
-    }
-
-    if (ImGui::SliderFloat("maxContribution",
-                           &g_pathtracerParameters.maxContribution,
-                           -1.f,
-                           1.f)) {
-      changed = true;
-      renderer.createChild(
-          "maxContribution", "float", g_pathtracerParameters.maxContribution);
-    }
-  }
-  return changed;
-}
-
-bool TimeSeriesWindow::addLightsUI(bool changed)
-{
-  if (lightTypeStr == "distant") {
-    if (ImGui::SliderFloat("directionalLightIntensity",
-                           &g_LightParameters.directionalLightIntensity,
-                           0.f,
-                           1.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light        = g_allWorlds[i]->child("lights").child("light");
-        light["intensity"] = g_LightParameters.directionalLightIntensity;
-      }
-    }
-    if (ImGui::SliderFloat("directionalLightAngularDiameter",
-                           &g_LightParameters.directionalLightAngularDiameter,
-                           0.f,
-                           180.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light = g_allWorlds[i]->child("lights").child("light");
-        light["angularDiameter"] =
-            g_LightParameters.directionalLightAngularDiameter;
-      }
-    }
-
-    if (ImGui::SliderFloat3("directionalLightDirection",
-                           g_LightParameters.directionalLightDirection,
-                           -1.f,
-                           1.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light = g_allWorlds[i]->child("lights").child("light");
-        light["direction"] =
-            g_LightParameters.directionalLightDirection;
-      }
-    }
-  } else if (lightTypeStr == "sunSky") {
-    if (ImGui::SliderFloat3(
-            "sunSky up vector", g_LightParameters.sunSkyUp, -1.f, 1.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light = g_allWorlds[i]->child("lights").child("light");
-        light["up"] = g_LightParameters.sunSkyUp;
-      }
-    }
-
-    if (ImGui::SliderFloat3(
-            "sunSky direction", g_LightParameters.sunSkyDirection, -1.f, 1.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light        = g_allWorlds[i]->child("lights").child("light");
-        light["direction"] = g_LightParameters.sunSkyDirection;
-      }
-    }
-
-    if (ImGui::SliderFloat3(
-            "sunSky color", g_LightParameters.sunSkyColor, -1.f, 1.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light    = g_allWorlds[i]->child("lights").child("light");
-        light["color"] = g_LightParameters.sunSkyColor;
-      }
-    }
-
-    if (ImGui::SliderFloat(
-            "sunSky albedo", &g_LightParameters.sunSkyAlbedo, 0.f, 1.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light     = g_allWorlds[i]->child("lights").child("light");
-        light["albedo"] = g_LightParameters.sunSkyAlbedo;
-      }
-    }
-
-    if (ImGui::SliderFloat("sunSky turbidity",
-                           &g_LightParameters.sunSkyTurbidity,
-                           0.f,
-                           10.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light        = g_allWorlds[i]->child("lights").child("light");
-        light["turbidity"] = g_LightParameters.sunSkyTurbidity;
-      }
-    }
-
-    if (ImGui::SliderFloat("sunSky intensity",
-                           &g_LightParameters.sunSkyIntensity,
-                           0.f,
-                           1.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light        = g_allWorlds[i]->child("lights").child("light");
-        light["intensity"] = g_LightParameters.sunSkyIntensity;
-      }
-    }
-
-  } else {
-    if (ImGui::SliderFloat(
-            "ambientLightIntensity", &g_LightParameters.ambientLightIntensity, 0.f, 1.f)) {
-      changed = true;
-
-      for (int i = 0; i < g_allWorlds.size(); i++) {
-        auto &light        = g_allWorlds[i]->child("lights").child("light");
-        light["intensity"] = g_LightParameters.ambientLightIntensity;
-      }
-    }
-  }
-  return changed;
 }
 
 void TimeSeriesWindow::setTimestepFb(int timestep)
