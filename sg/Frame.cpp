@@ -26,10 +26,16 @@ namespace ospray::sg {
 
   Frame::Frame()
   {
+    createChild("windowSize", "vec2i", vec2i(1024, 768));
     createChild("framebuffer", "framebuffer");
+    createChild("scaleFB", "float", 1.f);
+    createChild("denoiseFB", "bool", false);
     createChild("camera", "camera_perspective");
     createChild("renderer", "renderer_scivis");
     createChild("world", "world");
+
+    child("windowSize").setReadOnly();
+    child("scaleFB").setReadOnly();
   }
 
   NodeType Frame::type() const
@@ -44,10 +50,7 @@ namespace ospray::sg {
     auto &renderer = childAs<Renderer>("renderer");
     auto &world    = childAs<World>("world");
 
-    if (updateFrameOpsNextFrame) {
-      refreshFrameOperations();
-      updateFrameOpsNextFrame = false;
-    }
+    refreshFrameOperations();
 
     if (this->anyChildModified())
       fb.resetAccumulation();
@@ -116,11 +119,31 @@ namespace ospray::sg {
 
   void Frame::refreshFrameOperations()
   {
-    auto &fb = childAs<FrameBuffer>("framebuffer");
-    fb.updateDenoiser(denoiserEnabled);
+    if (updateFrameOpsNextFrame) {
+      auto &fb = childAs<FrameBuffer>("framebuffer");
+      fb.updateDenoiser(denoiserEnabled);
+      updateFrameOpsNextFrame = false;
+    }
   }
 
-  void Frame::preCommit() {
+  void Frame::preCommit()
+  {
+    // Update frameOps on a change in denoiser value
+    auto newDenoiseValue = child("denoiseFB").valueAs<bool>();
+    updateFrameOpsNextFrame = denoiserEnabled ^ newDenoiseValue;
+    denoiserEnabled = newDenoiseValue;
+
+    // Recreate framebuffers on windowsize or scale changes.
+    auto &fb     = child("framebuffer");
+    auto oldSize = fb["size"].valueAs<vec2i>();
+    auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() *
+                           child("scaleFB").valueAs<float>());
+    if (oldSize != newSize) {
+      fb["size"] = newSize; 
+      // These will override a change to the denoise child state.
+      updateFrameOpsNextFrame = true;
+      denoiserEnabled = false;
+    }
 
     if (hasChild("lights")) {
       auto &lights = childAs<sg::Lights>("lights");

@@ -368,7 +368,6 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
   // trigger window reshape events with current window size
   glfwGetFramebufferSize(glfwWindow, &this->windowSize.x, &this->windowSize.y);
   reshape(this->windowSize);
-  fbSize = this->windowSize;
 }
 
 MainWindow::~MainWindow()
@@ -428,9 +427,8 @@ void MainWindow::mainLoop()
 void MainWindow::reshape(const vec2i &newWindowSize)
 {
   windowSize = newWindowSize;
+  frame->child("windowSize") = windowSize;
 
-  auto &fb   = frame->child("framebuffer");
-  fb["size"] = windowSize;
 
   // reset OpenGL viewport and orthographic projection
   glViewport(0, 0, windowSize.x, windowSize.y);
@@ -630,8 +628,10 @@ void MainWindow::display()
 
   updateTitleBar();
 
-  static bool firstFrame = true;
-  if (firstFrame || (frame->frameIsReady() && fbSize == windowSize)) {
+  auto &frameBuffer = frame->child("framebuffer");
+  fbSize = frameBuffer.child("size").valueAs<vec2i>();
+
+  if (frame->frameIsReady()) {
     // display frame rate in window title
     auto displayEnd = std::chrono::high_resolution_clock::now();
     auto durationMilliseconds =
@@ -640,9 +640,7 @@ void MainWindow::display()
 
     latestFPS = 1000.f / float(durationMilliseconds.count());
 
-    // map OSPRay frame buffer, update OpenGL texture with its contents, then
-    // unmap
-
+    // map OSPRay framebuffer, update OpenGL texture with contents, then unmap
     waitOnOSPRayFrame();
 
     auto *fb =
@@ -654,8 +652,8 @@ void MainWindow::display()
     glTexImage2D(GL_TEXTURE_2D,
                  0,
                  showAlbedo ? gl_rgb_format : gl_rgba_format,
-                 windowSize.x,
-                 windowSize.y,
+                 fbSize.x,
+                 fbSize.y,
                  0,
                  showAlbedo ? GL_RGB : GL_RGBA,
                  glType,
@@ -670,10 +668,6 @@ void MainWindow::display()
 
     // Start new frame and reset frame timing interval start
     displayStart = std::chrono::high_resolution_clock::now();
-    startNewOSPRayFrame();
-    firstFrame = false;
-  } else if (fbSize != windowSize) {
-    waitOnOSPRayFrame();
     startNewOSPRayFrame();
   }
 
@@ -711,7 +705,6 @@ void MainWindow::display()
 void MainWindow::startNewOSPRayFrame()
 {
   frame->startNewFrame();
-  fbSize = windowSize;
 }
 
 void MainWindow::waitOnOSPRayFrame()
@@ -1073,11 +1066,43 @@ void MainWindow::buildMainMenuEdit()
     renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
 
     if (denoiserAvailable) {
-      if (ImGui::Checkbox("denoiser", &frame->denoiserEnabled))
-        frame->updateFrameOpsNextFrame = true;
+      frame->child("denoiseFB").traverse<sg::GenerateImGuiWidgets>();
     }
 
     ImGui::Checkbox("show albedo", &showAlbedo);
+
+    ImGui::Separator();
+    ImGui::Text("frame scaling");
+    frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
+    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+    ImGui::Text("framebuffer");
+    ImGui::SameLine();
+    fb["size"].traverse<sg::GenerateImGuiWidgets>();
+
+    if (ImGui::BeginMenu("Scale Resolution")) {
+      auto scale = frame->child("scaleFB").valueAs<float>();
+      if (ImGui::MenuItem("0.25x")) scale = 0.25f;
+      if (ImGui::MenuItem("0.50x")) scale = 0.5f;
+      if (ImGui::MenuItem("0.75x")) scale = 0.75f;
+
+      ImGui::Separator();
+      if (ImGui::MenuItem("1.00x")) scale = 1.f;
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("1.25x")) scale = 1.25f;
+      if (ImGui::MenuItem("2.00x")) scale = 2.0f;
+      if (ImGui::MenuItem("4.00x")) scale = 4.0f;
+
+      ImGui::Separator();
+      if (ImGui::BeginMenu("custom")) {
+        ImGui::InputFloat("x##fb_scaling", &scale);
+        ImGui::EndMenu();
+      }
+
+      frame->child("scaleFB") = scale;
+
+      ImGui::EndMenu();
+    }
 
     ImGui::Separator();
     ImGui::Text("scene");

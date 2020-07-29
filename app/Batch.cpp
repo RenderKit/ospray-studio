@@ -164,10 +164,8 @@ void BatchContext::render()
   // XXX TODO if optDenoiser == 2, save both the noisy and denoised color
   // buffers.  How best to do that since the frame op will alter the final
   // buffer?
-  if (denoiserAvailable && optDenoiser) {
-    frame.denoiserEnabled         = true;
-    frame.updateFrameOpsNextFrame = true;
-  }
+  if (denoiserAvailable && optDenoiser)
+    frame["denoiseFB"] = true;
   frame.immediatelyWait = true;
   frame.startNewFrame();
 
