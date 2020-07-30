@@ -149,6 +149,7 @@ void TimeSeriesWindow::mainLoop()
 
   this->activeWindow->registerImGuiCallback([&]() {
     addTimeseriesUI();
+    addLightsUI();
   });
 
   this->activeWindow->registerDisplayCallback(
@@ -414,6 +415,23 @@ void TimeSeriesWindow::animateTimesteps()
       timestepLastChanged = now;
     }
   }
+}
+
+void TimeSeriesWindow::addLightsUI()
+{
+  ImGui::Begin("Lights");
+    auto &light0 = g_allWorlds[0]->child("lights").childAs<sg::Light>("light");
+    light0.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+
+    // Make the same changes in all the other worlds
+    if (light0.isModified())
+      for (int i = 1; i < g_allWorlds.size(); i++) {
+        auto &light = g_allWorlds[i]->child("lights").child("light");
+        for(auto &c : light0.children())
+          light[c.first] = light0[c.first].value();
+      }
+
+  ImGui::End();
 }
 
 void TimeSeriesWindow::setTimestepFb(int timestep)

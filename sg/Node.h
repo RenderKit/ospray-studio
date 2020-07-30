@@ -166,6 +166,12 @@ namespace sg {
     template <typename... Args>
     void createChildData(std::string name, Args &&... args);
 
+    // Public method, where anyChildModified is protected
+    inline bool isModified()
+    {
+      return anyChildModified();
+    }
+
     // Traversal interface ////////////////////////////////////////////////////
 
     //! Helper overload to traverse with a default constructed TravesalContext

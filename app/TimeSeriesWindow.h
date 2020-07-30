@@ -43,6 +43,7 @@ class TimeSeriesWindow : public MainWindow
   void mainLoop();
 
   void addTimeseriesUI();
+  void addLightsUI();
 
   void animateTimesteps();
 
@@ -70,6 +71,9 @@ class TimeSeriesWindow : public MainWindow
   vec3f gridSpacing{-1.f};
 
   int numInstances{1};
+
+  std::string lightTypeStr{"sunSky"};
+  std::string rendererTypeStr{"pathtracer"};
 
   bool setSeparateFramebuffers{false};
 
