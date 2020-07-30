@@ -42,25 +42,82 @@ namespace ospray::sg {
     {
     }
 
+    void queueGenerateVolumeData()
+    {
+      if (localLoading) {
+        return;
+      }
+      if (sgVolume) {
+        return;
+      }
+
+        if (!generateVolumeDataTask) {
+          generateVolumeDataTask = std::shared_ptr<tasking::AsyncTask<VDBData>>(
+              new rkcommon::tasking::AsyncTask<VDBData>([=]() {
+                // Load remaining leaves, but use the usage buffer as guidance.
+               std::shared_ptr<ospray::sg::VdbVolume> temp(
+                      new ospray::sg::VdbVolume());
+
+                  return temp->generateVDBData(fs);
+              }));
+        } 
+    }
+
+    void waitGenerateVolumeData()
+    {
+      if (localLoading) {
+        return;
+      }
+      if (sgVolume) {
+        return;
+      }
+
+      if (!generateVolumeDataTask) {
+        queueGenerateVolumeData();
+      }
+
+      generateVolumeDataTask->wait();
+    }
+
     std::shared_ptr<sg::Volume> createSGVolume()
     {
 #if USE_OPENVDB
-      auto vol = std::static_pointer_cast<sg::VdbVolume>(
-          sg::createNode("volume", "volume_vdb"));
-      vol->load(fs);
-      volumeImport = vol;
+      if (!sgVolume) {
+        if (!localLoading && !generateVolumeDataTask) {
+          queueGenerateVolumeData();
+        }
+
+        sgVolume = std::static_pointer_cast<sg::Volume>(
+            createNode("sgVolume_" + to_string(variableNum), "volume_vdb"));
+
+        if (!localLoading) {
+          auto vdbData = generateVolumeDataTask->get();
+          generateVolumeDataTask.reset();
+          sgVolume->createChildData("node.level", vdbData.level);
+          sgVolume->createChildData("node.origin", vdbData.origin);
+          sgVolume->createChildData("node.data", vdbData.data);
+          sgVolume->createChildData("indexToObject", vdbData.bufI2o);
+        } else {
+          sgVolume->nodeAs<sg::VdbVolume>()->load(fs);
+        }
+        fileLoaded = true;
+      }
 #else
       throw std::runtime_error(
           "OpenVDB not enabled in build.  Rebuild Studio, selecting "
           "ENABLE_OPENVDB in cmake.");
-      volumeImport = nullptr;
+      sgVolume = nullptr;
 #endif
-      return volumeImport;
+      return sgVolume;
     }
 
     std::string fs;
-    bool localLoading;
-    std::shared_ptr<sg::Volume> volumeImport;
+    int variableNum{0};
+    bool localLoading{false};
+    bool fileLoaded{false};
+    std::shared_ptr<sg::Volume> sgVolume;
+    std::shared_ptr<rkcommon::tasking::AsyncTask<VDBData>> generateVolumeDataTask;
+
   };
 
 }  // namespace ospray::sg

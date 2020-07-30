@@ -22,6 +22,7 @@
 #include "../../Node.h"
 #include "RawFileStructuredVolume.h"
 #include "Volume.h"
+#include "Structured.h"
 #include "rkcommon/math/vec.h"
 #include "rkcommon/tasking/AsyncTask.h"
 
@@ -49,18 +50,17 @@ namespace ospray::sg {
     {
     }
 
-    void queueGenerateVoxels()
+    void queueGenerateVolumeData()
     {
       if (localLoading) {
         return;
       }
-
       if (sgVolume) {
         return;
       }
 
-      if (!generateVoxelsTask) {
-        generateVoxelsTask =
+      if (!generateVolumeDataTask) {
+        generateVolumeDataTask =
             std::shared_ptr<tasking::AsyncTask<std::vector<float>>>(
                 new tasking::AsyncTask<std::vector<float>>([=]() {
                   std::shared_ptr<ospray::sg::RawFileStructuredVolume> temp(
@@ -72,47 +72,47 @@ namespace ospray::sg {
       }
     }
 
-    void waitGenerateVoxels()
+    void waitGenerateVolumeData()
     {
       if (localLoading) {
         return;
       }
-
       if (sgVolume) {
         return;
       }
 
-      if (!generateVoxelsTask) {
-        queueGenerateVoxels();
+      if (!generateVolumeDataTask) {
+        queueGenerateVolumeData();
       }
 
-      generateVoxelsTask->wait();
+      generateVolumeDataTask->wait();
     }
 
     std::shared_ptr<sg::Volume> createSGVolume()
     {
       if (!sgVolume) {
-        if (!localLoading && !generateVoxelsTask) {
-          queueGenerateVoxels();
+        if (!generateVolumeDataTask) {
+          queueGenerateVolumeData();
         }
 
         sgVolume = std::static_pointer_cast<sg::Volume>(
-            createNode("sgVolume", "structuredRegular"));
+            createNode("sgVolume_" + to_string(variableNum), "structuredRegular"));
 
         if (!localLoading) {
           std::vector<float> voxels(dimensions.long_product());
-          voxels = generateVoxelsTask->get();
-          generateVoxelsTask.reset();
+          voxels = generateVolumeDataTask->get();
+          generateVolumeDataTask.reset();
           sgVolume->createChildData("data", dimensions, 0, voxels.data());
         } else {
-          // address filename param on sg::Volume
-          sgVolume->createChild("filename", "string", filename.c_str());
+          sgVolume->nodeAs<sg::StructuredVolume>()->load(filename);
         }
 
         sgVolume->createChild("dimensions", "vec3i", dimensions);
         sgVolume->createChild("gridOrigin", "vec3f", gridOrigin);
         sgVolume->createChild("gridSpacing", "vec3f", gridSpacing);
         sgVolume->createChild("voxelType", "int", voxelType);
+
+        fileLoaded = true;
       }
 
       return sgVolume;
@@ -125,9 +125,10 @@ namespace ospray::sg {
     vec3f gridSpacing;
 
     bool fileLoaded{false};
-    bool localLoading = false;
+    bool localLoading{false};
+    int variableNum{0};
 
-    std::shared_ptr<tasking::AsyncTask<std::vector<float>>> generateVoxelsTask;
+    std::shared_ptr<tasking::AsyncTask<std::vector<float>>> generateVolumeDataTask;
 
     std::shared_ptr<sg::Volume> sgVolume;
   };

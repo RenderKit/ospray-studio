@@ -53,6 +53,23 @@ TimeSeriesWindow::TimeSeriesWindow()
 
 TimeSeriesWindow::~TimeSeriesWindow() {}
 
+bool TimeSeriesWindow::isTimestepVolumeLoaded(int variableNum, int timestep)
+{
+  bool loaded = true;
+
+  for (int v = 0; v < allVariablesData[variableNum].size(); v++) {
+    if (timestep >= allVariablesData[variableNum].size()) {
+      throw std::runtime_error("out of bounds timestep selected");
+    }
+
+    if (!g_allWorlds[timestep]->hasChild("sgVolume_" + to_string(variableNum))) {
+      loaded = false;
+    }
+  }
+
+  return loaded;
+}
+
 void TimeSeriesWindow::mainLoop()
 {
   // generate timeseries data  and create necessary SG objects here.
@@ -98,18 +115,29 @@ void TimeSeriesWindow::mainLoop()
   // pre generate volumes/data for every timestep/world
   for (int i = 0; i < allVariablesData.size(); i++) {
     for (int f = 0; f < allVariablesData[i].size(); f++) {
+
       std::shared_ptr<sg::Volume> vol;
+
       if (allVariablesData[i][f].length() > 4 &&
           allVariablesData[i][f].substr(allVariablesData[i][f].length() - 4) ==
               ".vdb") {
+
         auto vdbVolumeTimestep = VDBVolumeTimestep(allVariablesData[i][f]);
         vdbVolumeTimestep.localLoading = g_localLoading;
-        vol = vdbVolumeTimestep.createSGVolume();
+        vdbVolumeTimestep.variableNum  = i;
+
+        if (!g_localLoading && !isTimestepVolumeLoaded(i, f)) {
+          vdbVolumeTimestep.queueGenerateVolumeData();
+          vdbVolumeTimestep.waitGenerateVolumeData();
+        }
+
+        vol                            = vdbVolumeTimestep.createSGVolume();
+
       } else {
 
         if (dimensions.x == -1 || gridSpacing.x == -1) {
         throw std::runtime_error("improper dimensions or grid spacing specified for volume");
-      } 
+        } 
       if (voxelType == 0)
         throw std::runtime_error("improper voxelType specified for volume");
 
@@ -119,7 +147,14 @@ void TimeSeriesWindow::mainLoop()
                                              gridOrigin,
                                              gridSpacing);
         volumeTimestep.localLoading = g_localLoading;
-        vol = volumeTimestep.createSGVolume();
+        volumeTimestep.variableNum  = i;
+       
+        if (!g_localLoading && !isTimestepVolumeLoaded(i, f)) {
+          volumeTimestep.queueGenerateVolumeData();
+          volumeTimestep.waitGenerateVolumeData();
+        }
+
+        vol                         = volumeTimestep.createSGVolume();
       }
 
       auto tfn = std::static_pointer_cast<sg::TransferFunction>(
@@ -456,21 +491,6 @@ void TimeSeriesWindow::resetAccumulation()
     framebuffer.resetAccumulation();
     framebufferLastReset[currentTimestep] = framebufferResetRequired;
   }
-}
-
-bool TimeSeriesWindow::isTimestepLoaded(int timestep)
-{
-  bool loaded = true;
-
-  if (timestep >= g_allWorlds.size()) {
-    throw std::runtime_error("out of bounds timestep selected");
-
-    if (!g_allWorlds[timestep]->hasChildren()) {
-      loaded = false;
-    }
-  }
-
-  return loaded;
 }
 
 void TimeSeriesWindow::setTimestep(int timestep)

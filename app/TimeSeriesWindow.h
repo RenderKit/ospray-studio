@@ -52,7 +52,6 @@ class TimeSeriesWindow : public MainWindow
 
   void resetAccumulation();
 
-  bool isTimestepLoaded(int timestep);
   void setTimestep(int timestep);
 
   void printHelp();
@@ -94,12 +93,15 @@ class TimeSeriesWindow : public MainWindow
 
   TimeseriesParameters g_timeseriesParameters;
 
+  bool isTimestepVolumeLoaded(int variableNum, int timestep);
+
  protected:
   float framebufferScale = 1.f;
   vec2i framebufferSize;
 
   int currentTimestep = 0;
-  std::unordered_map<int, std::shared_ptr<sg::FrameBuffer>> framebuffersPerTimestep;
+  std::unordered_map<int, std::shared_ptr<sg::FrameBuffer>>
+      framebuffersPerTimestep;
 
   // last time at which reset accumulation was required
   rkcommon::utility::TimeStamp framebufferResetRequired;
@@ -120,6 +122,6 @@ class TimeSeriesWindow : public MainWindow
 
   sg::LightParameters g_LightParameters;
 
-  bool g_localLoading;
+  bool g_localLoading{false};
   bool g_lowResMode;
 };

@@ -131,6 +131,21 @@ namespace ospray::sg {
   void VdbVolume::load(const FileName &fileNameAbs)
   {
 #if USE_OPENVDB
+    auto vdbData = generateVDBData(fileNameAbs);
+
+    createChildData("node.level", vdbData.level);
+    createChildData("node.origin", vdbData.origin);
+    createChildData("node.data", vdbData.data);
+    createChildData("indexToObject", vdbData.bufI2o);
+
+    fileLoaded = true;
+
+#endif  // USE_OPENVDB
+  }
+
+  VDBData VdbVolume::generateVDBData(const FileName &fileNameAbs)
+  {
+    VDBData vdbData;
     if (!fileLoaded) {
       openvdb::initialize();  // Must initialize first! It's ok to do this
                               // multiple times.
@@ -163,45 +178,38 @@ namespace ospray::sg {
       // Transpose; OpenVDB stores column major (and a full 4x4 matrix).
       const auto &ri2o = indexToObject->getAffineMap()->getMat4();
       const auto *i2o  = ri2o.asPointer();
-      std::vector<float> bufI2o = {static_cast<float>(i2o[0]),
-                                   static_cast<float>(i2o[4]),
-                                   static_cast<float>(i2o[8]),
-                                   static_cast<float>(i2o[1]),
-                                   static_cast<float>(i2o[5]),
-                                   static_cast<float>(i2o[9]),
-                                   static_cast<float>(i2o[2]),
-                                   static_cast<float>(i2o[6]),
-                                   static_cast<float>(i2o[10]),
-                                   static_cast<float>(i2o[12]),
-                                   static_cast<float>(i2o[13]),
-                                   static_cast<float>(i2o[14])};
-      createChildData("indexToObject", bufI2o);
 
       // Preallocate buffers!
       const size_t numTiles  = vdb->tree().activeTileCount();
       const size_t numLeaves = vdb->tree().leafCount();
       const size_t numNodes  = numTiles + numLeaves;
 
-      std::vector<uint32_t> level;
-      std::vector<vec3i> origin;
-      std::vector<cpp::SharedData> data;
-      level.reserve(numNodes);
-      origin.reserve(numNodes);
-      data.reserve(numNodes);
       tiles.reserve(numTiles);
+
+      vdbData.level.reserve(numNodes);
+      vdbData.origin.reserve(numNodes);
+      vdbData.data.reserve(numNodes);
 
       const auto &root = vdb->tree().root();
       for (auto it = root.cbeginChildOn(); it; ++it)
         Builder<openvdb::FloatTree::RootNodeType::ChildNodeType>::visit(
-            *it, tiles, level, origin, data);
+            *it, tiles, vdbData.level, vdbData.origin, vdbData.data);
 
-      createChildData("node.level", level);
-      createChildData("node.origin", origin);
-      createChildData("node.data", data);
-      fileLoaded = true;
+      vdbData.bufI2o = {static_cast<float>(i2o[0]),
+                        static_cast<float>(i2o[4]),
+                        static_cast<float>(i2o[8]),
+                        static_cast<float>(i2o[1]),
+                        static_cast<float>(i2o[5]),
+                        static_cast<float>(i2o[9]),
+                        static_cast<float>(i2o[2]),
+                        static_cast<float>(i2o[6]),
+                        static_cast<float>(i2o[10]),
+                        static_cast<float>(i2o[12]),
+                        static_cast<float>(i2o[13]),
+                        static_cast<float>(i2o[14])};
     }
-#endif  // USE_OPENVDB
+    return vdbData;
   }
 
-  OSP_REGISTER_SG_NODE_NAME(VdbVolume, volume_vdb);
-}  // namespace ospray::sg
+    OSP_REGISTER_SG_NODE_NAME(VdbVolume, volume_vdb);
+  }  // namespace ospray::sg
