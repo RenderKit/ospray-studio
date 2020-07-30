@@ -21,9 +21,10 @@ namespace ospray::sg {
 
   FrameBuffer::FrameBuffer()
   {
+    createChild("allowDenoising", "bool", false);
     createChild("size", "vec2i", vec2i(1024, 768));
     child("size").setReadOnly();
-    createChild("colorFormat", "string", std::string("float"));
+    createChild("colorFormat", "string", std::string("RGBA8"));
 
     updateHandle();
   }
@@ -55,15 +56,24 @@ namespace ospray::sg {
 
   void FrameBuffer::updateHandle()
   {
+    auto channels = OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE;
+    auto allowDenoising = child("allowDenoising").valueAs<bool>();
+
+    if (allowDenoising) {
+      child("colorFormat") = std::string("float");
+      channels = (OSPFrameBufferChannel)(channels | OSP_FB_ALBEDO |
+                                         OSP_FB_DEPTH | OSP_FB_NORMAL);
+    } else {
+      child("colorFormat") = std::string("RGBA8");
+    }
+
     auto size           = child("size").valueAs<vec2i>();
     auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
-    auto fb =
-        cpp::FrameBuffer(size.x,
-                         size.y,
-                         colorFormats[colorFormatStr],
-                         OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_ALBEDO |
-                             OSP_FB_VARIANCE | OSP_FB_DEPTH | OSP_FB_NORMAL);
+    auto fb = cpp::FrameBuffer(size.x,
+                               size.y,
+                               colorFormats[colorFormatStr],
+                               channels);
 
     setHandle(fb);
   }
@@ -71,8 +81,10 @@ namespace ospray::sg {
   void FrameBuffer::updateDenoiser(bool enabled)
   {
     // Denoiser requires float color buffer.
-    auto colorFormatStr = child("colorFormat").valueAs<std::string>();
-    if (enabled && colorFormatStr == "float") {
+    if (!hasFloatFormat())
+      return;
+
+    if (enabled) {
       cpp::ImageOperation d("denoiser");
       handle().setParam("imageOperation", cpp::CopiedData(d));
     } else {
@@ -89,7 +101,7 @@ namespace ospray::sg {
                 << std::endl;
       return;
     }
-    auto &exp = createChildAs<ImageExporter>("exporter", exporter);
+    auto &exp   = createChildAs<ImageExporter>("exporter", exporter);
     exp["file"] = filename;
 
     auto fb    = map(OSP_FB_COLOR);
@@ -101,10 +113,10 @@ namespace ospray::sg {
 
     exp.setImageData(fb, size, fmt);
 
-    bool albedo = flags & 0b1;
-    bool depth = flags & 0b10;
-    bool normal = flags & 0b100;
-    bool asLayers = flags & 0b1000;
+    bool albedo    = flags & 0b1;
+    bool depth     = flags & 0b10;
+    bool normal    = flags & 0b100;
+    bool asLayers  = flags & 0b1000;
     size_t npixels = size.long_product();
 
     if (albedo) {

@@ -35,6 +35,11 @@ namespace ospray::sg {
     void updateDenoiser(bool enabled);
     void saveFrame(std::string filename, int flags);
 
+    inline bool hasFloatFormat()
+    {
+      return (child("colorFormat").valueAs<std::string>() == "float");
+    }
+
    private:
     void postCommit() override;
 

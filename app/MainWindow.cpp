@@ -628,7 +628,7 @@ void MainWindow::display()
 
   updateTitleBar();
 
-  auto &frameBuffer = frame->child("framebuffer");
+  auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
   fbSize = frameBuffer.child("size").valueAs<vec2i>();
 
   if (frame->frameIsReady()) {
@@ -647,7 +647,9 @@ void MainWindow::display()
         (void *)frame->mapFrame(showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR);
 
     // This needs to query the actual framebuffer format
-    const GLenum glType = GL_FLOAT;  // required for denoiser
+    const GLenum glType = frameBuffer.hasFloatFormat()
+                        ? GL_FLOAT : GL_UNSIGNED_BYTE;
+
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
@@ -1067,16 +1069,23 @@ void MainWindow::buildMainMenuEdit()
     if (renderer.isModified())
       frame->cancelFrame();
 
+    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
     if (denoiserAvailable) {
-      frame->child("denoiseFB").traverse<sg::GenerateImGuiWidgets>();
+      if (fb["allowDenoising"].valueAs<bool>())
+        frame->child("denoiseFB").traverse<sg::GenerateImGuiWidgets>();
+      else
+        ImGui::Text("- Check that FrameBuffer allowDenoising is enabled");
     }
 
     ImGui::Checkbox("show albedo", &showAlbedo);
 
     ImGui::Separator();
+    // Expose entire framebuffer options
+    fb.traverse<sg::GenerateImGuiWidgets>();
+
+    ImGui::Separator();
     ImGui::Text("frame scaling");
     frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
     ImGui::Text("framebuffer");
     ImGui::SameLine();
     fb["size"].traverse<sg::GenerateImGuiWidgets>();
