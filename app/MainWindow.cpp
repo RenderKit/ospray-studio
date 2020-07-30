@@ -1051,7 +1051,7 @@ void MainWindow::buildMainMenuEdit()
       refreshRenderer();
     }
 
-    auto &renderer = frame->child("renderer");
+    auto &renderer = frame->childAs<sg::Renderer>("renderer");
 
     if (rendererType == OSPRayRendererType::DEBUGGER) {
       if (ImGui::Combo("debug type##whichDebugType",
@@ -1064,6 +1064,8 @@ void MainWindow::buildMainMenuEdit()
     }
 
     renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+    if (renderer.isModified())
+      frame->cancelFrame();
 
     if (denoiserAvailable) {
       frame->child("denoiseFB").traverse<sg::GenerateImGuiWidgets>();
@@ -1081,6 +1083,7 @@ void MainWindow::buildMainMenuEdit()
 
     if (ImGui::BeginMenu("Scale Resolution")) {
       auto scale = frame->child("scaleFB").valueAs<float>();
+      auto oldScale = scale;
       if (ImGui::MenuItem("0.25x")) scale = 0.25f;
       if (ImGui::MenuItem("0.50x")) scale = 0.5f;
       if (ImGui::MenuItem("0.75x")) scale = 0.75f;
@@ -1099,7 +1102,10 @@ void MainWindow::buildMainMenuEdit()
         ImGui::EndMenu();
       }
 
-      frame->child("scaleFB") = scale;
+      if (oldScale != scale) {
+        frame->cancelFrame();
+        frame->child("scaleFB") = scale;
+      }
 
       ImGui::EndMenu();
     }

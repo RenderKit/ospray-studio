@@ -29,6 +29,11 @@ namespace ospray::sg {
 
     NodeType type() const override;
 
+    inline bool isModified()
+    {
+      return this->anyChildModified();
+    }
+
     void preCommit() override;
     void postCommit() override;
   };
