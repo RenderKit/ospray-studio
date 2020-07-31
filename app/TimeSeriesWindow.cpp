@@ -79,8 +79,9 @@ void TimeSeriesWindow::mainLoop()
   auto frame = this->activeWindow->getFrame();
   frame->immediatelyWait = true;
 
-  // set renderer 
-  frame->createChild("renderer", "renderer_" + rendererTypeStr);
+  this->activeWindow->timeseriesMode = true;
+  this->activeWindow->rendererTypeStr = rendererTypeStr;
+  this->activeWindow->refreshRenderer();
 
   // generate one world per timestep
   for (int i = 0; i < allVariablesData[0].size(); i++) {
@@ -160,7 +161,6 @@ void TimeSeriesWindow::mainLoop()
   //         MainWindow *, int key, int scancode, int action, int
   //         mods)> keyCallback);
 
-  this->activeWindow->timeseriesMode = true;
   this->activeWindow->mainLoop();
 }
 

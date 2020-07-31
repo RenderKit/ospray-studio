@@ -907,7 +907,8 @@ void MainWindow::buildMainMenuEdit()
 
     ImGui::Text("general");
 
-    static int whichRenderer     = 0;
+    int whichRenderer = find(g_renderers.begin(), g_renderers.end(), rendererTypeStr) - g_renderers.begin();
+
     static int whichDebuggerType = 0;
     if (ImGui::Combo("renderer##whichRenderer",
                      &whichRenderer,
@@ -917,7 +918,8 @@ void MainWindow::buildMainMenuEdit()
       rendererTypeStr = g_renderers[whichRenderer];
 
       if (rendererType == OSPRayRendererType::DEBUGGER)
-        whichDebuggerType = 0;  // reset UI if switching away from debug renderer
+        whichDebuggerType = 0;  // reset UI if switching away
+                                // from debug renderer
 
       if (rendererTypeStr == "scivis")
         rendererType = OSPRayRendererType::SCIVIS;

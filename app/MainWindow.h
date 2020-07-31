@@ -90,6 +90,9 @@ class MainWindow
 
   // Arcball camera instance
   std::unique_ptr<ArcballCamera> arcballCamera;
+  std::string rendererTypeStr{"scivis"};
+
+  void refreshRenderer();
 
   void updateCamera();
 
@@ -102,7 +105,6 @@ class MainWindow
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
   void buildUI();
-  void refreshRenderer();
   void refreshScene(bool resetCamera);
   void refreshMaterialRegistry();
   void addLight();
@@ -153,7 +155,6 @@ class MainWindow
   std::vector<std::string> filesToImport;
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
-  std::string rendererTypeStr{"scivis"};
   std::string lightTypeStr{"ambient"};
   int defaultMaterialIdx = 0;
   bool useImportedTex = false;
