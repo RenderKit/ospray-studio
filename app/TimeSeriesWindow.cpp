@@ -61,7 +61,7 @@ void TimeSeriesWindow::mainLoop()
     throw std::runtime_error("no data provided!");
   }
 
-  if (rendererTypeStr == "scivis" && lightTypeStr == "distant") {
+  if (rendererTypeStr == "scivis" && lightTypeStr != "ambient") {
     throw std::runtime_error("wrong renderer and light type combination");
   }
 
@@ -83,16 +83,16 @@ void TimeSeriesWindow::mainLoop()
   this->activeWindow->rendererTypeStr = rendererTypeStr;
   this->activeWindow->refreshRenderer();
 
+  auto &lightMan = frame->createChildAs<sg::Lights>("lights", "lights");
+  lightMan.addLight(lightTypeStr, lightTypeStr);
+  this->activeWindow->lightTypeStr = lightTypeStr;
+  lightMan.removeLight("ambient");
+
   // generate one world per timestep
   for (int i = 0; i < allVariablesData[0].size(); i++) {
     auto world = std::static_pointer_cast<ospray::sg::World>(
         createNode("world", "world"));
     g_allWorlds.push_back(world);
-    if (rendererTypeStr == "pathtracer") {
-      auto &lights = world->childAs<sg::Lights>("lights");
-      lights.removeLight("ambient");
-      lights.addLight("light", lightTypeStr);
-    }
   }
 
   // pre generate volumes/data for every timestep/world
@@ -150,7 +150,6 @@ void TimeSeriesWindow::mainLoop()
 
   this->activeWindow->registerImGuiCallback([&]() {
     addTimeseriesUI();
-    addLightsUI();
   });
 
   this->activeWindow->registerDisplayCallback(
@@ -415,23 +414,6 @@ void TimeSeriesWindow::animateTimesteps()
       timestepLastChanged = now;
     }
   }
-}
-
-void TimeSeriesWindow::addLightsUI()
-{
-  ImGui::Begin("Lights");
-    auto &light0 = g_allWorlds[0]->child("lights").childAs<sg::Light>("light");
-    light0.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-
-    // Make the same changes in all the other worlds
-    if (light0.isModified())
-      for (int i = 1; i < g_allWorlds.size(); i++) {
-        auto &light = g_allWorlds[i]->child("lights").child("light");
-        for(auto &c : light0.children())
-          light[c.first] = light0[c.first].value();
-      }
-
-  ImGui::End();
 }
 
 void TimeSeriesWindow::setTimestepFb(int timestep)

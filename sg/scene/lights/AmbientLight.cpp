@@ -31,6 +31,7 @@ namespace ospray::sg {
   AmbientLight::AmbientLight() : Light("ambient")
   {
     child("intensity").setMinMax(0.f, 1.f);
+    child("visible").setValue(false);
   }
 
 }  // namespace ospray::sg

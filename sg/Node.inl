@@ -48,6 +48,12 @@ namespace ospray::sg {
     return *child(name).nodeAs<NODE_T>();
   }
 
+  template <typename NODE_T>
+  std::shared_ptr<NODE_T> Node::childNodeAs(const std::string &name)
+  {
+    return child(name).nodeAs<NODE_T>();
+  }
+
   template <typename T>
   inline void Node::setValue(T _val)
   {

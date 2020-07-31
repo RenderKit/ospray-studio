@@ -1102,11 +1102,17 @@ void MainWindow::buildWindowLightEditor()
     ImGui::End();
     return;
   }
+  
+  ospray::sg::NodePtr lightMan;
 
-  static int whichLightType = -1;
-  auto &world    = frame->child("world");
-  auto &lightMan = world.childAs<sg::Lights>("lights");
-  auto &lights   = lightMan.children();
+  if (frame->hasChild("lights")) {
+    lightMan = frame->childNodeAs<sg::Lights>("lights");
+  } else {
+    auto &world = frame->child("world");
+    lightMan = world.childNodeAs<sg::Lights>("lights");
+  }
+
+  auto &lights   = lightMan->children();
   static int whichLight = -1;
   static std::string selectedLight;
 
@@ -1124,7 +1130,7 @@ void MainWindow::buildWindowLightEditor()
 
     if (whichLight != -1) {
       ImGui::Text("edit");
-      lightMan.child(selectedLight)
+      lightMan->child(selectedLight)
           .traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
     }
   }
@@ -1132,7 +1138,7 @@ void MainWindow::buildWindowLightEditor()
   if (lights.size() > 1) {
     if (ImGui::Button("remove")) {
       if (whichLight != -1) {
-        lightMan.removeLight(selectedLight);
+        lightMan->nodeAs<sg::Lights>()->removeLight(selectedLight);
         whichLight    = std::max(0, whichLight - 1);
         selectedLight = (*(lights.begin() + whichLight)).first;
       }
@@ -1160,10 +1166,10 @@ void MainWindow::buildWindowLightEditor()
     if (whichLightType > -1 && whichLightType < g_lightTypes.size()) {
       std::string lightType = g_lightTypes[whichLightType];
 
-      if (lightMan.addLight(lightName, lightType)) {
+      if (lightMan->nodeAs<sg::Lights>()->addLight(lightName, lightType)) {
         // actually load the texture if add was successful
         if (lightType == "hdri") {
-          auto &hdri = lightMan.child(lightName);
+          auto &hdri = lightMan->child(lightName);
           const char *file = tinyfd_openFileDialog(
               "Import an HDRI texture from a file", "", 0, nullptr, nullptr, 0);
 
@@ -1175,7 +1181,8 @@ void MainWindow::buildWindowLightEditor()
           } else {
             // the user probably hit cancel in the dialog, or bad file
             lightTexWarning = true;
-            lightMan.removeLight(lightName);
+            // auto lightsman  = *lightMan;
+            lightMan->nodeAs<sg::Lights>()->removeLight(lightName);
           }
         }
       } else {

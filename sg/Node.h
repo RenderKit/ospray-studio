@@ -136,6 +136,9 @@ namespace sg {
     template <typename NODE_T>
     NODE_T &childAs(const std::string &name);
 
+    template <typename NODE_T>
+    std::shared_ptr<NODE_T> childNodeAs(const std::string &name);
+
     // Parents //
 
     const std::vector<Node *> &parents() const;

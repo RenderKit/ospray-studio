@@ -43,7 +43,6 @@ class TimeSeriesWindow : public MainWindow
   void mainLoop();
 
   void addTimeseriesUI();
-  void addLightsUI();
 
   void animateTimesteps();
 

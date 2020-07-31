@@ -20,6 +20,7 @@
 #include "sg/fb/FrameBuffer.h"
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/World.h"
+#include "sg/scene/lights/Lights.h"
 
 namespace ospray::sg {
 
@@ -119,9 +120,26 @@ namespace ospray::sg {
     fb.updateDenoiser(denoiserEnabled);
   }
 
-  void Frame::preCommit() {}
+  void Frame::preCommit() {
 
-  void Frame::postCommit() {}
+    if (hasChild("lights")) {
+      auto &lights = childAs<sg::Lights>("lights");
+      std::vector<cpp::Light> lightObjects;
+
+      for (auto &name : lights.lightNames) {
+        auto &l = lights.child(name).valueAs<cpp::Light>();
+        lightObjects.push_back(l);
+      }
+      auto &ospWorld = childAs<World>("world").valueAs<cpp::World>();
+
+      ospWorld.setParam("light", cpp::CopiedData(lightObjects));
+    }
+  }
+
+  void Frame::postCommit() {
+    auto ospWorld = childAs<World>("world").valueAs<cpp::World>();
+    ospWorld.commit();
+  }
 
   OSP_REGISTER_SG_NODE_NAME(Frame, frame);
 

@@ -95,6 +95,8 @@ class MainWindow
   void refreshRenderer();
 
   void updateCamera();
+  int whichLightType{-1};
+  std::string lightTypeStr{"ambient"};
 
  protected:
   void buildPanel();
@@ -155,7 +157,7 @@ class MainWindow
   std::vector<std::string> filesToImport;
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
-  std::string lightTypeStr{"ambient"};
+
   int defaultMaterialIdx = 0;
   bool useImportedTex = false;
 
