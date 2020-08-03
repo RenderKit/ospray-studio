@@ -50,14 +50,27 @@
 #include "tinyfiledialogs.h"
 // cerealization
 #include <cereal/archives/json.hpp>
+#include <cereal/types/vector.hpp>
 #include <cereal/types/memory.hpp>
 #include <queue>
+#include <fstream>
+
+static std::vector<std::string> g_cameraStack;
 
 // GUI mode entry point
 void start_GUI_mode(int argc, const char *argv[])
 {
   std::cerr << "GUI mode\n";
 
+  std::ifstream cams("cams.json");
+  if (cams)
+  {
+    std::cerr << "TRYING TO READ" << std::endl;
+    cereal::JSONInputArchive iarchive(cams);
+    iarchive(g_cameraStack);
+  } else {
+    std::cerr << "NONE " << std::endl;
+  }
   bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
 
   auto window = make_unique<MainWindow>(vec2i(1024, 768), denoiser);
@@ -73,7 +86,6 @@ static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
 
-static std::vector<std::string> g_cameraStack;
 
 static const std::vector<std::string> g_scenes = {"empty",
                                                   "multilevel_hierarchy",
@@ -965,7 +977,7 @@ void MainWindow::pushLookMark()
   std::stringstream ss;
   cereal::JSONOutputArchive oarchive(ss);
   oarchive(arcballCamera->getState());
-  ss << "}";
+  ss << "}"; //TODO: it doesn't seem like this should be necessary but it is
   g_cameraStack.push_back(ss.str());
 }
 
@@ -1249,6 +1261,18 @@ void MainWindow::buildWindowSnapshots()
           waitOnOSPRayFrame();
         }
         updateCamera();
+    }
+  }
+  if (g_cameraStack.size())
+  {
+    if (ImGui::Button("save to cams.json")) {
+      std::cerr << "SAVING CAMS" << std::endl;
+      std::ofstream cams("cams.json");
+      if (cams)
+      {
+        cereal::JSONOutputArchive oarchive(cams);
+        oarchive(g_cameraStack);
+      }
     }
   }
   ImGui::End();
