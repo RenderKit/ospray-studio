@@ -73,7 +73,7 @@ static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
 
-static std::stack<std::string> g_cameraStack;
+static std::vector<std::string> g_cameraStack;
 
 static const std::vector<std::string> g_scenes = {"empty",
                                                   "multilevel_hierarchy",
@@ -966,23 +966,20 @@ void MainWindow::pushLookMark()
   cereal::JSONOutputArchive oarchive(ss);
   oarchive(arcballCamera->getState());
   ss << "}";
-  g_cameraStack.push(ss.str());
-  std::cerr << g_cameraStack.size() << std::endl;
+  g_cameraStack.push_back(ss.str());
 }
 
 void MainWindow::popLookMark()
 {
   if (g_cameraStack.empty())
     return;
-  std::string camNext = g_cameraStack.top();
-  std::cerr << g_cameraStack.size() << " " << camNext << std::endl;
-  g_cameraStack.pop();
+  std::string camNext = g_cameraStack.back();
+  g_cameraStack.pop_back();
   std::stringstream ss;
   ss << camNext;
   cereal::JSONInputArchive iarchive(ss);
   CameraState cs;
   iarchive(cs);
-  std::cerr << to_string(cs) << std::endl;
   arcballCamera->setState(cs);
   if (cancelFrameOnInteraction) {
     frame->cancelFrame();
@@ -1149,6 +1146,8 @@ void MainWindow::buildMainMenuView()
       g_saveNextFrame = true;
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
       showKeyframes = true;
+    if (ImGui::MenuItem("Snapshots...", "", nullptr))
+      showSnapshots = true;
     if (ImGui::MenuItem("Geometry...", "", nullptr))
       showGeometryViewer = true;
     ImGui::EndMenu();
@@ -1167,6 +1166,8 @@ void MainWindow::buildWindows()
     buildWindowMaterialEditor();
   if (showGeometryViewer)
     buildWindowGeometryViewer();
+  if (showSnapshots)
+    buildWindowSnapshots();
 }
 
 void MainWindow::buildWindowKeyframes()
@@ -1222,6 +1223,33 @@ void MainWindow::buildWindowKeyframes()
       }
     }
     ImGui::ListBoxFooter();
+  }
+  ImGui::End();
+}
+
+void MainWindow::buildWindowSnapshots()
+{
+  if (!ImGui::Begin("Camera snap shots", &showSnapshots, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+  ImGui::Text("+ key to add new snapshots");
+  for (int s=0; s < g_cameraStack.size(); s++)
+  {
+    if (ImGui::Button(std::to_string(s).c_str())) {
+        std::string camNext = g_cameraStack.at(s);
+        std::stringstream ss;
+        ss << camNext;
+        cereal::JSONInputArchive iarchive(ss);
+        CameraState cs;
+        iarchive(cs);
+        arcballCamera->setState(cs);
+        if (cancelFrameOnInteraction) {
+          frame->cancelFrame();
+          waitOnOSPRayFrame();
+        }
+        updateCamera();
+    }
   }
   ImGui::End();
 }

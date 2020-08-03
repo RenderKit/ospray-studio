@@ -130,12 +130,14 @@ class MainWindow
   void buildWindows();
   void buildWindowPreferences();
   void buildWindowKeyframes();
+  void buildWindowSnapshots();
   void buildWindowLightEditor();
   void buildWindowMaterialEditor();
   void buildWindowGeometryViewer();
 
   // imgui window visibility toggles
   bool showKeyframes{false};
+  bool showSnapshots{false};
   bool showLightEditor{false};
   bool showMaterialEditor{false};
   bool showGeometryViewer{false};
