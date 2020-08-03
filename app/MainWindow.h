@@ -98,6 +98,7 @@ class MainWindow
   int whichLightType{-1};
   std::string lightTypeStr{"ambient"};
 
+
  protected:
   void buildPanel();
   void reshape(const vec2i &newWindowSize);
@@ -117,6 +118,9 @@ class MainWindow
   bool importVolume(std::shared_ptr<sg::Node> &world);
   void saveCurrentFrame();
   void pickCenterOfRotation(float x, float y);
+  void pushLookMark();
+  void popLookMark();
+
 
   // menu and window UI
   void buildMainMenu();

@@ -48,6 +48,10 @@
 #include "sg/scene/volume/Structured.h"
 #include "sg/scene/volume/Vdb.h"
 #include "tinyfiledialogs.h"
+// cerealization
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <queue>
 
 // GUI mode entry point
 void start_GUI_mode(int argc, const char *argv[])
@@ -68,6 +72,8 @@ static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
+
+static std::stack<std::string> g_cameraStack;
 
 static const std::vector<std::string> g_scenes = {"empty",
                                                   "multilevel_hierarchy",
@@ -272,6 +278,12 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
                 if (g_animatingPath) {
                     g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
                 }
+                break;
+            case GLFW_KEY_EQUAL:
+                activeWindow->pushLookMark();
+                break;
+            case GLFW_KEY_MINUS:
+                activeWindow->popLookMark();
                 break;
             }
           }
@@ -946,6 +958,37 @@ void MainWindow::saveCurrentFrame()
   int screenshotFlags = screenshotLayers << 3 | screenshotNormal << 2 |
                         screenshotDepth << 1 | screenshotAlbedo;
   frame->saveFrame(filename, screenshotFlags);
+}
+
+void MainWindow::pushLookMark()
+{
+  std::stringstream ss;
+  cereal::JSONOutputArchive oarchive(ss);
+  oarchive(arcballCamera->getState());
+  ss << "}";
+  g_cameraStack.push(ss.str());
+  std::cerr << g_cameraStack.size() << std::endl;
+}
+
+void MainWindow::popLookMark()
+{
+  if (g_cameraStack.empty())
+    return;
+  std::string camNext = g_cameraStack.top();
+  std::cerr << g_cameraStack.size() << " " << camNext << std::endl;
+  g_cameraStack.pop();
+  std::stringstream ss;
+  ss << camNext;
+  cereal::JSONInputArchive iarchive(ss);
+  CameraState cs;
+  iarchive(cs);
+  std::cerr << to_string(cs) << std::endl;
+  arcballCamera->setState(cs);
+  if (cancelFrameOnInteraction) {
+    frame->cancelFrame();
+    waitOnOSPRayFrame();
+  }
+  updateCamera();
 }
 
 // Main menu //////////////////////////////////////////////////////////////////

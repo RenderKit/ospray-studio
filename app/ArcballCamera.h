@@ -24,6 +24,18 @@ using namespace rkcommon::math;
 
 class ArcballCamera;
 
+#if 0
+//
+//helpers to cerealize things in rkcommon without modifying rkcommon directly
+//todo: this runs and serializes but camera gets garbage, probably template related
+namespace rkcommon { namespace math {
+template<class Archive> void serialize(Archive & archive, vec3f &m) { archive( m.x,m.y,m.z ); }
+template<class Archive> void serialize(Archive & archive, quaternionf &m) { archive( m.r,m.i,m.j,m.k ); }
+template<class Archive> void serialize(Archive & archive, LinearSpace3f &m) { archive( m.vx, m.vy ); }
+template<class Archive> void serialize(Archive & archive, AffineSpace3f &m) { archive( m.l, m.p ); }
+} }
+//
+#endif
 class CameraState
 {
  public:
@@ -58,6 +70,13 @@ class CameraState
     std::stringstream ss;
     ss << pos;
     return ss.str();
+  }
+
+  // participate in Cerealization
+  template<class Archive>
+  void serialize(Archive & archive)
+  {
+    archive( centerTranslation, translation, rotation );
   }
 
  protected:
