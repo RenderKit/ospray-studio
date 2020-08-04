@@ -34,13 +34,16 @@ namespace ospray::sg {
   SunSky::SunSky() : Light("sunSky")
   {
     createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f));
+    createChild("right", "vec3f", vec3f(0.f, 0.f, 1.f));
     createChild("azimuth", "float", 0.f);
+    child("azimuth").setMinMax(-180.f,180.f);
     createChild("elevation", "float", 90.f);
-    createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
+    child("elevation").setMinMax(-90.f,90.f);
     createChild("albedo", "float", 0.18f);
     createChild("turbidity", "float", 3.f);
     createChild("color", "vec3f", vec3f(1.f));
     createChild("intensity", "float", 1.f);
+    createChild("direction", "vec3f", vec3f(0.f, 1.f, 0.f));
   }
 
   void SunSky::preCommit()
@@ -48,16 +51,21 @@ namespace ospray::sg {
     const float azimuth = child("azimuth").valueAs<float>() * M_PI/180.f;
     const float elevation = child("elevation").valueAs<float>() * M_PI/180.f;
 
-    vec3f direction;
-    direction.x = -cos(azimuth) * cos(elevation);
-    direction.y = -sin(elevation);
-    direction.z = -sin(azimuth) * cos(elevation);
-
-    // this overwrites the "direction" child parameters, making that UI element
-    // not directly useable...
-    auto &directionNode = child("direction");
-    directionNode.setValue(direction);
-
+    vec3f up = child("up").valueAs<vec3f>();
+    vec3f dir = child("right").valueAs<vec3f>();
+    vec3f p1 = cross(up, dir);
+    LinearSpace3f r1 = LinearSpace3f::rotate(dir, -elevation);
+    vec3f p2 = r1*p1;
+    LinearSpace3f r2 = LinearSpace3f::rotate(up, azimuth);
+    vec3f p3 = r2*p2;
+    vec3f direction = p3;
+    if (!(std::isnan(direction.x) || std::isnan(direction.y) || std::isnan(direction.z)))
+    {
+      // this overwrites the "direction" child parameters, making that UI element
+      // not directly useable...
+      auto &directionNode = child("direction");
+      directionNode.setValue(direction);
+    }
     Light::preCommit();
   }
 
