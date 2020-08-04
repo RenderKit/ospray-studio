@@ -55,7 +55,7 @@
 #include <queue>
 #include <fstream>
 
-static std::vector<std::string> g_cameraStack;
+static std::vector<CameraState> g_cameraStack;
 
 // GUI mode entry point
 void start_GUI_mode(int argc, const char *argv[])
@@ -969,24 +969,15 @@ void MainWindow::saveCurrentFrame()
 
 void MainWindow::pushLookMark()
 {
-  std::stringstream ss;
-  cereal::JSONOutputArchive oarchive(ss);
-  oarchive(arcballCamera->getState());
-  ss << "}"; //TODO: it doesn't seem like this should be necessary but it is
-  g_cameraStack.push_back(ss.str());
+  g_cameraStack.push_back(arcballCamera->getState());
 }
 
 void MainWindow::popLookMark()
 {
   if (g_cameraStack.empty())
     return;
-  std::string camNext = g_cameraStack.back();
+  CameraState cs = g_cameraStack.back();
   g_cameraStack.pop_back();
-  std::stringstream ss;
-  ss << camNext;
-  cereal::JSONInputArchive iarchive(ss);
-  CameraState cs;
-  iarchive(cs);
   arcballCamera->setState(cs);
   if (cancelFrameOnInteraction) {
     frame->cancelFrame();
@@ -1244,12 +1235,7 @@ void MainWindow::buildWindowSnapshots()
   for (int s=0; s < g_cameraStack.size(); s++)
   {
     if (ImGui::Button(std::to_string(s).c_str())) {
-        std::string camNext = g_cameraStack.at(s);
-        std::stringstream ss;
-        ss << camNext;
-        cereal::JSONInputArchive iarchive(ss);
-        CameraState cs;
-        iarchive(cs);
+        CameraState cs = g_cameraStack.at(s);
         arcballCamera->setState(cs);
         if (cancelFrameOnInteraction) {
           frame->cancelFrame();
