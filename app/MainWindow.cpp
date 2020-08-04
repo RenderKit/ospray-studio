@@ -63,13 +63,9 @@ void start_GUI_mode(int argc, const char *argv[])
   std::cerr << "GUI mode\n";
 
   std::ifstream cams("cams.json");
-  if (cams)
-  {
-    std::cerr << "TRYING TO READ" << std::endl;
+  if (cams) {
     cereal::JSONInputArchive iarchive(cams);
     iarchive(g_cameraStack);
-  } else {
-    std::cerr << "NONE " << std::endl;
   }
   bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
 
@@ -85,7 +81,6 @@ static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
-
 
 static const std::vector<std::string> g_scenes = {"empty",
                                                   "multilevel_hierarchy",
@@ -1266,7 +1261,6 @@ void MainWindow::buildWindowSnapshots()
   if (g_cameraStack.size())
   {
     if (ImGui::Button("save to cams.json")) {
-      std::cerr << "SAVING CAMS" << std::endl;
       std::ofstream cams("cams.json");
       if (cams)
       {

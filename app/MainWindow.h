@@ -98,7 +98,6 @@ class MainWindow
   int whichLightType{-1};
   std::string lightTypeStr{"ambient"};
 
-
  protected:
   void buildPanel();
   void reshape(const vec2i &newWindowSize);
@@ -120,7 +119,6 @@ class MainWindow
   void pickCenterOfRotation(float x, float y);
   void pushLookMark();
   void popLookMark();
-
 
   // menu and window UI
   void buildMainMenu();

@@ -16,8 +16,6 @@
 
 #include "ArcballCamera.h"
 
-#include <cereal/archives/json.hpp>
-
 ArcballCamera::ArcballCamera(const box3f &worldBounds, const vec2i &windowSize)
     : zoomSpeed(1),
       invWindowSize(vec2f(1.0) / vec2f(windowSize)),
