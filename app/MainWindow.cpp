@@ -582,6 +582,22 @@ void MainWindow::motion(const vec2f &position)
 
 void MainWindow::mouseButton(const vec2f &position)
 {
+  if (glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS
+      || glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS
+      || glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+  {
+    frame->child("navMode") = true;
+    frame->cancelFrame();
+  }
+
+  if (glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE
+      && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_RELEASE
+      && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
+  {
+    frame->child("navMode") = false;
+    frame->cancelFrame();
+  }
+
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS &&
       glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
     pickCenterOfRotation(position.x,position.y);
@@ -1071,12 +1087,14 @@ void MainWindow::buildMainMenuEdit()
 
     auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
     if (denoiserAvailable) {
-      if (fb["allowDenoising"].valueAs<bool>())
-        frame->child("denoiseFB").traverse<sg::GenerateImGuiWidgets>();
-      else
+      if (fb["allowDenoising"].valueAs<bool>()) {
+        frame->child("denoise").traverse<sg::GenerateImGuiWidgets>();
+        frame->child("denoiseNav").traverse<sg::GenerateImGuiWidgets>();
+      } else
         ImGui::Text("- Check that FrameBuffer allowDenoising is enabled");
     }
 
+    // XXX only show this if FB has albedo channel
     ImGui::Checkbox("show albedo", &showAlbedo);
 
     ImGui::Separator();
@@ -1090,30 +1108,96 @@ void MainWindow::buildMainMenuEdit()
     ImGui::SameLine();
     fb["size"].traverse<sg::GenerateImGuiWidgets>();
 
+    // XXX combine these two!  they're nearly identical
     if (ImGui::BeginMenu("Scale Resolution")) {
-      auto scale = frame->child("scaleFB").valueAs<float>();
+      auto scale    = frame->child("scale").valueAs<float>();
       auto oldScale = scale;
-      if (ImGui::MenuItem("0.25x")) scale = 0.25f;
-      if (ImGui::MenuItem("0.50x")) scale = 0.5f;
-      if (ImGui::MenuItem("0.75x")) scale = 0.75f;
+      auto custom   = true;
+      auto values   = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
+      for (auto v : values) {
+        char label[64];
+        vec2i newSize = v * windowSize;
+        snprintf(label,
+                 sizeof(label),
+                 "%s%1.2fx (%d,%d)",
+                 v == scale ? "*" : " ",
+                 v,
+                 newSize[0],
+                 newSize[1]);
+        if (v == 1.f)
+          ImGui::Separator();
+        if (ImGui::MenuItem(label))
+          scale = v;
+        if (v == 1.f)
+          ImGui::Separator();
+
+        custom &= (v != scale);
+      }
 
       ImGui::Separator();
-      if (ImGui::MenuItem("1.00x")) scale = 1.f;
-      ImGui::Separator();
-
-      if (ImGui::MenuItem("1.25x")) scale = 1.25f;
-      if (ImGui::MenuItem("2.00x")) scale = 2.0f;
-      if (ImGui::MenuItem("4.00x")) scale = 4.0f;
-
-      ImGui::Separator();
-      if (ImGui::BeginMenu("custom")) {
+      vec2i newSize = scale * windowSize;
+      char label[64];
+      snprintf(label,
+               sizeof(label),
+               "%scustom (%d,%d)",
+               custom ? "*" : " ",
+               newSize[0],
+               newSize[1]);
+      if (ImGui::BeginMenu(label)) {
         ImGui::InputFloat("x##fb_scaling", &scale);
         ImGui::EndMenu();
       }
 
       if (oldScale != scale) {
         frame->cancelFrame();
-        frame->child("scaleFB") = scale;
+        frame->child("scale") = scale;
+      }
+
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Scale Nav Resolution")) {
+      auto scale    = frame->child("scaleNav").valueAs<float>();
+      auto oldScale = scale;
+      auto custom   = true;
+      auto values   = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
+      for (auto v : values) {
+        char label[64];
+        vec2i newSize = v * windowSize;
+        snprintf(label,
+                 sizeof(label),
+                 "%s%1.2fx (%d,%d)",
+                 v == scale ? "*" : " ",
+                 v,
+                 newSize[0],
+                 newSize[1]);
+        if (v == 1.f)
+          ImGui::Separator();
+        if (ImGui::MenuItem(label))
+          scale = v;
+        if (v == 1.f)
+          ImGui::Separator();
+
+        custom &= (v != scale);
+      }
+
+      ImGui::Separator();
+      vec2i newSize = scale * windowSize;
+      char label[64];
+      snprintf(label,
+               sizeof(label),
+               "%scustom (%d,%d)",
+               custom ? "*" : " ",
+               newSize[0],
+               newSize[1]);
+      if (ImGui::BeginMenu(label)) {
+        ImGui::InputFloat("x##fb_scaling", &scale);
+        ImGui::EndMenu();
+      }
+
+      if (oldScale != scale) {
+        frame->cancelFrame();
+        frame->child("scaleNav") = scale;
       }
 
       ImGui::EndMenu();
