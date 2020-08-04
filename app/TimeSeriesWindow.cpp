@@ -160,8 +160,6 @@ void TimeSeriesWindow::mainLoop()
       auto tfn = std::static_pointer_cast<sg::TransferFunction>(
           sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
 
-      tfn->add(vol);
-
       for (int i = 0; i < numInstances; i++) {
         auto xfm  = affine3f::translate(vec3f(i + 2*i, 0, 0)) * affine3f{one};
         auto newX = createNode("geomXfm" + to_string(i), "Transform", xfm);
