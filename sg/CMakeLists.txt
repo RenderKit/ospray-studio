@@ -61,6 +61,7 @@ add_library(ospray_sg SHARED
 
   camera/Camera.cpp
   camera/Perspective.cpp
+  camera/Panoramic.cpp
 
   exporter/Exporter.cpp
   exporter/PNG.cpp

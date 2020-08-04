@@ -33,6 +33,7 @@ class BatchContext
   bool denoiserAvailable{false};
 
   std::string optRendererTypeStr = "scivis";
+  std::string optCameraTypeStr   = "perspective";
   std::string optImageName       = "ospBatch";
   vec2i optImageSize             = (1024, 768);
   int optSPP                     = 32;

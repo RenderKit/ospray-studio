@@ -55,6 +55,10 @@ bool BatchContext::parseCommandLine(int &argc, const char **&argv)
         optRendererTypeStr = argv[i + 1];
         removeArgs(argc, argv, i, 2);
         --i;
+      } else if (arg == "-c" || arg == "--camera") {
+        optCameraTypeStr = argv[i + 1];
+        removeArgs(argc, argv, i, 2);
+        --i;
       } else if (arg == "-i" || arg == "--image") {
         optImageName = argv[i + 1];
         removeArgs(argc, argv, i, 2);
@@ -103,6 +107,7 @@ void BatchContext::render()
   auto &frame = *frame_ptr;
 
   frame.createChild("renderer", "renderer_" + optRendererTypeStr);
+  frame.createChild("camera", "camera_" + optCameraTypeStr);
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
   frame["renderer"].createChildData("material",
                                     baseMaterialRegistry->cppMaterialList);
@@ -146,7 +151,8 @@ void BatchContext::render()
   arcballCamera.reset(new ArcballCamera(frame["world"].bounds(), optImageSize));
 
   auto &camera        = frame.child("camera");
-  camera["aspect"]    = optImageSize.x / (float)optImageSize.y;
+  if (camera.hasChild("aspect"))
+    camera["aspect"] = optImageSize.x / (float)optImageSize.y;
   camera["position"]  = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
   camera["up"]        = arcballCamera->upDir();
@@ -239,6 +245,8 @@ ospStudio batch specific parameters:
             samples per pixel
    -r     --renderer [type] (default "scivis")
             rendererType scivis or pathtracer
+   -c     --camera [type] (default "perspective")
+            cameraType perspective or panoramic
    -g     --grid [x y z] (default 1 1 1, single instance)
             instace a grid of models)text"
             << std::endl;
