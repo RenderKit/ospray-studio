@@ -110,6 +110,10 @@ int g_camPathSpeed = 5;  // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
 const int g_camPathPause = 2;  // _seconds_ to pause for at end of path
 int g_rotationConstraint = -1;
 
+const double CAM_MOVERATE = 10.0; //TODO: the constant should be scene dependent or user changeable
+double g_camMoveI = 0.0;
+double g_camMoveJ = 0.0;
+
 std::string quatToString(quaternionf &q)
 {
   std::stringstream ss;
@@ -211,6 +215,19 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
         if (!io.WantCaptureKeyboard)
           if (action == GLFW_PRESS) {
             switch (key) {
+            case GLFW_KEY_UP:
+                g_camMoveI = -CAM_MOVERATE;
+                break;
+            case GLFW_KEY_DOWN:
+                g_camMoveI = CAM_MOVERATE;
+                break;
+            case GLFW_KEY_LEFT:
+                g_camMoveJ = -CAM_MOVERATE;
+                break;
+            case GLFW_KEY_RIGHT:
+                g_camMoveJ = CAM_MOVERATE;
+                break;
+
             case GLFW_KEY_X:
                 g_rotationConstraint = 0;
                 break;
@@ -220,6 +237,7 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
             case GLFW_KEY_Z:
                 g_rotationConstraint = 2;
                 break;
+
             case GLFW_KEY_G:
                 activeWindow->showUi = !(activeWindow->showUi);
                 break;
@@ -263,6 +281,14 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
           case GLFW_KEY_Y:
           case GLFW_KEY_Z:
               g_rotationConstraint = -1;
+              break;
+          case GLFW_KEY_UP:
+          case GLFW_KEY_DOWN:
+              g_camMoveI = 0;
+              break;
+          case GLFW_KEY_LEFT:
+          case GLFW_KEY_RIGHT:
+              g_camMoveJ = 0;
               break;
           }
         }
@@ -432,6 +458,65 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   }
 }
 
+void MainWindow::keyboardMotion()
+{
+  if (!(g_camMoveI || g_camMoveJ))
+    return;
+
+  auto sensitivity = 1.f;
+  auto fineControl = 5.f;
+  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    sensitivity /= fineControl;
+
+  //6 degrees of freedom, four arrow keys? no problem.
+  double inOut = g_camMoveI;
+  double leftRight = g_camMoveJ;
+  double upDown = 0.0;
+  double roll = 0.0;
+  double elevation = 0.0;
+  double azimuth = 0.0;
+  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+  {
+    if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_ALT) == GLFW_PRESS) {
+      std::swap(inOut,elevation);
+      std::swap(leftRight,azimuth);
+    } else {
+      std::swap(inOut,upDown);
+    }
+  } else if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+    std::swap(leftRight,roll);
+
+  if (inOut)
+  {
+    arcballCamera->zoom(inOut * sensitivity);
+  }
+  if (leftRight)
+  {
+    arcballCamera->pan(vec2f(leftRight, 0) * sensitivity);
+  }
+  if (upDown)
+  {
+    arcballCamera->pan(vec2f(0, upDown) * sensitivity);
+  }
+  if (elevation)
+  {
+    arcballCamera->constrainedRotate(vec2f(-.5,0), vec2f(-.5,elevation*.005*sensitivity), 0);
+  }
+  if (azimuth)
+  {
+    arcballCamera->constrainedRotate(vec2f(0,-.5), vec2f(azimuth*.005*sensitivity,-0.5), 1);
+  }
+  if (roll)
+  {
+    arcballCamera->constrainedRotate(vec2f(-.5,0), vec2f(-.5,roll*.005*sensitivity), 2);
+  }
+  if (cancelFrameOnInteraction) {
+    frame->cancelFrame();
+    waitOnOSPRayFrame();
+  }
+  updateCamera();
+}
+
 void MainWindow::motion(const vec2f &position)
 {
   const vec2f mouse(position.x, position.y);
@@ -515,6 +600,8 @@ void MainWindow::display()
       g_camCurrentPathIndex++;
     }
   }
+
+  keyboardMotion();
 
   if (showUi)
     buildUI();

@@ -102,6 +102,7 @@ class MainWindow
   void buildPanel();
   void reshape(const vec2i &newWindowSize);
   void motion(const vec2f &position);
+  void keyboardMotion();
   void mouseButton(const vec2f &position);
   void display();
   void startNewOSPRayFrame();
