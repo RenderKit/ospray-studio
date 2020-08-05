@@ -30,6 +30,7 @@
 #include "rkcommon/math/AffineSpace.h"
 // ospray
 #include "ospray/ospray_cpp.h"
+#include "ospray/ospray_cpp/ext/rkcommon.h"
 // ospray_sg
 #include "NodeType.h"
 
