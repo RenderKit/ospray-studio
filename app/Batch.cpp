@@ -63,6 +63,33 @@ bool BatchContext::parseCommandLine(int &argc, const char **&argv)
         optCameraTypeStr = argv[i + 1];
         removeArgs(argc, argv, i, 2);
         --i;
+      } else if (arg == "-vp") {
+        vec3f posVec;
+        posVec.x = atof(argv[i + 1]);
+        posVec.y = atof(argv[i + 2]);
+        posVec.z = atof(argv[i + 3]);
+        removeArgs(argc, argv, i, 4);
+        --i;
+        pos     = posVec;
+        cmdlCam = true;
+      } else if (arg == "-vu") {
+        vec3f upVec;
+        upVec.x = atof(argv[i + 1]);
+        upVec.y = atof(argv[i + 2]);
+        upVec.z = atof(argv[i + 3]);
+        removeArgs(argc, argv, i, 4);
+        --i;
+        up      = upVec;
+        cmdlCam = true;
+      } else if (arg == "-vi") {
+        vec3f gazeVec;
+        gazeVec.x = atof(argv[i + 1]);
+        gazeVec.y = atof(argv[i + 2]);
+        gazeVec.z = atof(argv[i + 3]);
+        removeArgs(argc, argv, i, 4);
+        --i;
+        gaze    = gazeVec;
+        cmdlCam = true;
       } else if (arg == "-i" || arg == "--image") {
         optImageName = argv[i + 1];
         removeArgs(argc, argv, i, 2);
@@ -170,6 +197,12 @@ void BatchContext::render()
   camera["direction"] = arcballCamera->lookDir();
   camera["up"]        = arcballCamera->upDir();
 
+  if (cmdlCam) {
+    camera["position"]   = pos;
+    camera["direction"]  = normalize(gaze - pos);
+    camera["up"]         = up;
+  }
+
   frame["world"].createChild("light", "ambient");
 
   frame.render();
@@ -260,6 +293,9 @@ ospStudio batch specific parameters:
             rendererType scivis or pathtracer
    -c     --camera [type] (default "perspective")
             cameraType perspective or panoramic
+   -vp    [x y z] camera position  
+   -vu    [x y z] camera up  
+   -vi    [x y z] camera look-at  
    -g     --grid [x y z] (default 1 1 1, single instance)
             instace a grid of models)text"
             << std::endl;

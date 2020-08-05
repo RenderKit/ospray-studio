@@ -1053,6 +1053,20 @@ void MainWindow::saveCurrentFrame()
 void MainWindow::pushLookMark()
 {
   g_cameraStack.push_back(arcballCamera->getState());
+  vec3f from = arcballCamera->eyePos();
+  vec3f up   = arcballCamera->upDir();
+  vec3f at   = arcballCamera->lookDir() + from;
+  fprintf(stderr,
+          "-vp %f %f %f -vu %f %f %f -vi %f %f %f\n",
+          from.x,
+          from.y,
+          from.z,
+          up.x,
+          up.y,
+          up.z,
+          at.x,
+          at.y,
+          at.z);
 }
 
 void MainWindow::popLookMark()

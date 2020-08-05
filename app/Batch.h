@@ -40,6 +40,8 @@ class BatchContext
   int optDenoiser                = 0;
   bool optGridEnable             = false;
   vec3i optGridSize              = (1, 1, 1);
+  bool cmdlCam{false};
+  vec3f pos, up{0.f, 1.f, 0.f}, gaze{0.f, 0.f, 1.f};
 
   // Arcball camera instance
   std::unique_ptr<ArcballCamera> arcballCamera;
