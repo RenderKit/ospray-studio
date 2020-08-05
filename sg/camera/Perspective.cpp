@@ -29,6 +29,15 @@ namespace ospray::sg {
     child("fovy").setMinMax(0.f, 180.f);
     createChild("aspect", "float", 1.f);
     child("aspect").setReadOnly();
+    createChild("interpupillaryDistance",
+                "float",
+                "Distance between left and right eye for stereo mode",
+                0.0635f);
+    child("interpupillaryDistance").setMinMax(0.f, inf);
+    createChild("stereoMode",
+                "int",
+                "0=none, 1=left, 2=right, 3=side-by-side, 4=top-bottom",
+                0);
   }
 
   OSP_REGISTER_SG_NODE_NAME(Perspective, camera_perspective);
