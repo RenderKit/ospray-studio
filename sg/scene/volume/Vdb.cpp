@@ -146,6 +146,7 @@ namespace ospray::sg {
   VDBData VdbVolume::generateVDBData(const FileName &fileNameAbs)
   {
     VDBData vdbData;
+#if USE_OPENVDB
     if (!fileLoaded) {
       openvdb::initialize();  // Must initialize first! It's ok to do this
                               // multiple times.
@@ -208,6 +209,8 @@ namespace ospray::sg {
                         static_cast<float>(i2o[13]),
                         static_cast<float>(i2o[14])};
     }
+#endif //USE_OPENVDB
+
     return vdbData;
   }
 
