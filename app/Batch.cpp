@@ -90,6 +90,14 @@ bool BatchContext::parseCommandLine(int &argc, const char **&argv)
         --i;
         gaze    = gazeVec;
         cmdlCam = true;
+      } else if (arg == "-id" || arg == "--interpupillaryDistance") {
+        optInterpupillaryDistance = max(0.0, atof(argv[i + 1]));
+        removeArgs(argc, argv, i, 2);
+        --i;
+      } else if (arg == "-sm" || arg == "--stereoMode") {
+        optStereoMode = max(0, atoi(argv[i + 1]));
+        removeArgs(argc, argv, i, 2);
+        --i;
       } else if (arg == "-i" || arg == "--image") {
         optImageName = argv[i + 1];
         removeArgs(argc, argv, i, 2);
@@ -203,6 +211,9 @@ void BatchContext::render()
     camera["up"]         = up;
   }
 
+  camera["stereoMode"]             = optStereoMode;
+  camera["interpupillaryDistance"] = optInterpupillaryDistance;
+
   frame["world"].createChild("light", "ambient");
 
   frame.render();
@@ -296,6 +307,8 @@ ospStudio batch specific parameters:
    -vp    [x y z] camera position  
    -vu    [x y z] camera up  
    -vi    [x y z] camera look-at  
+   -sm    --stereoMode 0=none, 1=left, 2=right, 3=side-by-side, 4=top-bottom
+   -id    --interpupillaryDistance
    -g     --grid [x y z] (default 1 1 1, single instance)
             instace a grid of models)text"
             << std::endl;
