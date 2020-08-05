@@ -9,6 +9,10 @@
 #include "sg/visitors/PrintNodes.h"
 // rkcommon
 #include "rkcommon/utility/SaveImage.h"
+// cerealization
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
 
 // Batch mode entry point
 void start_Batch_mode(int argc, const char *argv[])
@@ -149,6 +153,15 @@ void BatchContext::render()
 
   // Update camera based on world bounds after import
   arcballCamera.reset(new ArcballCamera(frame["world"].bounds(), optImageSize));
+
+  std::ifstream cams("cams.json");
+  if (cams) {
+    std::vector<CameraState> cameraStack;
+    cereal::JSONInputArchive iarchive(cams);
+    iarchive(cameraStack);
+    CameraState cs = cameraStack.front();
+    arcballCamera->setState(cs);
+  }
 
   auto &camera        = frame.child("camera");
   if (camera.hasChild("aspect"))
