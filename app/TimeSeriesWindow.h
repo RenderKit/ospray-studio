@@ -54,10 +54,14 @@ class TimeSeriesWindow : public MainWindow
 
   void setTimestep(int timestep);
 
+  void setVariableTimeseries(int whichVariable, int timestep);
+
   void printHelp();
 
   std::vector<ospray::sg::VolumeParameters> g_volumeParameters;
   std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;
+  std::vector<std::vector<std::shared_ptr<ospray::sg::World>>>
+      g_allSeparateWorlds;
 
   std::vector<std::vector<std::string>> allVariablesData;
 
@@ -69,6 +73,12 @@ class TimeSeriesWindow : public MainWindow
   vec3f gridSpacing{-1.f};
 
   int numInstances{1};
+
+  int whichVariable{0};
+
+  bool importAsSeparateTimeseries{false};
+
+  void setTimestepsUI(int numTimesteps);
 
   std::string lightTypeStr{"sunSky"};
   std::string rendererTypeStr{"pathtracer"};
