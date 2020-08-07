@@ -132,6 +132,9 @@ double g_camMoveA = 0.0;
 double g_camMoveE = 0.0;
 double g_camMoveR = 0.0;
 
+int g_accumLimit   = 0;
+int g_currentFrame = 0;
+
 std::string quatToString(quaternionf &q)
 {
   std::stringstream ss;
@@ -468,6 +471,7 @@ void MainWindow::reshape(const vec2i &newWindowSize)
   windowSize = newWindowSize;
   frame->child("windowSize") = windowSize;
 
+  g_currentFrame = 0;
 
   // reset OpenGL viewport and orthographic projection
   glViewport(0, 0, windowSize.x, windowSize.y);
@@ -486,6 +490,8 @@ void MainWindow::reshape(const vec2i &newWindowSize)
 
 void MainWindow::updateCamera()
 {
+  g_currentFrame = 0;
+
   auto &camera = frame->child("camera");
 
   camera["position"]  = arcballCamera->eyePos();
@@ -684,7 +690,9 @@ void MainWindow::display()
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
   fbSize = frameBuffer.child("size").valueAs<vec2i>();
 
-  if (frame->frameIsReady()) {
+  bool accumLimited = (g_accumLimit > 0 && g_currentFrame >= g_accumLimit);
+
+  if (!accumLimited && frame->frameIsReady()) {
     // display frame rate in window title
     auto displayEnd = std::chrono::high_resolution_clock::now();
     auto durationMilliseconds =
@@ -767,6 +775,8 @@ void MainWindow::display()
     // Start new frame and reset frame timing interval start
     displayStart = std::chrono::high_resolution_clock::now();
     startNewOSPRayFrame();
+
+    g_currentFrame++;
   }
 
   // clear current OpenGL color buffer
@@ -817,6 +827,8 @@ void MainWindow::updateTitleBar()
 
   if (g_pauseRendering) {
     windowTitle << "rendering paused";
+  } else if (g_accumLimit > 0 && g_currentFrame >= g_accumLimit) {
+    windowTitle << "accumulation limit reached";
   } else {
     windowTitle << std::setprecision(3) << latestFPS << " fps";
     if (latestFPS < 2.f) {
@@ -859,6 +871,7 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
+  g_currentFrame = 0;
   auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
   if (rendererTypeStr != "debug") {
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
@@ -1389,6 +1402,7 @@ void MainWindow::buildMainMenuView()
   if (ImGui::BeginMenu("View")) {
     if (ImGui::Checkbox("Pause rendering", &g_pauseRendering))
       frame->pauseRendering = g_pauseRendering;
+    ImGui::DragInt("Limit accumulation", &g_accumLimit, 1, 0, INT_MAX, "%d frames");
     if (ImGui::MenuItem("Screenshot", "s", nullptr))
       g_saveNextFrame = true;
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
