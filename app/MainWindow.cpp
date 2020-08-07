@@ -78,9 +78,10 @@ void start_GUI_mode(int argc, const char *argv[])
 
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 
-static bool g_quitNextFrame = false;
-static bool g_saveNextFrame = false;
-static bool g_animatingPath = false;
+static bool g_quitNextFrame  = false;
+static bool g_saveNextFrame  = false;
+static bool g_animatingPath  = false;
+static bool g_pauseRendering = false;
 
 static const std::vector<std::string> g_scenes = {"empty",
                                                   "multilevel_hierarchy",
@@ -566,6 +567,9 @@ void MainWindow::keyboardMotion()
 
 void MainWindow::motion(const vec2f &position)
 {
+  if (g_pauseRendering)
+    return;
+
   const vec2f mouse(position.x, position.y);
   if (previousMouse != vec2f(-1)) {
     const bool leftDown =
@@ -612,6 +616,9 @@ void MainWindow::motion(const vec2f &position)
 
 void MainWindow::mouseButton(const vec2f &position)
 {
+  if (g_pauseRendering)
+    return;
+
   if (glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS
       || glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS
       || glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
@@ -806,23 +813,29 @@ void MainWindow::waitOnOSPRayFrame()
 void MainWindow::updateTitleBar()
 {
   std::stringstream windowTitle;
-  windowTitle << "OSPRay Studio: " << std::setprecision(3) << latestFPS
-              << " fps";
-  if (latestFPS < 2.f) {
-    float progress = frame->frameProgress();
-    windowTitle << " | ";
-    int barWidth = 20;
-    std::string progBar;
-    progBar.resize(barWidth + 2);
-    auto start = progBar.begin() + 1;
-    auto end   = start + progress * barWidth;
-    std::fill(start, end, '=');
-    std::fill(end, progBar.end(), '_');
-    *end            = '>';
-    progBar.front() = '[';
-    progBar.back()  = ']';
-    windowTitle << progBar;
+  windowTitle << "OSPRay Studio: ";
+
+  if (g_pauseRendering) {
+    windowTitle << "rendering paused";
+  } else {
+    windowTitle << std::setprecision(3) << latestFPS << " fps";
+    if (latestFPS < 2.f) {
+      float progress = frame->frameProgress();
+      windowTitle << " | ";
+      int barWidth = 20;
+      std::string progBar;
+      progBar.resize(barWidth + 2);
+      auto start = progBar.begin() + 1;
+      auto end   = start + progress * barWidth;
+      std::fill(start, end, '=');
+      std::fill(end, progBar.end(), '_');
+      *end            = '>';
+      progBar.front() = '[';
+      progBar.back()  = ']';
+      windowTitle << progBar;
+    }
   }
+
   glfwSetWindowTitle(glfwWindow, windowTitle.str().c_str());
   
 }
@@ -1374,6 +1387,8 @@ void MainWindow::buildMainMenuEdit()
 void MainWindow::buildMainMenuView()
 {
   if (ImGui::BeginMenu("View")) {
+    if (ImGui::Checkbox("Pause rendering", &g_pauseRendering))
+      frame->pauseRendering = g_pauseRendering;
     if (ImGui::MenuItem("Screenshot", "s", nullptr))
       g_saveNextFrame = true;
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
