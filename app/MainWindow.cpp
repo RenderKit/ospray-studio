@@ -124,8 +124,12 @@ const int g_camPathPause = 2;  // _seconds_ to pause for at end of path
 int g_rotationConstraint = -1;
 
 const double CAM_MOVERATE = 10.0; //TODO: the constant should be scene dependent or user changeable
-double g_camMoveI = 0.0;
-double g_camMoveJ = 0.0;
+double g_camMoveX = 0.0;
+double g_camMoveY = 0.0;
+double g_camMoveZ = 0.0;
+double g_camMoveA = 0.0;
+double g_camMoveE = 0.0;
+double g_camMoveR = 0.0;
 
 std::string quatToString(quaternionf &q)
 {
@@ -229,16 +233,43 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
           if (action == GLFW_PRESS) {
             switch (key) {
             case GLFW_KEY_UP:
-                g_camMoveI = -CAM_MOVERATE;
+                if (mod != GLFW_MOD_ALT)
+                  g_camMoveZ = -CAM_MOVERATE;
+                else
+                  g_camMoveY = -CAM_MOVERATE;
                 break;
             case GLFW_KEY_DOWN:
-                g_camMoveI = CAM_MOVERATE;
+                if (mod != GLFW_MOD_ALT)
+                  g_camMoveZ = CAM_MOVERATE;
+                else
+                  g_camMoveY = CAM_MOVERATE;
                 break;
             case GLFW_KEY_LEFT:
-                g_camMoveJ = -CAM_MOVERATE;
+                g_camMoveX = -CAM_MOVERATE;
                 break;
             case GLFW_KEY_RIGHT:
-                g_camMoveJ = CAM_MOVERATE;
+                g_camMoveX = CAM_MOVERATE;
+                break;
+            case GLFW_KEY_W:
+                g_camMoveE = CAM_MOVERATE;
+                break;
+            case GLFW_KEY_S:
+                if (mod != GLFW_MOD_CONTROL)
+                  g_camMoveE = -CAM_MOVERATE;
+                else
+                  g_saveNextFrame = true;
+                break;
+            case GLFW_KEY_A:
+                if (mod != GLFW_MOD_ALT)
+                  g_camMoveA = -CAM_MOVERATE;
+                else
+                  g_camMoveR = -CAM_MOVERATE;
+                break;
+            case GLFW_KEY_D:
+                if (mod != GLFW_MOD_ALT)
+                  g_camMoveA = CAM_MOVERATE;
+                else
+                  g_camMoveR = CAM_MOVERATE;
                 break;
 
             case GLFW_KEY_X:
@@ -276,9 +307,6 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
             case GLFW_KEY_V:
                 activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
                 break;
-            case GLFW_KEY_S:
-                g_saveNextFrame = true;
-                break;
             case GLFW_KEY_SPACE:
                 g_animatingPath       = !g_animatingPath;
                 g_camCurrentPathIndex = 0;
@@ -303,11 +331,21 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
               break;
           case GLFW_KEY_UP:
           case GLFW_KEY_DOWN:
-              g_camMoveI = 0;
+              g_camMoveZ = 0;
+              g_camMoveY = 0;
               break;
           case GLFW_KEY_LEFT:
           case GLFW_KEY_RIGHT:
-              g_camMoveJ = 0;
+              g_camMoveX = 0;
+              break;
+          case GLFW_KEY_W:
+          case GLFW_KEY_S:
+              g_camMoveE = 0;
+              break;
+          case GLFW_KEY_A:
+          case GLFW_KEY_D:
+              g_camMoveA = 0;
+              g_camMoveR = 0;
               break;
           }
         }
@@ -477,7 +515,8 @@ void MainWindow::pickCenterOfRotation(float x, float y)
 
 void MainWindow::keyboardMotion()
 {
-  if (!(g_camMoveI || g_camMoveJ))
+  if (!(g_camMoveX || g_camMoveY || g_camMoveZ ||
+        g_camMoveE || g_camMoveA || g_camMoveR))
     return;
 
   auto sensitivity = 1.f;
@@ -486,22 +525,12 @@ void MainWindow::keyboardMotion()
     sensitivity /= fineControl;
 
   //6 degrees of freedom, four arrow keys? no problem.
-  double inOut = g_camMoveI;
-  double leftRight = g_camMoveJ;
-  double upDown = 0.0;
-  double roll = 0.0;
-  double elevation = 0.0;
-  double azimuth = 0.0;
-  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-  {
-    if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_ALT) == GLFW_PRESS) {
-      std::swap(inOut,elevation);
-      std::swap(leftRight,azimuth);
-    } else {
-      std::swap(inOut,upDown);
-    }
-  } else if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-    std::swap(leftRight,roll);
+  double inOut = g_camMoveZ;
+  double leftRight = g_camMoveX;
+  double upDown = g_camMoveY;
+  double roll = g_camMoveR;
+  double elevation = g_camMoveE;
+  double azimuth = g_camMoveA;
 
   if (inOut)
   {
