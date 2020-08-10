@@ -101,6 +101,8 @@ namespace ospray::sg {
           sgVolume->nodeAs<sg::VdbVolume>()->load(fs);
         }
         fileLoaded = true;
+        sgVolume->createChild("densityScale", "float");
+        sgVolume->createChild("anisotropy", "float");
       }
 #else
       throw std::runtime_error(

@@ -150,6 +150,8 @@ if(!importAsSeparateTimeseries)
           }
 
           vol = vdbVolumeTimestep.createSGVolume();
+          vol->child("anisotropy").setValue(0.875f);
+          vol->child("densityScale").setValue(1.f);
 
         } else {
           if (dimensions.x == -1 || gridSpacing.x == -1) {
@@ -223,6 +225,8 @@ if(!importAsSeparateTimeseries)
           }
 
           vol = vdbVolumeTimestep.createSGVolume();
+          vol->child("anisotropy").setValue(0.875f);
+          vol->child("densityScale").setValue(1.f);
 
         } else {
           if (dimensions.x == -1 || gridSpacing.x == -1) {
