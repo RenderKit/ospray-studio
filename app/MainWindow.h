@@ -155,6 +155,8 @@ class MainWindow
 
   bool denoiserAvailable{false};
   bool showAlbedo{false};
+  bool showDepth{false};
+  bool showDepthInvert{false};
   bool cancelFrameOnInteraction{false};
   bool autorotate{false};
 

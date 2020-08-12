@@ -40,10 +40,21 @@ namespace ospray::sg {
       return (child("colorFormat").valueAs<std::string>() == "float");
     }
 
+    inline bool hasDepthChannel()
+    {
+      return (channels & OSP_FB_DEPTH);
+    }
+
+    inline bool hasAlbedoChannel()
+    {
+      return (channels & OSP_FB_ALBEDO);
+    }
+
    private:
     void postCommit() override;
 
     void updateHandle();
+    uint32_t channels{OSP_FB_COLOR};  // OSPFrameBufferChannel
 
     std::map<std::string, OSPFrameBufferFormat> colorFormats{
         {"sRGB", OSP_FB_SRGBA},

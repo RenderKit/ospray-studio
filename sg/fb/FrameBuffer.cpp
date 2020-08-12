@@ -56,24 +56,22 @@ namespace ospray::sg {
 
   void FrameBuffer::updateHandle()
   {
-    auto channels = OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE;
-    auto allowDenoising = child("allowDenoising").valueAs<bool>();
+    // Default minimal format
+    child("colorFormat") = std::string("RGBA8");
+    channels             = OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE;
 
+    // Denoising requires float format and additional channels
+    auto allowDenoising = child("allowDenoising").valueAs<bool>();
     if (allowDenoising) {
       child("colorFormat") = std::string("float");
-      channels = (OSPFrameBufferChannel)(channels | OSP_FB_ALBEDO |
-                                         OSP_FB_DEPTH | OSP_FB_NORMAL);
-    } else {
-      child("colorFormat") = std::string("RGBA8");
+      channels |= OSP_FB_ALBEDO | OSP_FB_DEPTH | OSP_FB_NORMAL;
     }
 
     auto size           = child("size").valueAs<vec2i>();
     auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
-    auto fb = cpp::FrameBuffer(size.x,
-                               size.y,
-                               colorFormats[colorFormatStr],
-                               channels);
+    auto fb = cpp::FrameBuffer(
+        size.x, size.y, colorFormats[colorFormatStr], channels);
 
     setHandle(fb);
   }

@@ -688,12 +688,25 @@ void MainWindow::display()
     // map OSPRay framebuffer, update OpenGL texture with contents, then unmap
     waitOnOSPRayFrame();
 
-    auto *fb =
-        (void *)frame->mapFrame(showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR);
+    // Only enabled if they exist
+    showAlbedo &= frameBuffer.hasAlbedoChannel();
+    showDepth &= frameBuffer.hasDepthChannel();
+
+    auto *mappedFB =
+        (void *)frame->mapFrame(showDepth ? OSP_FB_DEPTH
+            : (showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
 
     // This needs to query the actual framebuffer format
     const GLenum glType = frameBuffer.hasFloatFormat()
                         ? GL_FLOAT : GL_UNSIGNED_BYTE;
+
+    // Invert depth, it may be more meaningful
+    if (showDepth && showDepthInvert) {
+      for (auto i = 0; i < fbSize.x * fbSize.y; i++) {
+        float &depth = ((float *)mappedFB)[i];
+        depth = 1.f / (depth + 1e-6);  // bias to prevent div0
+      }
+    }
 
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
     glTexImage2D(GL_TEXTURE_2D,
@@ -702,11 +715,11 @@ void MainWindow::display()
                  fbSize.x,
                  fbSize.y,
                  0,
-                 showAlbedo ? GL_RGB : GL_RGBA,
+                 showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
                  glType,
-                 fb);
+                 mappedFB);
 
-    frame->unmapFrame(fb);
+    frame->unmapFrame(mappedFB);
 
     if (g_saveNextFrame) {
       saveCurrentFrame();
@@ -1114,17 +1127,40 @@ void MainWindow::buildMainMenuEdit()
     if (renderer.isModified())
       frame->cancelFrame();
 
+    ImGui::Separator();
+
     auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+
+    ImGui::Text("Display Options:");
+    if (!fb.hasAlbedoChannel() || !fb.hasDepthChannel()) {
+      ImGui::Text("- No other channels available");
+      ImGui::Text("- Check that FrameBuffer allowDenoising is enabled");
+    }
+    if (fb.hasAlbedoChannel()) {
+      ImGui::Checkbox("albedo", &showAlbedo);
+      showDepth &= !showAlbedo;
+      ImGui::SameLine();
+    }
+    if (fb.hasDepthChannel()) {
+      ImGui::Checkbox("depth", &showDepth);
+      ImGui::SameLine();
+      showDepthInvert &= showDepth;
+      ImGui::Checkbox("invert depth", &showDepthInvert);
+      showDepth |= showDepthInvert;
+      showAlbedo &= !showDepth;
+    }
+
     if (denoiserAvailable) {
+      ImGui::Separator();
+      ImGui::Text("Denoiser Options:");
       if (fb["allowDenoising"].valueAs<bool>()) {
         frame->child("denoise").traverse<sg::GenerateImGuiWidgets>();
+        ImGui::SameLine();
         frame->child("denoiseNav").traverse<sg::GenerateImGuiWidgets>();
       } else
         ImGui::Text("- Check that FrameBuffer allowDenoising is enabled");
     }
 
-    // XXX only show this if FB has albedo channel
-    ImGui::Checkbox("show albedo", &showAlbedo);
 
     ImGui::Separator();
     // Expose entire framebuffer options
