@@ -700,12 +700,32 @@ void MainWindow::display()
     const GLenum glType = frameBuffer.hasFloatFormat()
                         ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
-    // Invert depth, it may be more meaningful
-    if (showDepth && showDepthInvert) {
+    float *depthCopy = nullptr;
+    if (showDepth) {
+      // Create a local copy and don't modify OSPRay buffer
+      const auto *mappedDepth = static_cast<const float *>(mappedFB);
+      depthCopy = rkcommon::memory::alignedMalloc<float>(fbSize.x * fbSize.y);
+
+      // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1
+      float minDepth = rkcommon::math::inf;
+      float maxDepth = rkcommon::math::neg_inf;
       for (auto i = 0; i < fbSize.x * fbSize.y; i++) {
-        float &depth = ((float *)mappedFB)[i];
-        depth = 1.f / (depth + 1e-6);  // bias to prevent div0
+        float depth = mappedDepth[i];
+        if (isinf(depth))
+          continue;
+        minDepth = std::min(minDepth, depth);
+        maxDepth = std::max(maxDepth, depth);
       }
+
+      const float rcpDepthRange = 1.f / (maxDepth - minDepth);
+
+      // Inverted depth (1.0 -> 0.0) may be more meaningful
+      if (showDepthInvert)
+        for (auto i = 0; i < fbSize.x * fbSize.y; i++)
+          depthCopy[i] = 1.f - (mappedDepth[i] - minDepth) * rcpDepthRange;
+      else
+        for (auto i = 0; i < fbSize.x * fbSize.y; i++)
+          depthCopy[i] = (mappedDepth[i] - minDepth) * rcpDepthRange;
     }
 
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
@@ -717,7 +737,7 @@ void MainWindow::display()
                  0,
                  showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
                  glType,
-                 mappedFB);
+                 showDepth ? depthCopy : mappedFB);
 
     frame->unmapFrame(mappedFB);
 
