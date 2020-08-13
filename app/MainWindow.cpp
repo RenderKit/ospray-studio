@@ -700,17 +700,20 @@ void MainWindow::display()
     const GLenum glType = frameBuffer.hasFloatFormat()
                         ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
-    float *depthCopy = nullptr;
+    // Only create the copy if it's needed
+    float *pDepthCopy = nullptr;
     if (showDepth) {
       // Create a local copy and don't modify OSPRay buffer
       const auto *mappedDepth = static_cast<const float *>(mappedFB);
-      depthCopy = rkcommon::memory::alignedMalloc<float>(fbSize.x * fbSize.y);
+      std::vector<float> depthCopy(mappedDepth,
+                                   mappedDepth + fbSize.x * fbSize.y);
+      pDepthCopy = depthCopy.data();
 
-      // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1
+      // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1, ignoring all
+      // inf values
       float minDepth = rkcommon::math::inf;
       float maxDepth = rkcommon::math::neg_inf;
-      for (auto i = 0; i < fbSize.x * fbSize.y; i++) {
-        float depth = mappedDepth[i];
+      for (auto depth: depthCopy) {
         if (isinf(depth))
           continue;
         minDepth = std::min(minDepth, depth);
@@ -721,11 +724,18 @@ void MainWindow::display()
 
       // Inverted depth (1.0 -> 0.0) may be more meaningful
       if (showDepthInvert)
-        for (auto i = 0; i < fbSize.x * fbSize.y; i++)
-          depthCopy[i] = 1.f - (mappedDepth[i] - minDepth) * rcpDepthRange;
+        std::transform(depthCopy.begin(),
+                       depthCopy.end(),
+                       depthCopy.begin(),
+                       [&](float depth) {
+                         return (1.f - (depth - minDepth) * rcpDepthRange);
+                       });
       else
-        for (auto i = 0; i < fbSize.x * fbSize.y; i++)
-          depthCopy[i] = (mappedDepth[i] - minDepth) * rcpDepthRange;
+        std::transform(
+            depthCopy.begin(),
+            depthCopy.end(),
+            depthCopy.begin(),
+            [&](float depth) { return (depth - minDepth) * rcpDepthRange; });
     }
 
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
@@ -737,7 +747,7 @@ void MainWindow::display()
                  0,
                  showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
                  glType,
-                 showDepth ? depthCopy : mappedFB);
+                 showDepth ? pDepthCopy : mappedFB);
 
     frame->unmapFrame(mappedFB);
 
