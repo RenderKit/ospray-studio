@@ -36,6 +36,8 @@ namespace ospray::sg {
 
     void preCommit() override;
     void postCommit() override;
+
+    OSPPixelFilterTypes pixelFilter{OSP_PIXELFILTER_POINT};
   };
 
 }  // namespace ospray::sg

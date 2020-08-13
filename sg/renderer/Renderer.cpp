@@ -30,6 +30,7 @@ namespace ospray::sg {
                 "stop rendering when variance < threshold",
                 0.f);
     createChild("backgroundColor", "rgba", rgba(0.1f));
+    createChild("pixelFilter", "int", (int)pixelFilter);
   }
 
   NodeType Renderer::type() const
