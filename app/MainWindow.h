@@ -154,6 +154,7 @@ class MainWindow
   vec2f previousMouse{-1.f};
 
   bool denoiserAvailable{false};
+  bool showColor{true};
   bool showAlbedo{false};
   bool showDepth{false};
   bool showDepthInvert{false};

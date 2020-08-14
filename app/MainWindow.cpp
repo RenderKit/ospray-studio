@@ -1191,23 +1191,43 @@ void MainWindow::buildMainMenuEdit()
 
     auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
 
-    ImGui::Text("Display Options:");
-    if (!fb.hasAlbedoChannel() || !fb.hasDepthChannel()) {
+    ImGui::Text("Display buffer options");
+    static int whichBuffer = 0;
+    ImGui::RadioButton("color##displayColor", &whichBuffer, 0);
+
+    if (!fb.hasAlbedoChannel() && !fb.hasDepthChannel()) {
       ImGui::Text("- No other channels available");
       ImGui::Text("- Check that FrameBuffer allowDenoising is enabled");
     }
+
     if (fb.hasAlbedoChannel()) {
-      ImGui::Checkbox("albedo", &showAlbedo);
-      showDepth &= !showAlbedo;
-      ImGui::SameLine();
+      ImGui::RadioButton("albedo##displayAlbedo", &whichBuffer, 1);
     }
     if (fb.hasDepthChannel()) {
-      ImGui::Checkbox("depth", &showDepth);
       ImGui::SameLine();
-      showDepthInvert &= showDepth;
-      ImGui::Checkbox("invert depth", &showDepthInvert);
-      showDepth |= showDepthInvert;
-      showAlbedo &= !showDepth;
+      ImGui::RadioButton("depth##displayDepth", &whichBuffer, 2);
+      ImGui::SameLine();
+      ImGui::RadioButton("invert depth##displayDepthInv", &whichBuffer, 3);
+    }
+
+    switch (whichBuffer) {
+    case 0:
+      showColor  = true;
+      showAlbedo = showDepth = showDepthInvert = false;
+      break;
+    case 1:
+      showAlbedo = true;
+      showColor = showDepth = showDepthInvert = false;
+      break;
+    case 2:
+      showDepth = true;
+      showColor = showAlbedo = showDepthInvert = false;
+      break;
+    case 3:
+      showDepth = true;
+      showDepthInvert = true;
+      showColor = showAlbedo = false;
+      break;
     }
 
     if (denoiserAvailable) {
@@ -1380,11 +1400,11 @@ void MainWindow::buildMainMenuEdit()
 
     if (screenshotFiletype == "exr") {
       ImGui::Text("additional layers");
-      ImGui::Checkbox("albedo", &screenshotAlbedo);
+      ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
       ImGui::SameLine();
       ImGui::Checkbox("layers as separate files", &screenshotLayers);
-      ImGui::Checkbox("depth", &screenshotDepth);
-      ImGui::Checkbox("normal", &screenshotNormal);
+      ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
+      ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
     }
 
     ImGui::EndMenu();
