@@ -1331,15 +1331,20 @@ void MainWindow::buildMainMenuEdit()
     ImGui::Separator();
     ImGui::Text("scene");
 
-    sg::rgba bgColor = renderer["backgroundColor"].valueAs<sg::rgba>();
-    if (ImGui::ColorEdit4("backgroundColor", bgColor))
-      renderer["backgroundColor"] = bgColor;
-
-    if (rendererType == OSPRayRendererType::SCIVIS ||
-        rendererType == OSPRayRendererType::PATHTRACER) {
-      if (ImGui::Checkbox("import backplate texture", &useImportedTex)) {
-        refreshRenderer();
-      }
+    if (ImGui::MenuItem("Background texture...", "", nullptr)) {
+      const char *file = tinyfd_openFileDialog(
+          "Import a texture from a file", "", 0, nullptr, nullptr, 0);
+      importedFilename = std::string(file);
+      std::shared_ptr<sg::Texture2D> backplateTex =
+          std::static_pointer_cast<sg::Texture2D>(
+              sg::createNode("map_backplate", "texture_2d"));
+      backplateTex->load(file, false, false);
+      frame->child("renderer").add(backplateTex);
+      useImportedTex = true;
+    }
+    if (useImportedTex) {
+      ImGui::SameLine();
+      ImGui::Text("[%s]", importedFilename.c_str());
     }
 
     if (ImGui::MenuItem("Lights...", "", nullptr))

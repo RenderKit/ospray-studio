@@ -167,6 +167,7 @@ class MainWindow
 
   int defaultMaterialIdx = 0;
   bool useImportedTex = false;
+  std::string importedFilename;
 
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;
