@@ -1425,6 +1425,8 @@ void MainWindow::buildMainMenuView()
       showSnapshots = true;
     if (ImGui::MenuItem("Geometry...", "", nullptr))
       showGeometryViewer = true;
+    if (ImGui::MenuItem("Rendering stats...", "", nullptr))
+      showRenderingStats = true;
     ImGui::EndMenu();
   }
 }
@@ -1443,6 +1445,8 @@ void MainWindow::buildWindows()
     buildWindowGeometryViewer();
   if (showSnapshots)
     buildWindowSnapshots();
+  if (showRenderingStats)
+    buildWindowRenderingStats();
 }
 
 void MainWindow::buildWindowKeyframes()
@@ -1804,6 +1808,33 @@ void MainWindow::buildWindowGeometryViewer()
   if (userUpdated)
     replaceWorld();
   ImGui::EndChild();
+
+  ImGui::End();
+}
+
+void MainWindow::buildWindowRenderingStats()
+{
+  ImGuiWindowFlags flags =
+      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+      ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
+  ImGui::SetNextWindowBgAlpha(0.75f);
+
+  if (!ImGui::Begin("Rendering stats", &showRenderingStats, flags)) {
+    ImGui::End();
+    return;
+  }
+
+  ImGui::Text("renderer: %s", rendererTypeStr.c_str());
+  ImGui::Text("fps: %0.2f", latestFPS);
+  if (frame->accumLimit > 0) {
+    ImGui::Text("accumulation:");
+    ImGui::SameLine();
+    float progress = float(frame->currentAccum) / frame->accumLimit;
+    std::string progressStr = std::to_string(frame->currentAccum) + "/" +
+                              std::to_string(frame->accumLimit);
+    ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), progressStr.c_str());
+  }
 
   ImGui::End();
 }

@@ -132,6 +132,7 @@ class MainWindow
   void buildWindowLightEditor();
   void buildWindowMaterialEditor();
   void buildWindowGeometryViewer();
+  void buildWindowRenderingStats();
 
   // imgui window visibility toggles
   bool showKeyframes{false};
@@ -139,6 +140,7 @@ class MainWindow
   bool showLightEditor{false};
   bool showMaterialEditor{false};
   bool showGeometryViewer{false};
+  bool showRenderingStats{false};
 
   // imgui-controlled options
   std::string screenshotFiletype{"png"};

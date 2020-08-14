@@ -97,7 +97,8 @@ namespace ospray::sg {
     auto future = handle();
     if (future)
       future.wait();
-    currentAccum++;
+    if (!accumLimitReached())
+      currentAccum++;
   }
 
   void Frame::cancelFrame()
