@@ -1201,6 +1201,7 @@ void MainWindow::buildMainMenuEdit()
     }
 
     if (fb.hasAlbedoChannel()) {
+      ImGui::SameLine();
       ImGui::RadioButton("albedo##displayAlbedo", &whichBuffer, 1);
     }
     if (fb.hasDepthChannel()) {
@@ -1425,8 +1426,7 @@ void MainWindow::buildMainMenuView()
       showSnapshots = true;
     if (ImGui::MenuItem("Geometry...", "", nullptr))
       showGeometryViewer = true;
-    if (ImGui::MenuItem("Rendering stats...", "", nullptr))
-      showRenderingStats = true;
+    ImGui::Checkbox("Rendering stats...", &showRenderingStats);
     ImGui::EndMenu();
   }
 }
