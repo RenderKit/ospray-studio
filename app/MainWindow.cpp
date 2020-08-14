@@ -81,7 +81,6 @@ static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 static bool g_quitNextFrame  = false;
 static bool g_saveNextFrame  = false;
 static bool g_animatingPath  = false;
-static bool g_pauseRendering = false;
 
 static const std::vector<std::string> g_scenes = {"empty",
                                                   "multilevel_hierarchy",
@@ -131,9 +130,6 @@ double g_camMoveZ = 0.0;
 double g_camMoveA = 0.0;
 double g_camMoveE = 0.0;
 double g_camMoveR = 0.0;
-
-int g_accumLimit   = 0;
-int g_currentFrame = 0;
 
 std::string quatToString(quaternionf &q)
 {
@@ -470,8 +466,7 @@ void MainWindow::reshape(const vec2i &newWindowSize)
 {
   windowSize = newWindowSize;
   frame->child("windowSize") = windowSize;
-
-  g_currentFrame = 0;
+  frame->currentAccum = 0;
 
   // reset OpenGL viewport and orthographic projection
   glViewport(0, 0, windowSize.x, windowSize.y);
@@ -490,8 +485,7 @@ void MainWindow::reshape(const vec2i &newWindowSize)
 
 void MainWindow::updateCamera()
 {
-  g_currentFrame = 0;
-
+  frame->currentAccum = 0;
   auto &camera = frame->child("camera");
 
   camera["position"]  = arcballCamera->eyePos();
@@ -573,7 +567,7 @@ void MainWindow::keyboardMotion()
 
 void MainWindow::motion(const vec2f &position)
 {
-  if (g_pauseRendering)
+  if (frame->pauseRendering)
     return;
 
   const vec2f mouse(position.x, position.y);
@@ -622,7 +616,7 @@ void MainWindow::motion(const vec2f &position)
 
 void MainWindow::mouseButton(const vec2f &position)
 {
-  if (g_pauseRendering)
+  if (frame->pauseRendering)
     return;
 
   if (glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS
@@ -690,9 +684,7 @@ void MainWindow::display()
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
   fbSize = frameBuffer.child("size").valueAs<vec2i>();
 
-  bool accumLimited = (g_accumLimit > 0 && g_currentFrame >= g_accumLimit);
-
-  if (!accumLimited && frame->frameIsReady()) {
+  if (frame->frameIsReady()) {
     // display frame rate in window title
     auto displayEnd = std::chrono::high_resolution_clock::now();
     auto durationMilliseconds =
@@ -770,8 +762,6 @@ void MainWindow::display()
     // Start new frame and reset frame timing interval start
     displayStart = std::chrono::high_resolution_clock::now();
     startNewOSPRayFrame();
-
-    g_currentFrame++;
   }
 
   if (g_saveNextFrame) {
@@ -825,9 +815,9 @@ void MainWindow::updateTitleBar()
   std::stringstream windowTitle;
   windowTitle << "OSPRay Studio: ";
 
-  if (g_pauseRendering) {
+  if (frame->pauseRendering) {
     windowTitle << "rendering paused";
-  } else if (g_accumLimit > 0 && g_currentFrame >= g_accumLimit) {
+  } else if (frame->accumLimitReached()) {
     windowTitle << "accumulation limit reached";
   } else {
     windowTitle << std::setprecision(3) << latestFPS << " fps";
@@ -871,7 +861,6 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
-  g_currentFrame = 0;
   auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
   if (rendererTypeStr != "debug") {
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
@@ -1400,9 +1389,9 @@ void MainWindow::buildMainMenuEdit()
 void MainWindow::buildMainMenuView()
 {
   if (ImGui::BeginMenu("View")) {
-    if (ImGui::Checkbox("Pause rendering", &g_pauseRendering))
-      frame->pauseRendering = g_pauseRendering;
-    ImGui::DragInt("Limit accumulation", &g_accumLimit, 1, 0, INT_MAX, "%d frames");
+    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
+    ImGui::DragInt(
+        "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
     if (ImGui::MenuItem("Screenshot", "s", nullptr))
       g_saveNextFrame = true;
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
@@ -1484,8 +1473,8 @@ void MainWindow::buildWindowKeyframes()
       }
     }
     ImGui::ListBoxFooter();
+    ImGui::End();
   }
-  ImGui::End();
 }
 
 void MainWindow::buildWindowSnapshots()
@@ -1698,6 +1687,9 @@ void MainWindow::buildWindowGeometryViewer()
 
     frame->remove("world");
     frame->add(aWholeNewWorld);
+    frame->currentAccum = 0;
+
+    fb.resetAccumulation();
   };
 
   static char searchTerm[1024] = "";
@@ -1747,7 +1739,6 @@ void MainWindow::buildWindowGeometryViewer()
           sg::NodeType::GEOMETRY, "visible", true);
     }
     replaceWorld();
-    fb.resetAccumulation();
   }
 
   ImGui::SameLine();
@@ -1760,7 +1751,6 @@ void MainWindow::buildWindowGeometryViewer()
           sg::NodeType::GEOMETRY, "visible", false);
     }
     replaceWorld();
-    fb.resetAccumulation();
   }
 
   if (searched) {
@@ -1786,10 +1776,8 @@ void MainWindow::buildWindowGeometryViewer()
       }
     }
   }
-  if (userUpdated) {
+  if (userUpdated)
     replaceWorld();
-    fb.resetAccumulation();
-  }
   ImGui::EndChild();
 
   ImGui::End();

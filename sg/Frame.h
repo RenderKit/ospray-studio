@@ -33,6 +33,7 @@ namespace ospray::sg {
     float frameProgress();
     void waitOnFrame();
     void cancelFrame();
+    bool accumLimitReached();
 
     bool denoiserEnabled{false};
     bool updateFrameOpsNextFrame{false};
@@ -43,6 +44,8 @@ namespace ospray::sg {
 
     bool immediatelyWait{false};
     bool pauseRendering{false};
+    int accumLimit{0};
+    int currentAccum{0};
 
    private:
     void refreshFrameOperations();

@@ -57,11 +57,14 @@ namespace ospray::sg {
 
     refreshFrameOperations();
 
-    if (this->anyChildModified())
+    if (this->anyChildModified()) {
+      currentAccum = 0;
       fb.resetAccumulation();
+    }
 
     this->commit();
-    if (!pauseRendering) {
+
+    if (!pauseRendering && !accumLimitReached()) {
       auto future = fb.handle().renderFrame(
           renderer.handle(), camera.handle(), world.handle());
       setHandle(future);
@@ -94,6 +97,7 @@ namespace ospray::sg {
     auto future = handle();
     if (future)
       future.wait();
+    currentAccum++;
   }
 
   void Frame::cancelFrame()
@@ -101,6 +105,11 @@ namespace ospray::sg {
     auto future = handle();
     if (future)
       future.cancel();
+  }
+
+  bool Frame::accumLimitReached()
+  {
+    return (accumLimit > 0 && currentAccum >= accumLimit);
   }
 
   const void *Frame::mapFrame(OSPFrameBufferChannel channel)
