@@ -479,7 +479,8 @@ void MainWindow::reshape(const vec2i &newWindowSize)
   arcballCamera->updateWindowSize(windowSize);
 
   auto &camera     = frame->child("camera");
-  camera["aspect"] = windowSize.x / float(windowSize.y);
+  if (camera.hasChild("aspect"))
+    camera["aspect"] = windowSize.x / float(windowSize.y);
 }
 
 void MainWindow::updateCamera()
