@@ -33,7 +33,7 @@ namespace ospray::sg {
                 "float",
                 "Distance between left and right eye for stereo mode",
                 0.0635f);
-    child("interpupillaryDistance").setMinMax(0.f, inf);
+    child("interpupillaryDistance").setMinMax(0.f, 0.1f);
     createChild("stereoMode",
                 "int",
                 "0=none, 1=left, 2=right, 3=side-by-side, 4=top-bottom",
