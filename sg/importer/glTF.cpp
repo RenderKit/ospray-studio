@@ -481,6 +481,7 @@ namespace ospray::sg {
     auto materialID = prim.material + 1 + baseMaterialOffset;
     std::vector<uint32_t> mIDs(v.size(), materialID);
     ospGeom->createChildData("material", mIDs);
+    ospGeom->child("material").setSGOnly();
 
     return ospGeom;
   }

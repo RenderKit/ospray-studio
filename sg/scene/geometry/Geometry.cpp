@@ -22,6 +22,10 @@ namespace ospray::sg {
   {
     setValue(cpp::Geometry(osp_type));
     createChild("visible", "bool", true);
+    createChildData("material", 0);
+
+    child("visible").setSGOnly();
+    child("material").setSGOnly();
   }
 
 }  // namespace ospray::sg

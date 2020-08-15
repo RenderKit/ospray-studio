@@ -1,4 +1,3 @@
-
 // ======================================================================== //
 // Copyright 2009-2019 Intel Corporation                                    //
 //                                                                          //
@@ -33,9 +32,6 @@ namespace ospray::sg {
     {
       return this->anyChildModified();
     }
-
-    void preCommit() override;
-    void postCommit() override;
 
     OSPPixelFilterTypes pixelFilter{OSP_PIXELFILTER_POINT};
   };

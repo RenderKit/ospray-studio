@@ -225,6 +225,12 @@ namespace ospray::sg {
           } else {
             rkcommon::utility::Any paramValue;
             parseParameterString(paramValueStr, paramType, paramValue);
+            // Principled::thin is the only 'bool' material parameter
+            // but, needs to be treated with a "bool" paramType
+            if (paramName == "thin") {
+              paramType = "bool";
+              paramValue = paramValue == 0 ? false : true;
+            }
             try {
               auto newParam = createNode(paramName, paramType, paramValue);
               paramNodes.push_back(newParam);
@@ -247,10 +253,10 @@ namespace ospray::sg {
         auto objMatNode = createNode(fileName.name() + "::" + m.name, "obj");
         auto &mat       = *objMatNode;
 
-        mat["kd"].setValue(vec3f(m.diffuse));
-        mat["ks"].setValue(vec3f(m.specular));
-        mat["ns"].setValue(m.shininess);
-        mat["d"].setValue(m.dissolve);
+        mat.createChild("kd", "rgb", vec3f(m.diffuse));
+        mat.createChild("ks", "rgb", vec3f(m.specular));
+        mat.createChild("ns", "float", m.shininess);
+        mat.createChild("d", "float", m.dissolve);
 
         // keeping texture names consistent with ospray's; lowercase snakecase
         // ospray documentation inconsistent
@@ -395,6 +401,7 @@ namespace ospray::sg {
                      mIDs.begin(),
                      [&](int i) { return i + baseMaterialOffset; });
       mesh.createChildData("material", mIDs);
+      mesh.child("material").setSGOnly();
 
 #endif
 

@@ -35,22 +35,4 @@ namespace ospray::sg {
     createChildData("opacity", opacities);
   }
 
-  void TransferFunction::preCommit() {
-    auto &tf      = valueAs<cpp::TransferFunction>();
-    const auto &c = children();
-    if (c.empty())
-      return;
-    for (auto &child : c) {
-      if (child.second->type() == NodeType::PARAMETER) {
-        child.second->setOSPRayParam(child.first, tf.handle());
-      } 
-    }
-  }
-
-  void TransferFunction::postCommit() {
-    auto &tf = valueAs<cpp::TransferFunction>();
-    tf.commit();
-  }
-
-
 }  // namespace ospray::sg

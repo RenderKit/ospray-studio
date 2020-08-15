@@ -26,6 +26,9 @@ namespace ospray::sg {
     createChild("intensity", "float", 1.f);
     createChild("color", "rgb", vec3f(1.f));
     createChild("type", "string", type);
+
+    child("visible").setSGOnly();
+    child("type").setSGOnly();
   }
 
   NodeType Light::type() const

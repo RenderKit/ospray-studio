@@ -212,6 +212,10 @@ namespace sg {
     bool readOnly() const;
     void setReadOnly();
 
+    // Nodes that are used internally to the SG and invalid for OSPRay
+    bool sgOnly() const;
+    void setSGOnly();
+
    protected:
     virtual void preCommit();
     virtual void postCommit();
@@ -243,6 +247,9 @@ namespace sg {
       // vectors allows using length to determine if min/max is set
       std::vector<Any> minMax;
       bool readOnly;
+
+      // Nodes that are used internally to the SG and invalid for OSPRay
+      bool sgOnly{false};
 
       FlatMap<std::string, NodePtr> children;
       std::vector<Node *> parents;

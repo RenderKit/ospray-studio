@@ -26,12 +26,6 @@ namespace ospray::sg {
     ~Volume() override = default;
 
     NodeType type() const;
-
-
-    void preCommit() override;
-    void postCommit() override;
-
-
   };
 
 }  // namespace ospray::sg

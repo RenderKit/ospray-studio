@@ -32,6 +32,8 @@ namespace ospray::sg {
   {
     child("intensity").setMinMax(0.f, 1.f);
     child("visible").setValue(false);
+
+    child("visible").setSGOnly();
   }
 
 }  // namespace ospray::sg

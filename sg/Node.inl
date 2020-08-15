@@ -274,7 +274,8 @@ namespace ospray::sg {
   {
     for (auto &c : children()) {
       if (c.second->type() == NodeType::PARAMETER)
-        c.second->setOSPRayParam(c.first, handle().handle());
+        if (!c.second->sgOnly())
+          c.second->setOSPRayParam(c.first, handle().handle());
     }
   }
 

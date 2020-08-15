@@ -24,29 +24,13 @@ namespace ospray::sg {
     auto handle = ospNewTexture(type.c_str());
     setHandle(handle);
     createChild("name", "string", "");
+
+    child("name").setSGOnly();
   }
 
   NodeType Texture::type() const
   {
     return NodeType::TEXTURE;
-  }
-
-  void Texture::preCommit(){
-    const auto &c             = children();
-    auto &cppTex = handle();
-    if (c.empty())
-      return;
-    for (auto &child : c) {
-      if (child.second->type() == NodeType::PARAMETER && child.first != "name") {
-        child.second->setOSPRayParam(child.first, cppTex.handle());
-      }
-    }
-  }
-
-  void Texture::postCommit()
-  {
-    auto &cppTex = handle();
-    cppTex.commit();
   }
 
 }  // namespace ospray::sg

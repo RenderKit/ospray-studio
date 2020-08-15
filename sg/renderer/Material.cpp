@@ -36,20 +36,26 @@ namespace ospray::sg {
 
   void Material::preCommit()
   {
-    const auto &c          = children();
-    const auto &handles    = child("handles").children();
+    const auto &c       = children();
+    const auto &handles = child("handles").children();
 
     if (c.empty() || handles.empty())
       return;
-    for (auto &c_child : c) 
+    for (auto &c_child : c)
       if (c_child.second->type() == NodeType::PARAMETER)
-        for (auto &h : handles)
-          c_child.second->setOSPRayParam(
-              c_child.first, h.second->valueAs<cpp::Material>().handle());
+        if (!c_child.second->sgOnly())
+          for (auto &h : handles) {
+            // OSPRay SciVis renderer only uses kd and d params
+            if (h.first == "scivis" &&
+                !(c_child.first == "kd" || c_child.first == "d"))
+              continue;
+            c_child.second->setOSPRayParam(
+                c_child.first, h.second->valueAs<cpp::Material>().handle());
+          }
   }
 
   void Material::postCommit()
-  { 
+  {
     const auto &handles = child("handles").children();
     for (auto &h : handles)
       h.second->valueAs<cpp::Material>().commit();

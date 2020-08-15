@@ -27,11 +27,6 @@ namespace ospray::sg {
     virtual ~Texture() override = default;
 
     NodeType type() const;
-
-   private:
-    void preCommit() override;
-    void postCommit() override;
-    // std::string textureType{"texture_2d"};
   };
 
 }  // namespace ospray::sg
