@@ -44,6 +44,11 @@ namespace ospray::sg {
     createChild("color", "vec3f", vec3f(1.f));
     createChild("intensity", "float", 1.f);
     createChild("direction", "vec3f", vec3f(0.f, 1.f, 0.f));
+
+    child("right").setSGOnly();
+    child("azimuth").setSGOnly();
+    child("elevation").setSGOnly();
+    child("right").setSGOnly();
   }
 
   void SunSky::preCommit()
