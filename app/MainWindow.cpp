@@ -603,6 +603,7 @@ void MainWindow::motion(const vec2f &position)
     }
 
     if (cameraChanged) {
+      frame->child("navMode") = true;
       if (cancelFrameOnInteraction) {
         frame->cancelFrame();
         waitOnOSPRayFrame();
@@ -618,14 +619,6 @@ void MainWindow::mouseButton(const vec2f &position)
 {
   if (frame->pauseRendering)
     return;
-
-  if (glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS
-      || glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS
-      || glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-  {
-    frame->child("navMode") = true;
-    frame->cancelFrame();
-  }
 
   if (glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_RELEASE
