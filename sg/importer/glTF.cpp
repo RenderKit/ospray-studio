@@ -760,9 +760,37 @@ namespace ospray {
         WARN << "Material has emissiveFactor = " << emissiveColor << "\n";
         ospMat->createChild("color", "vec3f") = emissiveColor;
         ospMat->createChild("intensity", "float") =
-            10.f;  // XXX what's good default intensity?
+            20.f;  // XXX what's good default intensity?
+
+        // Emulate a constant colored texture by setting the overall color
+        if (mat.emissiveTexture.index != -1) {
+          const auto &tex = model.textures[mat.emissiveTexture.index];
+          const auto &img = model.images[tex.source];
+          const auto *data = img.image.data();
+
+          const vec3f color0 = vec3f(data[0], data[1], data[2]);
+          auto i = 4;
+          WARN << "   color0 : " << color0 << std::endl;
+          auto constColor = true;
+          while (constColor && (i < img.width * img.height - 4)) {
+            const vec3f color = vec3f(data[i+0], data[i+1], data[i+2]);
+            if (color0 != color) {
+              WARN << "   color @ " << i << " : " << color << std::endl;
+              constColor = false;
+            }
+            i += 4;
+          }
+          if (constColor) {
+            WARN << "Material has emissiveTexture #" << mat.emissiveTexture.index << std::endl;
+            WARN << "   name: " << img.name << std::endl;
+            WARN << "   img: (" << img.width << ", " << img.height << ")" << std::endl;
+            WARN << "   emulating with solid color : " << color0 << std::endl;
+            ospMat->child("color") = emissiveColor * (color0 / 255.f);
+          }
+        }
       }
 
+#if 0 // OSPRay Luminous doesn't support textured params yet.
       if (mat.emissiveTexture.texCoord != 0) {
         WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
           << std::endl;
@@ -775,6 +803,7 @@ namespace ospray {
         WARN << "Material has emissiveTexture #" << mat.emissiveTexture.index
              << "\n";
       }
+#endif
 
       return ospMat;
     }
