@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-
+namespace {
 enum DTYPE {
     INT8,
     UINT8,
@@ -60,6 +60,7 @@ enum DTYPE {
     MAT4_FLOAT,
     MAT4_DOUBLE,
 };
+}
 
 std::string print_primitive_mode(int mode);
 

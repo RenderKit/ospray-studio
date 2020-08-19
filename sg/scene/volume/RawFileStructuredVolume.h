@@ -19,12 +19,13 @@
 #include <fstream>
 #include <vector>
 #include "rkcommon/math/vec.h"
+#include "../../Node.h"
 
 using namespace rkcommon::math;
 
 namespace ospray::sg{
 
-    struct RawFileStructuredVolume
+    struct OSPSG_INTERFACE RawFileStructuredVolume
     {
       RawFileStructuredVolume(const std::string &filename,
                               const vec3i &dimensions);

@@ -21,7 +21,7 @@
 
 namespace ospray::sg {
 
-  struct MaterialRegistry : public Node
+  struct OSPSG_INTERFACE MaterialRegistry : public Node
   {
     MaterialRegistry();
 

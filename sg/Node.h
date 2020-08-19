@@ -263,7 +263,7 @@ namespace sg {
 
     void removeFromParentList(Node &node);
 
-    friend NodePtr createNode(std::string, std::string, std::string, Any);
+    friend NodePtr OSPSG_INTERFACE createNode(std::string, std::string, std::string, Any);
 
     friend struct CommitVisitor;
   };

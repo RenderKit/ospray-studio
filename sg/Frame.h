@@ -20,7 +20,7 @@
 
 namespace ospray::sg {
 
-  struct Frame : public OSPNode<cpp::Future, NodeType::FRAME>
+  struct OSPSG_INTERFACE Frame : public OSPNode<cpp::Future, NodeType::FRAME>
   {
     Frame();
     ~Frame() override = default;
