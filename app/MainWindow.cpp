@@ -625,7 +625,7 @@ void MainWindow::mouseButton(const vec2f &position)
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
   {
     frame->child("navMode") = false;
-    frame->cancelFrame();
+      frame->cancelFrame();
   }
 
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS &&
@@ -681,8 +681,8 @@ void MainWindow::display()
     // display frame rate in window title
     auto displayEnd = std::chrono::high_resolution_clock::now();
     auto durationMilliseconds =
-        std::chrono::duration_cast<std::chrono::milliseconds>(displayEnd -
-                                                              displayStart);
+      std::chrono::duration_cast<std::chrono::milliseconds>(displayEnd -
+          displayStart);
 
     latestFPS = 1000.f / float(durationMilliseconds.count());
 
@@ -694,12 +694,12 @@ void MainWindow::display()
     showDepth &= frameBuffer.hasDepthChannel();
 
     auto *mappedFB =
-        (void *)frame->mapFrame(showDepth ? OSP_FB_DEPTH
-            : (showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
+      (void *)frame->mapFrame(showDepth ? OSP_FB_DEPTH
+          : (showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
 
     // This needs to query the actual framebuffer format
     const GLenum glType = frameBuffer.hasFloatFormat()
-                        ? GL_FLOAT : GL_UNSIGNED_BYTE;
+      ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
     // Only create the copy if it's needed
     float *pDepthCopy = nullptr;
@@ -707,7 +707,7 @@ void MainWindow::display()
       // Create a local copy and don't modify OSPRay buffer
       const auto *mappedDepth = static_cast<const float *>(mappedFB);
       std::vector<float> depthCopy(mappedDepth,
-                                   mappedDepth + fbSize.x * fbSize.y);
+          mappedDepth + fbSize.x * fbSize.y);
       pDepthCopy = depthCopy.data();
 
       // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1, ignoring all
@@ -726,11 +726,11 @@ void MainWindow::display()
       // Inverted depth (1.0 -> 0.0) may be more meaningful
       if (showDepthInvert)
         std::transform(depthCopy.begin(),
-                       depthCopy.end(),
-                       depthCopy.begin(),
-                       [&](float depth) {
-                         return (1.f - (depth - minDepth) * rcpDepthRange);
-                       });
+            depthCopy.end(),
+            depthCopy.begin(),
+            [&](float depth) {
+            return (1.f - (depth - minDepth) * rcpDepthRange);
+            });
       else
         std::transform(
             depthCopy.begin(),
@@ -741,14 +741,14 @@ void MainWindow::display()
 
     glBindTexture(GL_TEXTURE_2D, framebufferTexture);
     glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 showAlbedo ? gl_rgb_format : gl_rgba_format,
-                 fbSize.x,
-                 fbSize.y,
-                 0,
-                 showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
-                 glType,
-                 showDepth ? pDepthCopy : mappedFB);
+        0,
+        showAlbedo ? gl_rgb_format : gl_rgba_format,
+        fbSize.x,
+        fbSize.y,
+        0,
+        showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
+        glType,
+        showDepth ? pDepthCopy : mappedFB);
 
     frame->unmapFrame(mappedFB);
 
@@ -1178,7 +1178,7 @@ void MainWindow::buildMainMenuEdit()
 
     renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
     if (renderer.isModified())
-      frame->cancelFrame();
+        frame->cancelFrame();
 
     ImGui::Separator();
 
@@ -1288,7 +1288,7 @@ void MainWindow::buildMainMenuEdit()
       }
 
       if (oldScale != scale) {
-        frame->cancelFrame();
+          frame->cancelFrame();
         frame->child("scale") = scale;
       }
 
@@ -1335,7 +1335,7 @@ void MainWindow::buildMainMenuEdit()
       }
 
       if (oldScale != scale) {
-        frame->cancelFrame();
+          frame->cancelFrame();
         frame->child("scaleNav") = scale;
       }
 
@@ -1813,13 +1813,23 @@ void MainWindow::buildWindowRenderingStats()
       ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
   ImGui::SetNextWindowBgAlpha(0.75f);
 
+  // Bottom left corner
+  static const float FROM_EDGE = 10.f;
+  ImVec2 window_pos(FROM_EDGE, ImGui::GetIO().DisplaySize.y - FROM_EDGE);
+  ImVec2 window_pos_pivot(0.f, 1.f);
+  ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+
   if (!ImGui::Begin("Rendering stats", &showRenderingStats, flags)) {
     ImGui::End();
     return;
   }
 
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto variance = fb.variance();
+
   ImGui::Text("renderer: %s", rendererTypeStr.c_str());
-  ImGui::Text("fps: %0.2f", latestFPS);
+  ImGui::Text("framerate: %-5.1f fps", latestFPS);
+  ImGui::Text("variance : %-5.2f    ", variance);
   if (frame->accumLimit > 0) {
     ImGui::Text("accumulation:");
     ImGui::SameLine();

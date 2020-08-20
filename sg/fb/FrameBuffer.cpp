@@ -49,6 +49,11 @@ namespace ospray::sg {
     handle().clear();
   }
 
+  float FrameBuffer::variance()
+  {
+    return handle().variance();
+  }
+
   void FrameBuffer::postCommit()
   {
     updateHandle();

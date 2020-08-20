@@ -30,6 +30,7 @@ namespace ospray::sg {
 
     const void *map(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmap(const void *mem);
+    float variance();
 
     void resetAccumulation();
     void updateDenoiser(bool enabled);
