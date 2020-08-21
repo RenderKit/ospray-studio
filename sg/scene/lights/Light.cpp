@@ -27,20 +27,12 @@ namespace ospray::sg {
     createChild("color", "rgb", vec3f(1.f));
     createChild("type", "string", type);
 
-    child("visible").setSGOnly();
     child("type").setSGOnly();
   }
 
   NodeType Light::type() const
   {
     return NodeType::LIGHT;
-  }
-
-  void Light::postCommit() {
-    auto &lights = valueAs<cpp::Light>();
-    lights.setParam("intensity", child("intensity").valueAs<float>());
-    lights.setParam("color", child("color").valueAs<vec3f>());
-    lights.commit();
   }
 
 }  // namespace ospray::sg

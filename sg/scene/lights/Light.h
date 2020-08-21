@@ -25,7 +25,6 @@ namespace ospray::sg {
     Light(std::string type);
     ~Light() override = default;
     NodeType type() const override;
-    void postCommit() override;
   };
 
 }  // namespace ospray::sg
