@@ -625,7 +625,7 @@ void MainWindow::mouseButton(const vec2f &position)
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
   {
     frame->child("navMode") = false;
-      frame->cancelFrame();
+    frame->cancelFrame();
   }
 
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS &&
@@ -1178,7 +1178,7 @@ void MainWindow::buildMainMenuEdit()
 
     renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
     if (renderer.isModified())
-        frame->cancelFrame();
+      frame->cancelFrame();
 
     ImGui::Separator();
 
@@ -1288,7 +1288,7 @@ void MainWindow::buildMainMenuEdit()
       }
 
       if (oldScale != scale) {
-          frame->cancelFrame();
+        frame->cancelFrame();
         frame->child("scale") = scale;
       }
 
@@ -1335,7 +1335,7 @@ void MainWindow::buildMainMenuEdit()
       }
 
       if (oldScale != scale) {
-          frame->cancelFrame();
+        frame->cancelFrame();
         frame->child("scaleNav") = scale;
       }
 
