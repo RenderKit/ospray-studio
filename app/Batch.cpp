@@ -112,6 +112,10 @@ bool BatchContext::parseCommandLine(int &argc, const char **&argv)
         optSPP = max(1, atoi(argv[i + 1]));
         removeArgs(argc, argv, i, 2);
         --i;
+      } else if (arg == "-pf" || arg == "--pixelfilter") {
+        optPF = max(0, atoi(argv[i + 1]));
+        removeArgs(argc, argv, i, 2);
+        --i;
       } else if (arg == "-oidn" || arg == "--denoiser") {
         if (denoiserAvailable)
           optDenoiser = min(2, max(0, atoi(argv[i + 1])));
@@ -150,6 +154,8 @@ void BatchContext::render()
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
   frame["renderer"].createChildData("material",
                                     baseMaterialRegistry->cppMaterialList);
+  if (optPF >= 0)
+    frame["renderer"].createChild("pixelFilter", "int", optPF);
 
   frame["framebuffer"]["size"] = optImageSize;
 
@@ -300,6 +306,8 @@ ospStudio batch specific parameters:
             image size
    -spp   --samples [int] (default 32)
             samples per pixel
+   -pf    --pixelfilter (default gauss)
+            (0=point, 1=box, 2=gauss, 3=mitchell, 4=blackman_harris)
    -r     --renderer [type] (default "scivis")
             rendererType scivis or pathtracer
    -c     --camera [type] (default "perspective")

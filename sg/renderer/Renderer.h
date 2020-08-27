@@ -33,7 +33,7 @@ namespace ospray::sg {
       return this->anyChildModified();
     }
 
-    OSPPixelFilterTypes pixelFilter{OSP_PIXELFILTER_POINT};
+    OSPPixelFilterTypes pixelFilter{OSP_PIXELFILTER_GAUSS};
   };
 
 }  // namespace ospray::sg

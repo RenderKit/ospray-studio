@@ -167,6 +167,7 @@ class MainWindow
   std::vector<std::string> filesToImport;
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
+  int optPF = -1; // optional pixel filter, -1 = use default
 
   int defaultMaterialIdx = 0;
   bool useImportedTex = false;

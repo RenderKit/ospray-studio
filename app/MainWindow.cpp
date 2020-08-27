@@ -855,6 +855,10 @@ void MainWindow::buildUI()
 void MainWindow::refreshRenderer()
 {
   auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
+
+  if (optPF >= 0)
+    r.createChild("pixelFilter", "int", optPF);
+
   if (rendererTypeStr != "debug") {
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
     r.createChildData("material", baseMaterialRegistry->cppMaterialList);
@@ -911,9 +915,14 @@ void MainWindow::refreshScene(bool resetCam)
 void MainWindow::parseCommandLine(int &ac, const char **&av)
 {
   for (int i = 1; i < ac; i++) {
-  const auto arg = std::string(av[i]);
-    if (arg.rfind("-", 0) != 0)
+    const auto arg = std::string(av[i]);
+    if (arg.rfind("-", 0) != 0) {
       filesToImport.push_back(arg);
+    } else if (arg == "-pf" || arg == "--pixelfilter") {
+      optPF = max(0, atoi(av[i + 1]));
+      rkcommon::removeArgs(ac, av, i, 2);
+      --i;
+    }
   }
 
   if (!filesToImport.empty()) {
