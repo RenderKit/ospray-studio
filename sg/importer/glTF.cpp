@@ -537,13 +537,12 @@ namespace ospray {
     ospMat->createChild("metallic", "float")  = (float)pbr.metallicFactor;
     ospMat->createChild("roughness", "float") = (float)pbr.roughnessFactor;
 
-    if (mat.alphaMode == "MASK")
-      ospMat->createChild("opacity", "float") = (float)mat.alphaCutoff;
-
-    // XXX If alphaMode is BLEND, then alpha is taken from the baseColor
-    // Need to create an opacityMap from the baseColor[4] texture!!!
-    if (mat.alphaMode == "BLEND")
-      ospMat->createChild("opacity", "float") = (float)0.2;
+    if (mat.alphaMode == "OPAQUE")
+      ospMat->createChild("opacity", "float") = 1.f;
+    else if (mat.alphaMode == "BLEND")
+      ospMat->createChild("opacity", "float") = 0.f;
+    else if (mat.alphaMode == "MASK")
+      ospMat->createChild("opacity", "float") = (float) mat.alphaCutoff;
 
     // All textures *can* specify a texcoord other than 0.  OSPRay only
     // supports one set of texcoords (TEXCOORD_0).
@@ -552,10 +551,6 @@ namespace ospray {
         pbr.baseColorTexture.texCoord == 0) {
       // Used as a color texture, must be sRGB space, not linear
       setOSPTexture(ospMat, "baseColor", pbr.baseColorTexture.index, false);
-
-      // Create a single channel textures from the baseColorTexture[4]
-      if (mat.alphaMode == "BLEND") {
-      }
     }
 
     // XXX Not sure exactly how to map these yet.  Are they single component?
