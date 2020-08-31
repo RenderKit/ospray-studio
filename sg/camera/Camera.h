@@ -18,7 +18,8 @@
 
 #include "sg/Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Camera : public OSPNode<cpp::Camera, NodeType::CAMERA>
   {
@@ -28,4 +29,5 @@ namespace ospray::sg {
     NodeType type() const override;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -18,7 +18,8 @@
 
 #include "../Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct CommitVisitor : public Visitor
   {
@@ -49,4 +50,5 @@ namespace ospray::sg {
     }
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

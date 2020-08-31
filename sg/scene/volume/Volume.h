@@ -18,14 +18,16 @@
 
 #include "../../Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Volume : public OSPNode<cpp::Volume, NodeType::VOLUME>
   {
     Volume(const std::string &osp_type);
     ~Volume() override = default;
 
-    NodeType type() const;
+    NodeType type() const override;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

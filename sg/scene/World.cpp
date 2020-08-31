@@ -17,7 +17,8 @@
 #include "World.h"
 #include "lights/Lights.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   World::World()
   {
@@ -45,4 +46,5 @@ namespace ospray::sg {
 
   OSP_REGISTER_SG_NODE_NAME(World, world);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

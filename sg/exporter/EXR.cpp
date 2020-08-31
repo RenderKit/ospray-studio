@@ -23,7 +23,8 @@
 #include "OpenEXR/ImfChannelList.h"
 #include "OpenEXR/ImfOutputFile.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct EXRExporter : public ImageExporter
   {
@@ -273,7 +274,8 @@ namespace ospray::sg {
     return flipped;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray
 
 #endif
 

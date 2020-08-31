@@ -16,7 +16,8 @@
 
 #include "Generator.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Generator::Generator()
   {
@@ -36,4 +37,5 @@ namespace ospray::sg {
   {
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

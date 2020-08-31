@@ -16,7 +16,8 @@
 
 #include "Light.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE AmbientLight : public Light
   {
@@ -36,4 +37,5 @@ namespace ospray::sg {
     child("visible").setValue(false);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

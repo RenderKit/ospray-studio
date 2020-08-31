@@ -292,7 +292,8 @@ SCENARIO("sg::Node_T<> interface")
       auto value = floatNode.value();
 
       REQUIRE(value == 1.f);
-      static_assert(std::is_same<decltype(value), float>::value);
+      static_assert(std::is_same<decltype(value), float>::value,
+        "is_same: node value types don't match");
     }
 
     THEN("Value type is converted on assignment")
@@ -302,7 +303,8 @@ SCENARIO("sg::Node_T<> interface")
       auto value = floatNode.value();
 
       REQUIRE(value == 2.f);
-      static_assert(std::is_same<decltype(value), float>::value);
+      static_assert(std::is_same<decltype(value), float>::value,
+        "is_same: node value types don't match");
     }
 
     THEN("Value type conversion happens on query")

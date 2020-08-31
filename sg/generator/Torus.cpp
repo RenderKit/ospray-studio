@@ -20,7 +20,8 @@
 // rkcommon
 #include "rkcommon/tasking/parallel_for.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct Torus : public Generator
   {
@@ -70,4 +71,5 @@ namespace ospray::sg {
     tf.add(volume);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

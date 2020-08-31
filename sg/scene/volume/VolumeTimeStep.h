@@ -33,7 +33,8 @@ using namespace rkcommon::math;
 
 // the following struct implements one Volume time step for the time series.
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct VolumeTimestep
   {
@@ -133,4 +134,5 @@ namespace ospray::sg {
     std::shared_ptr<sg::Volume> sgVolume;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -16,7 +16,8 @@
 
 #include "Geometry.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Triangles : public Geometry
   {
@@ -30,4 +31,5 @@ namespace ospray::sg {
 
   Triangles::Triangles() : Geometry("mesh") {}
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

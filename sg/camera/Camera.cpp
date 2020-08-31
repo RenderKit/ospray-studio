@@ -16,7 +16,8 @@
 
 #include "Camera.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Camera::Camera(std::string type)
   {
@@ -38,4 +39,5 @@ namespace ospray::sg {
     return NodeType::CAMERA;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

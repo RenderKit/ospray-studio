@@ -16,7 +16,8 @@
 
 #include "Light.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Light::Light(std::string type)
   {
@@ -35,4 +36,5 @@ namespace ospray::sg {
     return NodeType::LIGHT;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

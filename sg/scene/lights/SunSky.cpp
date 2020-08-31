@@ -16,7 +16,8 @@
 
 #include "Light.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE SunSky : public Light
   {
@@ -74,4 +75,5 @@ namespace ospray::sg {
     Light::preCommit();
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

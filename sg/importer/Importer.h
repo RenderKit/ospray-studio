@@ -21,7 +21,8 @@
 #include "sg/renderer/MaterialRegistry.h"
 #include  "sg/texture/Texture2D.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Importer : public Node
   {
@@ -58,4 +59,5 @@ namespace ospray::sg {
     return importer;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -23,7 +23,8 @@
 
 using namespace rkcommon::math;
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
   
 struct VolumeParameters
 {
@@ -183,4 +184,5 @@ struct PathtracerParameters
         g_transferFunctionWidgets;
   };
 
-}  // namespace ospray::sg
+}  // namespace sg
+} // namespace ospray

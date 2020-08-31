@@ -19,7 +19,8 @@
 #include "../Node.h"
 #include "rkcommon/os/FileName.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Exporter : public Node
   {
@@ -62,4 +63,5 @@ namespace ospray::sg {
     return expTypes;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

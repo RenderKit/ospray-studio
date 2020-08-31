@@ -17,7 +17,8 @@
 #include "Texture.h"
 #include "Texture2D.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Texture::Texture(const std::string &type)
   {
@@ -33,4 +34,5 @@ namespace ospray::sg {
     return NodeType::TEXTURE;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

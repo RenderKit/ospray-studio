@@ -16,7 +16,8 @@
 
 #include "MaterialReference.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   MaterialReference::MaterialReference()
   {
@@ -30,4 +31,5 @@ namespace ospray::sg {
 
   OSP_REGISTER_SG_NODE_NAME(MaterialReference, reference_to_material);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

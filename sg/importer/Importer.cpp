@@ -16,7 +16,8 @@
 
 #include "Importer.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Importer::Importer()
   {
@@ -35,4 +36,5 @@ namespace ospray::sg {
 
   void Importer::importScene() {}
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

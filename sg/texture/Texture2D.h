@@ -22,7 +22,8 @@
 // rkcommon
 #include "rkcommon/os/FileName.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Texture2D : public Texture
   {
@@ -79,4 +80,5 @@ namespace ospray::sg {
     return OSP_TEXTURE_FORMAT_INVALID;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

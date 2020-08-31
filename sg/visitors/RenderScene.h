@@ -21,7 +21,8 @@
 // std
 #include <stack>
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct RenderScene : public Visitor
   {
@@ -249,4 +250,5 @@ namespace ospray::sg {
       world.removeParam("instance");
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

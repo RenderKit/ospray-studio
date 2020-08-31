@@ -17,7 +17,8 @@
 #include "FrameBuffer.h"
 #include "../exporter/ImageExporter.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   FrameBuffer::FrameBuffer()
   {
@@ -162,4 +163,5 @@ namespace ospray::sg {
 
   OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

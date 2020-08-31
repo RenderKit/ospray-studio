@@ -16,7 +16,8 @@
 
 #include "TransferFunction.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   TransferFunction::TransferFunction(const std::string &osp_type)
   {
@@ -35,4 +36,5 @@ namespace ospray::sg {
     createChildData("opacity", opacities);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -18,7 +18,8 @@
 
 #include "../../Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Light : public OSPNode<cpp::Light, NodeType::LIGHT>
   {
@@ -27,4 +28,5 @@ namespace ospray::sg {
     NodeType type() const override;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

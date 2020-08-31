@@ -16,7 +16,8 @@
 
 #include "../Material.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Mix : public Material
   {
@@ -33,4 +34,5 @@ namespace ospray::sg {
 
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

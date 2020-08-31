@@ -34,7 +34,8 @@ using namespace rkcommon::math;
 
 // the following struct implements one Volume time step for the time series.
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct VDBVolumeTimestep
   {
@@ -122,4 +123,5 @@ namespace ospray::sg {
 
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

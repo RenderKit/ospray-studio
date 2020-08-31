@@ -21,7 +21,8 @@
 // rkcommon
 #include "rkcommon/tasking/parallel_for.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct Clouds : public Generator
   {
@@ -62,4 +63,5 @@ namespace ospray::sg {
     tf.add(vol);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

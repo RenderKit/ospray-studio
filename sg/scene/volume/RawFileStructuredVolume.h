@@ -23,7 +23,8 @@
 
 using namespace rkcommon::math;
 
-namespace ospray::sg{
+namespace ospray {
+  namespace sg{
 
     struct OSPSG_INTERFACE RawFileStructuredVolume
     {
@@ -37,5 +38,6 @@ namespace ospray::sg{
       vec3i dimensions;
     };
 
-  }  // namespace ospray::sg
+}  // namespace sg
+} // namespace ospray
 

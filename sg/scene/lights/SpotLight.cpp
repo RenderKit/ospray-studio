@@ -16,7 +16,8 @@
 
 #include "Light.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE SpotLight : public Light
   {
@@ -40,4 +41,5 @@ namespace ospray::sg {
     createChild("radius", "float", 0.f);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -16,7 +16,8 @@
 
 #include "Volume.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Volume::Volume(const std::string &osp_type)
   {
@@ -28,4 +29,5 @@ namespace ospray::sg {
     return NodeType::VOLUME;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

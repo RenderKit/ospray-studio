@@ -35,12 +35,12 @@ class BatchContext
   std::string optRendererTypeStr = "scivis";
   std::string optCameraTypeStr   = "perspective";
   std::string optImageName       = "ospBatch";
-  vec2i optImageSize             = (1024, 768);
+  vec2i optImageSize             = {1024, 768};
   int optSPP                     = 32;
   int optPF                      = -1; // use default
   int optDenoiser                = 0;
   bool optGridEnable             = false;
-  vec3i optGridSize              = (1, 1, 1);
+  vec3i optGridSize              = {1, 1, 1};
   // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
   int optStereoMode               = 0;
   float optInterpupillaryDistance = 0.0635f;

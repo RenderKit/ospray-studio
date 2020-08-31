@@ -20,7 +20,8 @@
 
 #define ONEOVER255 0.00392156862f
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE ImageExporter : public Exporter
   {
@@ -87,4 +88,5 @@ namespace ospray::sg {
     child("data") = (const void *)newfb;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

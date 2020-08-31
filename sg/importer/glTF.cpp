@@ -32,7 +32,8 @@
 #define WARN std::cout << prefix << "(W): "
 #define ERROR std::cerr << prefix << "(E): "
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct glTFImporter : public Importer
   {
@@ -688,4 +689,5 @@ namespace ospray::sg {
     INFO << "finished import!\n";
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

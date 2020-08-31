@@ -18,7 +18,8 @@
 
 #include "../Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct PrintNodes : public Visitor
   {
@@ -68,4 +69,5 @@ namespace ospray::sg {
     return true;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

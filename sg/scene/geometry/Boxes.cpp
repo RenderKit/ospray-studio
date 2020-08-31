@@ -16,7 +16,8 @@
 
 #include "Geometry.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Boxes : public Geometry
   {
@@ -33,4 +34,5 @@ namespace ospray::sg {
     createChildData("box", box3f({vec3f(-1.f,-1.f,-1.f),vec3f(1.f,1.f,1.f)}));
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

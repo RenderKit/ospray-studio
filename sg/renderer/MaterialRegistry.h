@@ -19,7 +19,8 @@
 #include "../Node.h"
 #include "../visitors/GenerateOSPRayMaterials.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE MaterialRegistry : public Node
   {
@@ -45,4 +46,5 @@ namespace ospray::sg {
 
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -18,7 +18,8 @@
 
 #include "../../Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE TransferFunction
       : public OSPNode<cpp::TransferFunction, NodeType::TRANSFER_FUNCTION>
@@ -27,4 +28,5 @@ namespace ospray::sg {
     ~TransferFunction() override = default;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

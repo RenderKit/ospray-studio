@@ -18,7 +18,8 @@
 
 #include "Data.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   /////////////////////////////////////////////////////////////////////////////
   // Inlined Node definitions /////////////////////////////////////////////////
@@ -229,7 +230,8 @@ namespace ospray::sg {
   template <typename VALUE_T>
   inline void Node_T<VALUE_T>::setOSPRayParam(std::string param, OSPObject obj)
   {
-    static_assert(OSPTypeFor<VALUE_T>::value != OSP_UNKNOWN);
+    static_assert(OSPTypeFor<VALUE_T>::value != OSP_UNKNOWN,
+      "setOSPRayParam: unknown node type");
     ospSetParam(obj, param.c_str(), OSPTypeFor<VALUE_T>::value, &value());
   }
 
@@ -289,9 +291,11 @@ namespace ospray::sg {
   inline void OSPNode<HANDLE_T, TYPE>::setOSPRayParam(std::string param,
                                                       OSPObject obj)
   {
-    static_assert(OSPTypeFor<HANDLE_T>::value != OSP_UNKNOWN);
+    static_assert(OSPTypeFor<HANDLE_T>::value != OSP_UNKNOWN,
+      "setOSPRayParam: unknown node type");
     auto h = handle().handle();
     ospSetParam(obj, param.c_str(), OSPTypeFor<HANDLE_T>::value, &h);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

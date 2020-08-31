@@ -16,7 +16,8 @@
 
 #include "Volume.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE UnstructuredVolume : public Volume
   {
@@ -37,4 +38,5 @@ namespace ospray::sg {
     createChildData("cell.type");
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -19,7 +19,8 @@
 #include "../Node.h"
 #include "lights/Light.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
   {
@@ -30,4 +31,5 @@ namespace ospray::sg {
     virtual void postCommit() override;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

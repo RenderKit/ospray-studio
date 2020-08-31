@@ -18,7 +18,8 @@
 // std
 #include <random>
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct TutorialSceneML : public Generator
   {
@@ -98,4 +99,6 @@ namespace ospray::sg {
     add(singleLevel);
     add(multiLevel);
   }
-}  // namespace ospray::sg
+
+  }  // namespace sg
+} // namespace ospray

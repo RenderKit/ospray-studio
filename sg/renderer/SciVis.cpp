@@ -16,7 +16,8 @@
 
 #include "Renderer.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE SciVis : public Renderer
   {
@@ -46,4 +47,5 @@ namespace ospray::sg {
     }
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

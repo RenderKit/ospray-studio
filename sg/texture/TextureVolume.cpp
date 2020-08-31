@@ -17,10 +17,10 @@
 
 #include "TextureVolume.h"
 
-namespace ospray::sg{
+namespace ospray {
+  namespace sg {
 
     // TextureVolume definitions //////////////////////////////////////////////////
-
     TextureVolume::TextureVolume() : Texture("volume") {}
 
     NodeType TextureVolume::type() const
@@ -36,4 +36,5 @@ namespace ospray::sg{
 
     OSP_REGISTER_SG_NODE_NAME(TextureVolume, textureVolume);
 
-  } // ::ospray::sg
+  } // namespace sg
+} // namespace ospray

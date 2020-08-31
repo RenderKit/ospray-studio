@@ -18,7 +18,8 @@
 #include <sstream>
 #include <string>
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   /*! helper function to help build voxel ranges during parsing */
   template <typename T>
@@ -135,4 +136,6 @@ namespace ospray::sg {
   }
 
   OSP_REGISTER_SG_NODE_NAME(StructuredVolume, structuredRegular);
-}  // namespace ospray::sg
+
+  }  // namespace sg
+} // namespace ospray

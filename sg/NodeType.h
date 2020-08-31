@@ -16,7 +16,8 @@
 
 #pragma once
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   enum class NodeType
   {
@@ -44,4 +45,5 @@ namespace ospray::sg {
     UNKNOWN = 9999
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

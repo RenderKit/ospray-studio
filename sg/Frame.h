@@ -18,7 +18,8 @@
 
 #include "Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Frame : public OSPNode<cpp::Future, NodeType::FRAME>
   {
@@ -53,4 +54,5 @@ namespace ospray::sg {
     void postCommit() override;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

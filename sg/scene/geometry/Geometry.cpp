@@ -16,7 +16,8 @@
 
 #include "Geometry.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Geometry::Geometry(const std::string &osp_type)
   {
@@ -28,4 +29,5 @@ namespace ospray::sg {
     child("material").setSGOnly();
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

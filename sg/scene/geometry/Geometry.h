@@ -18,7 +18,8 @@
 
 #include "../../Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Geometry
       : public OSPNode<cpp::Geometry, NodeType::GEOMETRY>
@@ -27,4 +28,5 @@ namespace ospray::sg {
     ~Geometry() override = default;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

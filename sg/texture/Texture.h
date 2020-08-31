@@ -19,14 +19,16 @@
 // sg
 #include "../Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Texture : public OSPNode<cpp::Texture, NodeType::TEXTURE>
   {
     Texture(const std::string &type);
     virtual ~Texture() override = default;
 
-    NodeType type() const;
+    NodeType type() const override;
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

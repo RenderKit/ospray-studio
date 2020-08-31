@@ -20,7 +20,8 @@
 // rkcommon
 #include "rkcommon/tasking/parallel_for.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct WaveletVolume : public Generator
   {
@@ -110,4 +111,5 @@ namespace ospray::sg {
     volume.createChildData("data", dimensions, 0, voxels.data());
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -18,7 +18,8 @@
 
 #include "sg/Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE FrameBuffer
       : public OSPNode<cpp::FrameBuffer, NodeType::FRAME_BUFFER>
@@ -64,4 +65,5 @@ namespace ospray::sg {
         {"none", OSP_FB_NONE}};
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

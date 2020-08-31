@@ -16,7 +16,8 @@
 
 #include "Geometry.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Spheres : public Geometry
   {
@@ -33,4 +34,5 @@ namespace ospray::sg {
     createChild("radius", "float", 1.f);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

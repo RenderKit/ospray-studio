@@ -16,7 +16,9 @@
 
 #include "MaterialRegistry.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
+
   MaterialRegistry::MaterialRegistry()
   {}
 
@@ -89,4 +91,5 @@ namespace ospray::sg {
 
   OSP_REGISTER_SG_NODE_NAME(MaterialRegistry, materialRegistry);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

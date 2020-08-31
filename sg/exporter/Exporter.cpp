@@ -16,7 +16,8 @@
 
 #include "Exporter.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Exporter::Exporter()
   {
@@ -28,4 +29,5 @@ namespace ospray::sg {
     return NodeType::EXPORTER;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

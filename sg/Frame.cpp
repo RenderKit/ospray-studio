@@ -22,7 +22,8 @@
 #include "sg/scene/World.h"
 #include "sg/scene/lights/Lights.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Frame::Frame()
   {
@@ -185,4 +186,5 @@ namespace ospray::sg {
 
   OSP_REGISTER_SG_NODE_NAME(Frame, frame);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

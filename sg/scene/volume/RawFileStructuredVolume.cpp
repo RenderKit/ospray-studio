@@ -16,7 +16,8 @@
 
 #include "RawFileStructuredVolume.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   RawFileStructuredVolume::RawFileStructuredVolume(const std::string &filename,
                                                    const vec3i &dimensions)
@@ -42,4 +43,5 @@ namespace ospray::sg {
 
     return voxels;
   }
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

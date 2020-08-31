@@ -19,14 +19,15 @@
 #include "rkcommon/os/FileName.h"
 #include "../scene/volume/StructuredSpherical.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct RawImporter : public Importer
   {
     RawImporter()           = default;
     ~RawImporter() override = default;
 
-    void importScene();
+    void importScene() override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(RawImporter, importer_raw);
@@ -54,4 +55,5 @@ namespace ospray::sg {
     std::cout << "...finished import!\n";
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

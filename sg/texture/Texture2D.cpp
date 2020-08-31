@@ -25,7 +25,8 @@ OIIO_NAMESPACE_USING
 
 #include "rkcommon/memory/malloc.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   // static helper functions //////////////////////////////////////////////////
 
@@ -581,4 +582,5 @@ namespace ospray::sg {
 
   std::map<std::string, std::shared_ptr<Texture2D>> Texture2D::textureCache;
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

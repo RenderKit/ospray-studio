@@ -19,7 +19,8 @@
 #include "../renderer/Material.h"
 #include "sg/texture/Texture2D.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct GenerateOSPRayMaterials : public Visitor
   {
@@ -82,4 +83,5 @@ namespace ospray::sg {
     }
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -17,7 +17,8 @@
 #include "Volume.h"
 #include "StructuredSpherical.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   // StructuredSpherical definitions /////////////////////////////////////////////
 
@@ -70,5 +71,5 @@ namespace ospray::sg {
 
    OSP_REGISTER_SG_NODE_NAME(StructuredSpherical, structuredSpherical);
 
-
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

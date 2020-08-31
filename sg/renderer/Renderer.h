@@ -18,7 +18,8 @@
 
 #include "sg/Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Renderer
       : public OSPNode<cpp::Renderer, NodeType::RENDERER>
@@ -36,4 +37,5 @@ namespace ospray::sg {
     OSPPixelFilterTypes pixelFilter{OSP_PIXELFILTER_GAUSS};
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

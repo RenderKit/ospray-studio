@@ -383,7 +383,7 @@ namespace sg {
 #define OSP_REGISTER_SG_NODE(InternalClassName) \
   OSP_REGISTER_SG_NODE_NAME(InternalClassName, InternalClassName)
 
-}  // namespace ospray::sg
-}
+}  // namespace sg
+} // namespace ospray
 
 #include "Node.inl"

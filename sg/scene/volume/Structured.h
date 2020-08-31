@@ -22,7 +22,8 @@
 // rkcommon
 #include "rkcommon/os/FileName.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE StructuredVolume : public Volume
   {
@@ -34,4 +35,5 @@ namespace ospray::sg {
     bool fileLoaded{false};
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

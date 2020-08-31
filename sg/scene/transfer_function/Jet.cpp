@@ -16,7 +16,8 @@
 
 #include "TransferFunction.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE Jet : public TransferFunction
   {
@@ -42,4 +43,5 @@ namespace ospray::sg {
     createChildData("color", colors);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

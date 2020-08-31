@@ -16,7 +16,8 @@
 
 #include "Instance.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Instance::Instance()
   {
@@ -52,4 +53,5 @@ namespace ospray::sg {
 
   OSP_REGISTER_SG_NODE_NAME(Instance, instance);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -26,7 +26,8 @@
 #include <openvdb/openvdb.h>
 #endif //USE_OPENVDB
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
     struct VDBData{
       std::vector<uint32_t> level;
@@ -51,4 +52,5 @@ namespace ospray::sg {
 #endif //USE_OPENVDB
   };
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

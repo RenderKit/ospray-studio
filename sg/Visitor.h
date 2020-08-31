@@ -18,7 +18,8 @@
 
 #include "rkcommon/traits/rktraits.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct Node;
 
@@ -92,4 +93,5 @@ namespace ospray::sg {
   using is_valid_visitor_t =
       rkcommon::traits::enable_if_t<is_valid_visitor<VISITOR_T>::value>;
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -16,7 +16,8 @@
 
 #include "Light.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE HDRILight : public Light
   {
@@ -47,4 +48,5 @@ namespace ospray::sg {
     this->Light::postCommit();
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

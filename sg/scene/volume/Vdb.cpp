@@ -18,7 +18,8 @@
 #include <sstream>
 #include <string>
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   // VdbVolume definitions /////////////////////////////////////////////////////
 
@@ -215,4 +216,6 @@ namespace ospray::sg {
   }
 
     OSP_REGISTER_SG_NODE_NAME(VdbVolume, volume_vdb);
-  }  // namespace ospray::sg
+
+  }  // namespace sg
+} // namespace ospray

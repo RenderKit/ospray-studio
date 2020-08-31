@@ -20,7 +20,8 @@
 // rkcommon
 #include "rkcommon/os/FileName.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OBJImporter : public Importer
   {
@@ -416,4 +417,5 @@ namespace ospray::sg {
     std::cout << "...finished import!\n";
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

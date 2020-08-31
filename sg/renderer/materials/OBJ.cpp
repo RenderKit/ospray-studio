@@ -16,7 +16,8 @@
 
 #include "../Material.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE MaterialOBJ : public Material
   {
@@ -30,4 +31,5 @@ namespace ospray::sg {
 
   MaterialOBJ::MaterialOBJ() : Material("obj") {}
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

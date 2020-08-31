@@ -20,7 +20,8 @@
 // stb
 #include "stb_image_write.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct HDRExporter : public ImageExporter
   {
@@ -62,5 +63,6 @@ namespace ospray::sg {
       std::cout << "Saved to " << file << std::endl;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray
 

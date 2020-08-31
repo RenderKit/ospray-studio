@@ -19,7 +19,8 @@
 #include "rkcommon/os/FileName.h"
 #include "rkcommon/utility/SaveImage.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct PPMExporter : public ImageExporter
   {
@@ -68,5 +69,6 @@ namespace ospray::sg {
     std::cout << "Saved to " << file << std::endl;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray
 

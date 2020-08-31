@@ -19,7 +19,8 @@
 // sg
 #include "Texture.h"
 
-namespace ospray::sg{
+namespace ospray {
+  namespace sg{
 
     /*! \brief wrapper for a Texture Volume */
     struct OSPSG_INTERFACE TextureVolume : public Texture
@@ -28,10 +29,11 @@ namespace ospray::sg{
       TextureVolume();
       virtual ~TextureVolume() override = default;
 
-      NodeType type() const;
+      NodeType type() const override;
 
       void preCommit() override;
       void postCommit() override;
     };
 
-  } // ::ospray::sg
+  } // namespace sg
+} // namespace ospray

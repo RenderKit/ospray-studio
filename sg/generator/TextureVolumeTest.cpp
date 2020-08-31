@@ -21,7 +21,8 @@
 #include "rkcommon/tasking/parallel_for.h"
 #include "sg/texture/TextureVolume.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct TextureVolumeTest : public Generator
   {
@@ -87,4 +88,5 @@ namespace ospray::sg {
 
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

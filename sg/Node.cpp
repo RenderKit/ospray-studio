@@ -22,7 +22,8 @@
 #include "rkcommon/os/library.h"
 #include "rkcommon/utility/StringManip.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -417,4 +418,5 @@ namespace ospray::sg {
   OSP_REGISTER_SG_NODE(Transform);
   OSP_REGISTER_SG_NODE_NAME(Transform, transform);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

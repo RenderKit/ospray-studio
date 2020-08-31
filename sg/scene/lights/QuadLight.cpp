@@ -16,7 +16,8 @@
 
 #include "Light.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE QuadLight : public Light
   {
@@ -35,4 +36,5 @@ namespace ospray::sg {
     createChild("edge2", "vec3f", vec3f(0.f, 1.f, 0.f));
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

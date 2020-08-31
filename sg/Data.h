@@ -18,7 +18,8 @@
 
 #include "Node.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct Data : public OSPNode<cpp::CopiedData, NodeType::PARAMETER>
   {
@@ -204,4 +205,5 @@ namespace ospray::sg {
         "box, linear, affine) are expected to come from rkcommon::math.");
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

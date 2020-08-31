@@ -16,7 +16,8 @@
 
 #include "Light.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct OSPSG_INTERFACE DirectionalLight : public Light
   {
@@ -36,4 +37,5 @@ namespace ospray::sg {
     child("direction").setMinMax(0.f, 10.f);
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

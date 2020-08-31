@@ -17,7 +17,8 @@
 #include "Renderer.h"
 #include "sg/texture/Texture2D.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   Renderer::Renderer(std::string type)
   {
@@ -52,4 +53,5 @@ namespace ospray::sg {
 
   OSP_REGISTER_SG_NODE_NAME(DebugRenderer, renderer_debug);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

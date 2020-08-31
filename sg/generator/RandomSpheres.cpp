@@ -18,7 +18,8 @@
 // std
 #include <random>
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct RandomSpheres : public Generator
   {
@@ -53,4 +54,5 @@ namespace ospray::sg {
     spheres.child("radius") = radius;
   }
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray

@@ -3,7 +3,8 @@
 
 #include "Camera.h"
 
-namespace ospray::sg {
+namespace ospray {
+  namespace sg {
 
   struct Panoramic : public Camera
   {
@@ -25,4 +26,5 @@ namespace ospray::sg {
 
   OSP_REGISTER_SG_NODE_NAME(Panoramic, camera_panoramic);
 
-}  // namespace ospray::sg
+  }  // namespace sg
+} // namespace ospray
