@@ -8,3 +8,4 @@
 !/plugins
 /plugins/*
 !/plugins/example_plugin
+doc/*.html
