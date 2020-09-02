@@ -6,7 +6,8 @@ export KLOCWORK_LTOKEN=/tmp/ltoken
 echo "$KW_SERVER_IP;$KW_SERVER_PORT;$KW_USER;$KW_LTOKEN" > $KLOCWORK_LTOKEN
 
 set -e
-apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev -y
+dpkg --add-architecture i386
+apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev libtinfo5:i386 -y
 if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
 then
     cd /tmp
