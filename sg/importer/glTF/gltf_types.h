@@ -1,3 +1,7 @@
+// The MIT License (MIT)
+// Copyright (c) 2019 Will Usher
+// https://github.com/Twinklebear/ChameleonRT
+
 #pragma once
 
 #include <string>

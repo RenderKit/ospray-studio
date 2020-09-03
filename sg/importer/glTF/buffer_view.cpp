@@ -1,3 +1,7 @@
+// The MIT License (MIT)
+// Copyright (c) 2019 Will Usher
+// https://github.com/Twinklebear/ChameleonRT
+
 #include "tiny_gltf.h"
 #include "buffer_view.h"
 #include <cmath>
