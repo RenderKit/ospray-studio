@@ -7,10 +7,16 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
+#include <vector>
 // ospray
 #include "ospray/ospray_util.h"
-// ospcommno
+// ospcommon
 #include "rkcommon/common.h"
+
+#include "PluginManager.h"
+
+using namespace ospray;
+using namespace rkcommon::math;
 
 enum class StudioMode
 {
@@ -26,14 +32,32 @@ const static std::map<std::string, StudioMode> StudioModeMap = {
     {"server", StudioMode::HEADLESS},
     {"timeseries", StudioMode::TIMESERIES}};
 
-// Mode entry points
-void start_GUI_mode(int argc, const char *argv[]);
-void start_Batch_mode(int argc, const char *argv[]);
-void start_TimeSeries_mode(int argc, const char *argv[]);
+// Common across all modes
 
-inline void initializeOSPRay(int &argc,
-                             const char **argv,
-                             bool errorsFatal = true)
+class StudioCommon
+{
+ public:
+
+  StudioCommon(PluginManager &_pluginManager, const bool denoiser,
+               int _argc, const char **_argv) :
+    pluginManager(_pluginManager), denoiserAvailable(denoiser),
+    argc(_argc), argv(_argv) {};
+
+  PluginManager &pluginManager;
+  bool denoiserAvailable{false};
+  const vec2i defaultSize = vec2i(1024, 768);
+
+  int argc;
+  const char **argv;
+};
+
+// Mode entry points
+void start_GUI_mode(StudioCommon &studioCommon);
+void start_Batch_mode(StudioCommon &studioCommon);
+void start_TimeSeries_mode(StudioCommon &studioCommon);
+
+inline void initializeOSPRay(
+    int &argc, const char **argv, bool errorsFatal = true)
 {
   // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
   // e.g. "--osp:debug"

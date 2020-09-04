@@ -7,6 +7,7 @@ add_executable(ospStudio
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
   ospStudio.cpp
+	PluginManager.cpp
   Batch.cpp
   TimeSeriesWindow.cpp
   widgets/TransferFunctionWidget.cpp

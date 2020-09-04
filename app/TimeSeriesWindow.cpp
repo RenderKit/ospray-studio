@@ -14,17 +14,14 @@
 
 using namespace ospray::sg;
 
-bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
-vec2i windowSize = vec2i(1024, 1024);
-
 std::vector<std::string> variablesLoaded;
 
 // TimeSeriesWindow mode entry point
-void start_TimeSeries_mode(int argc, const char *argv[])
+void start_TimeSeries_mode(StudioCommon &studioCommon)
 {
   std::cout << "***** Timeseries Mode *****" << std::endl;
-  auto window    = rkcommon::make_unique<TimeSeriesWindow>();
-  window->parseCommandLine(argc, argv);
+  auto window = rkcommon::make_unique<TimeSeriesWindow>(studioCommon);
+  window->parseCommandLine();
   window->mainLoop();
   window.reset();
 }
@@ -37,7 +34,8 @@ static std::unordered_map<std::string, OSPDataType> const tableDataType = {
     {"ushort", OSP_USHORT},
     {"double", OSP_DOUBLE}};
 
-TimeSeriesWindow::TimeSeriesWindow() 
+TimeSeriesWindow::TimeSeriesWindow(StudioCommon &_common) 
+  : MainWindow(_common)
 {}
 
 TimeSeriesWindow::~TimeSeriesWindow() {}
@@ -297,8 +295,11 @@ void TimeSeriesWindow::updateWindowTitle(std::string &updatedTitle)
   updatedTitle = windowTitle.str();
 }
 
-bool TimeSeriesWindow::parseCommandLine(int &argc, const char **&argv)
+bool TimeSeriesWindow::parseCommandLine()
 {
+  int argc = studioCommon.argc;
+  const char **argv = studioCommon.argv;
+
   if (argc < 2) {
     std::cout << "incomplete/wrong usage of command line params" << std::endl;
 

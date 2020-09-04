@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "ospStudio.h"
+
 #include "ArcballCamera.h"
 // glfw
 #include "GLFW/glfw3.h"
@@ -11,6 +13,8 @@
 #include "sg/renderer/MaterialRegistry.h"
 // std
 #include <functional>
+// Plugin
+#include "PluginManager.h"
 
 using namespace rkcommon::math;
 using namespace ospray;
@@ -39,13 +43,11 @@ enum class OSPRayRendererType
   OTHER
 };
 
-static const vec2i defaultWindowSize = vec2i(1024, 768);
-
 class MainWindow
 {
  public:
  
-  MainWindow(const vec2i &windowSize = defaultWindowSize, bool denoiser = false);
+  MainWindow(StudioCommon &studioCommon);
 
   ~MainWindow();
 
@@ -63,7 +65,7 @@ class MainWindow
 
   void mainLoop();
 
-  void parseCommandLine(int &ac, const char **&av);
+  void parseCommandLine();
 
   void importFiles();
 
@@ -86,6 +88,12 @@ class MainWindow
   std::string lightTypeStr{"ambient"};
 
  protected:
+  StudioCommon &studioCommon;
+
+  // Panels //
+
+  std::vector<std::unique_ptr<Panel>> pluginPanels;
+
   void buildPanel();
   void reshape(const vec2i &newWindowSize);
   void motion(const vec2f &position);
@@ -112,6 +120,8 @@ class MainWindow
   void buildMainMenuFile();
   void buildMainMenuEdit();
   void buildMainMenuView();
+  void buildMainMenuPlugins();
+
   void buildWindows();
   void buildWindowPreferences();
   void buildWindowKeyframes();
@@ -142,7 +152,6 @@ class MainWindow
   vec2i fbSize;
   vec2f previousMouse{-1.f};
 
-  bool denoiserAvailable{false};
   bool showColor{true};
   bool showAlbedo{false};
   bool showDepth{false};

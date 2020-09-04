@@ -21,11 +21,11 @@ using namespace rkcommon::math;
 class TimeSeriesWindow : public MainWindow
 {
  public:
-  TimeSeriesWindow();
+  TimeSeriesWindow(StudioCommon &studioCommon);
 
   ~TimeSeriesWindow();
 
-  bool parseCommandLine(int &ac, const char **&av);
+  bool parseCommandLine();
 
   void mainLoop();
 

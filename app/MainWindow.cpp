@@ -46,7 +46,7 @@
 static std::vector<CameraState> g_cameraStack;
 
 // GUI mode entry point
-void start_GUI_mode(int argc, const char *argv[])
+void start_GUI_mode(StudioCommon &studioCommon)
 {
   std::cerr << "GUI mode\n";
 
@@ -55,10 +55,9 @@ void start_GUI_mode(int argc, const char *argv[])
     cereal::JSONInputArchive iarchive(cams);
     iarchive(g_cameraStack);
   }
-  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
 
-  auto window = make_unique<MainWindow>(vec2i(1024, 768), denoiser);
-  window->parseCommandLine(argc, argv);
+  auto window = make_unique<MainWindow>(studioCommon);
+  window->parseCommandLine();
   window->mainLoop();
   window.reset();
 }
@@ -172,8 +171,8 @@ void error_callback(int error, const char *desc)
 
 MainWindow *MainWindow::activeWindow = nullptr;
 
-MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
-    : scene(g_scenes[0]), denoiserAvailable(denoiser)
+MainWindow::MainWindow(StudioCommon &_common)
+    : studioCommon(_common), windowSize(_common.defaultSize), scene(g_scenes[0])
 {
   if (activeWindow != nullptr) {
     throw std::runtime_error("Cannot create more than one MainWindow!");
@@ -380,6 +379,14 @@ MainWindow::MainWindow(const vec2i &windowSize, bool denoiser)
   // OSPRay setup //
 
   frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
+
+  // create panels //
+
+  auto newPluginPanels =
+            studioCommon.pluginManager.getAllPanelsFromPlugins(frame);
+  std::move(newPluginPanels.begin(),
+            newPluginPanels.end(),
+            std::back_inserter(pluginPanels));
 
   baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
       "baseMaterialRegistry", "materialRegistry");
@@ -838,6 +845,10 @@ void MainWindow::buildUI()
   if (uiCallback) {
       uiCallback();
   }
+
+  for (auto &p : pluginPanels)
+    if (p->isShown())
+      p->buildUI();
 }
 
 void MainWindow::refreshRenderer()
@@ -900,8 +911,11 @@ void MainWindow::refreshScene(bool resetCam)
   fb.resetAccumulation();
 }
 
-void MainWindow::parseCommandLine(int &ac, const char **&av)
+void MainWindow::parseCommandLine()
 {
+  int ac = studioCommon.argc;
+  const char **av = studioCommon.argv;
+
   for (int i = 1; i < ac; i++) {
     const auto arg = std::string(av[i]);
     if (arg.rfind("-", 0) != 0) {
@@ -1106,6 +1120,7 @@ void MainWindow::buildMainMenu()
   buildMainMenuFile();
   buildMainMenuEdit();
   buildMainMenuView();
+  buildMainMenuPlugins();
   ImGui::EndMainMenuBar();
 }
 
@@ -1229,7 +1244,7 @@ void MainWindow::buildMainMenuEdit()
       break;
     }
 
-    if (denoiserAvailable) {
+    if (studioCommon.denoiserAvailable) {
       ImGui::Separator();
       ImGui::Text("Denoiser Options:");
       if (fb["allowDenoising"].valueAs<bool>()) {
@@ -1425,6 +1440,19 @@ void MainWindow::buildMainMenuView()
     if (ImGui::MenuItem("Geometry...", "", nullptr))
       showGeometryViewer = true;
     ImGui::Checkbox("Rendering stats...", &showRenderingStats);
+    ImGui::EndMenu();
+  }
+}
+
+void MainWindow::buildMainMenuPlugins()
+{
+  if (ImGui::BeginMenu("Plugins")) {
+    for (auto &p : pluginPanels) {
+      bool show = p->isShown();
+      if (ImGui::Checkbox(p->name().c_str(), &show))
+        p->toggleShown();
+    }
+
     ImGui::EndMenu();
   }
 }

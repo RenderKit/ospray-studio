@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "ospStudio.h"
+
 #include "ArcballCamera.h"
 // ospray sg
 #include "sg/Frame.h"
@@ -17,20 +19,20 @@ using rkcommon::make_unique;
 class BatchContext
 {
  public:
-  BatchContext(const vec2i &imageSize, bool denoiser = false);
+  BatchContext(StudioCommon &studioCommon);
   ~BatchContext() {}
 
-  bool parseCommandLine(int &ac, const char **&av);
+  bool parseCommandLine();
   void importFiles();
   void render();
 
  protected:
+  StudioCommon &studioCommon;
+
   std::shared_ptr<sg::Frame> frame_ptr;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
   std::vector<std::string> filesToImport;
   NodePtr importedModels;
-
-  bool denoiserAvailable{false};
 
   std::string optRendererTypeStr = "scivis";
   std::string optCameraTypeStr   = "perspective";

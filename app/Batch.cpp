@@ -16,14 +16,12 @@
 #include <cereal/types/vector.hpp>
 
 // Batch mode entry point
-void start_Batch_mode(int argc, const char *argv[])
+void start_Batch_mode(StudioCommon &studioCommon)
 {
   std::cerr << "Batch mode\n";
 
-  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
-
-  auto batch = make_unique<BatchContext>(vec2i(1024, 768), denoiser);
-  if (batch->parseCommandLine(argc, argv)) {
+  auto batch = make_unique<BatchContext>(studioCommon);
+  if (batch->parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
     batch->importFiles();
     std::cout << "...rendering!" << std::endl;
@@ -33,8 +31,8 @@ void start_Batch_mode(int argc, const char *argv[])
   }
 }
 
-BatchContext::BatchContext(const vec2i &imageSize, bool denoiser)
-    : optImageSize(imageSize), denoiserAvailable(denoiser)
+BatchContext::BatchContext(StudioCommon &_common)
+    : studioCommon(_common), optImageSize(_common.defaultSize)
 {
   frame_ptr = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
@@ -43,8 +41,11 @@ BatchContext::BatchContext(const vec2i &imageSize, bool denoiser)
   baseMaterialRegistry->addNewSGMaterial("obj");
 }
 
-bool BatchContext::parseCommandLine(int &argc, const char **&argv)
+bool BatchContext::parseCommandLine()
 {
+  int argc = studioCommon.argc;
+  const char **argv = studioCommon.argv;
+
   bool retVal = true;
   // Very basic command-line parsing
   // Anything beginning with - is an option.
@@ -118,7 +119,7 @@ bool BatchContext::parseCommandLine(int &argc, const char **&argv)
         removeArgs(argc, argv, i, 2);
         --i;
       } else if (arg == "-oidn" || arg == "--denoiser") {
-        if (denoiserAvailable)
+        if (studioCommon.denoiserAvailable)
           optDenoiser = min(2, max(0, atoi(argv[i + 1])));
         else
           std::cout << " Denoiser not enabled. Check OSPRay module.\n";
@@ -162,7 +163,7 @@ void BatchContext::render()
   frameBuffer["size"] = optImageSize;
 
   // If using the denoiser, set the framebuffer to allow it.
-  if (denoiserAvailable && optDenoiser)
+  if (studioCommon.denoiserAvailable && optDenoiser)
     frameBuffer["allowDenoising"] = true;
 
   // Create a default ambient light
@@ -241,9 +242,8 @@ void BatchContext::render()
   // XXX TODO if optDenoiser == 2, save both the noisy and denoised color
   // buffers.  How best to do that since the frame op will alter the final
   // buffer?
-  if (denoiserAvailable && optDenoiser)
+  if (studioCommon.denoiserAvailable && optDenoiser)
     frame.denoiseFB = true;
-
   frame.immediatelyWait = true;
   frame.startNewFrame();
 
@@ -322,7 +322,7 @@ ospStudio batch specific parameters:
    -g     --grid [x y z] (default 1 1 1, single instance)
             instace a grid of models)text"
             << std::endl;
-  if (denoiserAvailable) {
+  if (studioCommon.denoiserAvailable) {
     std::cout <<
         R"text(
    -oidn  --denoiser [0,1,2] (default 0)
