@@ -25,6 +25,7 @@
 #include "sg/visitors/Search.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/SetParamByNode.h"
+#include "sg/visitors/RefLinkNodes.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
 #include "rkcommon/os/FileName.h"
@@ -909,6 +910,8 @@ void MainWindow::parseCommandLine(int &ac, const char **&av)
       optPF = max(0, atoi(av[i + 1]));
       rkcommon::removeArgs(ac, av, i, 2);
       --i;
+    } else if(arg == "-linkNodes" || arg == "-ln") {
+      linkNodes = true;
     }
   }
 
@@ -956,6 +959,12 @@ void MainWindow::importFiles()
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }
+  }
+
+  if (linkNodes) {
+    world->traverse<sg::RefLinkNodes>();
+
+    // TODO Important: remove empty importer nodes as well 
   }
 
   world->render();

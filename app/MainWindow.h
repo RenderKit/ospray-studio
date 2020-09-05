@@ -149,6 +149,7 @@ class MainWindow
   bool showDepthInvert{false};
   bool cancelFrameOnInteraction{false};
   bool autorotate{false};
+  bool linkNodes{false};
 
   std::string scene;
   std::vector<std::string> filesToImport;

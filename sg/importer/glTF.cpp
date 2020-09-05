@@ -52,6 +52,8 @@ namespace ospray {
     void createMaterials(MaterialRegistry &materialRegistry);
     void createGeometries();
     void buildScene();
+    void loadAssetInfo(NodePtr sgNode);
+    void addReferenceLinkInfo(const int nid, NodePtr sgNode);
 
     std::vector<NodePtr> ospMeshes;
 
@@ -169,6 +171,43 @@ namespace ospray {
     return ret;
   }
 
+  void GLTFData::loadAssetInfo(NodePtr sgNode) {
+    auto asset = model.asset;
+
+    // currently load BIT_asset_info extension with partial properties only
+    // For reference links to work we need the 'id', 'type' and 'title'
+    auto &assetExt = asset.extensions["BIT_asset_info"];
+
+    auto assetId = assetExt.Get("id").Get<std::string>();
+    auto assetTitle = assetExt.Get("title").Get<std::string>();
+    auto assetType = assetExt.Get("type").Get<std::string>();
+
+    sgNode->createChild("asset_id", "string", assetId);
+    sgNode->createChild("asset_title", "string", assetTitle);
+    sgNode->createChild("asset_type", "string", assetType);
+
+  }
+
+  void GLTFData::addReferenceLinkInfo(const int nid, NodePtr sgNode) {
+    const tinygltf::Node &n = model.nodes[nid];
+    auto refLinkExtension = n.extensions.find("BIT_reference_link")->second;
+
+    auto &refId =
+    refLinkExtension.Get("id").Get<std::string>(); 
+    auto &refType =
+    refLinkExtension.Get("type").Get<std::string>(); 
+    auto &refTitle =
+    refLinkExtension.Get("title").Get<std::string>();
+
+    auto refLinkInfoNode = createNode("refLink_" + refTitle , "Node");
+    refLinkInfoNode->createChild("id", "string", refId);
+    refLinkInfoNode->createChild("title", "string", refType);
+    refLinkInfoNode->createChild("type", "string", refTitle);
+
+    sgNode->add(refLinkInfoNode);
+
+  }
+
   void GLTFData::createMaterials(MaterialRegistry &materialRegistry)
   {
     //DEBUG << "Create Materials\n";
@@ -243,19 +282,22 @@ namespace ospray {
 
     // Apply any transform in this node -> xfm
     const auto nodeXfm = nodeTransform(n);
-    const auto needXfm = (nodeXfm != affine3f{one});
 
     // Create xfm
-    if (needXfm) {
       static auto nNode = 0;
-      auto nodeName     = n.name + "_" + pad(std::to_string(nNode++));
+      auto nodeName = n.name + "_" + pad(std::to_string(nNode++));
       // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
       // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
       auto newXfm = createNode(
           nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
+
+      // check if node has BIT_reference_link extension
+      // currently adding reference Links only for Nodes
+      if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
+        addReferenceLinkInfo(nid, newXfm);
+      }
       sgNode->add(newXfm);
       sgNode = newXfm;
-    }
 
     if (n.mesh != -1) {
       // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
@@ -659,7 +701,7 @@ namespace ospray {
 
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
-    auto rootNode = createNode("root_node_xfm", "Transform", affine3f{one});
+    auto rootNode = createNode("rootXfm_" + file.base(), "Transform", affine3f{one});
 
     GLTFData gltf(rootNode, file);
 
@@ -669,6 +711,9 @@ namespace ospray {
     gltf.createMaterials(*materialRegistry);
     gltf.createGeometries();
     gltf.buildScene();
+
+    // load asset extensions as separate SG Asset-Info-node ?
+    gltf.loadAssetInfo(rootNode);
 
     // Finally, add node hierarchy to importer parent
     add(rootNode);
