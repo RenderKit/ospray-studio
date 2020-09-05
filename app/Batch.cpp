@@ -4,6 +4,7 @@
 #include "Batch.h"
 // ospray_sg
 #include "sg/Frame.h"
+#include "sg/fb/FrameBuffer.h"
 #include "sg/importer/Importer.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/visitors/PrintNodes.h"
@@ -157,7 +158,12 @@ void BatchContext::render()
   if (optPF >= 0)
     frame["renderer"].createChild("pixelFilter", "int", optPF);
 
-  frame["framebuffer"]["size"] = optImageSize;
+  auto &frameBuffer = frame.childAs<sg::FrameBuffer>("framebuffer");
+  frameBuffer["size"] = optImageSize;
+
+  // If using the denoiser, set the framebuffer to allow it.
+  if (denoiserAvailable && optDenoiser)
+    frameBuffer["allowDenoising"] = true;
 
   // Create a default ambient light
   frame["world"].createChild("materialref", "reference_to_material", 0);
@@ -221,8 +227,10 @@ void BatchContext::render()
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
 
   frame["world"].createChild("light", "ambient");
+  frame["navMode"] = false;
 
   frame.render();
+
   // Accumulate several frames
   for (auto i = 0; i < optSPP - 1; i++) {
     frame.immediatelyWait = true;
@@ -234,17 +242,15 @@ void BatchContext::render()
   // buffers.  How best to do that since the frame op will alter the final
   // buffer?
   if (denoiserAvailable && optDenoiser)
-    frame["denoiseFB"] = true;
+    frame.denoiseFB = true;
+
   frame.immediatelyWait = true;
   frame.startNewFrame();
 
-  auto size          = frame["framebuffer"]["size"].valueAs<vec2i>();
+  auto size          = frameBuffer["size"].valueAs<vec2i>();
   const void *pixels = frame.mapFrame();
 
-  auto colorFormatStr =
-      frame["framebuffer"]["colorFormat"].valueAs<std::string>();
-
-  if (colorFormatStr == "float") {
+  if (frameBuffer.hasFloatFormat()) {
     optImageName += ".pfm";
     rkcommon::utility::writePFM(optImageName, size.x, size.y, (vec4f *)pixels);
   } else {
@@ -254,10 +260,6 @@ void BatchContext::render()
   }
 
   frame.unmapFrame((void *)pixels);
-
-#if 0  // XXX for debug
-  frame.traverse<sg::PrintNodes>();
-#endif
 
   std::cout << "\nresult saved to '" << optImageName << "'\n";
 }

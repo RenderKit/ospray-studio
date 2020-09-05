@@ -24,8 +24,9 @@ namespace ospray {
     bool accumLimitReached();
 
     bool denoiserEnabled{false};
-    bool updateFrameOpsNextFrame{false};
-
+    bool denoiseFB{false};
+    bool denoiseNavFB{false};
+    
     const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmapFrame(void *mem);
     void saveFrame(std::string filename, int flags);
@@ -36,6 +37,7 @@ namespace ospray {
     int currentAccum{0};
 
    private:
+    bool navMode{false};
     void refreshFrameOperations();
     void preCommit() override;
     void postCommit() override;

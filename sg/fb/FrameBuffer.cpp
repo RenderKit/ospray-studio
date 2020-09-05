@@ -67,13 +67,18 @@ namespace ospray {
         size.x, size.y, colorFormats[colorFormatStr], channels);
 
     setHandle(fb);
+
+    // When creating/recreating the framebuffer, denoiser is initially off
+    hasDenoiser = false;
   }
 
   void FrameBuffer::updateDenoiser(bool enabled)
   {
     // Denoiser requires float color buffer.
-    if (!hasFloatFormat())
+    if (!hasFloatFormat() || (enabled == hasDenoiser))
       return;
+
+    hasDenoiser = enabled;
 
     if (enabled) {
       cpp::ImageOperation d("denoiser");

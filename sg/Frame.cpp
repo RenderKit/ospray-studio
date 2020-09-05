@@ -17,9 +17,7 @@ namespace ospray {
     createChild("windowSize", "vec2i", vec2i(1024, 768));
     createChild("framebuffer", "framebuffer");
     createChild("scale", "float", 1.f);
-    createChild("denoise", "bool", false);
     createChild("scaleNav", "float", 0.5f);
-    createChild("denoiseNav", "bool", false);
     createChild("camera", "camera_perspective");
     createChild("renderer", "renderer_scivis");
     createChild("world", "world");
@@ -122,35 +120,24 @@ namespace ospray {
 
   void Frame::refreshFrameOperations()
   {
-    if (updateFrameOpsNextFrame) {
-      auto &fb = childAs<FrameBuffer>("framebuffer");
-      fb.updateDenoiser(denoiserEnabled);
-      updateFrameOpsNextFrame = false;
-    }
+    auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
+    auto &fb = childAs<FrameBuffer>("framebuffer");
+    fb.updateDenoiser(denoiserEnabled);
   }
 
   void Frame::preCommit()
   {
-    auto navMode = child("navMode").valueAs<bool>();
-
-    // Update frameOps on a change in nav or denoiser value
-    auto newDenoiseValue = (navMode ? child("denoiseNav").valueAs<bool>() :
-                            child("denoise").valueAs<bool>());
-    updateFrameOpsNextFrame = denoiserEnabled ^ newDenoiseValue;
-    denoiserEnabled = newDenoiseValue;
+    navMode = child("navMode").valueAs<bool>();
 
     // Recreate framebuffers on windowsize or scale changes.
     auto &fb     = child("framebuffer");
     auto oldSize = fb["size"].valueAs<vec2i>();
     auto scale = (navMode ? child("scaleNav").valueAs<float>() :
                             child("scale").valueAs<float>());
+
     auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
-    if (oldSize != newSize) {
+    if (oldSize != newSize)
       fb["size"] = newSize; 
-      // These will override a change to the denoise child state.
-      updateFrameOpsNextFrame = true;
-      denoiserEnabled = false;
-    }
 
     if (hasChild("lights")) {
       auto &lights = childAs<sg::Lights>("lights");

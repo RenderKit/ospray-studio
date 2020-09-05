@@ -1233,9 +1233,9 @@ void MainWindow::buildMainMenuEdit()
       ImGui::Separator();
       ImGui::Text("Denoiser Options:");
       if (fb["allowDenoising"].valueAs<bool>()) {
-        frame->child("denoise").traverse<sg::GenerateImGuiWidgets>();
+        ImGui::Checkbox("denoise", &frame->denoiseFB);
         ImGui::SameLine();
-        frame->child("denoiseNav").traverse<sg::GenerateImGuiWidgets>();
+        ImGui::Checkbox("denoiseNav", &frame->denoiseNavFB);
       } else
         ImGui::Text("- Check that FrameBuffer allowDenoising is enabled");
     }
