@@ -146,8 +146,11 @@ PRIVATE
 )
 
 install(TARGETS ospray_sg
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  COMPONENT lib
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT lib
+  # on Windows put the dlls into bin
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT lib
 )
 
 target_include_directories(ospray_sg
