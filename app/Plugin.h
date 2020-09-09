@@ -15,7 +15,7 @@ namespace ospray {
 struct Plugin
 {
   Plugin() = default;
-  ~Plugin() = default;
+  virtual ~Plugin() = default;
 
   // Create an instance of each panel, the parameter passed in the is root
   // node in the scene graph
