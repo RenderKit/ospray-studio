@@ -6,26 +6,26 @@
 namespace ospray {
   namespace sg {
 
-  struct OSPSG_INTERFACE SciVis : public Renderer
+  struct OSPSG_INTERFACE AORenderer : public Renderer
   {
-    SciVis();
-    virtual ~SciVis() override = default;
+    AORenderer();
+    virtual ~AORenderer() override = default;
     void preCommit() override;
   };
 
-  OSP_REGISTER_SG_NODE_NAME(SciVis, renderer_scivis);
+  OSP_REGISTER_SG_NODE_NAME(AORenderer, renderer_ao);
 
-  // SciVis definitions ///////////////////////////////////////////////////////
+  // AORenderer definitions ///////////////////////////////////////////////////////
 
-  SciVis::SciVis() : Renderer("scivis")
+  AORenderer::AORenderer() : Renderer("ao")
   {
-    createChild("shadows", "bool", false);
     createChild("aoSamples", "int", 1);
     createChild("aoRadius", "float", 1e20f);
+    createChild("aoIntensity", "float", 1.f);
     createChild("volumeSamplingRate", "float", 1.f);
   }
 
-  void SciVis::preCommit() {
+  void AORenderer::preCommit() {
     this->Renderer::preCommit();
 
     auto &renderer = handle();

@@ -33,9 +33,14 @@ namespace ospray {
       if (c_child.second->type() == NodeType::PARAMETER)
         if (!c_child.second->sgOnly())
           for (auto &h : handles) {
-            // OSPRay SciVis renderer only uses kd and d params
-            if (h.first == "scivis" &&
+            // OSPRay AO renderer only uses kd and d params
+            if (h.first == "ao" &&
                 !(c_child.first == "kd" || c_child.first == "d"))
+              continue;
+            // OSPRay SciVis renderer uses kd, d, ks and ns params
+            if (h.first == "scivis" &&
+                !(c_child.first == "kd" || c_child.first == "d" ||
+                  c_child.first == "ks" || c_child.first == "ns"))
               continue;
             c_child.second->setOSPRayParam(
                 c_child.first, h.second->valueAs<cpp::Material>().handle());

@@ -80,7 +80,7 @@ static const std::vector<std::string> g_scenes = {"empty",
                                                   "clouds"};
 
 static const std::vector<std::string> g_renderers = {
-    "scivis", "pathtracer", "debug"};
+    "scivis", "pathtracer", "ao", "debug"};
 
 static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
                                                               "primID",
@@ -1174,6 +1174,8 @@ void MainWindow::buildMainMenuEdit()
         rendererType = OSPRayRendererType::SCIVIS;
       else if (rendererTypeStr == "pathtracer")
         rendererType = OSPRayRendererType::PATHTRACER;
+      else if (rendererTypeStr == "ao")
+        rendererType = OSPRayRendererType::AO;
       else if (rendererTypeStr == "debug")
         rendererType = OSPRayRendererType::DEBUGGER;
       else

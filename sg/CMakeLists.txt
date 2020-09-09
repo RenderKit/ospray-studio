@@ -85,6 +85,7 @@ add_library(ospray_sg SHARED
   renderer/PathTracer.cpp
   renderer/Renderer.cpp
   renderer/SciVis.cpp
+  renderer/AO.cpp
   renderer/MaterialRegistry.cpp
 
   renderer/materials/OBJ.cpp
