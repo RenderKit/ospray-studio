@@ -93,6 +93,8 @@ namespace sg {
 
     Any value();
 
+    const Any value() const;
+
     template <typename T>
     T &valueAs();
 

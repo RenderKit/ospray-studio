@@ -147,6 +147,7 @@ target_link_libraries(ospray_sg
 PUBLIC
   rkcommon::rkcommon
   ospray::ospray
+  json
 PRIVATE
   stb_image
   tiny_obj_loader

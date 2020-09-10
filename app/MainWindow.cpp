@@ -1113,6 +1113,11 @@ void MainWindow::buildMainMenuFile()
       scene = "empty";
       refreshScene(true);
     }
+    if (ImGui::MenuItem("Dump SG to file")) {
+      std::ofstream dump("studio.sg");
+      nlohmann::json j = *frame;
+      dump << j.dump();
+    }
     ImGui::EndMenu();
   }
 
