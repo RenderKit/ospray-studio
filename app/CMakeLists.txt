@@ -28,7 +28,7 @@ target_compile_definitions(ospray_studio PUBLIC OSPRAY_CPP_RKCOMMON_TYPES)
 target_link_libraries(ospray_studio
   imgui
   imguiFileDialog
-  cereal
+  json
   rkcommon::rkcommon
   ospray::ospray
   stb_image

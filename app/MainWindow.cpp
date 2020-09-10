@@ -33,9 +33,11 @@
 #include "sg/scene/volume/Structured.h"
 #include "sg/scene/volume/Vdb.h"
 // cerealization
-#include <cereal/archives/json.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/memory.hpp>
+// #include <cereal/archives/json.hpp>
+// #include <cereal/types/vector.hpp>
+// #include <cereal/types/memory.hpp>
+// json
+#include <json.hpp>
 #include <queue>
 #include <fstream>
 // widgets
@@ -52,8 +54,9 @@ void start_GUI_mode(StudioCommon &studioCommon)
 
   std::ifstream cams("cams.json");
   if (cams) {
-    cereal::JSONInputArchive iarchive(cams);
-    iarchive(g_cameraStack);
+    nlohmann::json j;
+    cams >> j;
+    g_cameraStack = j.get<std::vector<CameraState>>();
   }
 
   auto window = make_unique<MainWindow>(studioCommon);
@@ -1580,8 +1583,8 @@ void MainWindow::buildWindowSnapshots()
       std::ofstream cams("cams.json");
       if (cams)
       {
-        cereal::JSONOutputArchive oarchive(cams);
-        oarchive(g_cameraStack);
+        nlohmann::json j = g_cameraStack;
+        cams << j;
       }
     }
   }
