@@ -13,10 +13,6 @@ add_library(ospray_studio SHARED
   widgets/FileBrowserWidget.cpp
 )
 
-## Cereal dependency ##
-add_library(cereal INTERFACE)
-target_include_directories(cereal INTERFACE ./cereal/include)
-
 if (APPLE)
   set_source_files_properties(imgui_impl_glfw_gl3.cpp GLFWSgWindow.cpp
     PROPERTIES COMPILE_FLAGS -w)

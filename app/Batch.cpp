@@ -10,10 +10,8 @@
 #include "sg/visitors/PrintNodes.h"
 // rkcommon
 #include "rkcommon/utility/SaveImage.h"
-// cerealization
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/vector.hpp>
+// json
+#include <json.hpp>
 
 // Batch mode entry point
 void start_Batch_mode(StudioCommon &studioCommon)
@@ -205,8 +203,9 @@ void BatchContext::render()
   std::ifstream cams("cams.json");
   if (cams) {
     std::vector<CameraState> cameraStack;
-    cereal::JSONInputArchive iarchive(cams);
-    iarchive(cameraStack);
+    nlohmann::json j;
+    cams >> j;
+    cameraStack = j.get<std::vector<CameraState>>();
     CameraState cs = cameraStack.front();
     arcballCamera->setState(cs);
   }

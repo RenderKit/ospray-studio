@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
-#include "cereal/archives/xml.hpp"
-#include "cereal/types/vector.hpp"
 #include "imgui.h"
 #include "widgets/TransferFunctionWidget.h"
 
@@ -44,123 +42,6 @@ struct PathtracerParameters
   {
     State();
     ~State();
-
-    // void saveState(const std::string &filename)
-    // {
-    //   std::ofstream ofs(filename);
-
-    //   if (!ofs.good()) {
-    //     std::cerr << "unable to open output file: " << filename << std::endl;
-    //     return;
-    //   }
-
-    //   {
-    //     cereal::XMLOutputArchive oarchive(ofs);
-
-    //     oarchive(g_volumeParameters);
-    //     oarchive(g_pathtracerParameters);
-
-    //     for (auto &tfw : g_transferFunctionWidgets) {
-    //       tfw->saveArchive(oarchive);
-    //     }
-    //   }
-
-    //   std::cout << "saved state to: " << filename << std::endl;
-    // }
-
-    // void loadState(const std::string &filename)
-    // {
-    //   std::ifstream ifs;
-    //   ifs.open(filename, std::ifstream::in);
-
-    //   if (!ifs.good()) {
-    //     std::cerr << "unable to open input file: " << filename << std::endl;
-    //     return;
-    //   }
-
-    //   {
-    //     cereal::XMLInputArchive iarchive(ifs);
-
-    //     iarchive(g_volumeParameters);
-    //     iarchive(g_pathtracerParameters);
-
-    //     for (auto &tfw : g_transferFunctionWidgets) {
-    //       tfw->loadArchive(iarchive);
-    //     }
-    //   }
-
-    //   std::cout << "loaded state from: " << filename << std::endl;
-
-    //   if (std::find(g_stateFilenames.begin(),
-    //                 g_stateFilenames.end(),
-    //                 filename) == g_stateFilenames.end()) {
-    //     g_stateFilenames.push_back(filename);
-    //   }
-    // }
-
-    // bool addSaveLoadStateUI()
-    // {
-    //   bool changed = false;
-
-    //   static std::array<char, 512> filenameInput{'\0'};
-
-    //   ImGui::InputText(
-    //       "state filename", filenameInput.data(), filenameInput.size() - 1);
-
-    //   if (ImGui::Button("Save")) {
-    //     saveState(std::string(filenameInput.data()));
-    //   }
-
-    //   ImGui::SameLine();
-
-    //   if (ImGui::Button("Load")) {
-    //     loadState(std::string(filenameInput.data()));
-    //     changed = true;
-    //   }
-
-    //   ImGui::SameLine();
-
-    //   if (ImGui::Button("Reset camera")) {
-    //     // if (GLFWOSPRayWindow::getActiveWindow()) {
-    //     //   GLFWOSPRayWindow::getActiveWindow()->resetCamera();
-    //     }
-    // //   }
-
-    //   ImGui::Spacing();
-    //   ImGui::Separator();
-    //   ImGui::Spacing();
-
-    //   return changed;
-    // }
-
-    // bool addStatePresetsUI()
-    // {
-    //   bool changed = false;
-
-    //   ImGui::Begin("State presets");
-
-    //   static int currentStateIndex = 0;
-
-    //   std::vector<const char *> listItems;
-
-    //   for (int i = 0; i < g_stateFilenames.size(); i++) {
-    //     listItems.push_back(g_stateFilenames[i].c_str());
-    //   }
-
-    //   if (listItems.size() > 0) {
-    //     if (ImGui::ListBox("Filenames",
-    //                        &currentStateIndex,
-    //                        listItems.data(),
-    //                        listItems.size())) {
-    //       loadState(g_stateFilenames[currentStateIndex]);
-    //       changed = true;
-    //     }
-    //   }
-
-    //   ImGui::End();
-
-    //   return changed;
-    // }
 
     std::vector<VolumeParameters> g_volumeParameters;
     PathtracerParameters g_pathtracerParameters;

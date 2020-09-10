@@ -32,12 +32,9 @@
 #include "sg/scene/volume/StructuredSpherical.h"
 #include "sg/scene/volume/Structured.h"
 #include "sg/scene/volume/Vdb.h"
-// cerealization
-// #include <cereal/archives/json.hpp>
-// #include <cereal/types/vector.hpp>
-// #include <cereal/types/memory.hpp>
 // json
 #include <json.hpp>
+
 #include <queue>
 #include <fstream>
 // widgets

@@ -7,7 +7,6 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include "cereal/archives/xml.hpp"
 
 #include <GLFW/glfw3.h>
 #ifdef _WIN32
