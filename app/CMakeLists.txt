@@ -1,15 +1,14 @@
 ## Copyright 2018-2020 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
-add_executable(ospStudio
+# Build a common ospray_studio shared library
+# This allows plugins to share imgui context, etc.
+
+add_library(ospray_studio SHARED
   ArcballCamera.cpp
-  MainWindow.cpp
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
-  ospStudio.cpp
 	PluginManager.cpp
-  Batch.cpp
-  TimeSeriesWindow.cpp
   widgets/TransferFunctionWidget.cpp
 )
 
@@ -23,16 +22,36 @@ if (APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
 endif()
 
-target_compile_definitions(ospStudio PRIVATE OSPRAY_CPP_RKCOMMON_TYPES)
+target_compile_definitions(ospray_studio PUBLIC OSPRAY_CPP_RKCOMMON_TYPES)
 
-target_link_libraries(ospStudio
-PRIVATE
-  glfw
+target_link_libraries(ospray_studio
   imgui
-  stb_image
-  ospray_sg
   tiny_file_dialogs
   cereal
+  rkcommon::rkcommon
+  ospray::ospray
+  stb_image
+  glfw
+  ospray_sg
+)
+
+# Now build the application against ospray_studio libary
+
+add_executable(ospStudio
+  MainWindow.cpp
+  Batch.cpp
+  TimeSeriesWindow.cpp
+  ospStudio.cpp
+)
+
+target_link_libraries(ospStudio
+  ospray_studio
+)
+
+
+install(TARGETS ospray_studio
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  COMPONENT lib
 )
 
 install(TARGETS ospStudio

@@ -6,8 +6,6 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
-// stb_image
-#include "stb_image_write.h"
 // std
 #include <chrono>
 #include <iostream>
