@@ -52,6 +52,9 @@ target_link_libraries(ospStudio
 install(TARGETS ospray_studio
   DESTINATION ${CMAKE_INSTALL_LIBDIR}
   COMPONENT lib
+  # on Windows put the dlls into bin
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT lib
 )
 
 install(TARGETS ospStudio
