@@ -29,11 +29,9 @@
 #include "rkcommon/os/FileName.h"
 #include "rkcommon/utility/SaveImage.h"
 #include "rkcommon/utility/getEnvVar.h"
-// tiny_file_dialogs
 #include "sg/scene/volume/StructuredSpherical.h"
 #include "sg/scene/volume/Structured.h"
 #include "sg/scene/volume/Vdb.h"
-#include "tinyfiledialogs.h"
 // cerealization
 #include <cereal/archives/json.hpp>
 #include <cereal/types/vector.hpp>
@@ -863,13 +861,18 @@ void MainWindow::refreshRenderer()
   if (rendererTypeStr == "scivis" ||
       rendererTypeStr == "pathtracer") {
     if (useImportedTex) {
+      const char *file = nullptr;
+#if 0 //BMCDEBUG, remove to find another file browser
       const char *file = tinyfd_openFileDialog(
           "Import a texture from a file", "", 0, nullptr, nullptr, 0);
-      std::shared_ptr<sg::Texture2D> backplateTex =
+#endif
+      if (file) {
+        std::shared_ptr<sg::Texture2D> backplateTex =
           std::static_pointer_cast<sg::Texture2D>(
               sg::createNode("map_backplate", "texture_2d"));
-      backplateTex->load(file, false, false);
-      r.add(backplateTex);
+        backplateTex->load(file, false, false);
+        r.add(backplateTex);
+      }
     }
   }
 }
@@ -990,8 +993,11 @@ void MainWindow::importFiles()
 
 bool MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
 {
+  const char *file = nullptr;
+#if 0 //BMCDEBUG, remove to find another file browser
   const char *file = tinyfd_openFileDialog(
       "Import a scene from a file", "", 0, nullptr, nullptr, 0);
+#endif
 
   if (file) {
     auto oldRegistrySize = baseMaterialRegistry->children().size();
@@ -1028,8 +1034,11 @@ bool MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
 
 bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
 {
+  const char *file = nullptr;
+#if 0 //BMCDEBUG, remove to find another file browser
   const char *file = tinyfd_openFileDialog(
       "Import a volume from a file", "", 0, nullptr, nullptr, 0);
+#endif
 
   if (file) {
     const std::string fs(file);
@@ -1366,15 +1375,20 @@ void MainWindow::buildMainMenuEdit()
     ImGui::Text("scene");
 
     if (ImGui::MenuItem("Background texture...", "", nullptr)) {
+      const char *file = nullptr;
+#if 0 //BMCDEBUG, remove to find another file browser
       const char *file = tinyfd_openFileDialog(
           "Import a texture from a file", "", 0, nullptr, nullptr, 0);
-      importedFilename = std::string(file);
-      std::shared_ptr<sg::Texture2D> backplateTex =
+#endif
+      if (file) {
+        importedFilename = std::string(file);
+        std::shared_ptr<sg::Texture2D> backplateTex =
           std::static_pointer_cast<sg::Texture2D>(
               sg::createNode("map_backplate", "texture_2d"));
-      backplateTex->load(file, false, false);
-      frame->child("renderer").add(backplateTex);
-      useImportedTex = true;
+        backplateTex->load(file, false, false);
+        frame->child("renderer").add(backplateTex);
+        useImportedTex = true;
+      }
     }
     if (useImportedTex) {
       ImGui::SameLine();
@@ -1639,10 +1653,13 @@ void MainWindow::buildWindowLightEditor()
         // actually load the texture if add was successful
         if (lightType == "hdri") {
           auto &hdri = lightMan->child(lightName);
+          const char *file = nullptr;
+#if 0 //BMCDEBUG, remove to find another file browser
           const char *file = tinyfd_openFileDialog(
               "Import an HDRI texture from a file", "", 0, nullptr, nullptr, 0);
+#endif
 
-          if (file != NULL) {
+          if (file) {
             auto &hdriTex = hdri.createChild("map", "texture_2d");
             std::shared_ptr<sg::Texture2D> ast2d =
                 hdriTex.nodeAs<sg::Texture2D>();
