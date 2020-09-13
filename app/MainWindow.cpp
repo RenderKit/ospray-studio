@@ -38,6 +38,10 @@
 #include <cereal/types/memory.hpp>
 #include <queue>
 #include <fstream>
+// widgets
+#include "widgets/FileBrowserWidget.h"
+
+using namespace ospray_studio;
 
 static std::vector<CameraState> g_cameraStack;
 
@@ -862,7 +866,7 @@ void MainWindow::refreshRenderer()
       rendererTypeStr == "pathtracer") {
     if (useImportedTex) {
       const char *file = nullptr;
-#if 0 //BMCDEBUG, remove to find another file browser
+#if 0 // XXX BMCDEBUG, replace tinyfd
       const char *file = tinyfd_openFileDialog(
           "Import a texture from a file", "", 0, nullptr, nullptr, 0);
 #endif
@@ -885,9 +889,7 @@ void MainWindow::refreshScene(bool resetCam)
       "materialref", "reference_to_material", defaultMaterialIdx);
 
   if (scene == "import") {
-    if (!importGeometry(world)) {
-      return;
-    }
+    importGeometry(world);
   } else if (scene == "import volume") {
     if (!importVolume(world)) {
       return;
@@ -958,11 +960,6 @@ void MainWindow::importFiles()
             g_matTypes.insert(g_matTypes.begin(), newMat);
         }
 
-        if (baseMaterialRegistry->matImportsList.size() != 0) {
-          for (auto &newMat : baseMaterialRegistry->matImportsList)
-            g_matTypes.insert(g_matTypes.begin(), newMat);
-        }
-
         if (oldRegistrySize != baseMaterialRegistry->children().size()) {
           auto newMats =
             baseMaterialRegistry->children().size() - oldRegistrySize;
@@ -976,10 +973,12 @@ void MainWindow::importFiles()
     }
   }
 
+	filesToImport.clear();
+
   if (linkNodes) {
     world->traverse<sg::RefLinkNodes>();
 
-    // TODO Important: remove empty importer nodes as well 
+    // TODO Important: remove empty importer nodes as well
   }
 
   world->render();
@@ -991,51 +990,46 @@ void MainWindow::importFiles()
   updateCamera();
 }
 
-bool MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
+void MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
 {
-  const char *file = nullptr;
-#if 0 //BMCDEBUG, remove to find another file browser
-  const char *file = tinyfd_openFileDialog(
-      "Import a scene from a file", "", 0, nullptr, nullptr, 0);
-#endif
+  for (auto file : filesToImport) {
+    try {
+      rkcommon::FileName fileName(file);
+      std::string nodeName = fileName.base() + "_importer";
+      std::cout << "Importing: " << file << std::endl;
 
-  if (file) {
-    auto oldRegistrySize = baseMaterialRegistry->children().size();
-    auto importer        = sg::getImporter(file);
-    if (importer != "") {
-      std::string nodeName = std::string(file) + "_importer";
-      auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
-      imp["file"] = std::string(file);
-      imp.importScene(baseMaterialRegistry);
+      auto oldRegistrySize = baseMaterialRegistry->children().size();
+      auto importer = sg::getImporter(file);
+      if (importer != "") {
+        auto &imp = world->createChildAs<sg::Importer>(nodeName, importer);
+        imp["file"] = std::string(file);
+        imp.importScene(baseMaterialRegistry);
 
-      if (baseMaterialRegistry->matImportsList.size() != 0) {
-        for (auto &newMat : baseMaterialRegistry->matImportsList)
-          g_matTypes.insert(g_matTypes.begin(), newMat);
+        if (baseMaterialRegistry->matImportsList.size() != 0) {
+          for (auto &newMat : baseMaterialRegistry->matImportsList)
+            g_matTypes.insert(g_matTypes.begin(), newMat);
+        }
+
+        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
+          auto newMats =
+              baseMaterialRegistry->children().size() - oldRegistrySize;
+          std::cout << "Importer added " << newMats << " material(s)"
+                    << std::endl;
+          refreshRenderer();
+        }
       }
-
-      if (oldRegistrySize != baseMaterialRegistry->children().size()) {
-        auto newMats =
-            baseMaterialRegistry->children().size() - oldRegistrySize;
-        std::cout << "Importer added " << newMats << " material(s)"
-                  << std::endl;
-        refreshRenderer();
-      }
-    } else {
-      std::cout << "No importer for selected file, nothing to import!\n";
-      return false;
+    } catch (...) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
     }
-  } else {
-    std::cout << "No file selected, nothing to import!\n";
-    return false;
   }
 
-  return true;
+  filesToImport.clear();
 }
 
 bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
 {
   const char *file = nullptr;
-#if 0 //BMCDEBUG, remove to find another file browser
+#if 0 // XXX BMCDEBUG, replace tinyfd
   const char *file = tinyfd_openFileDialog(
       "Import a volume from a file", "", 0, nullptr, nullptr, 0);
 #endif
@@ -1133,10 +1127,11 @@ void MainWindow::buildMainMenu()
 
 void MainWindow::buildMainMenuFile()
 {
+  static bool showFileBrowser = false;
+
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem("Import geometry...", nullptr)) {
-      scene = "import";
-      refreshScene(true);
+      showFileBrowser = true;
     }
     if (ImGui::MenuItem("Import volume...", nullptr)) {
       scene = "import volume";
@@ -1156,6 +1151,16 @@ void MainWindow::buildMainMenuFile()
       ImGui::EndMenu();
     }
     ImGui::EndMenu();
+  }
+
+  // Leave the fileBrowser open until files are selected
+  if (showFileBrowser) {
+    if (fileBrowser(filesToImport, "Import Model(s)")) {
+      showFileBrowser = false;
+      // Once files are selected, refresh scene to import them.
+      scene = "import";
+      refreshScene(true);
+    }
   }
 }
 
@@ -1376,7 +1381,7 @@ void MainWindow::buildMainMenuEdit()
 
     if (ImGui::MenuItem("Background texture...", "", nullptr)) {
       const char *file = nullptr;
-#if 0 //BMCDEBUG, remove to find another file browser
+#if 0 // XXX BMCDEBUG, replace tinyfd
       const char *file = tinyfd_openFileDialog(
           "Import a texture from a file", "", 0, nullptr, nullptr, 0);
 #endif
@@ -1654,7 +1659,7 @@ void MainWindow::buildWindowLightEditor()
         if (lightType == "hdri") {
           auto &hdri = lightMan->child(lightName);
           const char *file = nullptr;
-#if 0 //BMCDEBUG, remove to find another file browser
+#if 0 // XXX BMCDEBUG, replace tinyfd
           const char *file = tinyfd_openFileDialog(
               "Import an HDRI texture from a file", "", 0, nullptr, nullptr, 0);
 #endif

@@ -34,7 +34,7 @@ namespace ospray {
   {
     auto fnd = importerMap.find(fileName.ext());
     if (fnd == importerMap.end()) {
-      std::cout << "No importer for selected file, nothing to import!\n";
+      std::cout << "No importer for " << fileName << std::endl;
       return "";
     }
 

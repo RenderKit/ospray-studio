@@ -8,8 +8,9 @@ add_library(ospray_studio SHARED
   ArcballCamera.cpp
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
-	PluginManager.cpp
+  PluginManager.cpp
   widgets/TransferFunctionWidget.cpp
+  widgets/FileBrowserWidget.cpp
 )
 
 ## Cereal dependency ##
@@ -26,6 +27,7 @@ target_compile_definitions(ospray_studio PUBLIC OSPRAY_CPP_RKCOMMON_TYPES)
 
 target_link_libraries(ospray_studio
   imgui
+  imguiFileDialog
   cereal
   rkcommon::rkcommon
   ospray::ospray
@@ -53,7 +55,7 @@ install(TARGETS ospray_studio
   COMPONENT lib
   # on Windows put the dlls into bin
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    COMPONENT lib
+  COMPONENT lib
 )
 
 install(TARGETS ospStudio

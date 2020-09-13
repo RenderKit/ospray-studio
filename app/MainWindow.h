@@ -109,7 +109,7 @@ class MainWindow
   void addLight();
   void removeLight();
   void addPTMaterials();
-  bool importGeometry(std::shared_ptr<sg::Node> &world);
+  void importGeometry(std::shared_ptr<sg::Node> &world);
   bool importVolume(std::shared_ptr<sg::Node> &world);
   void saveCurrentFrame();
   void pickCenterOfRotation(float x, float y);
