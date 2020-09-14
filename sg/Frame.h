@@ -26,7 +26,10 @@ namespace ospray {
     bool denoiserEnabled{false};
     bool denoiseFB{false};
     bool denoiseNavFB{false};
-    
+
+    bool toneMapFB{false};
+    bool toneMapNavFB{false};
+
     const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmapFrame(void *mem);
     void saveFrame(std::string filename, int flags);

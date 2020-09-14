@@ -22,6 +22,8 @@ namespace ospray {
 
     void resetAccumulation();
     void updateDenoiser(bool enabled);
+    void updateToneMapper(bool enabled);
+    void updateImageOperations();
     void saveFrame(std::string filename, int flags);
 
     inline bool hasFloatFormat()
@@ -45,12 +47,14 @@ namespace ospray {
     void updateHandle();
     uint32_t channels{OSP_FB_COLOR};  // OSPFrameBufferChannel
     bool hasDenoiser{false};
+    bool hasToneMapper{false};
 
     std::map<std::string, OSPFrameBufferFormat> colorFormats{
         {"sRGB", OSP_FB_SRGBA},
         {"RGBA8", OSP_FB_RGBA8},
         {"float", OSP_FB_RGBA32F},
         {"none", OSP_FB_NONE}};
+
   };
 
   }  // namespace sg

@@ -121,8 +121,12 @@ namespace ospray {
   void Frame::refreshFrameOperations()
   {
     auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
+    auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
+
     auto &fb = childAs<FrameBuffer>("framebuffer");
     fb.updateDenoiser(denoiserEnabled);
+    fb.updateToneMapper(toneMapperEnabled);
+    fb.updateImageOperations();
   }
 
   void Frame::preCommit()

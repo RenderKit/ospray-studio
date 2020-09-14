@@ -14,6 +14,14 @@ namespace ospray {
     child("size").setReadOnly();
     createChild("colorFormat", "string", std::string("RGBA8"));
 
+    createChild("exposure", "float", 1.0f);
+    createChild("contrast", "float", 1.1759f);
+    createChild("shoulder", "float", 0.9746f);
+    createChild("midIn", "float", 0.18f);
+    createChild("midOut", "float", 0.18f);
+    createChild("hdrMax", "float", 6.3704f);
+    createChild("acesColor", "bool", true);
+
     updateHandle();
   }
 
@@ -79,15 +87,44 @@ namespace ospray {
       return;
 
     hasDenoiser = enabled;
+  }
 
-    if (enabled) {
-      cpp::ImageOperation d("denoiser");
-      handle().setParam("imageOperation", cpp::CopiedData(d));
-    } else {
-      handle().removeParam("imageOperation");
+  void FrameBuffer::updateToneMapper(bool enabled)
+  {
+    hasToneMapper = enabled;
+  }
+
+  void FrameBuffer::updateImageOperations()
+  {
+    std::vector<cpp::ImageOperation> ops;
+    if (hasDenoiser)
+      ops.push_back(cpp::ImageOperation("denoiser"));
+    if (hasToneMapper) {
+      auto iop = cpp::ImageOperation("tonemapper");
+      float exposure=child("exposure").valueAs<float>();
+      iop.setParam("exposure", OSP_FLOAT, &exposure);
+      float contrast=child("contrast").valueAs<float>();
+      iop.setParam("contrast", OSP_FLOAT, &contrast);
+      float shoulder=child("shoulder").valueAs<float>();
+      iop.setParam("shoulder", OSP_FLOAT, &shoulder);
+      float midIn=child("midIn").valueAs<float>();
+      iop.setParam("midIn", OSP_FLOAT, &midIn);
+      float midOut=child("midOut").valueAs<float>();
+      iop.setParam("midOut", OSP_FLOAT, &midOut);
+      float hdrMax=child("hdrMax").valueAs<float>();
+      iop.setParam("hdrMax", OSP_FLOAT, &hdrMax);
+      bool acesColor=child("acesColor").valueAs<bool>();
+      iop.setParam("acesColor", OSP_BOOL, &acesColor);
+      iop.commit();
+      ops.push_back(iop);
     }
+    if (hasDenoiser || hasToneMapper)
+      handle().setParam("imageOperation", cpp::CopiedData(ops));
+    else
+      handle().removeParam("imageOperation");
     handle().commit();
   }
+
 
   void FrameBuffer::saveFrame(std::string filename, int flags)
   {

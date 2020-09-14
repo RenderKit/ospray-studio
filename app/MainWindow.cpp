@@ -1107,7 +1107,7 @@ void MainWindow::buildMainMenuEdit()
 
     auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
 
-    ImGui::Text("Display buffer options");
+    ImGui::Text("display buffer");
     static int whichBuffer = 0;
     ImGui::RadioButton("color##displayColor", &whichBuffer, 0);
 
@@ -1147,23 +1147,22 @@ void MainWindow::buildMainMenuEdit()
       break;
     }
 
+    ImGui::Separator();
+    fb.traverse<sg::GenerateImGuiWidgets>();
+
+    ImGui::Checkbox("toneMap", &frame->toneMapFB);
+    ImGui::SameLine();
+    ImGui::Checkbox("toneMapNav", &frame->toneMapNavFB);
+
     if (studioCommon.denoiserAvailable) {
-      ImGui::Separator();
-      ImGui::Text("Denoiser Options:");
       if (fb["allowDenoising"].valueAs<bool>()) {
         ImGui::Checkbox("denoise", &frame->denoiseFB);
         ImGui::SameLine();
         ImGui::Checkbox("denoiseNav", &frame->denoiseNavFB);
       } else
-        ImGui::Text("- Check that FrameBuffer allowDenoising is enabled");
+        ImGui::Text("- Check that frameBuffer's allowDenoising is enabled");
     }
 
-
-    ImGui::Separator();
-    // Expose entire framebuffer options
-    fb.traverse<sg::GenerateImGuiWidgets>();
-
-    ImGui::Separator();
     ImGui::Text("frame scaling");
     frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
     ImGui::Text("framebuffer");
