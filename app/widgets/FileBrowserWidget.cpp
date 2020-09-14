@@ -11,20 +11,24 @@
 
 namespace ospray_studio {
 
-bool fileBrowser(
-    FileList &fileList, const std::string &prompt, const FilterList &filterList)
+bool fileBrowser(FileList &fileList,
+    const std::string &prompt,
+    const bool allowMultipleSelection,
+    const FilterList &filterList)
 {
+  static std::string defaultPath = ".";
   bool close = false;
 
   std::string filters = "";
   for (auto filter : filterList)
     filters += filter + ",";
 
-  igfd::ImGuiFileDialog::Instance()->SetExtentionInfos(".*", ImVec4(1,1,0, 0.9));
-
-  // Allow multiple selections
-  igfd::ImGuiFileDialog::Instance()->OpenDialog(
-      prompt.c_str(), prompt.c_str(), filters.c_str(), ".", 0);
+  // Allow multiple selections if requested (pass 0 as the vCountSelectionMax)
+  igfd::ImGuiFileDialog::Instance()->OpenModal(prompt.c_str(),
+      prompt.c_str(),
+      filters.c_str(),
+      defaultPath,
+      allowMultipleSelection ? 0 : 1);
 
   if (igfd::ImGuiFileDialog::Instance()->FileDialog(prompt.c_str())) {
     if (igfd::ImGuiFileDialog::Instance()->IsOk) {
@@ -32,6 +36,9 @@ bool fileBrowser(
       // selection: first: filename, second: full path
       for (auto &s : selection)
         fileList.push_back(s.second);
+
+      // Change the default directory, so next time this opens it opens here.
+      defaultPath = igfd::ImGuiFileDialog::Instance()->GetCurrentPath();
     }
 
     igfd::ImGuiFileDialog::Instance()->CloseDialog(prompt.c_str());

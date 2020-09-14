@@ -888,12 +888,10 @@ void MainWindow::refreshScene(bool resetCam)
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
 
-  if (scene == "import") {
+  if (scene == "import Geometry") {
     importGeometry(world);
-  } else if (scene == "import volume") {
-    if (!importVolume(world)) {
-      return;
-    }
+  } else if (scene == "import Volume") {
+    importVolume(world);
   } else {
     if (scene != "empty") {
       auto &gen = world->createChildAs<sg::Generator>("generator",
@@ -1026,48 +1024,45 @@ void MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
   filesToImport.clear();
 }
 
-bool MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
+void MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
 {
-  const char *file = nullptr;
-#if 0 // XXX BMCDEBUG, replace tinyfd
-  const char *file = tinyfd_openFileDialog(
-      "Import a volume from a file", "", 0, nullptr, nullptr, 0);
-#endif
-
-  if (file) {
-    const std::string fs(file);
-    std::shared_ptr<sg::Volume> volumeImport;
-    if (fs.length() > 4 && fs.substr(fs.length()-4) == ".vdb")
-    {
+  for (auto file : filesToImport) {
+    try {
+      rkcommon::FileName fileName(file);
+      std::string nodeName = fileName.base() + "_volume";
+      std::cout << "Importing: " << file << std::endl;
+      const std::string fs(file);
+      std::shared_ptr<sg::Volume> volumeImport;
+      if (fs.length() > 4 && fs.substr(fs.length()-4) == ".vdb")
+      {
 #if USE_OPENVDB
-      auto vol = std::static_pointer_cast<sg::VdbVolume>(
-          sg::createNode("volume", "volume_vdb"));
-      vol->load(file);
-      volumeImport = vol;
+        auto vol = std::static_pointer_cast<sg::VdbVolume>(
+            sg::createNode(nodeName, "volume_vdb"));
+        vol->load(file);
+        volumeImport = vol;
 #else
-      std::cout << "OpenVDB not enabled in build.  Rebuild Studio, selecting "
-                   "ENABLE_OPENVDB in cmake." << std::endl;
-      return false;
+        std::cout << "OpenVDB not enabled in build.  Rebuild Studio, selecting "
+          "ENABLE_OPENVDB in cmake." << std::endl;
 #endif
-    }
-    else
-    {
-      auto vol =
+      }
+      else
+      {
+        auto vol =
           std::static_pointer_cast<sg::StructuredVolume>(
-              sg::createNode("volume", "structuredRegular"));
-      vol->load(file);
-      volumeImport = vol;
+              sg::createNode(nodeName, "structuredRegular"));
+        vol->load(file);
+        volumeImport = vol;
+      }
+
+      auto &tf = world->createChild("transferFunction", "transfer_function_jet");
+      tf.add(volumeImport);
+
+    } catch (...) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
     }
-
-    auto &tf = world->createChild("transferFunction", "transfer_function_jet");
-    tf.add(volumeImport);
-
-  } else {
-    std::cout << "No file selected, nothing to import!\n";
-    return false;
   }
 
-  return true;
+  filesToImport.clear();
 }
 
 void MainWindow::saveCurrentFrame()
@@ -1127,15 +1122,17 @@ void MainWindow::buildMainMenu()
 
 void MainWindow::buildMainMenuFile()
 {
-  static bool showFileBrowser = false;
+  static bool showImportFileBrowser = false;
+  static std::string type = "";
 
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem("Import geometry...", nullptr)) {
-      showFileBrowser = true;
+      type = "Geometry";
+      showImportFileBrowser = true;
     }
     if (ImGui::MenuItem("Import volume...", nullptr)) {
-      scene = "import volume";
-      refreshScene(true);
+      type = "Volume";
+      showImportFileBrowser = true;
     }
     if (ImGui::BeginMenu("Demo Scene")) {
       //g_scene[0]='empty' works fine but not sure it makes sense as an user visible option
@@ -1154,11 +1151,11 @@ void MainWindow::buildMainMenuFile()
   }
 
   // Leave the fileBrowser open until files are selected
-  if (showFileBrowser) {
-    if (fileBrowser(filesToImport, "Import Model(s)")) {
-      showFileBrowser = false;
+  if (showImportFileBrowser) {
+    if (fileBrowser(filesToImport, "Select " + type + " Model(s) - ", true)) {
+      showImportFileBrowser = false;
       // Once files are selected, refresh scene to import them.
-      scene = "import";
+      scene = "import " + type;
       refreshScene(true);
     }
   }
@@ -1465,7 +1462,7 @@ void MainWindow::buildMainMenuView()
 
 void MainWindow::buildMainMenuPlugins()
 {
-  if (ImGui::BeginMenu("Plugins")) {
+  if (!pluginPanels.empty() && ImGui::BeginMenu("Plugins")) {
     for (auto &p : pluginPanels) {
       bool show = p->isShown();
       if (ImGui::Checkbox(p->name().c_str(), &show))
@@ -1591,16 +1588,13 @@ void MainWindow::buildWindowLightEditor()
     return;
   }
   
-  ospray::sg::NodePtr lightMan;
+  auto &f = *frame;
+  auto &lightsNode = f.hasChild("lights") ? f["lights"]
+                                          : f["world"]["lights"];
 
-  if (frame->hasChild("lights")) {
-    lightMan = frame->childNodeAs<sg::Lights>("lights");
-  } else {
-    auto &world = frame->child("world");
-    lightMan = world.childNodeAs<sg::Lights>("lights");
-  }
+  auto &lightMan = *lightsNode.nodeAs<sg::Lights>();
 
-  auto &lights   = lightMan->children();
+  auto &lights   = lightMan.children();
   static int whichLight = -1;
   static std::string selectedLight;
 
@@ -1618,7 +1612,7 @@ void MainWindow::buildWindowLightEditor()
 
     if (whichLight != -1) {
       ImGui::Text("edit");
-      lightMan->child(selectedLight)
+      lightMan.child(selectedLight)
           .traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
     }
   }
@@ -1626,7 +1620,7 @@ void MainWindow::buildWindowLightEditor()
   if (lights.size() > 1) {
     if (ImGui::Button("remove")) {
       if (whichLight != -1) {
-        lightMan->nodeAs<sg::Lights>()->removeLight(selectedLight);
+        lightMan.removeLight(selectedLight);
         whichLight    = std::max(0, whichLight - 1);
         selectedLight = (*(lights.begin() + whichLight)).first;
       }
@@ -1637,48 +1631,57 @@ void MainWindow::buildWindowLightEditor()
 
   ImGui::Text("new light");
 
-  ImGui::Combo("type##whichLightType",
+  static std::string lightType = "";
+  if (ImGui::Combo("type##whichLightType",
                &whichLightType,
                lightTypeUI_callback,
                nullptr,
-               g_lightTypes.size());
+               g_lightTypes.size())) {
+    if (whichLightType > -1 && whichLightType < g_lightTypes.size())
+      lightType = g_lightTypes[whichLightType];
+  }
 
   static bool lightNameWarning = false;
   static bool lightTexWarning = false;
+
   static char lightName[64] = "";
-  if (ImGui::InputText("name", lightName, 64))
-    lightNameWarning = false;
+  if (ImGui::InputText("name", lightName, sizeof(lightName)))
+    lightNameWarning = !(*lightName) || lightMan.lightExists(lightName);
 
-  if (ImGui::Button("add")) {
-    lightTexWarning = false;
-    if (whichLightType > -1 && whichLightType < g_lightTypes.size()) {
-      std::string lightType = g_lightTypes[whichLightType];
+  // HDRI lights need a texture
+  static bool showHDRIFileBrowser = false;
+  static char texFileName[256] = "";
+  if (lightType == "hdri") {
+    ImGui::InputText("texture", texFileName, sizeof(texFileName));
+    if (ImGui::IsItemClicked()) {
+      showHDRIFileBrowser = true;
+    }
+  }
 
-      if (lightMan->nodeAs<sg::Lights>()->addLight(lightName, lightType)) {
-        // actually load the texture if add was successful
-        if (lightType == "hdri") {
-          auto &hdri = lightMan->child(lightName);
-          const char *file = nullptr;
-#if 0 // XXX BMCDEBUG, replace tinyfd
-          const char *file = tinyfd_openFileDialog(
-              "Import an HDRI texture from a file", "", 0, nullptr, nullptr, 0);
-#endif
+  // Leave the fileBrowser open until file is selected
+  if (showHDRIFileBrowser) {
+    FileList fileList = {};
+    if (fileBrowser(fileList, "Select HDRI Texture")) {
+      showHDRIFileBrowser = false;
 
-          if (file) {
-            auto &hdriTex = hdri.createChild("map", "texture_2d");
-            std::shared_ptr<sg::Texture2D> ast2d =
-                hdriTex.nodeAs<sg::Texture2D>();
-            ast2d->load(file, false, false);
-          } else {
-            // the user probably hit cancel in the dialog, or bad file
-            lightTexWarning = true;
-            // auto lightsman  = *lightMan;
-            lightMan->nodeAs<sg::Lights>()->removeLight(lightName);
-          }
-        }
-      } else {
-        lightNameWarning = true;
+      lightTexWarning = fileList.empty();
+      if (!fileList.empty()) {
+        snprintf(texFileName, sizeof(texFileName), "%s", fileList[0].c_str());
       }
+    }
+  }
+
+  if ((!lightNameWarning && !lightTexWarning) && ImGui::Button("add")) {
+    if (lightMan.addLight(lightName, lightType)) {
+      if (lightType == "hdri") {
+        auto &hdri = lightMan[lightName];
+        auto &hdriTex = hdri.createChild("map", "texture_2d");
+
+        auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
+        ast2d->load(texFileName, false, false);
+      }
+    } else {
+      lightNameWarning = true;
     }
   }
 

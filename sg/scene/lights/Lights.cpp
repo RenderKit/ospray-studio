@@ -19,30 +19,31 @@ namespace ospray {
       return NodeType::LIGHTS;
     }
 
+    bool Lights::lightExists(std::string name)
+    {
+      auto found = std::find(lightNames.begin(), lightNames.end(), name);
+      return (found != lightNames.end());
+    }
+
     bool Lights::addLight(std::string name, std::string lightType)
     {
-      if (name == "")
+      if (name == "" || lightExists(name))
         return false;
 
-      auto found = std::find(lightNames.begin(), lightNames.end(), name);
-      if (found == lightNames.end()) {
-        lightNames.push_back(name);
-        createChild(name, lightType);
-      } else {
-        return false;
-      }
+      lightNames.push_back(name);
+      createChild(name, lightType);
       return true;
     }
 
     bool Lights::removeLight(std::string name)
     {
-      auto found = std::find(lightNames.begin(), lightNames.end(), name);
-      if (found == lightNames.end()) {
+      if (name == "" || !lightExists(name))
         return false;
-      } else {
-        remove(name);
-        lightNames.erase(found);
-      }
+
+      remove(name);
+      auto found = std::find(lightNames.begin(), lightNames.end(), name);
+      lightNames.erase(found);
+
       markAsModified();
       return true;
     }

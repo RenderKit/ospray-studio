@@ -21,6 +21,7 @@ namespace ospray {
       Lights();
       ~Lights() override = default;
       NodeType type() const override;
+      bool lightExists(std::string name);
       bool addLight(std::string name, std::string lightType);
       bool removeLight(std::string name);
 
