@@ -113,7 +113,6 @@ namespace ospray {
     bool depth     = flags & 0b10;
     bool normal    = flags & 0b100;
     bool asLayers  = flags & 0b1000;
-    size_t npixels = size.long_product();
 
     if (albedo) {
       abuf = (void *)map(OSP_FB_ALBEDO);

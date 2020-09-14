@@ -52,14 +52,16 @@ namespace ospray {
     vec2i size = child("size").valueAs<vec2i>();
     size_t nsubpix = 4 * size.x * size.y;
     char *newfb = (char *)malloc(nsubpix * sizeof(char));
-    for (size_t i = 0; i < nsubpix; i++)
-      newfb[i] = char(255 * fb[i]);
+    if (newfb)
+      for (size_t i = 0; i < nsubpix; i++)
+        newfb[i] = char(255 * fb[i]);
     child("data") = (const void *)newfb;
 
     if (hasChild("depth")) {
       char *newdb = (char *)malloc(nsubpix * sizeof(char));
-      for (size_t i = 0; i < nsubpix; i++)
-        newdb[i] = char(255 * fb[i]);
+      if (newdb)
+        for (size_t i = 0; i < nsubpix; i++)
+          newdb[i] = char(255 * fb[i]);
       child("depth") = (const void *)newdb;
     }
   }
@@ -70,8 +72,9 @@ namespace ospray {
     vec2i size = child("size").valueAs<vec2i>();
     size_t nsubpix = 4 * size.x * size.y;
     float *newfb = (float *)malloc(nsubpix * sizeof(float));
-    for (size_t i = 0; i < nsubpix; i++)
-      newfb[i] = fb[i] * ONEOVER255;
+    if (newfb)
+      for (size_t i = 0; i < nsubpix; i++)
+        newfb[i] = fb[i] * ONEOVER255;
     child("data") = (const void *)newfb;
   }
 

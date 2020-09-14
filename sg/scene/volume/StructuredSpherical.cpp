@@ -28,8 +28,6 @@ namespace ospray {
     createChild("gridOrigin", "vec3f", vec3f(0));
     createChild("gridSpacing", "vec3f", vec3f(1, 1, 1));
 
-    auto &volume = valueAs<cpp::Volume>();
-
     auto &dimensions = child("dimensions").valueAs<vec3i>();
     if (dimensions.x <= 0 || dimensions.y <= 0 || dimensions.z <= 0) {
       throw std::runtime_error(

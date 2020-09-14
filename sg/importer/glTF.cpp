@@ -64,7 +64,7 @@ namespace ospray {
 
     std::vector<NodePtr> ospMaterials;
 
-    size_t baseMaterialOffset;  // set in createMaterials()
+    size_t baseMaterialOffset = 0;  // set in createMaterials()
 
     void visitNode(NodePtr sgNode,
                    const int nid,
@@ -678,8 +678,7 @@ namespace ospray {
     auto ospTexNode =
         createOSPTexture(texParam, model.textures[texIndex], preferLinear);
     if (ospTexNode) {
-      auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
-
+      //auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
       //DEBUG << pad("", '.', 3) << "        .setChild: " << texParam << "= "
       //     << ospTex.name() << "\n";
       //DEBUG << pad("", '.', 3) << "            "

@@ -25,7 +25,6 @@ namespace ospray {
 
   Clouds::Clouds()
   {
-    auto &parameters = child("parameters");
   }
 
   void Clouds::generateData()

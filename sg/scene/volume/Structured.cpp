@@ -82,8 +82,6 @@ namespace ospray {
     createChild("gridOrigin", "vec3f", vec3f(-1.f));
     createChild("gridSpacing", "vec3f", vec3f(2.f / 100));
 
-    auto &cppVolume = valueAs<cpp::Volume>();
-
     auto &dimensions = child("dimensions").valueAs<vec3i>();
     std::vector<float> voxels(dimensions.long_product());
 

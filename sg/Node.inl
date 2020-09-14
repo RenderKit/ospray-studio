@@ -110,10 +110,12 @@ namespace ospray {
   template <typename... Args>
   inline void Node::createChildData(std::string name, Args &&... args)
   {
-    auto data             = std::make_shared<Data>(std::forward<Args>(args)...);
-    data->properties.name = name;
-    data->properties.subType = "Data";
-    add(data);
+    auto data = std::make_shared<Data>(std::forward<Args>(args)...);
+    if (data) {
+      data->properties.name = name;
+      data->properties.subType = "Data";
+      add(data);
+    }
   }
 
   template <typename VISITOR_T>
