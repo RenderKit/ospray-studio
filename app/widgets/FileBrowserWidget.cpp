@@ -30,7 +30,8 @@ bool fileBrowser(FileList &fileList,
       defaultPath,
       allowMultipleSelection ? 0 : 1);
 
-  if (igfd::ImGuiFileDialog::Instance()->FileDialog(prompt.c_str())) {
+  if (igfd::ImGuiFileDialog::Instance()->FileDialog(prompt.c_str(),
+        ImGuiWindowFlags_NoCollapse, ImVec2(512,256))) {
     if (igfd::ImGuiFileDialog::Instance()->IsOk) {
       auto selection = igfd::ImGuiFileDialog::Instance()->GetSelection();
       // selection: first: filename, second: full path

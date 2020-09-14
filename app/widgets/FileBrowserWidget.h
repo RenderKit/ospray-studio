@@ -12,7 +12,7 @@ using FilterList = std::vector<std::string>;
 static const FilterList defaultFilterList = {".*",
     "Geometry (.obj .gltf .glb){.obj,.gltf,.glb}",
     "Volume (.raw .vdb){.raw,.vdb}",
-    "Image (.jpg .hdr .exr){.jpg,.hdr,.exr}"};
+    "Image (.jpg .hdr .exr){.jpg,.jpeg,.hdr,.exr}"};
 
 bool fileBrowser(FileList &fileList,
     const std::string &prompt,

@@ -23,6 +23,9 @@ namespace ospray {
     child("up").setMinMax(-1.f, 1.f); // per component min/max
     createChild("direction", "vec3f", vec3f(0.f, 0.f, 1.f));
     child("direction").setMinMax(-1.f, 1.f); // per component min/max
+
+    createChild("name", "string", "");
+    child("name").setSGOnly();
   }
 
   void HDRILight::postCommit()

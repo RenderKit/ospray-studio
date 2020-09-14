@@ -1372,7 +1372,9 @@ void MainWindow::buildMainMenuEdit()
     static bool showFileBrowser = false;
     ImGui::Text("Background texture...");
     ImGui::SameLine();
-    ImGui::InputText("##backPlate", (char *)backPlateTexture.c_str(), backPlateTexture.length());
+    // This field won't be typed into.
+    ImGui::InputTextWithHint("##BPTex", "select...",
+        (char *)backPlateTexture.base().c_str(), 0);
     if (ImGui::IsItemClicked())
       showFileBrowser = true;
 
@@ -1647,9 +1649,11 @@ void MainWindow::buildWindowLightEditor()
 
   // HDRI lights need a texture
   static bool showHDRIFileBrowser = false;
-  static char texFileName[256] = "";
+  static rkcommon::FileName texFileName("");
   if (lightType == "hdri") {
-    ImGui::InputText("texture", texFileName, sizeof(texFileName));
+    // This field won't be typed into.
+    ImGui::InputTextWithHint("texture", "select...",
+        (char *)texFileName.base().c_str(), 0);
     if (ImGui::IsItemClicked())
       showHDRIFileBrowser = true;
   }
@@ -1662,7 +1666,7 @@ void MainWindow::buildWindowLightEditor()
 
       lightTexWarning = fileList.empty();
       if (!fileList.empty()) {
-        snprintf(texFileName, sizeof(texFileName), "%s", fileList[0].c_str());
+        texFileName = fileList[0];
       }
     }
   }
@@ -1672,6 +1676,8 @@ void MainWindow::buildWindowLightEditor()
       if (lightType == "hdri") {
         auto &hdri = lightMan[lightName];
         auto &hdriTex = hdri.createChild("map", "texture_2d");
+
+        hdri["name"] = texFileName.base();
 
         auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
         ast2d->load(texFileName, false, false);
