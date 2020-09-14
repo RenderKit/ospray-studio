@@ -23,6 +23,10 @@ bool fileBrowser(FileList &fileList,
   for (auto filter : filterList)
     filters += filter + ",";
 
+  // Set min and max dialog window size based on main window size
+  ImVec2 maxSize = ImGui::GetIO().DisplaySize;
+  ImVec2 minSize(maxSize.x * 0.5, maxSize.y * 0.5);
+
   // Allow multiple selections if requested (pass 0 as the vCountSelectionMax)
   igfd::ImGuiFileDialog::Instance()->OpenModal(prompt.c_str(),
       prompt.c_str(),
@@ -31,7 +35,7 @@ bool fileBrowser(FileList &fileList,
       allowMultipleSelection ? 0 : 1);
 
   if (igfd::ImGuiFileDialog::Instance()->FileDialog(prompt.c_str(),
-        ImGuiWindowFlags_NoCollapse, ImVec2(512,256))) {
+        ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
     if (igfd::ImGuiFileDialog::Instance()->IsOk) {
       auto selection = igfd::ImGuiFileDialog::Instance()->GetSelection();
       // selection: first: filename, second: full path
