@@ -864,19 +864,12 @@ void MainWindow::refreshRenderer()
   }
   if (rendererTypeStr == "scivis" ||
       rendererTypeStr == "pathtracer") {
-    if (useImportedTex) {
-      const char *file = nullptr;
-#if 0 // XXX BMCDEBUG, replace tinyfd
-      const char *file = tinyfd_openFileDialog(
-          "Import a texture from a file", "", 0, nullptr, nullptr, 0);
-#endif
-      if (file) {
-        std::shared_ptr<sg::Texture2D> backplateTex =
-          std::static_pointer_cast<sg::Texture2D>(
-              sg::createNode("map_backplate", "texture_2d"));
-        backplateTex->load(file, false, false);
-        r.add(backplateTex);
-      }
+    if (backPlateTexture != "") {
+      std::shared_ptr<sg::Texture2D> backplateTex =
+        std::static_pointer_cast<sg::Texture2D>(
+            sg::createNode("map_backplate", "texture_2d"));
+      backplateTex->load(backPlateTexture, false, false);
+      r.add(backplateTex);
     }
   }
 }
@@ -1376,25 +1369,29 @@ void MainWindow::buildMainMenuEdit()
     ImGui::Separator();
     ImGui::Text("scene");
 
-    if (ImGui::MenuItem("Background texture...", "", nullptr)) {
-      const char *file = nullptr;
-#if 0 // XXX BMCDEBUG, replace tinyfd
-      const char *file = tinyfd_openFileDialog(
-          "Import a texture from a file", "", 0, nullptr, nullptr, 0);
-#endif
-      if (file) {
-        importedFilename = std::string(file);
-        std::shared_ptr<sg::Texture2D> backplateTex =
-          std::static_pointer_cast<sg::Texture2D>(
-              sg::createNode("map_backplate", "texture_2d"));
-        backplateTex->load(file, false, false);
-        frame->child("renderer").add(backplateTex);
-        useImportedTex = true;
+    static bool showFileBrowser = false;
+    ImGui::Text("Background texture...");
+    ImGui::SameLine();
+    ImGui::InputText("##backPlate", (char *)backPlateTexture.c_str(), backPlateTexture.length());
+    if (ImGui::IsItemClicked())
+      showFileBrowser = true;
+
+    // Leave the fileBrowser open until file is selected
+    if (showFileBrowser) {
+      FileList fileList = {};
+      if (fileBrowser(fileList, "Select Background Texture")) {
+        showFileBrowser = false;
+
+        if (!fileList.empty()) {
+          backPlateTexture = fileList[0];
+
+          std::shared_ptr<sg::Texture2D> backplateTex =
+            std::static_pointer_cast<sg::Texture2D>(
+                sg::createNode("map_backplate", "texture_2d"));
+          backplateTex->load(backPlateTexture, false, false);
+          frame->child("renderer").add(backplateTex);
+        }
       }
-    }
-    if (useImportedTex) {
-      ImGui::SameLine();
-      ImGui::Text("[%s]", importedFilename.c_str());
     }
 
     if (ImGui::MenuItem("Lights...", "", nullptr))
@@ -1653,9 +1650,8 @@ void MainWindow::buildWindowLightEditor()
   static char texFileName[256] = "";
   if (lightType == "hdri") {
     ImGui::InputText("texture", texFileName, sizeof(texFileName));
-    if (ImGui::IsItemClicked()) {
+    if (ImGui::IsItemClicked())
       showHDRIFileBrowser = true;
-    }
   }
 
   // Leave the fileBrowser open until file is selected

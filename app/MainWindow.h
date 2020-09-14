@@ -168,8 +168,7 @@ class MainWindow
   int optPF = -1; // optional pixel filter, -1 = use default
 
   int defaultMaterialIdx = 0;
-  bool useImportedTex = false;
-  std::string importedFilename;
+  std::string backPlateTexture = "";
 
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;
