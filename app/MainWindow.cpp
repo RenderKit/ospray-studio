@@ -1455,6 +1455,14 @@ void MainWindow::buildMainMenuView()
     if (ImGui::MenuItem("Geometry...", "", nullptr))
       showGeometryViewer = true;
     ImGui::Checkbox("Rendering stats...", &showRenderingStats);
+
+    ImGui::Separator();
+    ImGui::Checkbox("Show Tooltips...", &g_ShowTooltips);
+    if (g_ShowTooltips) {
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+      ImGui::DragInt("delay", &g_TooltipDelay, 50, 0, 1000, "%d ms");
+    }
     ImGui::EndMenu();
   }
 }

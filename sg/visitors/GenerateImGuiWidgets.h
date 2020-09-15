@@ -5,8 +5,12 @@
 
 #include "../Node.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include <stack>
+
+static bool g_ShowTooltips = true;
+static int g_TooltipDelay = 500; // ms delay
 
 namespace ospray {
   namespace sg {
@@ -34,6 +38,14 @@ namespace ospray {
       bool &updated;
     };
 
+    inline void nodeTooltip(Node &node)
+    {
+      if (g_ShowTooltips && ImGui::IsItemHovered()
+          && ImGui::GetCurrentContext()->HoveredIdTimer > g_TooltipDelay * 0.001
+          && node.description() != "<no description>")
+        ImGui::SetTooltip("%s", node.description().c_str());
+    }
+
     // Specialized widget generators //////////////////////////////////////////
 
     inline bool generateWidget_bool(const std::string &title, Node &node)
@@ -43,6 +55,7 @@ namespace ospray {
       if (node.readOnly()) {
         ImGui::Text("%s",
                     (node.name() + ": " + (b ? "true" : "false")).c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -51,6 +64,7 @@ namespace ospray {
         return true;
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -60,6 +74,7 @@ namespace ospray {
 
       if (node.readOnly()) {
         ImGui::Text("%s", (node.name() + ": " + std::to_string(i)).c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -77,6 +92,7 @@ namespace ospray {
         }
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -86,6 +102,7 @@ namespace ospray {
 
       if (node.readOnly()) {
         ImGui::Text("%s", (node.name() + ": " + std::to_string(f)).c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -103,6 +120,7 @@ namespace ospray {
         }
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -115,6 +133,7 @@ namespace ospray {
                     (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y))
                         .c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -132,6 +151,7 @@ namespace ospray {
         }
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -144,6 +164,7 @@ namespace ospray {
                     (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y))
                         .c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -161,6 +182,7 @@ namespace ospray {
         }
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -173,6 +195,7 @@ namespace ospray {
                     (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y) + ", " + std::to_string(v.z))
                         .c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -190,6 +213,7 @@ namespace ospray {
         }
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -202,6 +226,7 @@ namespace ospray {
                     (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y) + ", " + std::to_string(v.z))
                         .c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -219,6 +244,7 @@ namespace ospray {
         }
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -231,6 +257,7 @@ namespace ospray {
                     (node.name() + ": " + std::to_string(v.x) + ", " +
                      std::to_string(v.y) + ", " + std::to_string(v.z))
                         .c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -239,6 +266,7 @@ namespace ospray {
         return true;
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -252,6 +280,7 @@ namespace ospray {
                      std::to_string(v.y) + ", " + std::to_string(v.z) + ", " +
                      std::to_string(v.w))
                         .c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -260,6 +289,7 @@ namespace ospray {
         return true;
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -269,6 +299,7 @@ namespace ospray {
 
       if (node.readOnly()) {
         ImGui::Text("%s", (node.name() + ": affine3f").c_str());
+        nodeTooltip(node);
         return false;
       }
 
@@ -277,15 +308,18 @@ namespace ospray {
           ImGui::DragFloat3("l.vy", a.l.vy) ||
           ImGui::DragFloat3("l.vz", a.l.vz)) {
         node.setValue(a);
+        nodeTooltip(node);
         return true;
       }
 
       ImGui::Text("%s", "affine space");
       if (ImGui::DragFloat3("p", a.p)) {
         node.setValue(a);
+        nodeTooltip(node);
         return true;
       }
 
+      nodeTooltip(node);
       return false;
     }
 
@@ -294,6 +328,7 @@ namespace ospray {
       std::string s = node.valueAs<std::string>();
 
       ImGui::Text("%s", (node.name() + ": \"" + s + "\"").c_str());
+      nodeTooltip(node);
       return false;
     }
 
@@ -354,6 +389,7 @@ namespace ospray {
         // there is no generator for this type
         widgetName += ": " + node.subType();
         ImGui::Text("%s", widgetName.c_str());
+        nodeTooltip(node);
       }
 
       return true;
