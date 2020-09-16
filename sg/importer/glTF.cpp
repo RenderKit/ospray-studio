@@ -176,16 +176,18 @@ namespace ospray {
 
     // currently load BIT_asset_info extension with partial properties only
     // For reference links to work we need the 'id', 'type' and 'title'
-    auto &assetExt = asset.extensions["BIT_asset_info"];
+    auto fnd = asset.extensions.find("BIT_asset_info");
+    if (fnd != asset.extensions.end()) {
+      auto &assetExt = asset.extensions["BIT_asset_info"];
 
-    auto assetId = assetExt.Get("id").Get<std::string>();
-    auto assetTitle = assetExt.Get("title").Get<std::string>();
-    auto assetType = assetExt.Get("type").Get<std::string>();
+      auto assetId = assetExt.Get("id").Get<std::string>();
+      auto assetTitle = assetExt.Get("title").Get<std::string>();
+      auto assetType = assetExt.Get("type").Get<std::string>();
 
-    sgNode->createChild("asset_id", "string", assetId);
-    sgNode->createChild("asset_title", "string", assetTitle);
-    sgNode->createChild("asset_type", "string", assetType);
-
+      sgNode->createChild("asset_id", "string", assetId);
+      sgNode->createChild("asset_title", "string", assetTitle);
+      sgNode->createChild("asset_type", "string", assetType);
+    }
   }
 
   void GLTFData::addReferenceLinkInfo(const int nid, NodePtr sgNode) {
@@ -193,11 +195,11 @@ namespace ospray {
     auto refLinkExtension = n.extensions.find("BIT_reference_link")->second;
 
     auto &refId =
-    refLinkExtension.Get("id").Get<std::string>(); 
+      refLinkExtension.Get("id").Get<std::string>(); 
     auto &refType =
-    refLinkExtension.Get("type").Get<std::string>(); 
+      refLinkExtension.Get("type").Get<std::string>(); 
     auto &refTitle =
-    refLinkExtension.Get("title").Get<std::string>();
+      refLinkExtension.Get("title").Get<std::string>();
 
     auto refLinkInfoNode = createNode("refLink_" + refTitle , "Node");
     refLinkInfoNode->createChild("id", "string", refId);
