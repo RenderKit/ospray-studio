@@ -15,8 +15,7 @@ namespace ospray {
     OBJImporter()           = default;
     ~OBJImporter() override = default;
 
-    void importScene(
-        std::shared_ptr<sg::MaterialRegistry> materialRegistry) override;
+    void importScene() override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(OBJImporter, importer_obj);
@@ -289,13 +288,16 @@ namespace ospray {
 
   // OBJImporter definitions /////////////////////////////////////////////
 
-  void OBJImporter::importScene(
-      std::shared_ptr<sg::MaterialRegistry> materialRegistry)
+  void OBJImporter::importScene()
   {
-    auto file    = FileName(child("file").valueAs<std::string>());
-    auto objData = loadFromFile(file);
+    // Create a root Transform/Instance off the Importer, under which to build
+    // the import hierarchy
+    std::string baseName = fileName.name() + "_rootXfm";
+    auto rootNode = createNode(baseName, "Transform", affine3f{one});
 
-    auto materialNodes = createMaterials(objData, file);
+    auto objData = loadFromFile(fileName);
+
+    auto materialNodes = createMaterials(objData, fileName);
 
     size_t baseMaterialOffset = materialRegistry->children().size();
 
@@ -304,20 +306,9 @@ namespace ospray {
       materialRegistry->matImportsList.push_back(m->name());
     }
 
-
-
-
-
     auto &attrib = objData.attrib;
 
     int shapeId = 0;
-
-    std::string baseName = file.name() + '_';
-
-    // Create a root Transform/Instance off the Importer, under which to build
-    // the import hierarchy
-    auto &rootNode =
-        createChild(baseName + "root_node_xfm", "Transform", affine3f{one});
 
     for (auto &shape : objData.shapes) {
       auto numSrcIndices = shape.mesh.indices.size();
@@ -367,21 +358,7 @@ namespace ospray {
 
       auto name = std::to_string(shapeId++) + '_' + shape.name;
 
-#if 0  // per-object materials (not technically correct)
-      int materialIndex = int(baseMaterialOffset + shape.mesh.material_ids[0]);
-      auto materialName =
-          materialRegistry.children().at_index(materialIndex).first;
-
-      auto materialNodeName = "reference_" + materialName;
-
-      if (!hasChild(materialNodeName))
-        createChild(materialNodeName, "reference_to_material", materialIndex);
-
-      auto &matNode = child(materialNodeName);
-
-      auto &mesh = matNode.createChild(name, "geometry_triangles");
-#else  // per-primitive materials (correct)
-      auto &mesh = rootNode.createChild(name, "geometry_triangles");
+      auto &mesh = rootNode->createChild(name, "geometry_triangles");
 
       std::vector<uint32_t> mIDs(shape.mesh.material_ids.size());
       std::transform(shape.mesh.material_ids.begin(),
@@ -391,8 +368,6 @@ namespace ospray {
       mesh.createChildData("material", mIDs);
       mesh.child("material").setSGOnly();
 
-#endif
-
       mesh.createChildData("vertex.position", v);
       mesh.createChildData("index", vi);
       if (!vn.empty())
@@ -400,6 +375,9 @@ namespace ospray {
       if (!vt.empty())
         mesh.createChildData("vertex.texcoord", vt);
     }
+
+    // Finally, add node hierarchy to importer parent
+    add(rootNode);
 
     std::cout << "...finished import!\n";
   }

@@ -78,7 +78,7 @@ add_library(ospray_sg SHARED
   importer/glTF/buffer_view.cpp
   importer/glTF/gltf_types.cpp
   importer/raw.cpp
-
+  importer/vdb.cpp
 
   renderer/Material.cpp
   renderer/MaterialReference.cpp

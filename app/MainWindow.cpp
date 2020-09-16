@@ -29,9 +29,6 @@
 #include "rkcommon/os/FileName.h"
 #include "rkcommon/utility/SaveImage.h"
 #include "rkcommon/utility/getEnvVar.h"
-#include "sg/scene/volume/StructuredSpherical.h"
-#include "sg/scene/volume/Structured.h"
-#include "sg/scene/volume/Vdb.h"
 // json
 #include <json.hpp>
 
@@ -99,9 +96,6 @@ static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
 static const std::vector<std::string> g_lightTypes = {
     "ambient", "distant", "hdri", "sphere", "spot", "sunSky", "quad"};
 
-std::vector<std::string> g_matTypes = {
-    "obj", "alloy", "glass", "carPaint", "luminous", "metal", "thinGlass"};
-
 std::vector<CameraState> g_camAnchors;  // user-defined anchor states
 std::vector<CameraState> g_camPath;     // interpolated path through anchors
 int g_camSelectedAnchorIndex = 0;
@@ -140,12 +134,6 @@ bool debugTypeUI_callback(void *, int index, const char **out_text)
 bool lightTypeUI_callback(void *, int index, const char **out_text)
 {
   *out_text = g_lightTypes[index].c_str();
-  return true;
-}
-
-bool matTypeUI_callback(void *, int index, const char **out_text)
-{
-  *out_text = g_matTypes[index].c_str();
   return true;
 }
 
@@ -390,10 +378,6 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
       "baseMaterialRegistry", "materialRegistry");
-
-  for (auto mat : g_matTypes) {
-    baseMaterialRegistry->addNewSGMaterial(mat);
-  }
 
   refreshRenderer();
   refreshScene(true);
@@ -865,9 +849,8 @@ void MainWindow::refreshRenderer()
   if (rendererTypeStr == "scivis" ||
       rendererTypeStr == "pathtracer") {
     if (backPlateTexture != "") {
-      std::shared_ptr<sg::Texture2D> backplateTex =
-        std::static_pointer_cast<sg::Texture2D>(
-            sg::createNode("map_backplate", "texture_2d"));
+      auto backplateTex =
+          sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
       backplateTex->load(backPlateTexture, false, false);
       r.add(backplateTex);
     }
@@ -876,19 +859,19 @@ void MainWindow::refreshRenderer()
 
 void MainWindow::refreshScene(bool resetCam)
 {
-  auto world = sg::createNode("world", "world");
+  // Check that the frame contains a world, if not create one
+  auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
+                                        : sg::createNode("world", "world");
 
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
 
-  if (scene == "import Geometry") {
-    importGeometry(world);
-  } else if (scene == "import Volume") {
-    importVolume(world);
+  if (!filesToImport.empty()) {
+    importFiles(world);
   } else {
     if (scene != "empty") {
       auto &gen = world->createChildAs<sg::Generator>("generator",
-                                                      "generator_" + scene);
+                                                     "generator_" + scene);
       gen.generateData();
     }
   }
@@ -924,138 +907,47 @@ void MainWindow::parseCommandLine()
   }
 
   if (!filesToImport.empty()) {
-    importFiles();
+    std::cout << "Import files from cmd line" << std::endl;
+    refreshScene(true);
   }
 }
 
-void MainWindow::importFiles()
+// Importer for all known file types (geometry and models)
+void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
 {
-  std::cout << "import files from cmd line" << std::endl;
-  auto world = sg::createNode("world", "world");
-
   for (auto file : filesToImport) {
     try {
       rkcommon::FileName fileName(file);
       std::string nodeName = fileName.base() + "_importer";
-
       std::cout << "Importing: " << file << std::endl;
-      auto oldRegistrySize = baseMaterialRegistry->children().size();
-      auto importer        = sg::getImporter(file);
+
+      auto importer = sg::getImporter(file);
       if (importer != "") {
-        auto &imp   = world->createChildAs<sg::Importer>(nodeName, importer);
-        imp["file"] = std::string(file);
-        imp.importScene(baseMaterialRegistry);
+        auto &imp = world->createChildAs<sg::Importer>(nodeName, importer);
 
-        if (baseMaterialRegistry->matImportsList.size() != 0) {
-          for (auto &newMat : baseMaterialRegistry->matImportsList)
-            g_matTypes.insert(g_matTypes.begin(), newMat);
-        }
+        // Could be any type of importer.  Need to pass the MaterialRegistry,
+        // importer will use what it needs.
+        imp.setFileName(fileName);
+        imp.setMaterialRegistry(baseMaterialRegistry);
+        imp.importScene();
 
-        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
-          auto newMats =
-            baseMaterialRegistry->children().size() - oldRegistrySize;
-          std::cout << "Importer added " << newMats << " material(s)"
-            << std::endl;
+        if (baseMaterialRegistry->matImportsList.size())
           refreshRenderer();
-        }
+      } else {
+        std::cout << "No importer for this file type." << std::endl;
       }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }
   }
 
-	filesToImport.clear();
+  filesToImport.clear();
 
   if (linkNodes) {
     world->traverse<sg::RefLinkNodes>();
 
     // TODO Important: remove empty importer nodes as well
   }
-
-  world->render();
-
-  frame->add(world);
-
-  arcballCamera.reset(
-      new ArcballCamera(frame->child("world").bounds(), windowSize));
-  updateCamera();
-}
-
-void MainWindow::importGeometry(std::shared_ptr<sg::Node> &world)
-{
-  for (auto file : filesToImport) {
-    try {
-      rkcommon::FileName fileName(file);
-      std::string nodeName = fileName.base() + "_importer";
-      std::cout << "Importing: " << file << std::endl;
-
-      auto oldRegistrySize = baseMaterialRegistry->children().size();
-      auto importer = sg::getImporter(file);
-      if (importer != "") {
-        auto &imp = world->createChildAs<sg::Importer>(nodeName, importer);
-        imp["file"] = std::string(file);
-        imp.importScene(baseMaterialRegistry);
-
-        if (baseMaterialRegistry->matImportsList.size() != 0) {
-          for (auto &newMat : baseMaterialRegistry->matImportsList)
-            g_matTypes.insert(g_matTypes.begin(), newMat);
-        }
-
-        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
-          auto newMats =
-              baseMaterialRegistry->children().size() - oldRegistrySize;
-          std::cout << "Importer added " << newMats << " material(s)"
-                    << std::endl;
-          refreshRenderer();
-        }
-      }
-    } catch (...) {
-      std::cerr << "Failed to open file '" << file << "'!\n";
-    }
-  }
-
-  filesToImport.clear();
-}
-
-void MainWindow::importVolume(std::shared_ptr<sg::Node> &world)
-{
-  for (auto file : filesToImport) {
-    try {
-      rkcommon::FileName fileName(file);
-      std::string nodeName = fileName.base() + "_volume";
-      std::cout << "Importing: " << file << std::endl;
-      const std::string fs(file);
-      std::shared_ptr<sg::Volume> volumeImport;
-      if (fs.length() > 4 && fs.substr(fs.length()-4) == ".vdb")
-      {
-#if USE_OPENVDB
-        auto vol = std::static_pointer_cast<sg::VdbVolume>(
-            sg::createNode(nodeName, "volume_vdb"));
-        vol->load(file);
-        volumeImport = vol;
-#else
-        std::cout << "OpenVDB not enabled in build.  Rebuild Studio, selecting "
-          "ENABLE_OPENVDB in cmake." << std::endl;
-#endif
-      }
-      else
-      {
-        auto vol =
-          std::static_pointer_cast<sg::StructuredVolume>(
-              sg::createNode(nodeName, "structuredRegular"));
-        vol->load(file);
-        volumeImport = vol;
-      }
-
-      auto &tf = world->createChild("transferFunction", "transfer_function_jet");
-      tf.add(volumeImport);
-
-    } catch (...) {
-      std::cerr << "Failed to open file '" << file << "'!\n";
-    }
-  }
-
-  filesToImport.clear();
 }
 
 void MainWindow::saveCurrentFrame()
@@ -1132,13 +1024,18 @@ void MainWindow::buildMainMenuFile()
       for (int i = 1; i < g_scenes.size(); ++i) {
         if (ImGui::MenuItem(g_scenes[i].c_str(), nullptr)) {
            scene = g_scenes[i];
-           auto numImportedMats = baseMaterialRegistry->matImportsList.size();
-           g_matTypes.erase(g_matTypes.begin(), g_matTypes.begin() + numImportedMats);
-           baseMaterialRegistry->rmMatImports();
            refreshScene(true);
         }
       }
       ImGui::EndMenu();
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Clear Scene...", nullptr)) {
+      frame->cancelFrame();
+      frame->waitOnFrame();
+      frame->remove("world");
+      scene = "empty";
+      refreshScene(true);
     }
     ImGui::EndMenu();
   }
@@ -1387,9 +1284,8 @@ void MainWindow::buildMainMenuEdit()
         if (!fileList.empty()) {
           backPlateTexture = fileList[0];
 
-          std::shared_ptr<sg::Texture2D> backplateTex =
-            std::static_pointer_cast<sg::Texture2D>(
-                sg::createNode("map_backplate", "texture_2d"));
+          auto backplateTex =
+              sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
           backplateTex->load(backPlateTexture, false, false);
           frame->child("renderer").add(backplateTex);
         }

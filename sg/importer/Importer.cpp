@@ -4,24 +4,16 @@
 #include "Importer.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  Importer::Importer()
-  {
-    createChild("file", "string", "");
-  }
+Importer::Importer() {}
 
-  NodeType Importer::type() const
-  {
-    return NodeType::IMPORTER;
-  }
+NodeType Importer::type() const
+{
+  return NodeType::IMPORTER;
+}
 
-  void Importer::importScene(
-      std::shared_ptr<sg::MaterialRegistry> materialRegistry)
-  {
-  }
+void Importer::importScene() {}
 
-  void Importer::importScene() {}
-
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray

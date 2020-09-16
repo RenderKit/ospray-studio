@@ -271,27 +271,24 @@ void BatchContext::importFiles()
     try {
       rkcommon::FileName fileName(file);
       std::string nodeName = fileName.base() + "_importer";
-
       std::cout << "Importing: " << file << std::endl;
-      auto oldRegistrySize = baseMaterialRegistry->children().size();
-      auto importer        = sg::getImporter(file);
+
+      auto importer = sg::getImporter(file);
       if (importer != "") {
         auto &imp =
             importedModels->createChildAs<sg::Importer>(nodeName, importer);
-        imp["file"] = std::string(file);
-        imp.importScene(baseMaterialRegistry);
-
-        if (oldRegistrySize != baseMaterialRegistry->children().size()) {
-          auto newMats =
-              baseMaterialRegistry->children().size() - oldRegistrySize;
-          std::cout << "Importer added " << newMats << " material(s)"
-                    << std::endl;
-        }
+        // Could be any type of importer.  Need to pass the MaterialRegistry,
+        // importer will use what it needs.
+        imp.setFileName(fileName);
+        imp.setMaterialRegistry(baseMaterialRegistry);
+        imp.importScene();
       }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }
   }
+
+  filesToImport.clear();
 }
 
 void BatchContext::printHelp()

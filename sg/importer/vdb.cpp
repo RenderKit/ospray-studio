@@ -3,34 +3,34 @@
 
 #include "Importer.h"
 // ospcommon
-#include "../scene/volume/StructuredSpherical.h"
 #include "rkcommon/os/FileName.h"
+#include "sg/scene/volume/Vdb.h"
 
 namespace ospray {
 namespace sg {
 
-struct RawImporter : public Importer
+struct VDBImporter : public Importer
 {
-  RawImporter() = default;
-  ~RawImporter() override = default;
+  VDBImporter() = default;
+  ~VDBImporter() override = default;
 
   void importScene() override;
 };
 
-OSP_REGISTER_SG_NODE_NAME(RawImporter, importer_raw);
+OSP_REGISTER_SG_NODE_NAME(VDBImporter, importer_vdb);
 
-// rawImporter definitions /////////////////////////////////////////////
+// vdbImporter definitions /////////////////////////////////////////////
 
-void RawImporter::importScene()
+void VDBImporter::importScene()
 {
-  // Create a root Transform/Instance off the Importer, then place the volume
-  // under this.
+#if USE_OPENVDB
+  // Create a root Transform/Instance off the Importer, under which to build
+  // the import hierarchy
   auto rootName = fileName.name() + "_rootXfm";
   auto nodeName = fileName.name() + "_volume";
 
   auto rootNode = createNode(rootName, "Transform", affine3f{one});
-  auto volumeImport =
-      createNodeAs<StructuredSpherical>(nodeName, "structuredSpherical");
+  auto volumeImport = createNodeAs<VdbVolume>(nodeName, "volume_vdb");
 
   volumeImport->load(fileName);
 
@@ -43,6 +43,11 @@ void RawImporter::importScene()
   add(rootNode);
 
   std::cout << "...finished import!\n";
+#else
+  std::cout << "OpenVDB not enabled in build.  Rebuild Studio, selecting "
+               "ENABLE_OPENVDB in cmake."
+            << std::endl;
+#endif
 }
 
 } // namespace sg

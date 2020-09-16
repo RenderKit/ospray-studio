@@ -27,8 +27,7 @@ namespace ospray {
     glTFImporter()           = default;
     ~glTFImporter() override = default;
 
-    void importScene(
-        std::shared_ptr<MaterialRegistry> materialRegistry) override;
+    void importScene() override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(glTFImporter, importer_gltf);
@@ -693,16 +692,14 @@ namespace ospray {
 
   // GLTFmporter definitions //////////////////////////////////////////////////
 
-  void glTFImporter::importScene(
-      std::shared_ptr<MaterialRegistry> materialRegistry)
+  void glTFImporter::importScene()
   {
-    auto file = FileName(child("file").valueAs<std::string>());
-
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
-    auto rootNode = createNode("rootXfm_" + file.base(), "Transform", affine3f{one});
+    std::string baseName = fileName.name() + "_rootXfm";
+    auto rootNode = createNode(baseName, "Transform", affine3f{one});
 
-    GLTFData gltf(rootNode, file);
+    GLTFData gltf(rootNode, fileName);
 
     if (!gltf.parseAsset())
       return;

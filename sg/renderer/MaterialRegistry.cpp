@@ -7,7 +7,10 @@ namespace ospray {
   namespace sg {
 
   MaterialRegistry::MaterialRegistry()
-  {}
+  {
+    // ensure there's one OBJ material in the Registry as the default material
+    addNewSGMaterial("obj");
+  }
 
   void MaterialRegistry::addNewSGMaterial(std::string matType)
   {
