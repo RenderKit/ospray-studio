@@ -23,6 +23,11 @@ namespace ospray {
     void cancelFrame();
     bool accumLimitReached();
 
+    inline bool isCanceled()
+    {
+      return canceled;
+    }
+
     bool denoiserEnabled{false};
     bool denoiseFB{false};
     bool denoiseNavFB{false};
@@ -38,6 +43,7 @@ namespace ospray {
     bool pauseRendering{false};
     int accumLimit{0};
     int currentAccum{0};
+    bool canceled{false};
 
    private:
     bool navMode{false};

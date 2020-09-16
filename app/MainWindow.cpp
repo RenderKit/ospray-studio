@@ -486,10 +486,6 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   if (res.hasHit)
   {
     arcballCamera->setCenter(vec3f(res.worldPosition));
-    if (cancelFrameOnInteraction) {
-      frame->cancelFrame();
-      waitOnOSPRayFrame();
-    }
     updateCamera();
   }
 }
@@ -537,10 +533,6 @@ void MainWindow::keyboardMotion()
   {
     arcballCamera->constrainedRotate(vec2f(-.5,0), vec2f(-.5,roll*.005*sensitivity), 2);
   }
-  if (cancelFrameOnInteraction) {
-    frame->cancelFrame();
-    waitOnOSPRayFrame();
-  }
   updateCamera();
 }
 
@@ -583,10 +575,6 @@ void MainWindow::motion(const vec2f &position)
 
     if (cameraChanged) {
       frame->child("navMode") = true;
-      if (cancelFrameOnInteraction) {
-        frame->cancelFrame();
-        waitOnOSPRayFrame();
-      }
       updateCamera();
     }
   }
@@ -657,79 +645,81 @@ void MainWindow::display()
   fbSize = frameBuffer.child("size").valueAs<vec2i>();
 
   if (frame->frameIsReady()) {
-    // display frame rate in window title
-    auto displayEnd = std::chrono::high_resolution_clock::now();
-    auto durationMilliseconds =
+    if (!frame->isCanceled()) {
+      // display frame rate in window title
+      auto displayEnd = std::chrono::high_resolution_clock::now();
+      auto durationMilliseconds =
       std::chrono::duration_cast<std::chrono::milliseconds>(displayEnd -
           displayStart);
 
-    latestFPS = 1000.f / float(durationMilliseconds.count());
+      latestFPS = 1000.f / float(durationMilliseconds.count());
 
-    // map OSPRay framebuffer, update OpenGL texture with contents, then unmap
-    waitOnOSPRayFrame();
+      // map OSPRay framebuffer, update OpenGL texture with contents, then unmap
+      waitOnOSPRayFrame();
 
-    // Only enabled if they exist
-    showAlbedo &= frameBuffer.hasAlbedoChannel();
-    showDepth &= frameBuffer.hasDepthChannel();
+      // Only enabled if they exist
+      showAlbedo &= frameBuffer.hasAlbedoChannel();
+      showDepth &= frameBuffer.hasDepthChannel();
 
     auto *mappedFB =
       (void *)frame->mapFrame(showDepth ? OSP_FB_DEPTH
-          : (showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
+              : (showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
 
-    // This needs to query the actual framebuffer format
+      // This needs to query the actual framebuffer format
     const GLenum glType = frameBuffer.hasFloatFormat()
       ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
-    // Only create the copy if it's needed
-    float *pDepthCopy = nullptr;
-    if (showDepth) {
-      // Create a local copy and don't modify OSPRay buffer
-      const auto *mappedDepth = static_cast<const float *>(mappedFB);
+      // Only create the copy if it's needed
+      float *pDepthCopy = nullptr;
+      if (showDepth) {
+        // Create a local copy and don't modify OSPRay buffer
+        const auto *mappedDepth = static_cast<const float *>(mappedFB);
       std::vector<float> depthCopy(mappedDepth,
           mappedDepth + fbSize.x * fbSize.y);
-      pDepthCopy = depthCopy.data();
+        pDepthCopy = depthCopy.data();
 
-      // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1, ignoring all
-      // inf values
-      float minDepth = rkcommon::math::inf;
-      float maxDepth = rkcommon::math::neg_inf;
-      for (auto depth: depthCopy) {
-        if (isinf(depth))
-          continue;
-        minDepth = std::min(minDepth, depth);
-        maxDepth = std::max(maxDepth, depth);
-      }
+        // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1, ignoring all
+        // inf values
+        float minDepth = rkcommon::math::inf;
+        float maxDepth = rkcommon::math::neg_inf;
+        for (auto depth : depthCopy) {
+          if (isinf(depth))
+            continue;
+          minDepth = std::min(minDepth, depth);
+          maxDepth = std::max(maxDepth, depth);
+        }
 
-      const float rcpDepthRange = 1.f / (maxDepth - minDepth);
+        const float rcpDepthRange = 1.f / (maxDepth - minDepth);
 
-      // Inverted depth (1.0 -> 0.0) may be more meaningful
-      if (showDepthInvert)
-        std::transform(depthCopy.begin(),
-            depthCopy.end(),
-            depthCopy.begin(),
-            [&](float depth) {
-            return (1.f - (depth - minDepth) * rcpDepthRange);
-            });
-      else
+        // Inverted depth (1.0 -> 0.0) may be more meaningful
+        if (showDepthInvert)
+          std::transform(depthCopy.begin(),
+              depthCopy.end(),
+              depthCopy.begin(),
+              [&](float depth) {
+                return (1.f - (depth - minDepth) * rcpDepthRange);
+              });
+        else
         std::transform(
             depthCopy.begin(),
-            depthCopy.end(),
-            depthCopy.begin(),
-            [&](float depth) { return (depth - minDepth) * rcpDepthRange; });
+              depthCopy.end(),
+              depthCopy.begin(),
+              [&](float depth) { return (depth - minDepth) * rcpDepthRange; });
+      }
+
+      glBindTexture(GL_TEXTURE_2D, framebufferTexture);
+      glTexImage2D(GL_TEXTURE_2D,
+          0,
+          showAlbedo ? gl_rgb_format : gl_rgba_format,
+          fbSize.x,
+          fbSize.y,
+          0,
+          showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
+          glType,
+          showDepth ? pDepthCopy : mappedFB);
+
+      frame->unmapFrame(mappedFB);
     }
-
-    glBindTexture(GL_TEXTURE_2D, framebufferTexture);
-    glTexImage2D(GL_TEXTURE_2D,
-        0,
-        showAlbedo ? gl_rgb_format : gl_rgba_format,
-        fbSize.x,
-        fbSize.y,
-        0,
-        showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
-        glType,
-        showDepth ? pDepthCopy : mappedFB);
-
-    frame->unmapFrame(mappedFB);
 
     // Start new frame and reset frame timing interval start
     displayStart = std::chrono::high_resolution_clock::now();
@@ -985,10 +975,6 @@ void MainWindow::popLookMark()
   CameraState cs = g_cameraStack.back();
   g_cameraStack.pop_back();
   arcballCamera->setState(cs);
-  if (cancelFrameOnInteraction) {
-    frame->cancelFrame();
-    waitOnOSPRayFrame();
-  }
   updateCamera();
 }
 
@@ -1032,7 +1018,7 @@ void MainWindow::buildMainMenuFile()
     ImGui::Separator();
     if (ImGui::MenuItem("Clear Scene...", nullptr)) {
       frame->cancelFrame();
-      frame->waitOnFrame();
+      frame->waitOnFrame(); // must wait before removing world
       frame->remove("world");
       // Recreate MaterialRegistry, clearing old registry and all materials
       baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
@@ -1300,7 +1286,6 @@ void MainWindow::buildMainMenuEdit()
 
     ImGui::Separator();
     ImGui::Text("interaction");
-    ImGui::Checkbox("cancel frame on interaction", &cancelFrameOnInteraction);
     ImGui::Checkbox("auto rotate", &autorotate);
     if (autorotate) {
       ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
@@ -1464,10 +1449,6 @@ void MainWindow::buildWindowSnapshots()
     if (ImGui::Button(std::to_string(s).c_str())) {
         CameraState cs = g_cameraStack.at(s);
         arcballCamera->setState(cs);
-        if (cancelFrameOnInteraction) {
-          frame->cancelFrame();
-          waitOnOSPRayFrame();
-        }
         updateCamera();
     }
   }

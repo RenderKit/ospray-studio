@@ -36,10 +36,10 @@ namespace ospray {
 
   void Frame::startNewFrame()
   {
-    auto &fb       = childAs<FrameBuffer>("frameBuffer");
-    auto &camera   = childAs<Camera>("camera");
+    auto &fb = childAs<FrameBuffer>("frameBuffer");
+    auto &camera = childAs<Camera>("camera");
     auto &renderer = childAs<Renderer>("renderer");
-    auto &world    = childAs<World>("world");
+    auto &world = childAs<World>("world");
 
     refreshFrameOperations();
 
@@ -54,6 +54,7 @@ namespace ospray {
       auto future = fb.handle().renderFrame(
           renderer.handle(), camera.handle(), world.handle());
       setHandle(future);
+      canceled = false;
 
       if (immediatelyWait)
         waitOnFrame();
@@ -92,6 +93,8 @@ namespace ospray {
     auto future = handle();
     if (future)
       future.cancel();
+
+    canceled = true;
   }
 
   bool Frame::accumLimitReached()
