@@ -12,4 +12,5 @@ add_library(tiny_gltf INTERFACE)
 target_include_directories(tiny_gltf
 INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../json>
 )
