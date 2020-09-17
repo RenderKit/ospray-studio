@@ -1477,6 +1477,12 @@ void MainWindow::buildMainMenuView()
       showLightEditor = true;
     if (ImGui::MenuItem("Camera...", "", nullptr))
       showCameraEditor = true;
+    if (ImGui::MenuItem("Center camera", "", nullptr)) {
+      arcballCamera.reset(
+          new ArcballCamera(frame->child("world").bounds(), windowSize));
+      updateCamera();
+    }
+
     ImGui::Separator();
     if (ImGui::MenuItem("Geometry...", "", nullptr))
       showGeometryViewer = true;
