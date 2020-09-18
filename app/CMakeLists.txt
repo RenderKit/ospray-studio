@@ -24,6 +24,7 @@ add_library(ospray_ui STATIC
   imgui_impl_opengl2.cpp
   widgets/TransferFunctionWidget.cpp
   widgets/FileBrowserWidget.cpp
+  widgets/AnimationWidget.cpp
 )
 
 target_link_libraries(ospray_ui

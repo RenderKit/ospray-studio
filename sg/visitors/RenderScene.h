@@ -50,6 +50,7 @@ namespace ospray {
     std::stack<affine3f> xfms;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
+    float currentTimestep;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -66,6 +67,8 @@ namespace ospray {
     switch (node.type()) {
     case NodeType::WORLD:
       world = node.valueAs<cpp::World>();
+      if(node.hasChild("time"))
+        currentTimestep = node.child("time").valueAs<float>();
       break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
@@ -85,10 +88,21 @@ namespace ospray {
     case NodeType::TRANSFER_FUNCTION:
       tfns.push(node.valueAs<cpp::TransferFunction>());
       break;
+    case NodeType::ANIMATION:
+    {
+      auto &nc = node.children();
+      for (auto &c : nc) {
+        auto timestep = c.second->child("timestep").valueAs<float>();
+          if (timestep == currentTimestep) {
+            xfms.push(xfms.top() * c.second->valueAs<affine3f>());
+          }
+      }
+      traverseChildren = false;
+    } break;
     case NodeType::TRANSFORM:
       if (unusedGeoms == current.geometries.size())
         xfms.push(xfms.top() * node.valueAs<affine3f>());
-      else {
+        else if (!node.hasChild("timestep")) {
         createInstanceFromGroup();
         xfms.push(xfms.top() * node.valueAs<affine3f>());
       }

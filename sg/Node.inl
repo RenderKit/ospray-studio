@@ -135,6 +135,46 @@ namespace ospray {
   inline void Node::traverse(VISITOR_T &&visitor, TraversalContext &ctx)
   {
     static_assert(is_valid_visitor<VISITOR_T>::value,
+        "VISITOR_T must be a child class of sg::Visitor or"
+        " implement 'bool visit(Node &node, TraversalContext &ctx)'"
+        "!");
+
+    bool traverseChildren = visitor(*this, ctx);
+
+    ctx.level++;
+
+    if (traverseChildren) {
+      for (auto &child : properties.children)
+        child.second->traverse(visitor, ctx);
+    }
+
+    ctx.level--;
+
+    visitor.postChildren(*this, ctx);
+  }
+
+  template <typename VISITOR_T>
+  inline void Node::traverseAnimation(TraversalContext &ctx, VISITOR_T &&visitor)
+  {
+    traverseAnimation(std::forward<VISITOR_T>(visitor), ctx);
+  }
+
+
+  template <typename VISITOR_T, typename... Args>
+  inline void Node::traverseAnimation(NodePtr animationWorld, Args &&... args)
+  {
+    TraversalContext ctx;
+
+    ctx.animationWorld = animationWorld;
+
+    traverseAnimation(ctx, VISITOR_T(std::forward<Args>(args)...));
+
+  }
+
+  template <typename VISITOR_T>
+  inline void Node::traverseAnimation(VISITOR_T &&visitor, TraversalContext &ctx)
+  {
+    static_assert(is_valid_visitor<VISITOR_T>::value,
                   "VISITOR_T must be a child class of sg::Visitor or"
                   " implement 'bool visit(Node &node, TraversalContext &ctx)'"
                   "!");
@@ -145,7 +185,7 @@ namespace ospray {
 
     if (traverseChildren) {
       for (auto &child : properties.children)
-        child.second->traverse(visitor, ctx);
+        child.second->traverseAnimation(visitor, ctx);
     }
 
     ctx.level--;

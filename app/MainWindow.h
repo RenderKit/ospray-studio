@@ -16,6 +16,8 @@
 // Plugin
 #include "PluginManager.h"
 
+#include "widgets/AnimationWidget.h"
+
 using namespace rkcommon::math;
 using namespace ospray;
 using rkcommon::make_unique;
@@ -110,7 +112,7 @@ class MainWindow
   void removeLight();
   void addPTMaterials();
 
-  void importFiles(std::shared_ptr<sg::Node> &world);
+  void importFiles(std::shared_ptr<sg::Node> &world, std::vector<float> &timesteps);
   void saveCurrentFrame();
   void pickCenterOfRotation(float x, float y);
   void pushLookMark();
@@ -202,4 +204,8 @@ class MainWindow
   // format used by glTexImage2D, as determined at context creation time
   GLenum gl_rgb_format;
   GLenum gl_rgba_format;
+
+  void loadSceneWithAnimations(sg::NodePtr world, std::vector<float> &timesteps);
+
+  std::vector<std::shared_ptr<AnimationWidget>> allAnimationWidgets;
 };

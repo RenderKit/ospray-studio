@@ -173,6 +173,14 @@ namespace sg {
     template <typename VISITOR_T, typename... Args>
     void traverse(Args &&... args);
 
+    // //! Helper overload to traverse with a default constructed TravesalContext
+    template <typename VISITOR_T>
+    void traverseAnimation(TraversalContext &ctx, VISITOR_T &&visitor);
+
+    template <typename VISITOR_T, typename... Args>
+    void traverseAnimation(
+        NodePtr animationWorld, Args &&... args);
+
     void commit();
     void render();
     box3f bounds();
@@ -223,6 +231,10 @@ namespace sg {
     //! Use a custom provided node visitor to visit each node
     template <typename VISITOR_T>
     void traverse(VISITOR_T &&visitor, TraversalContext &ctx);
+
+    //! Use a custom provided node visitor to visit each node
+    template <typename VISITOR_T>
+    void traverseAnimation(VISITOR_T &&visitor, TraversalContext &ctx);
 
     struct
     {

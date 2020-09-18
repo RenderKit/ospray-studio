@@ -21,6 +21,8 @@ NodeType Importer::type() const
 }
 
 void Importer::importScene() {}
+void Importer::importScene(std::vector<float> &timesteps)
+{}
 
 } // namespace sg
 } // namespace ospray

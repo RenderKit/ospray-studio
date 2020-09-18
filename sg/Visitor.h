@@ -4,17 +4,22 @@
 #pragma once
 
 #include "rkcommon/traits/rktraits.h"
+#include <vector>
+#include <memory>
 
 namespace ospray {
   namespace sg {
 
   struct Node;
 
+  using NodePtr = std::shared_ptr<Node>;
+
   // Data to track during traversal ///////////////////////////////////////////
 
   struct TraversalContext
   {
     int level{0};
+    NodePtr animationWorld;
   };
 
   // Base node visitor interface //////////////////////////////////////////////

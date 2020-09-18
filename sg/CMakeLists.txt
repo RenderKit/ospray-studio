@@ -102,6 +102,7 @@ add_library(ospray_sg SHARED
   renderer/materials/Velvet.cpp
 
   scene/World.cpp
+  scene/Animation.cpp
 
   scene/geometry/Geometry.cpp
   scene/geometry/Boxes.cpp

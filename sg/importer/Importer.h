@@ -19,6 +19,7 @@ struct OSPSG_INTERFACE Importer : public Node
   NodeType type() const override;
 
   virtual void importScene();
+  virtual void importScene(std::vector<float> &timesteps);
 
   inline void setFileName(rkcommon::FileName _fileName)
   {

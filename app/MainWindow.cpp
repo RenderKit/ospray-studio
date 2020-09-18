@@ -881,8 +881,13 @@ void MainWindow::refreshScene(bool resetCam)
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
 
+  std::vector<float> timesteps;
+
   if (!filesToImport.empty()) {
-    importFiles(world);
+    importFiles(world, timesteps);
+
+    if(timesteps.size() != 0)
+      loadSceneWithAnimations(world, timesteps);
   } else {
     if (scene != "empty") {
       auto &gen = world->createChildAs<sg::Generator>("generator",
@@ -890,7 +895,7 @@ void MainWindow::refreshScene(bool resetCam)
       gen.generateData();
     }
   }
-
+  
   world->render();
 
   frame->add(world);
@@ -927,14 +932,24 @@ void MainWindow::parseCommandLine()
   }
 }
 
+void MainWindow::loadSceneWithAnimations(sg::NodePtr world, std::vector<float> &timesteps) {
+  allAnimationWidgets.push_back(
+      std::shared_ptr<AnimationWidget>(new AnimationWidget(
+          this->getFrame(), world, timesteps, "Animation Controls")));
+
+  registerImGuiCallback([&]() {
+    for (auto i = 0; i < allAnimationWidgets.size(); ++i)
+      allAnimationWidgets[i]->addAnimationUI();
+  });
+}
+
 // Importer for all known file types (geometry and models)
-void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
+void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float> &timesteps)
 {
   for (auto file : filesToImport) {
     try {
       rkcommon::FileName fileName(file);
       std::string nodeName = fileName.base() + "_importer";
-      std::cout << "Importing: " << file << std::endl;
 
       auto importer = sg::getImporter(file);
       if (importer != "") {
@@ -944,6 +959,10 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
         // importer will use what it needs.
         imp.setFileName(fileName);
         imp.setMaterialRegistry(baseMaterialRegistry);
+
+        if (importer == "importer_gltf")
+          imp.importScene(timesteps);
+        else
         imp.importScene();
 
         if (baseMaterialRegistry->matImportsList.size())
@@ -964,6 +983,7 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
     // TODO Important: remove empty importer nodes as well
   }
 }
+
 
 void MainWindow::saveCurrentFrame()
 {
@@ -1432,6 +1452,7 @@ void MainWindow::buildWindowKeyframes()
   }
 
   ImGui::SetNextItemWidth(25 * ImGui::GetFontSize());
+
   if (ImGui::ListBoxHeader("##")) {
     if (ImGui::Button(
             "+")) {  // add current camera state after the selected one
@@ -1479,6 +1500,7 @@ void MainWindow::buildWindowKeyframes()
     ImGui::ListBoxFooter();
     ImGui::End();
   }
+
 }
 
 void MainWindow::buildWindowSnapshots()

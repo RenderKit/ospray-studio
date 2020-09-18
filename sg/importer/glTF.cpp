@@ -11,6 +11,8 @@
 #include "glTF/buffer_view.h"
 #include "glTF/gltf_types.h"
 
+#include "../visitors/PrintNodes.h"
+
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
@@ -28,6 +30,8 @@ namespace ospray {
     ~glTFImporter() override = default;
 
     void importScene() override;
+
+    void importScene(std::vector<float> &timesteps) override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(glTFImporter, importer_gltf);
@@ -54,36 +58,49 @@ namespace ospray {
     void loadAssetInfo(NodePtr sgNode);
     void addReferenceLinkInfo(const int nid, NodePtr sgNode);
 
+    // load animations AFTER loading scene nodes and their transforms
+    void loadChannels();
+
     std::vector<NodePtr> ospMeshes;
 
+    bool hasAnimations{false};
+
+    std::map<float, int> g_allTimesteps;
+
    private:
+    std::map<int, NodePtr> animatedNodes;
+
     tinygltf::Model model;
 
     NodePtr rootNode;
 
     std::vector<NodePtr> ospMaterials;
 
-    size_t baseMaterialOffset = 0;  // set in createMaterials()
+    size_t baseMaterialOffset = 0; // set in createMaterials()
+
+    void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
+
+    void loadKeyframeOutput(int accessorID, std::vector<affine3f> &kfOutput);
 
     void visitNode(NodePtr sgNode,
-                   const int nid,
-                   const int level);  // XXX level is just for debug
+        const int nid,
+        const int level); // XXX level is just for debug
 
     affine3f nodeTransform(const tinygltf::Node &node);
 
-    NodePtr createOSPMesh(const std::string &primBaseName,
-                          tinygltf::Primitive &primitive);
+    NodePtr createOSPMesh(
+        const std::string &primBaseName, tinygltf::Primitive &primitive);
 
     NodePtr createOSPMaterial(const tinygltf::Material &material);
 
     NodePtr createOSPTexture(const std::string &texParam,
-                             const tinygltf::Texture &texture,
-                             const bool preferLinear);
+        const tinygltf::Texture &texture,
+        const bool preferLinear);
 
     void setOSPTexture(NodePtr ospMaterial,
-                       const std::string &texParam,
-                       int texIndex,
-                       bool preferLinear = true);
+        const std::string &texParam,
+        int texIndex,
+        bool preferLinear = true);
   };
 
   // Helper functions /////////////////////////////////////////////////////////
@@ -166,6 +183,7 @@ namespace ospray {
     INFO << "... " << model.cameras.size() << " cameras\n";
     INFO << "... " << model.scenes.size() << " scenes\n";
     INFO << "... " << model.lights.size() << " lights\n";
+    INFO << "... " << model.animations.size() << " animations\n";
 
     return ret;
   }
@@ -243,17 +261,70 @@ namespace ospray {
 
       // XXX Is there a better way to represent this "group" than a transform
       // node?
-      auto ospModel = createNode(
-          modelName + "_model", "Transform", affine3f{one});  // Model "group"
-      // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
+      // auto ospModel = createNode(
+      //     modelName + "_model", "Transform", affine3f{one});  // Model "group"
+      // // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
+
+      NodePtr ospMesh;
 
       for (auto &prim : m.primitives) {  // -> TriangleMesh
         // Create per 'primitive' geometry
-        auto ospMesh = createOSPMesh(modelName, prim);
-        ospModel->add(ospMesh);
+        // auto ospMesh = createOSPMesh(modelName, prim);
+        // ospModel->add(ospMesh);
+        ospMesh = createOSPMesh(modelName, prim);
       }
 
-      ospMeshes.push_back(ospModel);
+      // ospMeshes.push_back(ospModel);
+      ospMeshes.push_back(ospMesh);
+    }
+  }
+
+  // create animation channels and load sampler information
+  // link nodes with the channels that animate them in animatedNodes map
+
+  void GLTFData::loadChannels()
+  {
+    auto numAnimations = model.animations.size();
+
+    std::vector<std::vector<NodePtr>> samplerNodes(numAnimations);
+
+    int currentAnim = 0;
+    for (auto &a : model.animations) {
+      samplerNodes[currentAnim].resize(a.samplers.size());
+      int samplerID = 0;
+
+      for (auto &s : a.samplers) {
+        auto sIn = s.input;
+        auto sOut = s.output;
+        auto interpolation = s.interpolation;
+
+        auto sampler = createNode("sampler");
+        sampler->createChild("inputAccessor", "int", sIn);
+        sampler->createChild("outputAccessor", "int", sOut);
+        sampler->createChild("interpolation", "string", interpolation);
+
+        samplerNodes[currentAnim][samplerID] = sampler;
+
+        samplerID++;
+      }
+
+      int channelID = 0;
+      for (auto &c : a.channels) {
+        auto targetNode = c.target_node;
+        auto targetPath = c.target_path;
+        auto samplerID = c.sampler;
+
+        auto channel = createNode("channel_" + std::to_string(channelID) + "_"
+            + std::to_string(currentAnim));
+        channel->createChild("targetNode", "int", targetNode);
+        channel->createChild("targetPath", "string", targetPath);
+        channel->add(samplerNodes[currentAnim][samplerID]);
+
+        channelID++;
+
+        animatedNodes.insert(std::make_pair(targetNode, channel));
+      }
+      currentAnim++;
     }
   }
 
@@ -263,6 +334,9 @@ namespace ospray {
 
     if (model.defaultScene == -1)
       model.defaultScene = 0;
+
+    // create animation channels for each animation
+    loadChannels();
 
     // Process all nodes in default scene
     for (const auto &nid : model.scenes[model.defaultScene].nodes) {
@@ -281,29 +355,68 @@ namespace ospray {
     // DEBUG << pad("", '.', 3 * level) << nid << ":" << n.name
     //     << " (children:" << n.children.size() << ")\n";
 
-    // Apply any transform in this node -> xfm
-    const auto nodeXfm = nodeTransform(n);
+    // for each scene node check if it is animated (if it's node ID exist in animatedNodes map)
+    // and load animation transforms
+    std::vector<float> kfInput;
+    std::vector<affine3f> kfOutput;
+    if (animatedNodes.find(nid) != animatedNodes.end()) {
+      auto &animChannel = animatedNodes[nid];
+      auto &sampler = animChannel->child("sampler");
+      int inputAcc = sampler.child("inputAccessor").valueAs<int>();
 
-    // Create xfm
-      static auto nNode = 0;
-      auto nodeName = n.name + "_" + pad(std::to_string(nNode++));
-      // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
-      // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
-      auto newXfm = createNode(
-          nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
+      loadKeyframeInput(inputAcc, kfInput);
 
-      // check if node has BIT_reference_link extension
-      // currently adding reference Links only for Nodes
-      if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
-        addReferenceLinkInfo(nid, newXfm);
-      }
-      sgNode->add(newXfm);
-      sgNode = newXfm;
+      auto outputAcc =
+          sampler.child("outputAccessor").valueAs<int>();
+
+      loadKeyframeOutput(outputAcc, kfOutput);
+    }
+
+      // Apply any transform in this node -> xfm
+      const auto nodeXfm = nodeTransform(n);
+      // const auto needXfm = (nodeXfm != affine3f{one});
+
+      // Create xfm
+      // if (needXfm) {
+        static auto nNode = 0;
+        auto nodeName = n.name + "_" + pad(std::to_string(nNode++));
+        // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
+        // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
+        auto newXfm = createNode(
+            nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
+        sgNode->add(newXfm);
+        sgNode = newXfm;
+    // } else if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
+    //     addReferenceLinkInfo(nid, sgNode);
+    // }
+    if (n.extensions.find("BIT_reference_link") != n.extensions.end())
+        addReferenceLinkInfo(nid, sgNode);
 
     if (n.mesh != -1) {
       // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
       sgNode->add(ospMeshes[n.mesh]);
     }
+
+    static int numTimestep = 1;
+
+    if (kfInput.size() != 0 || kfOutput.size() != 0) {
+      static auto nAnimation = 0;
+      auto &animParent = sgNode->createChild("animationNode_" + std::to_string(nAnimation), "animation");
+      for (int i = 0; i < kfInput.size(); ++i) {
+        auto newXfm = createNode(
+            "anim_" + std::to_string(nAnimation) + "_" + std::to_string(i), "Transform", kfOutput[i]);
+        newXfm->createChild("timestep", "float", kfInput[i]);
+        animParent.add(newXfm);
+        g_allTimesteps.insert(std::make_pair(kfInput[i], numTimestep));
+        numTimestep++;
+      }
+
+      hasAnimations = true;
+      nAnimation++;
+    }
+
+    kfInput.clear();
+    kfOutput.clear();
 
     if (n.camera != -1) {
       WARN << "unsupported node-type: camera\n";
@@ -317,6 +430,59 @@ namespace ospray {
     for (const auto &cid : n.children) {
       visitNode(sgNode, cid, level + 1);
     }
+
+  }
+
+  void GLTFData::loadKeyframeInput(int accessorID, std::vector<float> &kfInput)
+  {
+    auto &acc = model.accessors[accessorID];
+
+    if (acc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+      Accessor<float> input_accessor(acc, model);
+
+      kfInput.resize(input_accessor.size());
+      for (size_t i = 0; i < input_accessor.size(); ++i)
+        kfInput[i] = input_accessor[i];
+    }
+
+  }
+
+  void GLTFData::loadKeyframeOutput(int accessorID, std::vector<affine3f> &xfms)
+  {
+    auto &acc = model.accessors[accessorID];
+
+    if (acc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+      if (acc.type == TINYGLTF_TYPE_VEC4) {
+        Accessor<vec4f> rt_accessor(acc, model);
+        std::vector<vec4f> rt(rt_accessor.size());
+
+        for (size_t i = 0; i < rt_accessor.size(); ++i)
+          rt[i] = rt_accessor[i];
+
+        for (auto rt_it = rt.begin(); rt_it != rt.end(); ++rt_it) {
+          affine3f xfm{one};
+          auto &r = *rt_it;
+          xfm = affine3f(linear3f(quaternionf(r[3], r[0], r[1], r[2]))) * xfm;
+          xfms.push_back(xfm);
+        }
+
+      } else if (acc.type == TINYGLTF_TYPE_VEC3) {
+
+        Accessor<vec3f> ts_accessor(acc, model);
+        std::vector<vec3f> ts(ts_accessor.size());
+
+        for (size_t i = 0; i < ts_accessor.size(); ++i)
+          ts[i] = ts_accessor[i];
+
+        for (auto ts_it = ts.begin(); ts_it != ts.end(); ++ts_it) {
+          affine3f xfm{one};
+          auto &t = *ts_it;
+          xfm = affine3f::translate(vec3f(t[0], t[1], t[2])) * xfm;
+          xfms.push_back(xfm);
+        }
+      }
+    }
+
   }
 
   affine3f GLTFData::nodeTransform(const tinygltf::Node &n)
@@ -708,8 +874,39 @@ namespace ospray {
     gltf.createGeometries();
     gltf.buildScene();
 
-    // load asset extensions as separate SG Asset-Info-node ?
+    // load asset extensions as separate SG Asset-Info-nod
     gltf.loadAssetInfo(rootNode);
+
+    // Finally, add node hierarchy to importer parent
+    add(rootNode);
+
+    INFO << "finished import!\n";
+  }
+
+  void glTFImporter::importScene(
+      std::vector<float> &timesteps)
+  {
+      std::string baseName = fileName.name() + "_rootXfm";
+    auto rootNode = createNode(baseName, "Transform", affine3f{one});
+
+    GLTFData gltf(rootNode, fileName);
+
+    if (!gltf.parseAsset())
+      return;
+
+    gltf.createMaterials(*materialRegistry);
+    gltf.createGeometries();
+    gltf.buildScene();
+
+    // load asset extensions as separate SG Asset-Info-nod
+    gltf.loadAssetInfo(rootNode);
+    
+    // the following states that the model has nodes that are animated
+    if (gltf.hasAnimations){
+      for (auto iter = gltf.g_allTimesteps.begin(); iter != gltf.g_allTimesteps.end(); ++iter){
+        timesteps.push_back(iter->first);
+      }
+    }
 
     // Finally, add node hierarchy to importer parent
     add(rootNode);
