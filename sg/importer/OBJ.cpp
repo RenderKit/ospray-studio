@@ -298,6 +298,9 @@ namespace ospray {
     auto objData = loadFromFile(fileName);
 
     auto materialNodes = createMaterials(objData, fileName);
+    // If the model provided no materials, create a default
+    if (materialNodes.empty())
+      materialNodes.emplace_back(createNode("default", "obj"));
 
     size_t baseMaterialOffset = materialRegistry->children().size();
 
