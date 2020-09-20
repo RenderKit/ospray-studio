@@ -1034,6 +1034,10 @@ void MainWindow::buildMainMenuFile()
       frame->cancelFrame();
       frame->waitOnFrame();
       frame->remove("world");
+      // Recreate MaterialRegistry, clearing old registry and all materials
+      baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
+          "baseMaterialRegistry", "materialRegistry");
+
       scene = "empty";
       refreshScene(true);
     }
