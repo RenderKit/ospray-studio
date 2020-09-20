@@ -1044,8 +1044,6 @@ void MainWindow::buildMainMenuFile()
   if (showImportFileBrowser) {
     if (fileBrowser(filesToImport, "Select " + type + " Model(s) - ", true)) {
       showImportFileBrowser = false;
-      // Once files are selected, refresh scene to import them.
-      scene = "import " + type;
       refreshScene(true);
     }
   }
