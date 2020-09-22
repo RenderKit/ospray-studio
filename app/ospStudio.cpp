@@ -45,11 +45,13 @@ int main(int argc, const char *argv[])
   for (auto &p : pluginsToLoad)
     pluginManager.loadPlugin(p);
 
+  // Initialize OSPRay
+  initializeOSPRay(argc, argv);
+
+  // Check for module denoiser support after iniaitlizing OSPRay
   bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
   std::cout << "OpenImageDenoise is" << (denoiser ? " " : "not ") << "available"
             << std::endl;
-
-  initializeOSPRay(argc, argv);
 
   // Set paramters common to all modes
   // doing so after initializeOSPRay allows OSPRay to remove its cmdline params.
