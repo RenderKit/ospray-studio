@@ -112,6 +112,8 @@ double g_camMoveA = 0.0;
 double g_camMoveE = 0.0;
 double g_camMoveR = 0.0;
 
+float lockAspectRatio = 0.0;
+
 std::string quatToString(quaternionf &q)
 {
   std::stringstream ss;
@@ -444,7 +446,17 @@ void MainWindow::mainLoop()
 void MainWindow::reshape(const vec2i &newWindowSize)
 {
   windowSize = newWindowSize;
-  frame->child("windowSize") = windowSize;
+  vec2i fSize = windowSize;
+  if (lockAspectRatio) {
+    //Tell OSPRay to render the largest subset of the window that satisies the aspect ratio
+    float aspectCorrection = lockAspectRatio * static_cast<float>(newWindowSize.y) / static_cast<float>(newWindowSize.x);
+    if (aspectCorrection > 1.f) {
+      fSize.y /= aspectCorrection;
+    } else {
+      fSize.x *= aspectCorrection;
+    }
+  }
+  frame->child("windowSize") = fSize;
   frame->currentAccum = 0;
 
   // reset OpenGL viewport and orthographic projection
@@ -456,10 +468,6 @@ void MainWindow::reshape(const vec2i &newWindowSize)
 
   // update camera
   arcballCamera->updateWindowSize(windowSize);
-
-  auto &camera     = frame->child("camera");
-  if (camera.hasChild("aspect"))
-    camera["aspect"] = windowSize.x / float(windowSize.y);
 }
 
 void MainWindow::updateCamera()
@@ -735,19 +743,34 @@ void MainWindow::display()
   glClear(GL_COLOR_BUFFER_BIT);
 
   // render textured quad with OSPRay frame buffer contents
+  vec2f border(0.f);
+  if (lockAspectRatio)
+  {
+    //when rendered aspect ratio doesn't match window, compute texture coordinates to center the display
+    float aspectCorrection = lockAspectRatio * static_cast<float>(windowSize.y) / static_cast<float>(windowSize.x);
+    if (aspectCorrection > 1.f) {
+      border.y = 1.f - aspectCorrection;
+    } else {
+      border.x = 1.f - 1.f / aspectCorrection;
+    }
+  }
+  border *= 0.5f;
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
   glBegin(GL_QUADS);
 
-  glTexCoord2f(0.f, 0.f);
-  glVertex2f(0.f, 0.f);
+  glTexCoord2f(border.x, border.y);
+  glVertex2f(0, 0);
 
-  glTexCoord2f(0.f, 1.f);
-  glVertex2f(0.f, windowSize.y);
+  glTexCoord2f(border.x, 1.f - border.y);
+  glVertex2f(0, windowSize.y);
 
-  glTexCoord2f(1.f, 1.f);
+  glTexCoord2f(1.f - border.x, 1.f - border.y);
   glVertex2f(windowSize.x, windowSize.y);
 
-  glTexCoord2f(1.f, 0.f);
-  glVertex2f(windowSize.x, 0.f);
+  glTexCoord2f(1.f - border.x, border.y);
+  glVertex2f(windowSize.x, 0);
 
   glEnd();
 
@@ -1241,6 +1264,24 @@ void MainWindow::buildMainMenuEdit()
         frame->child("scaleNav") = scale;
       }
 
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Aspect Control")) {
+      const float origAspect = lockAspectRatio;
+      if (ImGui::MenuItem("Lock"))
+      {
+        lockAspectRatio = static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
+      }
+      if (ImGui::MenuItem("Unlock"))
+      {
+        lockAspectRatio = 0.f;
+      }
+      ImGui::InputFloat("Set", &lockAspectRatio);
+      lockAspectRatio = std::max(lockAspectRatio, 0.f);
+      if (origAspect != lockAspectRatio) {
+        reshape(windowSize);
+      }
       ImGui::EndMenu();
     }
 
