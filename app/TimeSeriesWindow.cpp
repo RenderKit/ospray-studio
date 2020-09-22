@@ -9,6 +9,8 @@
 // rkcommon
 #include "rkcommon/tasking/parallel_for.h"
 
+#include <chrono>
+
 #include "../sg/scene/volume/VDBVolumeTimeStep.h"
 #include "../sg/scene/volume/VolumeTimeStep.h"
 
