@@ -87,6 +87,9 @@ namespace ospray {
       return;
 
     hasDenoiser = enabled;
+
+    // Clear accum if changing denoiser
+    handle().clear();
   }
 
   void FrameBuffer::updateToneMapper(bool enabled)
