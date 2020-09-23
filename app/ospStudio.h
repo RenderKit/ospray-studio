@@ -13,6 +13,7 @@
 // ospcommon
 #include "rkcommon/common.h"
 
+#include "version.h"
 #include "PluginManager.h"
 
 using namespace ospray;
@@ -56,21 +57,25 @@ void start_GUI_mode(StudioCommon &studioCommon);
 void start_Batch_mode(StudioCommon &studioCommon);
 void start_TimeSeries_mode(StudioCommon &studioCommon);
 
-inline void initializeOSPRay(
-    int &argc, const char **argv, bool errorsFatal = true)
+inline OSPError initializeOSPRay(
+    int &argc, const char **argv)
 {
   // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
   // e.g. "--osp:debug"
   OSPError initError = ospInit(&argc, argv);
 
-  if (initError != OSP_NO_ERROR)
-    throw std::runtime_error("OSPRay not initialized correctly!");
+  if (initError != OSP_NO_ERROR) {
+    std::cerr << "OSPRay not initialized correctly!" << std::endl;
+    return initError;
+  }
 
   OSPDevice device = ospGetCurrentDevice();
-  if (!device)
-    throw std::runtime_error("OSPRay device could not be fetched!");
+  if (!device) {
+    std::cerr << "OSPRay device could not be fetched!" << std::endl;
+    return OSP_UNKNOWN_ERROR;
+  }
 
-  // set an error callback to catch any OSPRay errors and exit the application
+  // set an error callback to catch any OSPRay errors
   ospDeviceSetErrorCallback(
       device,
       [](void *, OSPError, const char *errorDetails) {
@@ -89,4 +94,6 @@ inline void initializeOSPRay(
 
   ospDeviceCommit(device);
   ospDeviceRelease(device);
+
+  return OSP_NO_ERROR;
 }

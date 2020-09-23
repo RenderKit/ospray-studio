@@ -10,7 +10,41 @@ static std::vector<std::string> pluginsToLoad;
 
 int main(int argc, const char *argv[])
 {
-  std::cout << "OSPRay Studio\n";
+  std::cout << "OSPRay Studio" << std::endl;
+
+  // Just look for either version or verify_install arguments, initializeOSPRay
+  // will remove OSPRay specific args, parse fully down further
+  bool version = false;
+  bool verify_install = false;
+  for (int i = 1; i < argc; i++) {
+    const auto arg = std::string(argv[i]);
+    if (arg == "--version") {
+      removeArgs(argc, argv, i, 1);
+      version = true;
+    }
+    else if (arg == "--verify_install") {
+      verify_install = true;
+      removeArgs(argc, argv, i, 1);
+    }
+  }
+
+  if (version) {
+    std::cout << " OSPRay Studio version: " << OSPRAY_STUDIO_VERSION
+              << std::endl;
+    return 0;
+  }
+
+  // Initialize OSPRay
+  OSPError error = initializeOSPRay(argc, argv);
+
+  // Verify install then exit
+  if (verify_install) {
+    ospShutdown();
+    auto fail = error != OSP_NO_ERROR;
+    std::cout << " OSPRay Studio install " << (fail ? "failed" : "verified")
+              << std::endl;
+    return fail;
+  }
 
   // Parse first argument as StudioMode
   // (GUI is the default if no mode is given)
@@ -44,9 +78,6 @@ int main(int argc, const char *argv[])
   PluginManager pluginManager;
   for (auto &p : pluginsToLoad)
     pluginManager.loadPlugin(p);
-
-  // Initialize OSPRay
-  initializeOSPRay(argc, argv);
 
   // Check for module denoiser support after iniaitlizing OSPRay
   bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;

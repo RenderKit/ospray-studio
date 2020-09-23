@@ -19,6 +19,7 @@
 #include "ospray/ospray_cpp.h"
 #include "ospray/ospray_cpp/ext/rkcommon.h"
 // ospray_sg
+#include "version.h"
 #include "NodeType.h"
 
 #ifndef OSPSG_INTERFACE

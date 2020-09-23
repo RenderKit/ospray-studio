@@ -179,6 +179,19 @@ if (OpenVDB_FOUND)
   target_link_libraries(ospray_sg PUBLIC OpenVDB::openvdb)
 endif()
 
+## Version header ##
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/version.h
+  @ONLY
+)
+
+target_include_directories(ospray_sg
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+)
+
 ## Build Tests ##
 
 add_subdirectory(tests)
