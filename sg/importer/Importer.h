@@ -36,12 +36,7 @@ struct OSPSG_INTERFACE Importer : public Node
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
 };
 
-static const std::map<std::string, std::string> importerMap = {
-    {"obj", "importer_obj"},
-    {"gltf", "importer_gltf"},
-    {"glb", "importer_gltf"},
-    {"raw", "importer_raw"},
-    {"vdb", "importer_vdb"}};
+extern std::map<std::string, std::string> importerMap;
 
 inline std::string getImporter(rkcommon::FileName fileName)
 {
