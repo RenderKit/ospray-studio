@@ -1115,7 +1115,7 @@ void MainWindow::buildMainMenuFile()
     }
     if (ImGui::MenuItem("Dump SG to file")) {
       std::ofstream dump("studio.sg");
-      nlohmann::json j = *frame;
+      nlohmann::json j = frame->child("world");
       dump << j.dump();
     }
     ImGui::EndMenu();

@@ -76,6 +76,8 @@ namespace sg {
 
     template <typename T>
     std::shared_ptr<T> nodeAs();  // static cast (faster, but not safe!)
+    template <typename T>
+    std::shared_ptr<T> nodeAs() const;
 
     template <typename T>
     std::shared_ptr<T> tryNodeAs();  // dynamic cast (slower, but can check)

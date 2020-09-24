@@ -20,6 +20,11 @@ struct OSPSG_INTERFACE Importer : public Node
 
   virtual void importScene();
 
+  inline const rkcommon::FileName getFileName() const
+  {
+    return fileName;
+  }
+
   inline void setFileName(rkcommon::FileName _fileName)
   {
     fileName = _fileName;

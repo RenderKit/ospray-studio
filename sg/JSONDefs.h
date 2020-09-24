@@ -6,6 +6,7 @@
 #include <json.hpp>
 
 #include "Node.h"
+#include "importer/Importer.h"
 
 // This file contains definitions of `to_json` and `from_json` for custom types
 // used within Studio. These methods allow us to easily serialize and
@@ -39,9 +40,24 @@ inline void to_json(nlohmann::json &j, const Node &n)
       {"type", n.type()},
       {"subType", n.subType()},
       {"description", n.description()}};
+
+  // we only want the importer and its root transform, not the hierarchy of
+  // geometry under it
+  if (n.type() == NodeType::IMPORTER) {
+    j["filename"] = n.nodeAs<const Importer>()->getFileName().str();
+    for (auto &child : n.children()) {
+      if (child.second->type() == NodeType::TRANSFORM) {
+        j["children"] = {*child.second};
+        break;
+      }
+    }
+    return;
+  }
+
   if (n.value().valid())
     j["value"] = n.value();
-  if (n.hasChildren())
+
+  if (n.hasChildren() && n.type() != NodeType::TRANSFORM)
     j["children"] = n.children();
 }
 

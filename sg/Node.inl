@@ -23,6 +23,15 @@ namespace ospray {
   }
 
   template <typename T>
+  inline std::shared_ptr<T> Node::nodeAs() const
+  {
+    static_assert(std::is_base_of<Node, T>::value,
+                  "Can only use nodeAs<T> to cast to an ospray::sg::Node"
+                  " type! 'T' must be a child of ospray::sg::Node!");
+    return std::static_pointer_cast<T>(shared_from_this());
+  }
+
+  template <typename T>
   inline std::shared_ptr<T> Node::tryNodeAs()
   {
     static_assert(std::is_base_of<Node, T>::value,
