@@ -54,7 +54,7 @@ inline void to_json(nlohmann::json &j, const Node &n)
     return;
   }
 
-  if (n.value().valid())
+  if (n.value().valid() && n.type() == NodeType::PARAMETER)
     j["value"] = n.value();
 
   if (n.hasChildren() && n.type() != NodeType::TRANSFORM)
