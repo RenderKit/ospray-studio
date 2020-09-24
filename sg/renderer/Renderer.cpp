@@ -28,8 +28,15 @@ Renderer::Renderer(std::string type)
       rgba(0.1f));
   createChild("pixelFilter",
       "int",
-      "pixel filter used by the renderer for antialiasing",
+      "pixel filter used by the renderer for antialiasing\n"\
+      "(0=point, 1=box, 2=gauss, 3=mitchell, 4=blackman_harris)",
       (int)pixelFilter);
+
+  child("pixelSamples").setMinMax(1, 1000);
+  child("maxPathLength").setMinMax(0, 1000);
+  child("minContribution").setMinMax(0.f, 10.f);
+  child("varianceThreshold").setMinMax(0.f, 100.f);
+  child("pixelFilter").setMinMax(0, 4);
 }
 
 NodeType Renderer::type() const

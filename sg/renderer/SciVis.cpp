@@ -29,6 +29,10 @@ SciVis::SciVis() : Renderer("scivis")
       1e20f);
   createChild("volumeSamplingRate", "float", "sampling rate for volumes", 1.f);
   createChild("shadows", "bool", "whether to compute (hard) shadows", false);
+
+  child("aoSamples").setMinMax(0, 1000);
+  child("aoDistance").setMinMax(0.f, 1e20f);
+  child("volumeSamplingRate").setMinMax(0.f, 1e20f);
 }
 
 void SciVis::preCommit()

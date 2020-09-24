@@ -29,6 +29,11 @@ AORenderer::AORenderer() : Renderer("ao")
       1e20f);
   createChild("aoIntensity", "float", "ambient occlusion strength", 1.f);
   createChild("volumeSamplingRate", "float", "sampling rate for volumes", 1.f);
+
+  child("aoSamples").setMinMax(0, 1000);
+  child("aoDistance").setMinMax(0.f, 1e20f);
+  child("aoIntensity").setMinMax(0.f, 1000.f);
+  child("volumeSamplingRate").setMinMax(0.f, 1e20f);
 }
 
 void AORenderer::preCommit()

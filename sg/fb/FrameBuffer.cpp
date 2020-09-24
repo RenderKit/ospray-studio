@@ -9,18 +9,44 @@ namespace ospray {
 
   FrameBuffer::FrameBuffer()
   {
-    createChild("allowDenoising", "bool", false);
+    createChild("allowDenoising",
+        "bool",
+        "framebuffer needs to contain format and channels compatible with denoising",
+        false);
     createChild("size", "vec2i", vec2i(1024, 768));
     child("size").setReadOnly();
-    createChild("colorFormat", "string", std::string("RGBA8"));
+    createChild("colorFormat",
+        "string",
+        "framebuffer format: RBGA8 or float",
+        std::string("RGBA8"));
 
-    createChild("exposure", "float", 1.0f);
-    createChild("contrast", "float", 1.1759f);
-    createChild("shoulder", "float", 0.9746f);
-    createChild("midIn", "float", 0.18f);
-    createChild("midOut", "float", 0.18f);
-    createChild("hdrMax", "float", 6.3704f);
-    createChild("acesColor", "bool", true);
+    createChild("exposure", "float", "amount of light per unit area", 1.0f);
+    createChild("contrast",
+        "float",
+        "contrast (toe of the curve); typically is in [1-2]",
+        1.1759f);
+    createChild("shoulder",
+        "float",
+        "highlight compression (shoulder of the curve); typically is in [0.9-1]",
+        0.9746f);
+    createChild("midIn",
+        "float",
+        "mid-level anchor input; default is 18\% gray",
+        0.18f);
+    createChild("midOut",
+        "float",
+        "mid-level anchor output; default is 18\% gray",
+        0.18f);
+    createChild(
+        "hdrMax", "float", "maximum HDR input that is not clipped", 6.3704f);
+    createChild("acesColor", "bool", "apply the ACES color transforms", true);
+
+    child("exposure").setMinMax(0.f, 5.f);
+    child("contrast").setMinMax(0.f, 3.f);
+    child("shoulder").setMinMax(0.f, 2.f);
+    child("midIn").setMinMax(0.f, 1.f);
+    child("midOut").setMinMax(0.f, 1.f);
+    child("hdrMax").setMinMax(0.f, 100.f);
 
     updateHandle();
   }

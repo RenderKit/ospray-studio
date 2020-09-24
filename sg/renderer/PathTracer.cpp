@@ -35,6 +35,10 @@ PathTracer::PathTracer() : Renderer("pathtracer")
       "bool",
       "whether geometries with an emissive material illuminate the scene",
       true);
+
+  child("lightSamples").setMinMax(-1, 1000);
+  child("roulettePathLength").setMinMax(0, 1000);
+  child("maxContribution").setMinMax(0.f, 1e6f);
 }
 
 void PathTracer::preCommit()
