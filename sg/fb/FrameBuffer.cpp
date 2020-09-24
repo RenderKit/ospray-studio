@@ -100,8 +100,6 @@ namespace ospray {
   void FrameBuffer::updateImageOperations()
   {
     std::vector<cpp::ImageOperation> ops;
-    if (hasDenoiser)
-      ops.push_back(cpp::ImageOperation("denoiser"));
     if (hasToneMapper) {
       auto iop = cpp::ImageOperation("tonemapper");
       float exposure=child("exposure").valueAs<float>();
@@ -121,6 +119,8 @@ namespace ospray {
       iop.commit();
       ops.push_back(iop);
     }
+    if (hasDenoiser)
+      ops.push_back(cpp::ImageOperation("denoiser"));
     if (hasDenoiser || hasToneMapper)
       handle().setParam("imageOperation", cpp::CopiedData(ops));
     else
