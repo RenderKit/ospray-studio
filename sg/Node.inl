@@ -6,33 +6,6 @@
 #include "Data.h"
 #include <json.hpp>
 
-namespace rkcommon {
-namespace containers {
-void to_json(
-    nlohmann::json &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm);
-void from_json(
-    const nlohmann::json &j, FlatMap<std::string, ospray::sg::NodePtr> &fm);
-} // namespace containers
-
-namespace utility {
-inline void to_json(nlohmann::json &j, const Any &a)
-{
-  if (a.is<int>())
-    j = a.get<int>();
-  else if (a.is<bool>())
-    j = a.get<bool>();
-  else if (a.is<float>())
-    j = a.get<float>();
-  else if (a.is<std::string>())
-    j = a.get<std::string>();
-  else
-    j = ":^)";
-}
-
-inline void from_json(const nlohmann::json &j, Any &a) {}
-} // namespace utility
-} // namespace rkcommon
-
 namespace ospray {
   namespace sg {
 
@@ -354,40 +327,5 @@ namespace ospray {
     ospSetParam(obj, param.c_str(), OSPTypeFor<HANDLE_T>::value, &h);
   }
 
-  /////////////////////////////////////////////////////////////////////////////
-  // JSON de/serialization helpers ////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-
-  inline void to_json(nlohmann::json &j, const Node &n)
-  {
-    j = nlohmann::json{{"name", n.name()},
-        {"type", n.type()},
-        {"subType", n.subType()},
-        {"description", n.description()}};
-    if (n.value().valid())
-      j["value"] = n.value();
-    if (n.hasChildren())
-      j["children"] = n.children();
-  }
-
-  inline void from_json(const nlohmann::json &j, Node &n)
-  {
-  }
-
   }  // namespace sg
 } // namespace ospray
-
-namespace rkcommon {
-namespace containers {
-inline void to_json(
-    nlohmann::json &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm)
-{
-  for (const auto e : fm)
-    j.push_back(*(e.second));
-}
-
-inline void from_json(
-    const nlohmann::json &j, FlatMap<std::string, ospray::sg::NodePtr> &fm)
-{}
-} // namespace containers
-} // namespace rkcommon

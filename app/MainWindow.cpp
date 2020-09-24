@@ -30,7 +30,7 @@
 #include "rkcommon/utility/SaveImage.h"
 #include "rkcommon/utility/getEnvVar.h"
 // json
-#include <json.hpp>
+#include "sg/JSONDefs.h"
 
 #include <queue>
 #include <fstream>
