@@ -81,7 +81,7 @@ int main(int argc, const char *argv[])
 
   // Check for module denoiser support after iniaitlizing OSPRay
   bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
-  std::cout << "OpenImageDenoise is" << (denoiser ? " " : "not ") << "available"
+  std::cout << "OpenImageDenoise is " << (denoiser ? "" : "not ") << "available"
             << std::endl;
 
   // Set paramters common to all modes
