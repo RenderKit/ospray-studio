@@ -113,6 +113,7 @@ namespace ospray {
       return;
 
     hasDenoiser = enabled;
+    updateImageOps = true;
 
     // Clear accum if changing denoiser
     handle().clear();
@@ -120,11 +121,21 @@ namespace ospray {
 
   void FrameBuffer::updateToneMapper(bool enabled)
   {
+    if (enabled == hasToneMapper)
+      return;
+
     hasToneMapper = enabled;
+    updateImageOps = true;
   }
 
   void FrameBuffer::updateImageOperations()
   {
+    // Only update imageOperation if necessary
+    if (!updateImageOps)
+      return;
+
+    updateImageOps = false; 
+
     std::vector<cpp::ImageOperation> ops;
     if (hasToneMapper) {
       auto iop = cpp::ImageOperation("tonemapper");

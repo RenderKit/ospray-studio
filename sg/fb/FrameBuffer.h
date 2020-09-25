@@ -46,8 +46,10 @@ namespace ospray {
 
     void updateHandle();
     uint32_t channels{OSP_FB_COLOR};  // OSPFrameBufferChannel
+
     bool hasDenoiser{false};
     bool hasToneMapper{false};
+    bool updateImageOps{false};
 
     std::map<std::string, OSPFrameBufferFormat> colorFormats{
         {"sRGB", OSP_FB_SRGBA},
