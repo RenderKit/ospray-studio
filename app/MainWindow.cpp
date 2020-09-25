@@ -974,6 +974,26 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
   for (auto file : filesToImport) {
     try {
       rkcommon::FileName fileName(file);
+
+      // ALOK: handling loading a scene here for now
+      if (fileName.ext() == "sg") {
+        std::cout << "this is a scenegraph file" << std::endl;
+        filesToImport.clear();
+        std::ifstream sgFile(fileName.str());
+        if (!sgFile)
+          throw std::runtime_error("Could not open file to read!");
+        nlohmann::json j;
+        sgFile >> j;
+        // world
+        auto &jWorld = j["world"];
+        for (auto &jChild : jWorld["children"]) {
+          if (jChild["type"] == sg::NodeType::IMPORTER) {
+            filesToImport.push_back(jChild["filename"]);
+          }
+        }
+        refreshScene(true); // resetCam and then set the actual scene cam
+      }
+
       std::string nodeName = fileName.base() + "_importer";
 
       std::cout << "Importing: " << file << std::endl;

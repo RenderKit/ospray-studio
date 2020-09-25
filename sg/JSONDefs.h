@@ -162,7 +162,11 @@ inline void to_json(nlohmann::json &j, const Any &a)
     j = ":^)";
 }
 
-inline void from_json(const nlohmann::json &j, Any &a) {}
+inline void from_json(const nlohmann::json &j, Any &a)
+{
+  // ALOK: does this really work???
+  j.get_to(a);
+}
 
 } // namespace utility
 
