@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include <json.hpp>
+#include "sg/JSONDefs.h"
 #include "rkcommon/math/AffineSpace.h"
 
 using namespace rkcommon::math;
@@ -89,59 +89,6 @@ class CameraState
     return s0 * qt0 + s1 * qt1;
   }
 };
-
-// for json serialization
-namespace rkcommon {
-namespace math {
-inline void to_json(nlohmann::json &j, const vec3f &v)
-{
-  j = nlohmann::json{{"x", v.x}, {"y", v.y}, {"z", v.z}};
-}
-
-inline void from_json(const nlohmann::json &j, vec3f &v)
-{
-  j.at("x").get_to(v.x);
-  j.at("y").get_to(v.y);
-  j.at("z").get_to(v.z);
-}
-
-inline void to_json(nlohmann::json &j, const LinearSpace3f &ls)
-{
-  j = nlohmann::json{{"x", ls.vx}, {"y", ls.vy}, {"z", ls.vz}};
-}
-
-inline void from_json(const nlohmann::json &j, LinearSpace3f &ls)
-{
-  j.at("x").get_to(ls.vx);
-  j.at("y").get_to(ls.vy);
-  j.at("z").get_to(ls.vz);
-}
-
-inline void to_json(nlohmann::json &j, const AffineSpace3f &as)
-{
-  j = nlohmann::json{{"linear", as.l}, {"affine", as.p}};
-}
-
-inline void from_json(const nlohmann::json &j, AffineSpace3f &as)
-{
-  j.at("linear").get_to(as.l);
-  j.at("affine").get_to(as.p);
-}
-
-inline void to_json(nlohmann::json &j, const quaternionf &q)
-{
-  j = nlohmann::json{{"r", q.r}, {"i", q.i}, {"j", q.j}, {"k", q.k}};
-}
-
-inline void from_json(const nlohmann::json &j, quaternionf &q)
-{
-  j.at("r").get_to(q.r);
-  j.at("i").get_to(q.i);
-  j.at("j").get_to(q.j);
-  j.at("k").get_to(q.k);
-}
-} // namespace math
-}
 
 inline void to_json(nlohmann::json &j, const CameraState &cs)
 {

@@ -86,6 +86,60 @@ inline void from_json(
 
 } // namespace containers
 
+namespace math {
+
+inline void to_json(nlohmann::json &j, const vec2f &v)
+{
+  j = {v.x, v.y};
+}
+
+inline void from_json(const nlohmann::json &j, vec2f &v) {}
+
+inline void to_json(nlohmann::json &j, const vec3f &v)
+{
+  j = {v.x, v.y, v.z};
+}
+
+inline void from_json(const nlohmann::json &j, vec3f &v) {}
+
+inline void to_json(nlohmann::json &j, const LinearSpace3f &ls)
+{
+  j = nlohmann::json{{"x", ls.vx}, {"y", ls.vy}, {"z", ls.vz}};
+}
+
+inline void from_json(const nlohmann::json &j, LinearSpace3f &ls)
+{
+  j.at("x").get_to(ls.vx);
+  j.at("y").get_to(ls.vy);
+  j.at("z").get_to(ls.vz);
+}
+
+inline void to_json(nlohmann::json &j, const AffineSpace3f &as)
+{
+  j = nlohmann::json{{"linear", as.l}, {"affine", as.p}};
+}
+
+inline void from_json(const nlohmann::json &j, AffineSpace3f &as)
+{
+  j.at("linear").get_to(as.l);
+  j.at("affine").get_to(as.p);
+}
+
+inline void to_json(nlohmann::json &j, const quaternionf &q)
+{
+  j = nlohmann::json{{"r", q.r}, {"i", q.i}, {"j", q.j}, {"k", q.k}};
+}
+
+inline void from_json(const nlohmann::json &j, quaternionf &q)
+{
+  j.at("r").get_to(q.r);
+  j.at("i").get_to(q.i);
+  j.at("j").get_to(q.j);
+  j.at("k").get_to(q.k);
+}
+
+} // namespace math
+
 namespace utility {
 
 inline void to_json(nlohmann::json &j, const Any &a)
@@ -98,6 +152,10 @@ inline void to_json(nlohmann::json &j, const Any &a)
     j = a.get<float>();
   else if (a.is<std::string>())
     j = a.get<std::string>();
+  else if (a.is<math::vec2f>())
+    j = a.get<math::vec2f>();
+  else if (a.is<math::vec3f>())
+    j = a.get<math::vec3f>();
   else
     j = ":^)";
 }
