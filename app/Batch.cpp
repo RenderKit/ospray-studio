@@ -11,7 +11,7 @@
 // rkcommon
 #include "rkcommon/utility/SaveImage.h"
 // json
-#include <json.hpp>
+#include "sg/JSONDefs.h"
 
 // Batch mode entry point
 void start_Batch_mode(StudioCommon &studioCommon)

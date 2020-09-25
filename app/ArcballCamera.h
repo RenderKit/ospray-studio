@@ -5,7 +5,6 @@
 
 #include <vector>
 
-#include "sg/JSONDefs.h"
 #include "rkcommon/math/AffineSpace.h"
 
 using namespace rkcommon::math;
@@ -89,20 +88,6 @@ class CameraState
     return s0 * qt0 + s1 * qt1;
   }
 };
-
-inline void to_json(nlohmann::json &j, const CameraState &cs)
-{
-  j = nlohmann::json{{"centerTranslation", cs.centerTranslation},
-      {"translation", cs.translation},
-      {"rotation", cs.rotation}};
-}
-
-inline void from_json(const nlohmann::json &j, CameraState &cs)
-{
-  j.at("centerTranslation").get_to(cs.centerTranslation);
-  j.at("translation").get_to(cs.translation);
-  j.at("rotation").get_to(cs.rotation);
-}
 
 class ArcballCamera
 {
