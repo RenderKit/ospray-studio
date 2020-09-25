@@ -11,7 +11,10 @@ if (BUILD_PLUGIN_EXAMPLE)
     PanelExample.cpp
   )
 
-  target_link_libraries(${pluginName} ospray_studio)
+  target_link_libraries(${pluginName} ospray_sg)
+
+  # Only link against imgui if needed (ie, pure file importers don't)
+  target_link_libraries(${pluginName} imgui)
 
   target_include_directories(${pluginName}
     PRIVATE ${CMAKE_SOURCE_DIR}
