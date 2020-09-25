@@ -6,7 +6,7 @@
 namespace ospray {
 namespace sg {
 
-std::map<std::string, std::string> importerMap = {
+OSPSG_INTERFACE std::map<std::string, std::string> importerMap = {
     {"obj", "importer_obj"},
     {"gltf", "importer_gltf"},
     {"glb", "importer_gltf"},
