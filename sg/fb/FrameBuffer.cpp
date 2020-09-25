@@ -126,6 +126,9 @@ namespace ospray {
 
     hasToneMapper = enabled;
     updateImageOps = true;
+
+    // Clear accum if changing toneMapper
+    handle().clear();
   }
 
   void FrameBuffer::updateImageOperations()
