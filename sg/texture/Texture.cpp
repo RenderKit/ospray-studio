@@ -11,8 +11,7 @@ namespace ospray {
   {
     auto handle = ospNewTexture(type.c_str());
     setHandle(handle);
-    createChild("name", "string", "");
-
+    createChild("name", "string", "texture filename", std::string(""));
     child("name").setSGOnly();
   }
 

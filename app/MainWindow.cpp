@@ -994,15 +994,9 @@ void MainWindow::buildMainMenu()
 void MainWindow::buildMainMenuFile()
 {
   static bool showImportFileBrowser = false;
-  static std::string type = "";
 
   if (ImGui::BeginMenu("File")) {
-    if (ImGui::MenuItem("Import geometry...", nullptr)) {
-      type = "Geometry";
-      showImportFileBrowser = true;
-    }
-    if (ImGui::MenuItem("Import volume...", nullptr)) {
-      type = "Volume";
+    if (ImGui::MenuItem("Import ...", nullptr)) {
       showImportFileBrowser = true;
     }
     if (ImGui::BeginMenu("Demo Scene")) {
@@ -1032,7 +1026,7 @@ void MainWindow::buildMainMenuFile()
 
   // Leave the fileBrowser open until files are selected
   if (showImportFileBrowser) {
-    if (fileBrowser(filesToImport, "Select " + type + " Model(s) - ", true)) {
+    if (fileBrowser(filesToImport, "Select Import File(s) - ", true)) {
       showImportFileBrowser = false;
       refreshScene(true);
     }
@@ -1277,6 +1271,13 @@ void MainWindow::buildMainMenuEdit()
           frame->child("renderer").add(backplateTex);
         }
       }
+    }
+    int clearBackPlate = 0;
+    ImGui::SameLine();
+    ImGui::RadioButton("clear", &clearBackPlate, 1);
+    if (clearBackPlate) {
+      backPlateTexture = "";
+      refreshRenderer();
     }
 
     if (ImGui::MenuItem("Lights...", "", nullptr))
@@ -1562,9 +1563,6 @@ void MainWindow::buildWindowLightEditor()
       if (lightType == "hdri") {
         auto &hdri = lightMan[lightName];
         auto &hdriTex = hdri.createChild("map", "texture_2d");
-
-        hdri["name"] = texFileName.base();
-
         auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
         ast2d->load(texFileName, false, false);
       }

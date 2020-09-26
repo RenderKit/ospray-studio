@@ -18,8 +18,6 @@ namespace ospray {
 
   AmbientLight::AmbientLight() : Light("ambient")
   {
-    child("intensity").setMinMax(0.f, 1.f);
-
     // Ambient should be invisible by default, not directly viewable
     child("visible").setValue(false);
   }

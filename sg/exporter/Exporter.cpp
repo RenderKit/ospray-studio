@@ -8,7 +8,7 @@ namespace ospray {
 
   Exporter::Exporter()
   {
-    createChild("file", "string", "");
+    createChild("file", "string", std::string(""));
   }
 
   NodeType Exporter::type() const

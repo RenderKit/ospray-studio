@@ -258,6 +258,8 @@ namespace ospray {
     FileName fileName        = fileNameAbs;
     std::string fileNameBase = fileNameAbs;
 
+    child("name") = fileName.base();
+
     // if (textureCache.find(fileName.str()) != textureCache.end())
       // return textureCache[fileName.str()];
 
@@ -552,6 +554,13 @@ namespace ospray {
       }
     }
 #endif
+
+    if (hasChild("format"))
+      child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
+
+    if (hasChild("filter"))
+      child("filter").setMinMax(
+          (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
 
     // if (get() != nullptr)
     //   textureCache[fileName.str()] = tex;
