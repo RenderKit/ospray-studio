@@ -142,3 +142,11 @@ CameraState catmullRom(const CameraState &prefix,
 // for n >= 2 anchors, creates (n - 1) * (1 / stepSize) CameraStates
 std::vector<CameraState> buildPath(const std::vector<CameraState> &anchors,
                                    const float stepSize = 0.1);
+
+inline std::ostream &operator<<(std::ostream &os, const CameraState &cs)
+{
+  std::cout << "centerTranslation = " << cs.centerTranslation << ", ";
+  std::cout << "translation = " << cs.translation << ", ";
+  std::cout << "rotation = " << cs.rotation << std::endl;
+  return os;
+}

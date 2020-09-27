@@ -95,14 +95,23 @@ inline void to_json(nlohmann::json &j, const vec2f &v)
   j = {v.x, v.y};
 }
 
-inline void from_json(const nlohmann::json &j, vec2f &v) {}
+inline void from_json(const nlohmann::json &j, vec2f &v)
+{
+  j.at(0).get_to(v.x);
+  j.at(1).get_to(v.y);
+}
 
 inline void to_json(nlohmann::json &j, const vec3f &v)
 {
   j = {v.x, v.y, v.z};
 }
 
-inline void from_json(const nlohmann::json &j, vec3f &v) {}
+inline void from_json(const nlohmann::json &j, vec3f &v)
+{
+  j.at(0).get_to(v.x);
+  j.at(1).get_to(v.y);
+  j.at(2).get_to(v.z);
+}
 
 inline void to_json(nlohmann::json &j, const LinearSpace3f &ls)
 {

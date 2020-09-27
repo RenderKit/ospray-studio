@@ -991,7 +991,14 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
             filesToImport.push_back(jChild["filename"]);
           }
         }
-        refreshScene(true); // resetCam and then set the actual scene cam
+
+        std::cout << "files to load: "; for(auto &fn : filesToImport) std::cout << fn << " "; std::cout << std::endl;
+
+        CameraState cs = j["camera"];
+        arcballCamera->setState(cs);
+        updateCamera();
+
+        refreshScene(false);
       }
 
       std::string nodeName = fileName.base() + "_importer";
@@ -1135,8 +1142,8 @@ void MainWindow::buildMainMenuFile()
     }
     if (ImGui::MenuItem("Dump SG to file")) {
       std::ofstream dump("studio.sg");
-      nlohmann::json j = {
-          {"world", frame->child("world")}, {"camera", frame->child("camera")}};
+      nlohmann::json j = {{"world", frame->child("world")},
+          {"camera", arcballCamera->getState()}};
       dump << j.dump();
     }
     ImGui::EndMenu();
@@ -1146,7 +1153,7 @@ void MainWindow::buildMainMenuFile()
   if (showImportFileBrowser) {
     if (fileBrowser(filesToImport, "Select Import File(s) - ", true)) {
       showImportFileBrowser = false;
-      refreshScene(true);
+      refreshScene(false);
     }
   }
 }
