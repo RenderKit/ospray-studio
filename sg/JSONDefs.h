@@ -56,7 +56,8 @@ inline void to_json(nlohmann::json &j, const Node &n)
     return;
   }
 
-  if (n.value().valid() && n.type() == NodeType::PARAMETER)
+  if (n.value().valid() && (n.type() == NodeType::PARAMETER
+      || n.type() == NodeType::TRANSFORM))
     j["value"] = n.value();
 
   if (n.hasChildren() && n.type() != NodeType::TRANSFORM)
@@ -167,6 +168,8 @@ inline void to_json(nlohmann::json &j, const Any &a)
     j = a.get<math::vec2f>();
   else if (a.is<math::vec3f>())
     j = a.get<math::vec3f>();
+  else if (a.is<math::AffineSpace3f>())
+    j = a.get<math::AffineSpace3f>();
   else
     j = ":^)";
 }

@@ -992,13 +992,20 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
           }
         }
 
-        std::cout << "files to load: "; for(auto &fn : filesToImport) std::cout << fn << " "; std::cout << std::endl;
-
         CameraState cs = j["camera"];
         arcballCamera->setState(cs);
         updateCamera();
 
         refreshScene(false);
+
+        for (auto &jChild : jWorld["children"]) {
+          if (jChild["type"] == sg::NodeType::IMPORTER) {
+            auto &imp = frame->child("world").child(jChild["name"]);
+            auto &jXfm = jChild["children"][0];
+            // set the correct value for the transform
+            imp.child(jXfm["name"]) = jXfm["value"].get<AffineSpace3f>();
+          }
+        }
       }
 
       std::string nodeName = fileName.base() + "_importer";
