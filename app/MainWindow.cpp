@@ -982,21 +982,32 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
         std::ifstream sgFile(fileName.str());
         if (!sgFile)
           throw std::runtime_error("Could not open file to read!");
+
         nlohmann::json j;
         sgFile >> j;
-        // world
+        sg::NodePtr lights;
+
         auto &jWorld = j["world"];
         for (auto &jChild : jWorld["children"]) {
-          if (jChild["type"] == sg::NodeType::IMPORTER) {
+          switch (jChild["type"].get<sg::NodeType>()) {
+          case sg::NodeType::IMPORTER:
             filesToImport.push_back(jChild["filename"]);
+            break;
+          case sg::NodeType::LIGHTS:
+            lights = sg::createNode(jChild);
+            break;
+          default:
+            break;
           }
         }
+
+        refreshScene(true);
+
+        frame->child("world").add(lights);
 
         CameraState cs = j["camera"];
         arcballCamera->setState(cs);
         updateCamera();
-
-        refreshScene(false);
 
         for (auto &jChild : jWorld["children"]) {
           if (jChild["type"] == sg::NodeType::IMPORTER) {
@@ -1160,7 +1171,12 @@ void MainWindow::buildMainMenuFile()
   if (showImportFileBrowser) {
     if (fileBrowser(filesToImport, "Select Import File(s) - ", true)) {
       showImportFileBrowser = false;
-      refreshScene(false);
+      // do not reset camera when loading a scene file
+      bool resetCam = true;
+      for (auto &fn : filesToImport)
+        if (rkcommon::FileName(fn).ext() == "sg")
+          resetCam = false;
+      refreshScene(resetCam);
     }
   }
 }
