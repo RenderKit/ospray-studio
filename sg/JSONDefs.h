@@ -66,6 +66,25 @@ inline void to_json(nlohmann::json &j, const Node &n)
 
 inline void from_json(const nlohmann::json &j, Node &n) {}
 
+inline OSPSG_INTERFACE NodePtr createNode(const nlohmann::json &j) {
+  NodePtr n = nullptr;
+  if (j.contains("value")) {
+    n = createNode(
+        j["name"], j["subType"], j["description"], j["value"].get<Any>());
+  } else {
+    n = createNode(j["name"], j["subType"]);
+  }
+
+  if (j.contains("children")) {
+    for (auto &jChild : j["children"]) {
+      auto child = createNode(jChild);
+      n->add(child);
+    }
+  }
+
+  return n;
+}
+
 } // namespace sg
 } // namespace ospray
 
@@ -176,8 +195,29 @@ inline void to_json(nlohmann::json &j, const Any &a)
 
 inline void from_json(const nlohmann::json &j, Any &a)
 {
-  // ALOK: does this really work???
-  j.get_to(a);
+  if (j.is_primitive()) { // string, number , bool, null, or binary
+    if (j.is_null())
+      return;
+    else if (j.is_boolean())
+      a = j.get<bool>();
+    else if (j.is_number_integer())
+      a = j.get<int>();
+    else if (j.is_number_float())
+      a = j.get<float>();
+    else if (j.is_string())
+      a = j.get<std::string>();
+    else
+      std::cout << "unhandled primitive type in json" << std::endl;
+  } else if (j.is_structured()) { // array or object
+    if (j.is_array() && j.size() == 3)
+      a = j.get<math::vec3f>();
+    else if (j.is_object())
+      std::cout << "cannot load object types from json" << std::endl;
+    else
+      std::cout << "unhandled structured type in json" << std::endl;
+  } else { // something is wrong
+    std::cout << "unidentified type in json" << std::endl;
+  }
 }
 
 } // namespace utility
