@@ -71,8 +71,6 @@ namespace ospray {
             sg::createNode(map_name, "texture_2d"));
 
     auto &tex2D = *sgTex;
-    tex2D["name"].setValue(texName.str());
-
     sgTex->load(containingPath + texName, preferLinear, nearestFilter);
 
     return sgTex;

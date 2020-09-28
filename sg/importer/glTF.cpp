@@ -1030,12 +1030,11 @@ namespace ospray {
     auto ospTexNode = createNode(texParam, "texture_2d");
     auto &ospTex    = *ospTexNode->nodeAs<Texture2D>();
 
-    ospTex["name"]  = texName;
-    ospTex.size.x   = img.width;
-    ospTex.size.y   = img.height;
+    ospTex.size.x = img.width;
+    ospTex.size.y = img.height;
     ospTex.channels = img.component;
-    const bool hdr  = img.bits > 8;
-    ospTex.depth    = hdr ? 4 : 1;
+    const bool hdr = img.bits > 8;
+    ospTex.depth = hdr ? 4 : 1;
 
     // XXX handle different depths and channels!!!!
     if (ospTex.depth != 1)

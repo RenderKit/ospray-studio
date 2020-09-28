@@ -25,7 +25,6 @@ namespace ospray {
     void load(const FileName &fileName,
               const bool preferLinear  = false,
               const bool nearestFilter = false);
-    static void clearTextureCache();
 
     //! texture size, in pixels
     vec2i size{-1};
