@@ -1158,11 +1158,50 @@ void MainWindow::buildMainMenuFile()
       scene = "empty";
       refreshScene(true);
     }
-    if (ImGui::MenuItem("Dump SG to file")) {
-      std::ofstream dump("studio.sg");
-      nlohmann::json j = {{"world", frame->child("world")},
-          {"camera", arcballCamera->getState()}};
-      dump << j.dump();
+    if (ImGui::BeginMenu("Save...")) {
+      if (ImGui::MenuItem("Scene")) {
+        std::ofstream dump("studio.sg");
+        nlohmann::json j = {{"world", frame->child("world")},
+            {"camera", arcballCamera->getState()}};
+        dump << j.dump();
+      }
+
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("Screenshot", "Ctrl+S", nullptr))
+        g_saveNextFrame = true;
+
+      static const std::vector<std::string> screenshotFiletypes =
+          sg::getExporterTypes();
+
+      static int screenshotFiletypeChoice = std::distance(
+          screenshotFiletypes.begin(),
+          std::find(
+              screenshotFiletypes.begin(), screenshotFiletypes.end(), "png"));
+
+      ImGui::SetNextItemWidth(5.f * ImGui::GetFontSize());
+      if (ImGui::Combo("##screenshot_filetype",
+              (int *)&screenshotFiletypeChoice,
+              stringVec_callback,
+              (void *)screenshotFiletypes.data(),
+              screenshotFiletypes.size())) {
+        screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
+      }
+      if (g_ShowTooltips && ImGui::IsItemHovered()
+          && ImGui::GetCurrentContext()->HoveredIdTimer
+              > g_TooltipDelay * 0.001)
+        ImGui::SetTooltip("%s", "Image filetype for saving screenshots");
+
+      if (screenshotFiletype == "exr") {
+        ImGui::Text("additional layers");
+        ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
+        ImGui::SameLine();
+        ImGui::Checkbox("layers as separate files", &screenshotLayers);
+        ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
+        ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
+      }
+
+      ImGui::EndMenu();
     }
     ImGui::EndMenu();
   }
@@ -1457,31 +1496,6 @@ void MainWindow::buildMainMenuEdit()
 
     ImGui::Separator();
     ImGui::Text("export");
-    static const std::vector<std::string> screenshotFiletypes =
-        sg::getExporterTypes();
-
-    static int screenshotFiletypeChoice = std::distance(
-        screenshotFiletypes.begin(),
-        std::find(
-            screenshotFiletypes.begin(), screenshotFiletypes.end(), "png"));
-
-    if (ImGui::Combo("Screenshot filetype",
-                     (int *)&screenshotFiletypeChoice,
-                     stringVec_callback,
-                     (void *)screenshotFiletypes.data(),
-                     screenshotFiletypes.size())) {
-      screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
-    }
-
-    if (screenshotFiletype == "exr") {
-      ImGui::Text("additional layers");
-      ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
-      ImGui::SameLine();
-      ImGui::Checkbox("layers as separate files", &screenshotLayers);
-      ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
-      ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
-    }
-
     ImGui::EndMenu();
   }
 }
@@ -1489,8 +1503,6 @@ void MainWindow::buildMainMenuEdit()
 void MainWindow::buildMainMenuView()
 {
   if (ImGui::BeginMenu("View")) {
-    if (ImGui::MenuItem("Screenshot", "s", nullptr))
-      g_saveNextFrame = true;
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
       showKeyframes = true;
     if (ImGui::MenuItem("Snapshots...", "", nullptr))
