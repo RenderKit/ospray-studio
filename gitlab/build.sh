@@ -1,4 +1,7 @@
 #!/bin/bash -x
+## Copyright 2015-2020 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
+
 set -e
 apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev -y
 if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]

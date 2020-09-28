@@ -25,7 +25,7 @@ cmake --version
 # XXX Can macOS and Windows cache OSPRay and RKCommon on /NAS ???
 
 if [ ! -d ${OSPRAY_DIR} ]; then
-  echo "Fetching OSPRay release"
+  echo "Fetching OSPRay release ${OSPRAY_VER}"
   wget --no-verbose ${OSPRAY_LINK}
   unzip -q ${OSPRAY_ZIP}
   rm ${OSPRAY_ZIP}
@@ -34,12 +34,13 @@ else
 fi
 
 if [ ! -d ${RKCOMMON_DIR} ]; then
-  echo "Fetching RKCommon release"
+  echo "Fetching RKCommon release ${RKCOMMON_VER}"
   wget --no-verbose ${RKCOMMON_LINK}
   unzip -q ${RKCOMMON_ZIP}
   rm ${RKCOMMON_ZIP}
   cd ${RKCOMMON_DIR}
   # Need to build RKCommon
+  echo "Building RKCommon"
   mkdir build && cd build
   cmake ..  -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTING=OFF
   make -j install
@@ -51,7 +52,7 @@ fi
 popd
 
 CMAKE_PREFIX_PATH="${PWD}/${RKCOMMON_DIR}/install;${PWD}/${OSPRAY_DIR}"
-cmake .. -DCMAKE_INSTALL_PREFIX=../install-macos \
+cmake .. -DCMAKE_INSTALL_PREFIX=install \
   -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} \
   -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
 make -j install
