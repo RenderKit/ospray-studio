@@ -804,8 +804,8 @@ void MainWindow::startNewOSPRayFrame()
   // The baseMaterialRegistry doesn't hang off the frame, so must be checked
   // separately.
   if (baseMaterialRegistry->isModified()) {
+    frame->cancelFrame();
     baseMaterialRegistry->commit();
-    refreshRenderer();
     auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
     fb.resetAccumulation();
   }
@@ -878,8 +878,6 @@ void MainWindow::refreshRenderer()
 
   if (optPF >= 0)
     r.createChild("pixelFilter", "int", optPF);
-
-  r.setNavMode(navMode);
 
   if (rendererTypeStr != "debug") {
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
@@ -1220,8 +1218,6 @@ void MainWindow::buildMainMenuEdit()
     }
 
     ImGui::Separator();
-    fb.traverse<sg::GenerateImGuiWidgets>();
-
     ImGui::Checkbox("toneMap", &frame->toneMapFB);
     ImGui::SameLine();
     ImGui::Checkbox("toneMapNav", &frame->toneMapNavFB);
@@ -1234,6 +1230,9 @@ void MainWindow::buildMainMenuEdit()
       } else
         ImGui::Text("- Check that frameBuffer's allowDenoising is enabled");
     }
+
+    ImGui::Separator();
+    fb.traverse<sg::GenerateImGuiWidgets>();
 
     ImGui::Text("frame scaling");
     frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
@@ -1361,6 +1360,7 @@ void MainWindow::buildMainMenuEdit()
     ImGui::Text("Background texture...");
     ImGui::SameLine();
     // This field won't be typed into.
+    ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
     ImGui::InputTextWithHint("##BPTex", "select...",
         (char *)backPlateTexture.base().c_str(), 0);
     if (ImGui::IsItemClicked())
@@ -1431,9 +1431,6 @@ void MainWindow::buildMainMenuEdit()
 void MainWindow::buildMainMenuView()
 {
   if (ImGui::BeginMenu("View")) {
-    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
-    ImGui::DragInt(
-        "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
     if (ImGui::MenuItem("Screenshot", "s", nullptr))
       g_saveNextFrame = true;
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
@@ -1450,7 +1447,15 @@ void MainWindow::buildMainMenuView()
       showGeometryViewer = true;
     if (ImGui::MenuItem("Materials...", "", nullptr))
       showMaterialEditor = true;
+
+    ImGui::Separator();
     ImGui::Checkbox("Rendering stats...", &showRenderingStats);
+    ImGui::SameLine();
+    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
+
+    ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
+    ImGui::DragInt(
+        "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
 
     ImGui::Separator();
     ImGui::Checkbox("Show Tooltips...", &g_ShowTooltips);
@@ -1727,13 +1732,6 @@ void MainWindow::buildWindowMaterialEditor()
   }
 
   baseMaterialRegistry->traverse<sg::GenerateImGuiWidgets>();
-  // If any material has changed, commit the registry and reset accumulation
-  if (baseMaterialRegistry->isModified()) {
-    baseMaterialRegistry->commit();
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-    fb.resetAccumulation();
-    refreshRenderer();
-  }
 
   ImGui::End();
 }
@@ -1899,7 +1897,8 @@ void MainWindow::enterNavMode()
     frame->cancelFrame();
     navMode = true;
     frame->child("navMode") = true;
-    refreshRenderer();
+    auto &renderer = frame->childAs<sg::Renderer>("renderer");
+    renderer.setNavMode(true);
   }
 }
 
@@ -1910,6 +1909,7 @@ void MainWindow::exitNavMode()
     frame->cancelFrame();
     navMode = false;
     frame->child("navMode") = false;
-    refreshRenderer();
+    auto &renderer = frame->childAs<sg::Renderer>("renderer");
+    renderer.setNavMode(false);
   }
 }

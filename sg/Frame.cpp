@@ -91,10 +91,10 @@ namespace ospray {
   void Frame::cancelFrame()
   {
     auto future = handle();
-    if (future)
+    if (future) {
       future.cancel();
-
-    canceled = true;
+      canceled = true;
+    }
   }
 
   bool Frame::accumLimitReached()

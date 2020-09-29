@@ -707,7 +707,7 @@ namespace ospray {
     //     << "\n";
 
     auto ospMat = createNode(matName, "principled");
-    ospMat->createChild("baseColor", "vec3f") = vec3f(
+    ospMat->createChild("baseColor", "rgb") = vec3f(
         pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
     ospMat->createChild("metallic", "float")  = (float)pbr.metallicFactor;
     ospMat->createChild("roughness", "float") = (float)pbr.roughnessFactor;
@@ -758,7 +758,7 @@ namespace ospray {
         mat.emissiveFactor[0], mat.emissiveFactor[1], mat.emissiveFactor[2]);
     if (emissiveColor != vec3f(0.f)) {
       WARN << "Material has emissiveFactor = " << emissiveColor << "\n";
-      ospMat->createChild("emissiveColor", "vec3f") = emissiveColor;
+      ospMat->createChild("emissiveColor", "rgb") = emissiveColor;
     }
 
     if (mat.emissiveTexture.index != -1 && mat.emissiveTexture.texCoord == 0) {
@@ -828,6 +828,8 @@ namespace ospray {
     auto texFormat =
         osprayTextureFormat(ospTex.depth, ospTex.channels, preferLinear);
     ospTex.createChild("format", "int", (int)texFormat);
+    ospTex.child("format").setMinMax(
+        (int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
 
     // XXX Check sampler wrap/clamp modes!!!
     auto texFilter =
@@ -836,6 +838,8 @@ namespace ospray {
             ? OSP_TEXTURE_FILTER_NEAREST
             : OSP_TEXTURE_FILTER_BILINEAR;
     ospTex.createChild("filter", "int", (int)texFilter);
+    ospTex.child("filter").setMinMax(
+        (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
 
     return ospTexNode;
   }
