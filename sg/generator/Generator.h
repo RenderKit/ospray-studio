@@ -7,20 +7,26 @@
 #include "sg/renderer/MaterialRegistry.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE Generator : public Node
+struct OSPSG_INTERFACE Generator : public Node
+{
+  Generator();
+  virtual ~Generator() = default;
+
+  NodeType type() const override;
+
+  virtual void generateData();
+
+  inline void setMaterialRegistry(
+      std::shared_ptr<sg::MaterialRegistry> _registry)
   {
-    Generator();
-    virtual ~Generator() = default;
+    materialRegistry = _registry;
+  }
 
-    NodeType type() const override;
+ protected:
+  std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
+};
 
-    virtual void generateData();
-
-    virtual void generateDataAndMat(std::shared_ptr<sg::MaterialRegistry> materialRegistry);
-
-  };
-
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray

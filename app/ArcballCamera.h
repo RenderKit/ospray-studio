@@ -177,6 +177,7 @@ class ArcballCamera
 
   void setRotation(quaternionf);
   void setState(const CameraState &state);
+  void setZoomSpeed(float speed);
   CameraState getState() const;
 
   void updateWindowSize(const vec2i &windowSize);
@@ -190,7 +191,7 @@ class ArcballCamera
 
   float zoomSpeed;
   vec2f invWindowSize;
-  AffineSpace3f centerTranslation, translation, invCamera;
+  AffineSpace3f centerTranslation, translation, cameraToWorld;
   quaternionf rotation;
   
 };

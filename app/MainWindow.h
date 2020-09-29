@@ -82,7 +82,7 @@ class MainWindow
 
   // Arcball camera instance
   std::unique_ptr<ArcballCamera> arcballCamera;
-  std::string rendererTypeStr{"scivis"};
+  std::string rendererTypeStr{"pathtracer"};
 
   void refreshRenderer();
 
@@ -130,14 +130,21 @@ class MainWindow
   void buildWindowKeyframes();
   void buildWindowSnapshots();
   void buildWindowLightEditor();
+  void buildWindowCameraEditor();
   void buildWindowMaterialEditor();
   void buildWindowGeometryViewer();
   void buildWindowRenderingStats();
+
+  bool navMode { false };
+  void enterNavMode();
+  void exitNavMode();
+  void setCameraSnapshot(size_t snapshot);
 
   // imgui window visibility toggles
   bool showKeyframes{false};
   bool showSnapshots{false};
   bool showLightEditor{false};
+  bool showCameraEditor{false};
   bool showMaterialEditor{false};
   bool showGeometryViewer{false};
   bool showRenderingStats{false};
@@ -175,7 +182,6 @@ class MainWindow
   GLFWwindow *glfwWindow = nullptr;
 
   std::shared_ptr<sg::Frame> frame;
-
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
 
   // OpenGL framebuffer texture
@@ -206,6 +212,5 @@ class MainWindow
   GLenum gl_rgba_format;
 
   void loadSceneWithAnimations(sg::NodePtr world, std::vector<float> &timesteps);
-
   std::vector<std::shared_ptr<AnimationWidget>> allAnimationWidgets;
 };

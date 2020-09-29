@@ -25,6 +25,11 @@ if(ENABLE_OPENVDB)
   if(POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
   endif()
+
+  # Try to use the OpenVDB-provided FindOpenVDB.cmake script.
+  if (${OPENVDB_ROOT})
+    list(PREPEND CMAKE_MODULE_PATH ${OPENVDB_ROOT}/lib/cmake/OpenVDB)
+  endif()
   find_package(OpenVDB 7.0.0 REQUIRED)
 else()
   message(STATUS "Building without OpenVDB support.")
@@ -106,6 +111,7 @@ add_library(ospray_sg SHARED
 
   scene/geometry/Geometry.cpp
   scene/geometry/Boxes.cpp
+  scene/geometry/Planes.cpp
   scene/geometry/Spheres.cpp
   scene/geometry/Triangles.cpp
 

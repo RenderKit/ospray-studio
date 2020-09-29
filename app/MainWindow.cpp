@@ -75,8 +75,7 @@ static const std::vector<std::string> g_scenes = {"empty",
                                                   "wavelet",
                                                   "import volume",
                                                   "import",
-                                                  "unstructured_volume",
-                                                  "clouds"};
+                                                  "unstructured_volume"};
 
 static const std::vector<std::string> g_renderers = {
     "scivis", "pathtracer", "ao", "debug"};
@@ -100,7 +99,7 @@ std::vector<CameraState> g_camAnchors;  // user-defined anchor states
 std::vector<CameraState> g_camPath;     // interpolated path through anchors
 int g_camSelectedAnchorIndex = 0;
 int g_camCurrentPathIndex    = 0;
-int g_camPathSpeed = 5;  // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
+float g_camPathSpeed = 5;  // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
 const int g_camPathPause = 2;  // _seconds_ to pause for at end of path
 int g_rotationConstraint = -1;
 
@@ -296,6 +295,18 @@ MainWindow::MainWindow(StudioCommon &_common)
                 break;
             case GLFW_KEY_MINUS:
                 activeWindow->popLookMark();
+                break;
+            case GLFW_KEY_0: /* fallthrough */
+            case GLFW_KEY_1: /* fallthrough */
+            case GLFW_KEY_2: /* fallthrough */
+            case GLFW_KEY_3: /* fallthrough */
+            case GLFW_KEY_4: /* fallthrough */
+            case GLFW_KEY_5: /* fallthrough */
+            case GLFW_KEY_6: /* fallthrough */
+            case GLFW_KEY_7: /* fallthrough */
+            case GLFW_KEY_8: /* fallthrough */
+            case GLFW_KEY_9:
+                activeWindow->setCameraSnapshot((key+9-GLFW_KEY_0) % 10);
                 break;
             }
           }
@@ -584,7 +595,8 @@ void MainWindow::motion(const vec2f &position)
     }
 
     if (cameraChanged) {
-      frame->child("navMode") = true;
+      // Only enter nav Mode on mouse button *and* motion
+      enterNavMode();
       updateCamera();
     }
   }
@@ -601,7 +613,7 @@ void MainWindow::mouseButton(const vec2f &position)
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_RELEASE
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
   {
-    frame->child("navMode") = false;
+    exitNavMode();
     frame->cancelFrame();
   }
 
@@ -789,6 +801,15 @@ void MainWindow::display()
 
 void MainWindow::startNewOSPRayFrame()
 {
+  // The baseMaterialRegistry doesn't hang off the frame, so must be checked
+  // separately.
+  if (baseMaterialRegistry->isModified()) {
+    baseMaterialRegistry->commit();
+    refreshRenderer();
+    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+    fb.resetAccumulation();
+  }
+
   frame->startNewFrame();
 }
 
@@ -826,7 +847,7 @@ void MainWindow::updateTitleBar()
   }
 
   glfwSetWindowTitle(glfwWindow, windowTitle.str().c_str());
-  
+
 }
 
 GLFWwindow* MainWindow::getGLFWWindow() {
@@ -852,10 +873,13 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
-  auto &r = frame->createChild("renderer", "renderer_" + rendererTypeStr);
+  auto &r = frame->createChildAs<sg::Renderer>(
+      "renderer", "renderer_" + rendererTypeStr);
 
   if (optPF >= 0)
     r.createChild("pixelFilter", "int", optPF);
+
+  r.setNavMode(navMode);
 
   if (rendererTypeStr != "debug") {
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
@@ -893,6 +917,10 @@ void MainWindow::refreshScene(bool resetCam)
       auto &gen = world->createChildAs<sg::Generator>("generator",
                                                      "generator_" + scene);
       gen.generateData();
+      gen.setMaterialRegistry(baseMaterialRegistry);
+
+      if (baseMaterialRegistry->matImportsList.size())
+        refreshRenderer();
     }
   }
   
@@ -900,9 +928,10 @@ void MainWindow::refreshScene(bool resetCam)
 
   frame->add(world);
 
-  if (resetCam)
-    arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), windowSize));
+  if (resetCam) {
+    const auto &worldBounds = frame->child("world").bounds();
+    arcballCamera.reset(new ArcballCamera(worldBounds, windowSize));
+  }
   updateCamera();
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();
@@ -924,6 +953,18 @@ void MainWindow::parseCommandLine()
     } else if(arg == "-linkNodes" || arg == "-ln") {
       linkNodes = true;
     }
+    else if (arg == "--2160p")
+      glfwSetWindowSize(glfwWindow, 3840, 2160);
+    else if (arg == "--1440p")
+      glfwSetWindowSize(glfwWindow, 2560, 1440);
+    else if (arg == "--1080p")
+      glfwSetWindowSize(glfwWindow, 1920, 1080);
+    else if (arg == "--720p")
+      glfwSetWindowSize(glfwWindow, 1280, 720);
+    else if (arg == "--540p")
+      glfwSetWindowSize(glfwWindow, 960, 540);
+    else if (arg == "--270p")
+      glfwSetWindowSize(glfwWindow, 480, 270);
   }
 
   if (!filesToImport.empty()) {
@@ -987,11 +1028,17 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float
 
 void MainWindow::saveCurrentFrame()
 {
-  std::string filename("studio.");
-  filename += screenshotFiletype;
+  int filenum = 0;
+  char filename[64];
+  const char *ext = screenshotFiletype.c_str();
+
+  do
+    std::snprintf(filename, 64, "studio.%04d.%s", filenum++, ext);
+  while (std::ifstream(filename).good());
+
   int screenshotFlags = screenshotLayers << 3 | screenshotNormal << 2 |
                         screenshotDepth << 1 | screenshotAlbedo;
-  frame->saveFrame(filename, screenshotFlags);
+  frame->saveFrame(std::string(filename), screenshotFlags);
 }
 
 void MainWindow::pushLookMark()
@@ -1343,11 +1390,6 @@ void MainWindow::buildMainMenuEdit()
       refreshRenderer();
     }
 
-    if (ImGui::MenuItem("Lights...", "", nullptr))
-      showLightEditor = true;
-    if (ImGui::MenuItem("Materials...", "", nullptr))
-      showMaterialEditor = true;
-
     ImGui::Separator();
     ImGui::Text("interaction");
     ImGui::Checkbox("auto rotate", &autorotate);
@@ -1398,8 +1440,16 @@ void MainWindow::buildMainMenuView()
       showKeyframes = true;
     if (ImGui::MenuItem("Snapshots...", "", nullptr))
       showSnapshots = true;
+    ImGui::Separator();
+    if (ImGui::MenuItem("Lights...", "", nullptr))
+      showLightEditor = true;
+    if (ImGui::MenuItem("Camera...", "", nullptr))
+      showCameraEditor = true;
+    ImGui::Separator();
     if (ImGui::MenuItem("Geometry...", "", nullptr))
       showGeometryViewer = true;
+    if (ImGui::MenuItem("Materials...", "", nullptr))
+      showMaterialEditor = true;
     ImGui::Checkbox("Rendering stats...", &showRenderingStats);
 
     ImGui::Separator();
@@ -1432,14 +1482,16 @@ void MainWindow::buildWindows()
 {
   if (showKeyframes)
     buildWindowKeyframes();
+  if (showSnapshots)
+    buildWindowSnapshots();
+  if (showCameraEditor)
+    buildWindowCameraEditor();
   if (showLightEditor)
     buildWindowLightEditor();
   if (showMaterialEditor)
     buildWindowMaterialEditor();
   if (showGeometryViewer)
     buildWindowGeometryViewer();
-  if (showSnapshots)
-    buildWindowSnapshots();
   if (showRenderingStats)
     buildWindowRenderingStats();
 }
@@ -1481,7 +1533,7 @@ void MainWindow::buildWindowKeyframes()
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
-      ImGui::SliderInt("speed##path", &g_camPathSpeed, 1, 10);
+      ImGui::SliderFloat("speed##path", &g_camPathSpeed, 0.f, 10.0);
       if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip(
             "Animation speed for computed path. \n"
@@ -1503,6 +1555,16 @@ void MainWindow::buildWindowKeyframes()
 
 }
 
+void MainWindow::setCameraSnapshot(size_t snapshot)
+{
+  if (snapshot < g_cameraStack.size())
+  {
+    const CameraState &cs = g_cameraStack.at(snapshot);
+    arcballCamera->setState(cs);
+    updateCamera();
+  }
+}
+
 void MainWindow::buildWindowSnapshots()
 {
   if (!ImGui::Begin("Camera snap shots", &showSnapshots, g_imguiWindowFlags)) {
@@ -1513,9 +1575,7 @@ void MainWindow::buildWindowSnapshots()
   for (int s=0; s < g_cameraStack.size(); s++)
   {
     if (ImGui::Button(std::to_string(s).c_str())) {
-        CameraState cs = g_cameraStack.at(s);
-        arcballCamera->setState(cs);
-        updateCamera();
+      setCameraSnapshot(s);
     }
   }
   if (g_cameraStack.size())
@@ -1645,61 +1705,42 @@ void MainWindow::buildWindowLightEditor()
   ImGui::End();
 }
 
+void MainWindow::buildWindowCameraEditor()
+{
+  if (!ImGui::Begin( "Camera editor", &showCameraEditor)) {
+    ImGui::End();
+    return;
+  }
+
+  auto &camera = frame->childAs<sg::Camera>("camera");
+  camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+
+  ImGui::End();
+}
+
 void MainWindow::buildWindowMaterialEditor()
 {
-  if (!ImGui::Begin("Material editor", &showMaterialEditor, g_imguiWindowFlags)) {
+  if (!ImGui::Begin(
+          "Material editor", &showMaterialEditor, g_imguiWindowFlags)) {
     ImGui::End();
     return;
   }
 
-  if (rendererType != OSPRayRendererType::PATHTRACER) {
-    ImGui::Text("materials only apply to pathtracer");
-    ImGui::End();
-    return;
-  }
-
-  ImGui::Text("available materials:");
-
-  bool changed = false;
-  int whichMaterial = -1;
-
-  if (!baseMaterialRegistry->sgMaterialList.size())
-  {
-    ImGui::Text("  no materials in the scene");
-  } else {
-
-    if (ImGui::ListBoxHeader("", 7)) {
-      int i = 0;
-      for (auto &aMat : baseMaterialRegistry->sgMaterialList) {
-        std::string toShow;
-        if (i == defaultMaterialIdx)
-          toShow = std::string(" *") + aMat->osprayMaterialType().c_str();
-        else
-          toShow = std::string("  ") + aMat->osprayMaterialType().c_str();
-
-        if (ImGui::Selectable(toShow.c_str(), (whichMaterial == i)) && whichMaterial != defaultMaterialIdx) {
-          whichMaterial = i;
-          changed = true;
-        }
-        i++;
-      }
-      ImGui::ListBoxFooter();
-    }
+  baseMaterialRegistry->traverse<sg::GenerateImGuiWidgets>();
+  // If any material has changed, commit the registry and reset accumulation
+  if (baseMaterialRegistry->isModified()) {
+    baseMaterialRegistry->commit();
+    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+    fb.resetAccumulation();
+    refreshRenderer();
   }
 
   ImGui::End();
-
-  if (changed && whichMaterial != -1) {
-    defaultMaterialIdx = whichMaterial;
-    refreshScene(false);
-  }
 }
 
 void MainWindow::buildWindowGeometryViewer()
 {
-  if (!ImGui::Begin(
-          "Geometry viewer",
-          &showGeometryViewer)) {
+  if (!ImGui::Begin("Geometry viewer", &showGeometryViewer)) {
     ImGui::End();
     return;
   }
@@ -1849,4 +1890,26 @@ void MainWindow::buildWindowRenderingStats()
   }
 
   ImGui::End();
+}
+
+void MainWindow::enterNavMode()
+{
+  if (!navMode)
+  {
+    frame->cancelFrame();
+    navMode = true;
+    frame->child("navMode") = true;
+    refreshRenderer();
+  }
+}
+
+void MainWindow::exitNavMode()
+{
+  if (navMode)
+  {
+    frame->cancelFrame();
+    navMode = false;
+    frame->child("navMode") = false;
+    refreshRenderer();
+  }
 }

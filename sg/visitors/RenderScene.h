@@ -165,6 +165,9 @@ namespace ospray {
 
   inline void RenderScene::createVolume(Node &node)
   {
+    if (!node.child("visible").valueAs<bool>())
+      return;
+
     auto &vol = node.valueAs<cpp::Volume>();
     cpp::VolumetricModel model(vol);
     if (node.hasChild("transferFunction")) {
@@ -176,6 +179,16 @@ namespace ospray {
       model.setParam("densityScale", node["densityScale"].valueAs<float>());
     if (node.hasChild("anisotropy"))
       model.setParam("anisotropy", node["anisotropy"].valueAs<float>());
+    if (node.hasChild("albedo"))
+      model.setParam("albedo", node["albedo"].valueAs<vec3f>());
+    if (node.hasChild("densityFadeDepth"))
+      model.setParam("densityFadeDepth", node["densityFadeDepth"].valueAs<int>());
+    if (node.hasChild("densityFade"))
+      model.setParam("densityFade", node["densityFade"].valueAs<float>());
+    if (node.hasChild("transmittanceDistanceScale"))
+      model.setParam("transmittanceDistanceScale", node["transmittanceDistanceScale"].valueAs<float>());
+    if (node.hasChild("maxPathDepth"))
+      model.setParam("maxPathDepth", node["maxPathDepth"].valueAs<int>());
     model.commit();
     if (setTextureVolume) {
       auto &tex = *current.textures.begin();

@@ -177,8 +177,8 @@ namespace ospray {
                 << std::endl;
       return;
     }
-    auto &exp   = createChildAs<ImageExporter>("exporter", exporter);
-    exp["file"] = filename;
+    auto exp = createNodeAs<ImageExporter>("exporter", exporter);
+    exp->child("file") = filename;
 
     auto fb    = map(OSP_FB_COLOR);
     auto size  = child("size").valueAs<vec2i>();
@@ -187,7 +187,7 @@ namespace ospray {
     void *zbuf = nullptr;
     void *nbuf = nullptr;
 
-    exp.setImageData(fb, size, fmt);
+    exp->setImageData(fb, size, fmt);
 
     bool albedo    = flags & 0b1;
     bool depth     = flags & 0b10;
@@ -196,32 +196,32 @@ namespace ospray {
 
     if (albedo) {
       abuf = (void *)map(OSP_FB_ALBEDO);
-      exp.setAdditionalLayer("albedo", abuf);
+      exp->setAdditionalLayer("albedo", abuf);
     } else {
-      exp.clearLayer("albedo");
+      exp->clearLayer("albedo");
     }
 
     if (depth) {
       zbuf = (void *)map(OSP_FB_DEPTH);
-      exp.setAdditionalLayer("Z", zbuf);
+      exp->setAdditionalLayer("Z", zbuf);
     } else {
-      exp.clearLayer("Z");
+      exp->clearLayer("Z");
     }
 
     if (normal) {
       nbuf = (void *)map(OSP_FB_NORMAL);
-      exp.setAdditionalLayer("normal", nbuf);
+      exp->setAdditionalLayer("normal", nbuf);
     } else {
-      exp.clearLayer("normal");
+      exp->clearLayer("normal");
     }
 
     if (asLayers) {
-      exp.createChild("asLayers", "bool", false);
+      exp->createChild("asLayers", "bool", false);
     } else {
-      exp.createChild("asLayers", "bool", true);
+      exp->createChild("asLayers", "bool", true);
     }
 
-    exp.doExport();
+    exp->doExport();
 
     unmap(fb);
     if (albedo)

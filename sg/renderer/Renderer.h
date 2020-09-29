@@ -16,6 +16,8 @@ namespace ospray {
 
     NodeType type() const override;
 
+    void setNavMode(bool navMode);
+
     inline bool isModified()
     {
       return this->anyChildModified();

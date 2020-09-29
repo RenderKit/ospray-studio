@@ -52,10 +52,21 @@ namespace ospray {
     vec2i size = child("size").valueAs<vec2i>();
     size_t nsubpix = 4 * size.x * size.y;
     char *newfb = (char *)malloc(nsubpix * sizeof(char));
-    if (newfb)
-      for (size_t i = 0; i < nsubpix; i++)
-        newfb[i] = char(255 * fb[i]);
-    child("data") = (const void *)newfb;
+    if (newfb) {
+      // cubic gamma approximation to avoid pow(),
+      // http://stereopsis.com/polygamma.html
+      // ax^3 + bx^2 + cx = 0, where a = 1.49, b = -3.23, and c = 2.74
+      auto fastGamma = [](float x) -> float {
+        return 1.49 * x * x * x - 3.23 * x * x + 2.74 * x;
+      };
+
+      for (size_t i = 0; i < nsubpix; i++) {
+        float val = std::max(std::min(fb[i], 1.f), 0.f);
+        newfb[i] = char(255 * fastGamma(val));
+      }
+
+      child("data") = (const void *)newfb;
+    }
 
     if (hasChild("depth")) {
       char *newdb = (char *)malloc(nsubpix * sizeof(char));

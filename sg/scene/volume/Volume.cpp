@@ -9,6 +9,7 @@ namespace ospray {
   Volume::Volume(const std::string &osp_type)
   {
     setValue(cpp::Volume(osp_type));
+    createChild("visible", "bool", true);
   }
 
   NodeType Volume::type() const

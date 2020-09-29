@@ -146,7 +146,11 @@ namespace ospray {
         grid = file.readGrid("density");
         file.close();
       } catch (const std::exception &e) {
-        throw std::runtime_error(e.what());
+        const std::string err = (std::string("Error loading ")
+          + fileNameAbs.c_str()) 
+          + std::string(": ")
+          + e.what();
+        throw std::runtime_error(err);
       }
 
       // We only support the default topology in this loader.

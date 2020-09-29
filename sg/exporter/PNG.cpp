@@ -41,6 +41,7 @@ namespace ospray {
 
     vec2i size = child("size").valueAs<vec2i>();
     const void *fb = child("data").valueAs<const void *>();
+    stbi_flip_vertically_on_write(1);
     int res = stbi_write_png(file.c_str(), size.x, size.y, 4, fb, 4 * size.x);
 
     if (res == 0)
