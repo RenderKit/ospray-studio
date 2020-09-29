@@ -19,6 +19,7 @@
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/lights/Lights.h"
 #include "sg/scene/World.h"
+#include "sg/visitors/Commit.h"
 #include "sg/visitors/GenerateImGuiWidgets.h"
 #include "sg/visitors/Search.h"
 #include "sg/visitors/PrintNodes.h"
@@ -916,6 +917,11 @@ void MainWindow::refreshScene(bool resetCam)
   world->render();
 
   frame->add(world);
+
+  // this forces a commit, needed for scene imports (.sg)
+  // TODO: there is a desync between imported nodes marked as committed vs
+  // actually committed to OSPRay. This is just a bandaid
+  frame->traverse<sg::CommitVisitor>(true);
 
   if (resetCam) {
     const auto &worldBounds = frame->child("world").bounds();
