@@ -7,6 +7,7 @@
 
 #include "Node.h"
 #include "importer/Importer.h"
+#include "scene/lights/Lights.h"
 
 #include "../app/ArcballCamera.h"
 
@@ -75,10 +76,18 @@ inline OSPSG_INTERFACE NodePtr createNode(const nlohmann::json &j) {
     n = createNode(j["name"], j["subType"]);
   }
 
+  // the default ambient light might not exist in this scene
+  // the loop below will add it if it does exist
+  if (j["type"] == NodeType::LIGHTS)
+    n->nodeAs<Lights>()->removeLight("ambient");
+
   if (j.contains("children")) {
     for (auto &jChild : j["children"]) {
       auto child = createNode(jChild);
-      n->add(child);
+      if (j["type"] == NodeType::LIGHTS)
+        n->nodeAs<Lights>()->addLight(child);
+      else
+        n->add(child);
     }
   }
 
