@@ -456,6 +456,8 @@ void MainWindow::reshape(const vec2i &newWindowSize)
       fSize.x *= aspectCorrection;
     }
   }
+  frame->child("camera")["aspect"] = static_cast<float>(fSize.x)/fSize.y;
+
   frame->child("windowSize") = fSize;
   frame->currentAccum = 0;
 
