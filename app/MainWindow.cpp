@@ -41,25 +41,6 @@ using namespace ospray_studio;
 
 static std::vector<CameraState> g_cameraStack;
 
-// GUI mode entry point
-void start_GUI_mode(StudioCommon &studioCommon)
-{
-  std::cerr << "GUI mode\n";
-
-  std::ifstream cams("cams.json");
-  if (cams) {
-    nlohmann::json j;
-    cams >> j;
-    g_cameraStack = j.get<std::vector<CameraState>>();
-  }
-
-  auto window = make_unique<MainWindow>(studioCommon);
-  window->parseCommandLine();
-  window->mainLoop();
-  window.reset();
-}
-
-
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 
 static bool g_quitNextFrame  = false;
@@ -161,7 +142,7 @@ void error_callback(int error, const char *desc)
 MainWindow *MainWindow::activeWindow = nullptr;
 
 MainWindow::MainWindow(StudioCommon &_common)
-    : studioCommon(_common), windowSize(_common.defaultSize), scene(g_scenes[0])
+    : StudioContext(_common), windowSize(_common.defaultSize), scene(g_scenes[0])
 {
   if (activeWindow != nullptr) {
     throw std::runtime_error("Cannot create more than one MainWindow!");
@@ -406,6 +387,21 @@ MainWindow::~MainWindow()
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
   glfwTerminate();
+}
+
+void MainWindow::start()
+{
+  std::cerr << "GUI mode\n";
+
+  std::ifstream cams("cams.json");
+  if (cams) {
+    nlohmann::json j;
+    cams >> j;
+    g_cameraStack = j.get<std::vector<CameraState>>();
+  }
+
+  parseCommandLine();
+  mainLoop();
 }
 
 MainWindow *MainWindow::getActiveWindow()
@@ -930,7 +926,7 @@ void MainWindow::refreshScene(bool resetCam)
   fb.resetAccumulation();
 }
 
-void MainWindow::parseCommandLine()
+bool MainWindow::parseCommandLine()
 {
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
@@ -939,13 +935,16 @@ void MainWindow::parseCommandLine()
     const auto arg = std::string(av[i]);
     if (arg.rfind("-", 0) != 0) {
       filesToImport.push_back(arg);
+    } else if (arg == "-h" || arg == "--help") {
+      printHelp();
+      return false;
     } else if (arg == "-pf" || arg == "--pixelfilter") {
       optPF = max(0, atoi(av[i + 1]));
       rkcommon::removeArgs(ac, av, i, 2);
       --i;
-    } else if(arg == "-linkNodes" || arg == "-ln") {
+    } else if(arg == "--linkNodes" || arg == "-ln") {
       linkNodes = true;
-    } else if (arg == "-animate" || arg == "-a") {
+    } else if (arg == "--animate" || arg == "-a") {
       animate = true;
     } else if (arg == "--2160p")
       glfwSetWindowSize(glfwWindow, 3840, 2160);
@@ -965,10 +964,12 @@ void MainWindow::parseCommandLine()
     std::cout << "Import files from cmd line" << std::endl;
     refreshScene(true);
   }
+
+  return true;
 }
 
 // Importer for all known file types (geometry and models)
-void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
+void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<float> timesteps; // time stamps in units seconds in all files
   for (auto file : filesToImport) {
@@ -1988,4 +1989,25 @@ void MainWindow::exitNavMode()
     auto &renderer = frame->childAs<sg::Renderer>("renderer");
     renderer.setNavMode(false);
   }
+}
+
+void MainWindow::printHelp()
+{
+  const char *help = R"help(ospStudio gui [options] [file1 [file2 ...]]
+
+    OPTIONS
+    -h, --help               this help message
+    -pf N, --pixelfilter N   set default pixel filter:
+                               0 = point
+                               1 = box
+                               2 = Gaussian
+                               3 = Mitchell-Netravali
+                               4 = Blackman-Harris
+    -ln, --linkNodes         enable linking nodes
+    -a, --animate            enable loading glTF animations
+    --2160p, --1440p,        set window/frame resolution
+    --1080p, --720p,
+    --540p, --270p
+)help";
+  std::cerr << help;
 }

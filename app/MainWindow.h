@@ -46,7 +46,7 @@ enum class OSPRayRendererType
   OTHER
 };
 
-class MainWindow
+class MainWindow : public StudioContext
 {
  public:
  
@@ -68,9 +68,11 @@ class MainWindow
 
   void mainLoop();
 
-  void parseCommandLine();
+  bool parseCommandLine() override;
 
-  void importFiles();
+  void start() override;
+
+  void importFiles(sg::NodePtr world) override;
 
   std::shared_ptr<sg::Frame> getFrame();
 
@@ -80,8 +82,6 @@ class MainWindow
 
   void updateTitleBar();
 
-  // Arcball camera instance
-  std::unique_ptr<ArcballCamera> arcballCamera;
   std::string rendererTypeStr{"pathtracer"};
 
   void refreshRenderer();
@@ -91,8 +91,6 @@ class MainWindow
   std::string lightTypeStr{"ambient"};
 
  protected:
-  StudioCommon &studioCommon;
-
   // Panels //
 
   std::vector<std::unique_ptr<Panel>> pluginPanels;
@@ -112,7 +110,6 @@ class MainWindow
   void removeLight();
   void addPTMaterials();
 
-  void importFiles(std::shared_ptr<sg::Node> &world);
   void saveCurrentFrame();
   void pickCenterOfRotation(float x, float y);
   void pushLookMark();
@@ -139,6 +136,7 @@ class MainWindow
   void enterNavMode();
   void exitNavMode();
   void setCameraSnapshot(size_t snapshot);
+  void printHelp() override;
 
   // imgui window visibility toggles
   bool showKeyframes{false};
@@ -171,7 +169,6 @@ class MainWindow
   bool animate{false};
 
   std::string scene;
-  std::vector<std::string> filesToImport;
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   int optPF = -1; // optional pixel filter, -1 = use default
@@ -181,9 +178,6 @@ class MainWindow
 
   // GLFW window instance
   GLFWwindow *glfwWindow = nullptr;
-
-  std::shared_ptr<sg::Frame> frame;
-  std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
 
   // OpenGL framebuffer texture
   GLuint framebufferTexture = 0;
@@ -197,7 +191,7 @@ class MainWindow
   // optional registered ImGui callback, called during every frame to build UI
   std::function<void()> uiCallback;
 
-    // optional registered key callback, called when keys are pressed
+  // optional registered key callback, called when keys are pressed
   std::function<void(
       MainWindow *, int key, int scancode, int action, int mods)>
       keyCallback;

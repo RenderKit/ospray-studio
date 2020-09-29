@@ -10,6 +10,11 @@
 #include <vector>
 // ospray
 #include "ospray/ospray_util.h"
+// ospray sg
+#include "sg/Frame.h"
+#include "sg/renderer/MaterialRegistry.h"
+// studio app
+#include "ArcballCamera.h"
 // ospcommon
 #include "rkcommon/common.h"
 
@@ -53,9 +58,41 @@ class StudioCommon
 };
 
 // Mode entry points
-void start_GUI_mode(StudioCommon &studioCommon);
-void start_Batch_mode(StudioCommon &studioCommon);
-void start_TimeSeries_mode(StudioCommon &studioCommon);
+// void start_GUI_mode(StudioCommon &studioCommon);
+// void start_Batch_mode(StudioCommon &studioCommon);
+// void start_TimeSeries_mode(StudioCommon &studioCommon);
+
+// abstract base class for all Studio modes
+// ALOK: should be merged with StudioCommon above
+class StudioContext
+{
+ public:
+  StudioContext(StudioCommon &_common)
+    :studioCommon(_common)
+  {
+    frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
+    baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>("baseMaterialRegistry", "materialRegistry");
+  }
+
+  virtual ~StudioContext() {}
+
+  virtual void start() = 0;
+  virtual bool parseCommandLine() = 0;
+  virtual void importFiles(sg::NodePtr world) = 0;
+
+  std::shared_ptr<sg::Frame> frame;
+  std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
+  std::vector<std::string> filesToImport;
+
+ protected:
+  virtual void printHelp()
+  {
+    std::cerr << "common Studio help message" << std::endl;
+  }
+
+  StudioCommon &studioCommon;
+  std::unique_ptr<ArcballCamera> arcballCamera;
+};
 
 inline OSPError initializeOSPRay(
     int &argc, const char **argv)

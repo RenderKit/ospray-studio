@@ -13,30 +13,27 @@
 // json
 #include "sg/JSONDefs.h"
 
-// Batch mode entry point
-void start_Batch_mode(StudioCommon &studioCommon)
-{
-  std::cerr << "Batch mode\n";
-
-  auto batch = make_unique<BatchContext>(studioCommon);
-  if (batch->parseCommandLine()) {
-    std::cout << "...importing files!" << std::endl;
-    batch->importFiles();
-    std::cout << "...rendering!" << std::endl;
-    batch->render();
-    std::cout << "...finished!" << std::endl;
-    batch.reset();
-  }
-}
-
 BatchContext::BatchContext(StudioCommon &_common)
-    : studioCommon(_common), optImageSize(_common.defaultSize)
+    : StudioContext(_common), optImageSize(_common.defaultSize)
 {
-  frame_ptr = sg::createNodeAs<sg::Frame>("main_frame", "frame");
+  frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
   baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
       "baseMaterialRegistry", "materialRegistry");
   baseMaterialRegistry->addNewSGMaterial("obj");
+}
+
+void BatchContext::start()
+{
+  std::cerr << "Batch mode\n";
+
+  if (parseCommandLine()) {
+    std::cout << "...importing files!" << std::endl;
+    refreshScene(true);
+    std::cout << "...rendering!" << std::endl;
+    render();
+    std::cout << "...finished!" << std::endl;
+  }
 }
 
 bool BatchContext::parseCommandLine()
@@ -147,61 +144,60 @@ bool BatchContext::parseCommandLine()
 
 void BatchContext::render()
 {
-  auto &frame = *frame_ptr;
+  // auto &frame = *frame;
 
-  frame.createChild("renderer", "renderer_" + optRendererTypeStr);
-  frame.createChild("camera", "camera_" + optCameraTypeStr);
+  frame->createChild("renderer", "renderer_" + optRendererTypeStr);
+  frame->createChild("camera", "camera_" + optCameraTypeStr);
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
-  frame["renderer"].createChildData("material",
-                                    baseMaterialRegistry->cppMaterialList);
-
+  frame->child("renderer")
+      .createChildData("material", baseMaterialRegistry->cppMaterialList);
   // Set the frame "windowSize", it will create the right sized framebuffer
-  frame["windowSize"] = optImageSize;
+  frame->child("windowSize") = optImageSize;
 
   if (optPF >= 0)
-    frame["renderer"].createChild("pixelFilter", "int", optPF);
+    frame->child("renderer").createChild("pixelFilter", "int", optPF);
 
-  auto &frameBuffer = frame.childAs<sg::FrameBuffer>("framebuffer");
+  auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
 
   // If using the denoiser, set the framebuffer to allow it.
   if (studioCommon.denoiserAvailable && optDenoiser)
     frameBuffer["allowDenoising"] = true;
 
   // Create a default ambient light
-  frame["world"].createChild("materialref", "reference_to_material", 0);
+  frame->child("world").createChild("materialref", "reference_to_material", 0);
 
   if (!optGridEnable) {
     // Add imported models
-    frame["world"].add(importedModels);
+    frame->child("world").add(importedModels);
   } else {
     // Determine world bounds to calculate grid offsets
-    frame["world"].add(importedModels);
-    frame["world"].render();
-    frame["world"].remove(importedModels);
+    frame->child("world").add(importedModels);
+    frame->child("world").render();
+    frame->child("world").remove(importedModels);
 
-    box3f bounds = frame["world"].bounds();
-    float tx     = bounds.size().x * 1.2f;
-    float ty     = bounds.size().y * 1.2f;
-    float tz     = bounds.size().z * 1.2f;
+    box3f bounds = frame->child("world").bounds();
+    float tx = bounds.size().x * 1.2f;
+    float ty = bounds.size().y * 1.2f;
+    float tz = bounds.size().z * 1.2f;
 
     for (auto z = 0; z < optGridSize.z; z++)
       for (auto y = 0; y < optGridSize.y; y++)
         for (auto x = 0; x < optGridSize.x; x++) {
-          auto nodeName = "copy_" + std::to_string(x) + ":" +
-                          std::to_string(y) + ":" + std::to_string(z) + "_xfm";
-          auto copy = sg::createNode(
-              nodeName,
+          auto nodeName = "copy_" + std::to_string(x) + ":" + std::to_string(y)
+              + ":" + std::to_string(z) + "_xfm";
+          auto copy = sg::createNode(nodeName,
               "Transform",
               affine3f::translate(vec3f(tx * x, ty * y, tz * z)));
           copy->add(importedModels);
-          frame["world"].add(copy);
+          frame->child("world").add(copy);
         }
   }
 
-  frame["world"].render();
+  frame->child("world").render();
 
   // Update camera based on world bounds after import
-  arcballCamera.reset(new ArcballCamera(frame["world"].bounds(), optImageSize));
+  arcballCamera.reset(
+      new ArcballCamera(frame->child("world").bounds(), optImageSize));
 
   std::ifstream cams("cams.json");
   if (cams) {
@@ -213,31 +209,31 @@ void BatchContext::render()
     arcballCamera->setState(cs);
   }
 
-  auto &camera        = frame.child("camera");
+  auto &camera = frame->child("camera");
   if (camera.hasChild("aspect"))
     camera["aspect"] = optImageSize.x / (float)optImageSize.y;
-  camera["position"]  = arcballCamera->eyePos();
+  camera["position"] = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
-  camera["up"]        = arcballCamera->upDir();
+  camera["up"] = arcballCamera->upDir();
 
   if (cmdlCam) {
-    camera["position"]   = pos;
-    camera["direction"]  = normalize(gaze - pos);
-    camera["up"]         = up;
+    camera["position"] = pos;
+    camera["direction"] = normalize(gaze - pos);
+    camera["up"] = up;
   }
 
-  camera["stereoMode"]             = optStereoMode;
+  camera["stereoMode"] = optStereoMode;
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
 
-  frame["world"].createChild("light", "ambient");
-  frame["navMode"] = false;
+  frame->child("world").createChild("light", "ambient");
+  frame->child("navMode") = false;
 
-  frame.render();
+  frame->render();
 
   // Accumulate several frames
   for (auto i = 0; i < optSPP - 1; i++) {
-    frame.immediatelyWait = true;
-    frame.startNewFrame();
+    frame->immediatelyWait = true;
+    frame->startNewFrame();
   }
 
   // Only denoise the final frame
@@ -245,12 +241,12 @@ void BatchContext::render()
   // buffers.  How best to do that since the frame op will alter the final
   // buffer?
   if (studioCommon.denoiserAvailable && optDenoiser)
-    frame.denoiseFB = true;
-  frame.immediatelyWait = true;
-  frame.startNewFrame();
+    frame->denoiseFB = true;
+  frame->immediatelyWait = true;
+  frame->startNewFrame();
 
-  auto size          = frameBuffer["size"].valueAs<vec2i>();
-  const void *pixels = frame.mapFrame();
+  auto size = frameBuffer["size"].valueAs<vec2i>();
+  const void *pixels = frame->mapFrame();
 
   if (frameBuffer.hasFloatFormat()) {
     optImageName += ".pfm";
@@ -261,12 +257,12 @@ void BatchContext::render()
         optImageName, size.x, size.y, (uint32_t *)pixels);
   }
 
-  frame.unmapFrame((void *)pixels);
+  frame->unmapFrame((void *)pixels);
 
   std::cout << "\nresult saved to '" << optImageName << "'\n";
 }
 
-void BatchContext::importFiles()
+void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform", affine3f{one});
 

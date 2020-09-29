@@ -16,22 +16,18 @@ using namespace ospray;
 using namespace ospray::sg;
 using rkcommon::make_unique;
 
-class BatchContext
+class BatchContext : public StudioContext
 {
  public:
   BatchContext(StudioCommon &studioCommon);
   ~BatchContext() {}
 
-  bool parseCommandLine();
-  void importFiles();
+  void start() override;
+  bool parseCommandLine() override;
+  void importFiles(sg::NodePtr world) override;
   void render();
 
  protected:
-  StudioCommon &studioCommon;
-
-  std::shared_ptr<sg::Frame> frame_ptr;
-  std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
-  std::vector<std::string> filesToImport;
   NodePtr importedModels;
 
   std::string optRendererTypeStr = "scivis";
@@ -49,8 +45,5 @@ class BatchContext
   bool cmdlCam{false};
   vec3f pos, up{0.f, 1.f, 0.f}, gaze{0.f, 0.f, 1.f};
 
-  // Arcball camera instance
-  std::unique_ptr<ArcballCamera> arcballCamera;
-
-  void printHelp();
+  void printHelp() override;
 };

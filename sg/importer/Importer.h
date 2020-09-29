@@ -67,5 +67,8 @@ inline std::string getImporter(rkcommon::FileName fileName)
   return importer;
 }
 
+// for loading scene (.sg) files
+void importScene(sg::NodePtr frame);
+
 } // namespace sg
 } // namespace ospray

@@ -18,16 +18,6 @@ using namespace ospray::sg;
 
 std::vector<std::string> variablesLoaded;
 
-// TimeSeriesWindow mode entry point
-void start_TimeSeries_mode(StudioCommon &studioCommon)
-{
-  std::cout << "***** Timeseries Mode *****" << std::endl;
-  auto window = rkcommon::make_unique<TimeSeriesWindow>(studioCommon);
-  window->parseCommandLine();
-  window->mainLoop();
-  window.reset();
-}
-
 static std::unordered_map<std::string, OSPDataType> const tableDataType = {
     {"float", OSP_FLOAT},
     {"int", OSP_INT},
@@ -41,6 +31,13 @@ TimeSeriesWindow::TimeSeriesWindow(StudioCommon &_common)
 {}
 
 TimeSeriesWindow::~TimeSeriesWindow() {}
+
+void TimeSeriesWindow::start()
+{
+  std::cout << "***** Timeseries Mode *****" << std::endl;
+  parseCommandLine();
+  mainLoop();
+}
 
 bool TimeSeriesWindow::isTimestepVolumeLoaded(int variableNum, int timestep)
 {
@@ -257,10 +254,10 @@ if(!importAsSeparateTimeseries)
     }
       }
       if (importAsSeparateTimeseries)
-        this->activeWindow->arcballCamera.reset(
+        arcballCamera.reset(
             new ArcballCamera(g_allSeparateWorlds[0][0]->bounds(), windowSize));
       else
-        this->activeWindow->arcballCamera.reset(
+        arcballCamera.reset(
             new ArcballCamera(g_allWorlds[0]->bounds(), windowSize));
       this->activeWindow->updateCamera();
 

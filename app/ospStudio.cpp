@@ -3,6 +3,10 @@
 
 #include "ospStudio.h"
 
+#include "MainWindow.h"
+#include "Batch.h"
+#include "TimeSeriesWindow.h"
+
 using namespace ospray;
 using rkcommon::removeArgs;
 
@@ -74,37 +78,46 @@ int main(int argc, const char *argv[])
     }
   }
 
-  // load plugins //
-  PluginManager pluginManager;
-  for (auto &p : pluginsToLoad)
-    pluginManager.loadPlugin(p);
+    // load plugins //
+    PluginManager pluginManager;
+    for (auto &p : pluginsToLoad)
+      pluginManager.loadPlugin(p);
 
-  // Check for module denoiser support after iniaitlizing OSPRay
-  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
-  std::cout << "OpenImageDenoise is " << (denoiser ? "" : "not ") << "available"
-            << std::endl;
+    // Check for module denoiser support after iniaitlizing OSPRay
+    bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
+    std::cout << "OpenImageDenoise is " << (denoiser ? "" : "not ")
+              << "available" << std::endl;
 
-  // Set paramters common to all modes
-  // doing so after initializeOSPRay allows OSPRay to remove its cmdline params.
-  StudioCommon studioCommon(pluginManager, denoiser, argc, argv);
+  // This scope contains all OSPRay API calls. It enforces cleanly calling all
+  // destructors before calling ospShutdown()
+  {
+    // Set paramaters common to all modes
+    // doing so after initializeOSPRay allows OSPRay to remove its cmdline
+    // params.
+    StudioCommon studioCommon(pluginManager, denoiser, argc, argv);
+    std::shared_ptr<StudioContext> context = nullptr;
 
-  // XXX Modes should be module loaded, statically linked causes
-  // non-gui modes to still require glfw/GL
-  switch (mode) {
-  case StudioMode::GUI:
-    start_GUI_mode(studioCommon);
-    break;
-  case StudioMode::BATCH:
-    start_Batch_mode(studioCommon);
-    break;
-  case StudioMode::HEADLESS:
-    std::cerr << "Headless mode\n";
-    break;
-  case StudioMode::TIMESERIES:
-    start_TimeSeries_mode(studioCommon);
-    break;
-  default:
-    std::cerr << "unknown mode!  How did I get here?!\n";
+    // XXX Modes should be module loaded, statically linked causes
+    // non-gui modes to still require glfw/GL
+    switch (mode) {
+    case StudioMode::GUI:
+      context = std::make_shared<MainWindow>(studioCommon);
+      break;
+    case StudioMode::BATCH:
+      context = std::make_shared<BatchContext>(studioCommon);
+      break;
+    case StudioMode::HEADLESS:
+      std::cerr << "Headless mode\n";
+      break;
+    case StudioMode::TIMESERIES:
+      context = std::make_shared<TimeSeriesWindow>(studioCommon);
+      break;
+    default:
+      std::cerr << "unknown mode!  How did I get here?!\n";
+    }
+
+    if (context)
+      context->start();
   }
 
   ospShutdown();

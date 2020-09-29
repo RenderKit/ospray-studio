@@ -25,7 +25,9 @@ class TimeSeriesWindow : public MainWindow
 
   ~TimeSeriesWindow();
 
-  bool parseCommandLine();
+  void start() override;
+
+  bool parseCommandLine() override;
 
   void mainLoop();
 
@@ -43,7 +45,7 @@ class TimeSeriesWindow : public MainWindow
 
   void setVariableTimeseries(int whichVariable, int timestep);
 
-  void printHelp();
+  void printHelp() override;
 
   std::vector<ospray::sg::VolumeParameters> g_volumeParameters;
   std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;

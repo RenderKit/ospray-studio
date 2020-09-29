@@ -22,5 +22,9 @@ NodeType Importer::type() const
 
 void Importer::importScene() {}
 
+void importScene(sg::NodePtr frame)
+{
+}
+
 } // namespace sg
 } // namespace ospray
