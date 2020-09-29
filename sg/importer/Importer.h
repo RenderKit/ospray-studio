@@ -8,6 +8,8 @@
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/texture/Texture2D.h"
 
+#include "../../app/ospStudio.h"
+
 namespace ospray {
 namespace sg {
 
@@ -68,7 +70,8 @@ inline std::string getImporter(rkcommon::FileName fileName)
 }
 
 // for loading scene (.sg) files
-void importScene(sg::NodePtr frame);
+void importScene(
+    std::shared_ptr<StudioContext> context, rkcommon::FileName &fileName);
 
 } // namespace sg
 } // namespace ospray

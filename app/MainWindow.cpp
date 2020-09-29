@@ -978,70 +978,30 @@ void MainWindow::importFiles(sg::NodePtr world)
 
       // ALOK: handling loading a scene here for now
       if (fileName.ext() == "sg") {
-        std::cout << "this is a scenegraph file" << std::endl;
-        filesToImport.clear();
-        std::ifstream sgFile(fileName.str());
-        if (!sgFile)
-          throw std::runtime_error("Could not open file to read!");
-
-        nlohmann::json j;
-        sgFile >> j;
-        sg::NodePtr lights;
-
-        auto &jWorld = j["world"];
-        for (auto &jChild : jWorld["children"]) {
-          switch (jChild["type"].get<sg::NodeType>()) {
-          case sg::NodeType::IMPORTER:
-            filesToImport.push_back(jChild["filename"]);
-            break;
-          case sg::NodeType::LIGHTS:
-            lights = sg::createNode(jChild);
-            break;
-          default:
-            break;
-          }
-        }
-
-        refreshScene(true);
-
-        frame->child("world").add(lights);
-
-        CameraState cs = j["camera"];
-        arcballCamera->setState(cs);
-        updateCamera();
-
-        for (auto &jChild : jWorld["children"]) {
-          if (jChild["type"] == sg::NodeType::IMPORTER) {
-            auto &imp = frame->child("world").child(jChild["name"]);
-            auto &jXfm = jChild["children"][0];
-            // set the correct value for the transform
-            imp.child(jXfm["name"]) = jXfm["value"].get<AffineSpace3f>();
-          }
-        }
-      }
-
-      std::string nodeName = fileName.base() + "_importer";
-
-      std::cout << "Importing: " << file << std::endl;
-
-      auto importer = sg::getImporter(file);
-      if (importer != "") {
-        auto &imp = world->createChildAs<sg::Importer>(nodeName, importer);
-
-        // Could be any type of importer.  Need to pass the MaterialRegistry,
-        // importer will use what it needs.
-        imp.setFileName(fileName);
-        imp.setMaterialRegistry(baseMaterialRegistry);
-        if (animate) {
-          imp.animate = animate;
-          imp.setTimesteps(timesteps);
-        }
-        imp.importScene();
-
-        if (baseMaterialRegistry->matImportsList.size())
-          refreshRenderer();
+        sg::importScene(shared_from_this(), fileName);
       } else {
-        std::cout << "No importer for this file type." << std::endl;
+        std::string nodeName = fileName.base() + "_importer";
+        std::cout << "Importing: " << file << std::endl;
+
+        auto importer = sg::getImporter(file);
+        if (importer != "") {
+          auto &imp = world->createChildAs<sg::Importer>(nodeName, importer);
+
+          // Could be any type of importer.  Need to pass the MaterialRegistry,
+          // importer will use what it needs.
+          imp.setFileName(fileName);
+          imp.setMaterialRegistry(baseMaterialRegistry);
+          if (animate) {
+            imp.animate = animate;
+            imp.setTimesteps(timesteps);
+          }
+          imp.importScene();
+
+          if (baseMaterialRegistry->matImportsList.size())
+            refreshRenderer();
+        } else {
+          std::cout << "No importer for this file type." << std::endl;
+        }
       }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";

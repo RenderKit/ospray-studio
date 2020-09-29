@@ -86,7 +86,8 @@ class MainWindow : public StudioContext
 
   void refreshRenderer();
 
-  void updateCamera();
+  void updateCamera() override;
+  void refreshScene(bool resetCamera) override;
   int whichLightType{-1};
   std::string lightTypeStr{"ambient"};
 
@@ -104,7 +105,6 @@ class MainWindow : public StudioContext
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
   void buildUI();
-  void refreshScene(bool resetCamera);
   void refreshMaterialRegistry();
   void addLight();
   void removeLight();
@@ -173,7 +173,6 @@ class MainWindow : public StudioContext
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   int optPF = -1; // optional pixel filter, -1 = use default
 
-  int defaultMaterialIdx = 0;
   rkcommon::FileName backPlateTexture = "";
 
   // GLFW window instance

@@ -91,7 +91,7 @@ int main(int argc, const char *argv[])
   // This scope contains all OSPRay API calls. It enforces cleanly calling all
   // destructors before calling ospShutdown()
   {
-    // Set paramaters common to all modes
+    // Set parameters common to all modes
     // doing so after initializeOSPRay allows OSPRay to remove its cmdline
     // params.
     StudioCommon studioCommon(pluginManager, denoiser, argc, argv);

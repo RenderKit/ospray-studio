@@ -57,21 +57,17 @@ class StudioCommon
   const char **argv;
 };
 
-// Mode entry points
-// void start_GUI_mode(StudioCommon &studioCommon);
-// void start_Batch_mode(StudioCommon &studioCommon);
-// void start_TimeSeries_mode(StudioCommon &studioCommon);
-
 // abstract base class for all Studio modes
 // ALOK: should be merged with StudioCommon above
-class StudioContext
+class StudioContext : public std::enable_shared_from_this<StudioContext>
 {
  public:
   StudioContext(StudioCommon &_common)
     :studioCommon(_common)
   {
     frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
-    baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>("baseMaterialRegistry", "materialRegistry");
+    baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
+        "baseMaterialRegistry", "materialRegistry");
   }
 
   virtual ~StudioContext() {}
@@ -79,10 +75,22 @@ class StudioContext
   virtual void start() = 0;
   virtual bool parseCommandLine() = 0;
   virtual void importFiles(sg::NodePtr world) = 0;
+  virtual void refreshScene(bool resetCam) = 0;
+  virtual void updateCamera() = 0;
+
+  // this method is so that importScene (in sg) does not need
+  // to compile/link with ArcballCamera/UI
+  virtual void setCameraState(CameraState &cs)
+  {
+    arcballCamera->setState(cs);
+  }
 
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
   std::vector<std::string> filesToImport;
+  std::unique_ptr<ArcballCamera> arcballCamera;
+
+  int defaultMaterialIdx = 0;
 
  protected:
   virtual void printHelp()
@@ -91,7 +99,6 @@ class StudioContext
   }
 
   StudioCommon &studioCommon;
-  std::unique_ptr<ArcballCamera> arcballCamera;
 };
 
 inline OSPError initializeOSPRay(

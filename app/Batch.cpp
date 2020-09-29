@@ -262,6 +262,39 @@ void BatchContext::render()
   std::cout << "\nresult saved to '" << optImageName << "'\n";
 }
 
+void BatchContext::refreshScene(bool resetCam)
+{
+  // Check that the frame contains a world, if not create one
+  auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
+                                        : sg::createNode("world", "world");
+
+  world->createChild(
+      "materialref", "reference_to_material", defaultMaterialIdx);
+
+  if (!filesToImport.empty())
+    importFiles(world);
+
+  world->render();
+
+  frame->add(world);
+
+  if (resetCam)
+    arcballCamera.reset(
+        new ArcballCamera(frame->child("world").bounds(), optImageSize));
+  updateCamera();
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  fb.resetAccumulation();
+}
+
+void BatchContext::updateCamera()
+{
+  auto &camera = frame->child("camera");
+
+  camera["position"]  = arcballCamera->eyePos();
+  camera["direction"] = arcballCamera->lookDir();
+  camera["up"]        = arcballCamera->upDir();
+}
+
 void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform", affine3f{one});
@@ -269,18 +302,22 @@ void BatchContext::importFiles(sg::NodePtr world)
   for (auto file : filesToImport) {
     try {
       rkcommon::FileName fileName(file);
-      std::string nodeName = fileName.base() + "_importer";
-      std::cout << "Importing: " << file << std::endl;
+      if (fileName.ext() == "sg") {
+        importScene(shared_from_this(), fileName);
+      } else {
+        std::string nodeName = fileName.base() + "_importer";
+        std::cout << "Importing: " << file << std::endl;
 
-      auto importer = sg::getImporter(file);
-      if (importer != "") {
-        auto &imp =
-            importedModels->createChildAs<sg::Importer>(nodeName, importer);
-        // Could be any type of importer.  Need to pass the MaterialRegistry,
-        // importer will use what it needs.
-        imp.setFileName(fileName);
-        imp.setMaterialRegistry(baseMaterialRegistry);
-        imp.importScene();
+        auto importer = sg::getImporter(file);
+        if (importer != "") {
+          auto &imp =
+              importedModels->createChildAs<sg::Importer>(nodeName, importer);
+          // Could be any type of importer.  Need to pass the MaterialRegistry,
+          // importer will use what it needs.
+          imp.setFileName(fileName);
+          imp.setMaterialRegistry(baseMaterialRegistry);
+          imp.importScene();
+        }
       }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
