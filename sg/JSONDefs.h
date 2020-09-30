@@ -55,6 +55,9 @@ inline void to_json(nlohmann::json &j, const Node &n)
     return;
   }
 
+  if (n.type() == NodeType::PARAMETER)
+    j["sgOnly"] = n.sgOnly();
+
   if (n.value().valid() && (n.type() == NodeType::PARAMETER
       || n.type() == NodeType::TRANSFORM))
     j["value"] = n.value();
@@ -82,6 +85,8 @@ inline OSPSG_INTERFACE NodePtr createNode(const nlohmann::json &j) {
   if (j.contains("children")) {
     for (auto &jChild : j["children"]) {
       auto child = createNode(jChild);
+      if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
+        child->setSGOnly();
       if (j["type"] == NodeType::LIGHTS)
         n->nodeAs<Lights>()->addLight(child);
       else
