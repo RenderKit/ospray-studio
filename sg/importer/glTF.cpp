@@ -79,7 +79,7 @@ namespace ospray {
 
     void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
 
-    void loadKeyframeOutput(int accessorID, std::vector<affine3f> &kfOutput);
+    void loadKeyframeOutput(int accessorID, std::vector<affine3f> &kfOutput, std::string &propertyName);
 
     void visitNode(NodePtr sgNode,
         const int nid,
@@ -358,6 +358,7 @@ namespace ospray {
     std::vector<affine3f> kfOutput;
     if (animatedNodes.find(nid) != animatedNodes.end()) {
       auto &animChannel = animatedNodes[nid];
+      auto &propertyName = animChannel->child("targetPath").valueAs<std::string>();
       auto &sampler = animChannel->child("sampler");
       int inputAcc = sampler.child("inputAccessor").valueAs<int>();
 
@@ -366,26 +367,21 @@ namespace ospray {
       auto outputAcc =
           sampler.child("outputAccessor").valueAs<int>();
 
-      loadKeyframeOutput(outputAcc, kfOutput);
+      loadKeyframeOutput(outputAcc, kfOutput, propertyName);
     }
 
-      // Apply any transform in this node -> xfm
-      const auto nodeXfm = nodeTransform(n);
-      // const auto needXfm = (nodeXfm != affine3f{one});
+    // Apply any transform in this node -> xfm
+    const auto nodeXfm = nodeTransform(n);
 
-      // Create xfm
-      // if (needXfm) {
-        static auto nNode = 0;
-        auto nodeName = n.name + "_" + pad(std::to_string(nNode++));
-        // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
-        // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
-        auto newXfm = createNode(
-            nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
-        sgNode->add(newXfm);
-        sgNode = newXfm;
-    // } else if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
-    //     addReferenceLinkInfo(nid, sgNode);
-    // }
+    static auto nNode = 0;
+    auto nodeName = n.name + "_" + pad(std::to_string(nNode++));
+    // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
+    // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
+    auto newXfm = createNode(
+        nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
+    sgNode->add(newXfm);
+    sgNode = newXfm;
+
     if (n.extensions.find("BIT_reference_link") != n.extensions.end())
         addReferenceLinkInfo(nid, sgNode);
 
@@ -394,7 +390,7 @@ namespace ospray {
     if (kfInput.size() != 0 || kfOutput.size() != 0) {
       static auto nAnimation = 0;
       auto &animParent = sgNode->createChild("animationNode_" + std::to_string(nAnimation), "animation");
-      sgNode->createChild("hasAnimations");
+
       for (int i = 0; i < kfInput.size(); ++i) {
         auto newXfm = createNode(
             "anim_" + std::to_string(nAnimation) + "_" + std::to_string(i), "Transform", kfOutput[i]);
@@ -445,12 +441,12 @@ namespace ospray {
 
   }
 
-  void GLTFData::loadKeyframeOutput(int accessorID, std::vector<affine3f> &xfms)
+  void GLTFData::loadKeyframeOutput(int accessorID, std::vector<affine3f> &xfms, std::string &propertyName)
   {
     auto &acc = model.accessors[accessorID];
 
     if (acc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
-      if (acc.type == TINYGLTF_TYPE_VEC4) {
+      if (propertyName == "rotation") {
         Accessor<vec4f> rt_accessor(acc, model);
         std::vector<vec4f> rt(rt_accessor.size());
 
@@ -464,7 +460,7 @@ namespace ospray {
           xfms.push_back(xfm);
         }
 
-      } else if (acc.type == TINYGLTF_TYPE_VEC3) {
+      } else if (propertyName == "translation") {
 
         Accessor<vec3f> ts_accessor(acc, model);
         std::vector<vec3f> ts(ts_accessor.size());
@@ -476,6 +472,20 @@ namespace ospray {
           affine3f xfm{one};
           auto &t = *ts_it;
           xfm = affine3f::translate(vec3f(t[0], t[1], t[2])) * xfm;
+          xfms.push_back(xfm);
+        }
+      } else if (propertyName == "scale") {
+
+        Accessor<vec3f> ts_accessor(acc, model);
+        std::vector<vec3f> ts(ts_accessor.size());
+
+        for (size_t i = 0; i < ts_accessor.size(); ++i)
+          ts[i] = ts_accessor[i];
+
+        for (auto ts_it = ts.begin(); ts_it != ts.end(); ++ts_it) {
+          affine3f xfm{one};
+          auto &t = *ts_it;
+          xfm = affine3f::scale(vec3f(t[0], t[1], t[2])) * xfm;
           xfms.push_back(xfm);
         }
       }
