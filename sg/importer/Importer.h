@@ -70,7 +70,7 @@ inline std::string getImporter(rkcommon::FileName fileName)
 }
 
 // for loading scene (.sg) files
-void importScene(
+OSPSG_INTERFACE void importScene(
     std::shared_ptr<StudioContext> context, rkcommon::FileName &fileName);
 
 } // namespace sg

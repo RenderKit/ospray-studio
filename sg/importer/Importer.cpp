@@ -24,7 +24,7 @@ NodeType Importer::type() const
 
 void Importer::importScene() {}
 
-void importScene(
+OSPSG_INTERFACE void importScene(
     std::shared_ptr<StudioContext> context, rkcommon::FileName &fileName)
 {
   std::cout << "this is importScene!" << std::endl;
