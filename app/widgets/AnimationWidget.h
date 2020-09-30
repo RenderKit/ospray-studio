@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2020 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -25,7 +25,7 @@
 #include "../../sg/scene/World.h"
 #include "../../sg/fb/FrameBuffer.h"
 #include "../../sg/visitors/GenerateAnimationSequence.h"
-#include "../../sg/visitors/GenerateAnimationTimeline.h"
+#include "../../sg/visitors/GenerateAnimationWorld.h"
 #include "../../sg/visitors/PrintNodes.h"
 
 using namespace rkcommon::math;
@@ -65,7 +65,7 @@ class AnimationWidget
   void animateKeyframes();
 
  private:
-  AnimationParameters g_animationParameters;
+  AnimationParameters animationParameters;
   std::shared_ptr<ospray::sg::Frame> activeFrame;
   std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;
   ospray::sg::NodePtr firstWorld;

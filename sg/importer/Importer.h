@@ -19,7 +19,6 @@ struct OSPSG_INTERFACE Importer : public Node
   NodeType type() const override;
 
   virtual void importScene();
-  virtual void importScene(std::vector<float> &timesteps);
 
   inline void setFileName(rkcommon::FileName _fileName)
   {
@@ -32,9 +31,15 @@ struct OSPSG_INTERFACE Importer : public Node
     materialRegistry = _registry;
   }
 
+  inline void setTimesteps(std::vector<float> &_timesteps)
+  {
+    timesteps = &_timesteps;
+  }
+
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
+  std::vector<float> *timesteps = nullptr;
 };
 
 extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;

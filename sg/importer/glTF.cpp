@@ -31,7 +31,6 @@ namespace ospray {
 
     void importScene() override;
 
-    void importScene(std::vector<float> &timesteps) override;
   };
 
   OSP_REGISTER_SG_NODE_NAME(glTFImporter, importer_gltf);
@@ -261,21 +260,19 @@ namespace ospray {
 
       // XXX Is there a better way to represent this "group" than a transform
       // node?
-      // auto ospModel = createNode(
-      //     modelName + "_model", "Transform", affine3f{one});  // Model "group"
-      // // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
+      auto ospModel = createNode(
+          modelName + "_model", "Transform", affine3f{one});  // Model "group"
+      // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
 
       NodePtr ospMesh;
 
       for (auto &prim : m.primitives) {  // -> TriangleMesh
         // Create per 'primitive' geometry
-        // auto ospMesh = createOSPMesh(modelName, prim);
-        // ospModel->add(ospMesh);
-        ospMesh = createOSPMesh(modelName, prim);
+        auto ospMesh = createOSPMesh(modelName, prim);
+        ospModel->add(ospMesh);
       }
 
-      // ospMeshes.push_back(ospModel);
-      ospMeshes.push_back(ospMesh);
+      ospMeshes.push_back(ospModel);
     }
   }
 
@@ -392,16 +389,12 @@ namespace ospray {
     if (n.extensions.find("BIT_reference_link") != n.extensions.end())
         addReferenceLinkInfo(nid, sgNode);
 
-    if (n.mesh != -1) {
-      // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
-      sgNode->add(ospMeshes[n.mesh]);
-    }
-
     static int numTimestep = 1;
 
     if (kfInput.size() != 0 || kfOutput.size() != 0) {
       static auto nAnimation = 0;
       auto &animParent = sgNode->createChild("animationNode_" + std::to_string(nAnimation), "animation");
+      sgNode->createChild("hasAnimations");
       for (int i = 0; i < kfInput.size(); ++i) {
         auto newXfm = createNode(
             "anim_" + std::to_string(nAnimation) + "_" + std::to_string(i), "Transform", kfOutput[i]);
@@ -413,6 +406,11 @@ namespace ospray {
 
       hasAnimations = true;
       nAnimation++;
+    }
+
+        if (n.mesh != -1) {
+      // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
+      sgNode->add(ospMeshes[n.mesh]);
     }
 
     kfInput.clear();
@@ -877,34 +875,9 @@ namespace ospray {
     // load asset extensions as separate SG Asset-Info-nod
     gltf.loadAssetInfo(rootNode);
 
-    // Finally, add node hierarchy to importer parent
-    add(rootNode);
-
-    INFO << "finished import!\n";
-  }
-
-  void glTFImporter::importScene(
-      std::vector<float> &timesteps)
-  {
-      std::string baseName = fileName.name() + "_rootXfm";
-    auto rootNode = createNode(baseName, "Transform", affine3f{one});
-
-    GLTFData gltf(rootNode, fileName);
-
-    if (!gltf.parseAsset())
-      return;
-
-    gltf.createMaterials(*materialRegistry);
-    gltf.createGeometries();
-    gltf.buildScene();
-
-    // load asset extensions as separate SG Asset-Info-nod
-    gltf.loadAssetInfo(rootNode);
-    
-    // the following states that the model has nodes that are animated
     if (gltf.hasAnimations){
       for (auto iter = gltf.g_allTimesteps.begin(); iter != gltf.g_allTimesteps.end(); ++iter){
-        timesteps.push_back(iter->first);
+        timesteps->push_back(iter->first);
       }
     }
 

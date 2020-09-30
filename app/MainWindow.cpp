@@ -951,6 +951,8 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float
       rkcommon::FileName fileName(file);
       std::string nodeName = fileName.base() + "_importer";
 
+      std::cout << "Importing: " << file << std::endl;
+
       auto importer = sg::getImporter(file);
       if (importer != "") {
         auto &imp = world->createChildAs<sg::Importer>(nodeName, importer);
@@ -960,9 +962,7 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float
         imp.setFileName(fileName);
         imp.setMaterialRegistry(baseMaterialRegistry);
 
-        if (importer == "importer_gltf")
-          imp.importScene(timesteps);
-        else
+        imp.setTimesteps(timesteps);
         imp.importScene();
 
         if (baseMaterialRegistry->matImportsList.size())
