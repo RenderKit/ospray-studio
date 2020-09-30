@@ -112,7 +112,7 @@ class MainWindow
   void removeLight();
   void addPTMaterials();
 
-  void importFiles(std::shared_ptr<sg::Node> &world, std::vector<float> &timesteps);
+  void importFiles(std::shared_ptr<sg::Node> &world, std::vector<float> *timesteps);
   void saveCurrentFrame();
   void pickCenterOfRotation(float x, float y);
   void pushLookMark();
@@ -168,6 +168,7 @@ class MainWindow
   bool showDepthInvert{false};
   bool autorotate{false};
   bool linkNodes{false};
+  bool animate{false};
 
   std::string scene;
   std::vector<std::string> filesToImport;

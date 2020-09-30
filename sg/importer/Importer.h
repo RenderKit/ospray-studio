@@ -36,6 +36,8 @@ struct OSPSG_INTERFACE Importer : public Node
     timesteps = &_timesteps;
   }
 
+  bool animate{false};
+
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;

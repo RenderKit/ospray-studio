@@ -62,6 +62,8 @@ namespace ospray {
 
     std::vector<NodePtr> ospMeshes;
 
+    bool animate{false};
+
     bool hasAnimations{false};
 
     std::map<float, int> g_allTimesteps;
@@ -352,24 +354,6 @@ namespace ospray {
     // DEBUG << pad("", '.', 3 * level) << nid << ":" << n.name
     //     << " (children:" << n.children.size() << ")\n";
 
-    // for each scene node check if it is animated (if it's node ID exist in animatedNodes map)
-    // and load animation transforms
-    std::vector<float> kfInput;
-    std::vector<affine3f> kfOutput;
-    if (animatedNodes.find(nid) != animatedNodes.end()) {
-      auto &animChannel = animatedNodes[nid];
-      auto &propertyName = animChannel->child("targetPath").valueAs<std::string>();
-      auto &sampler = animChannel->child("sampler");
-      int inputAcc = sampler.child("inputAccessor").valueAs<int>();
-
-      loadKeyframeInput(inputAcc, kfInput);
-
-      auto outputAcc =
-          sampler.child("outputAccessor").valueAs<int>();
-
-      loadKeyframeOutput(outputAcc, kfOutput, propertyName);
-    }
-
     // Apply any transform in this node -> xfm
     const auto nodeXfm = nodeTransform(n);
 
@@ -385,6 +369,26 @@ namespace ospray {
     if (n.extensions.find("BIT_reference_link") != n.extensions.end())
         addReferenceLinkInfo(nid, sgNode);
 
+    if (animate) {
+    // for each scene node check if it is animated (if it's node ID exist in animatedNodes map)
+    // and load animation transforms
+    std::vector<float> kfInput;
+    std::vector<affine3f> kfOutput;
+
+    if (animatedNodes.find(nid) != animatedNodes.end()) {
+      auto &animChannel = animatedNodes[nid];
+      auto &propertyName = animChannel->child("targetPath").valueAs<std::string>();
+      auto &sampler = animChannel->child("sampler");
+      int inputAcc = sampler.child("inputAccessor").valueAs<int>();
+
+      loadKeyframeInput(inputAcc, kfInput);
+
+      auto outputAcc =
+          sampler.child("outputAccessor").valueAs<int>();
+
+      loadKeyframeOutput(outputAcc, kfOutput, propertyName);
+    }
+
     static int numTimestep = 1;
 
     if (kfInput.size() != 0 || kfOutput.size() != 0) {
@@ -399,18 +403,18 @@ namespace ospray {
         g_allTimesteps.insert(std::make_pair(kfInput[i], numTimestep));
         numTimestep++;
       }
-
-      hasAnimations = true;
       nAnimation++;
-    }
-
-        if (n.mesh != -1) {
-      // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
-      sgNode->add(ospMeshes[n.mesh]);
     }
 
     kfInput.clear();
     kfOutput.clear();
+
+    }
+
+    if (n.mesh != -1) {
+      // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
+      sgNode->add(ospMeshes[n.mesh]);
+    }
 
     if (n.camera != -1) {
       WARN << "unsupported node-type: camera\n";
@@ -882,6 +886,7 @@ namespace ospray {
     if (!gltf.parseAsset())
       return;
 
+    gltf.animate = animate;
     gltf.createMaterials(*materialRegistry);
     gltf.createGeometries();
     gltf.buildScene();
@@ -889,7 +894,7 @@ namespace ospray {
     // load asset extensions as separate SG Asset-Info-nod
     gltf.loadAssetInfo(rootNode);
 
-    if (gltf.hasAnimations){
+    if (animate){
       for (auto iter = gltf.g_allTimesteps.begin(); iter != gltf.g_allTimesteps.end(); ++iter){
         timesteps->push_back(iter->first);
       }

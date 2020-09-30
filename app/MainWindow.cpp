@@ -903,13 +903,15 @@ void MainWindow::refreshScene(bool resetCam)
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
 
-  std::vector<float> timesteps;
-
   if (!filesToImport.empty()) {
-    importFiles(world, timesteps);
 
-    if(timesteps.size() != 0)
+    if (animate) {
+      std::vector<float> timesteps;
+      importFiles(world, &timesteps);
       loadSceneWithAnimations(world, timesteps);
+    } else 
+    importFiles(world, nullptr);
+
   } else {
     if (scene != "empty") {
       auto &gen = world->createChildAs<sg::Generator>("generator",
@@ -950,8 +952,9 @@ void MainWindow::parseCommandLine()
       --i;
     } else if(arg == "-linkNodes" || arg == "-ln") {
       linkNodes = true;
-    }
-    else if (arg == "--2160p")
+    } else if (arg == "-animate" || arg == "-a") {
+      animate = true;
+    } else if (arg == "--2160p")
       glfwSetWindowSize(glfwWindow, 3840, 2160);
     else if (arg == "--1440p")
       glfwSetWindowSize(glfwWindow, 2560, 1440);
@@ -983,7 +986,7 @@ void MainWindow::loadSceneWithAnimations(sg::NodePtr world, std::vector<float> &
 }
 
 // Importer for all known file types (geometry and models)
-void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float> &timesteps)
+void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float> *timesteps)
 {
   for (auto file : filesToImport) {
     try {
@@ -1000,8 +1003,10 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float
         // importer will use what it needs.
         imp.setFileName(fileName);
         imp.setMaterialRegistry(baseMaterialRegistry);
-
-        imp.setTimesteps(timesteps);
+        if (animate) {
+          imp.animate = animate;
+          imp.setTimesteps(*timesteps);
+        }
         imp.importScene();
 
         if (baseMaterialRegistry->matImportsList.size())
@@ -1088,6 +1093,9 @@ void MainWindow::buildMainMenuFile()
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem("Import ...", nullptr)) {
       showImportFileBrowser = true;
+    } else if (ImGui::MenuItem("Import and animate ...", nullptr)) {
+      showImportFileBrowser = true;
+      animate = true;
     }
     if (ImGui::BeginMenu("Demo Scene")) {
       //g_scene[0]='empty' works fine but not sure it makes sense as an user visible option
