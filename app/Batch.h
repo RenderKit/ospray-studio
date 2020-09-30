@@ -27,6 +27,7 @@ class BatchContext : public StudioContext
   void importFiles(sg::NodePtr world) override;
   void refreshScene(bool resetCam) override;
   void updateCamera() override;
+  void setCameraState(CameraState &cs) override;
   void render();
 
  protected:

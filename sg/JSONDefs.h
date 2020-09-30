@@ -9,8 +9,6 @@
 #include "importer/Importer.h"
 #include "scene/lights/Lights.h"
 
-#include "../app/ArcballCamera.h"
-
 // This file contains definitions of `to_json` and `from_json` for custom types
 // used within Studio. These methods allow us to easily serialize and
 // deserialize SG nodes to JSON.

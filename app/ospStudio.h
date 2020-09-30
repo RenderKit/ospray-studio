@@ -80,10 +80,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   // this method is so that importScene (in sg) does not need
   // to compile/link with ArcballCamera/UI
-  virtual void setCameraState(CameraState &cs)
-  {
-    arcballCamera->setState(cs);
-  }
+  virtual void setCameraState(CameraState &cs) = 0;
 
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;

@@ -295,6 +295,11 @@ void BatchContext::updateCamera()
   camera["up"]        = arcballCamera->upDir();
 }
 
+void BatchContext::setCameraState(CameraState &cs)
+{
+  arcballCamera->setState(cs);
+}
+
 void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform", affine3f{one});

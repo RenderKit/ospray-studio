@@ -490,6 +490,11 @@ void MainWindow::updateCamera()
   camera["up"]        = arcballCamera->upDir();
 }
 
+void MainWindow::setCameraState(CameraState &cs)
+{
+  arcballCamera->setState(cs);
+}
+
 void MainWindow::pickCenterOfRotation(float x, float y)
 {
   ospray::cpp::PickResult res;
