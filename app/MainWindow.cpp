@@ -904,14 +904,7 @@ void MainWindow::refreshScene(bool resetCam)
       "materialref", "reference_to_material", defaultMaterialIdx);
 
   if (!filesToImport.empty()) {
-
-    if (animate) {
-      std::vector<float> timesteps;
-      importFiles(world, &timesteps);
-      loadSceneWithAnimations(world, timesteps);
-    } else 
-    importFiles(world, nullptr);
-
+    importFiles(world);
   } else {
     if (scene != "empty") {
       auto &gen = world->createChildAs<sg::Generator>("generator",
@@ -974,20 +967,10 @@ void MainWindow::parseCommandLine()
   }
 }
 
-void MainWindow::loadSceneWithAnimations(sg::NodePtr world, std::vector<float> &timesteps) {
-  allAnimationWidgets.push_back(
-      std::shared_ptr<AnimationWidget>(new AnimationWidget(
-          this->getFrame(), world, timesteps, "Animation Controls")));
-
-  registerImGuiCallback([&]() {
-    for (auto i = 0; i < allAnimationWidgets.size(); ++i)
-      allAnimationWidgets[i]->addAnimationUI();
-  });
-}
-
 // Importer for all known file types (geometry and models)
-void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float> *timesteps)
+void MainWindow::importFiles(std::shared_ptr<sg::Node> &world)
 {
+  std::vector<float> timesteps; // time stamps in units seconds in all files
   for (auto file : filesToImport) {
     try {
       rkcommon::FileName fileName(file);
@@ -1005,7 +988,7 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float
         imp.setMaterialRegistry(baseMaterialRegistry);
         if (animate) {
           imp.animate = animate;
-          imp.setTimesteps(*timesteps);
+          imp.setTimesteps(timesteps);
         }
         imp.importScene();
 
@@ -1025,6 +1008,17 @@ void MainWindow::importFiles(std::shared_ptr<sg::Node> &world, std::vector<float
     world->traverse<sg::RefLinkNodes>();
 
     // TODO Important: remove empty importer nodes as well
+  }
+
+  if (animate && timesteps.size() > 0) {
+    allAnimationWidgets.push_back(
+        std::shared_ptr<AnimationWidget>(new AnimationWidget(
+            this->getFrame(), world, timesteps, "Animation Controls")));
+
+    registerImGuiCallback([&]() {
+      for (auto i = 0; i < allAnimationWidgets.size(); ++i)
+        allAnimationWidgets[i]->addAnimationUI();
+    });
   }
 }
 

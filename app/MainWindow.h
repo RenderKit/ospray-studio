@@ -112,7 +112,7 @@ class MainWindow
   void removeLight();
   void addPTMaterials();
 
-  void importFiles(std::shared_ptr<sg::Node> &world, std::vector<float> *timesteps);
+  void importFiles(std::shared_ptr<sg::Node> &world);
   void saveCurrentFrame();
   void pickCenterOfRotation(float x, float y);
   void pushLookMark();
@@ -212,6 +212,5 @@ class MainWindow
   GLenum gl_rgb_format;
   GLenum gl_rgba_format;
 
-  void loadSceneWithAnimations(sg::NodePtr world, std::vector<float> &timesteps);
   std::vector<std::shared_ptr<AnimationWidget>> allAnimationWidgets;
 };
