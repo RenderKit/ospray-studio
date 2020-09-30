@@ -121,8 +121,6 @@ void AnimationWidget::insertKeyframeMenu()
       animationParameters.computedAnimationMax);
 
   ImGui::Spacing();
-
-  ImGui::End();
 }
 
 void AnimationWidget::animateKeyframes()
