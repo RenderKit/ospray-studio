@@ -154,11 +154,14 @@ void BatchContext::render()
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
   frame["renderer"].createChildData("material",
                                     baseMaterialRegistry->cppMaterialList);
+
+  // Set the frame "windowSize", it will create the right sized framebuffer
+  frame["windowSize"] = optImageSize;
+
   if (optPF >= 0)
     frame["renderer"].createChild("pixelFilter", "int", optPF);
 
   auto &frameBuffer = frame.childAs<sg::FrameBuffer>("framebuffer");
-  frameBuffer["size"] = optImageSize;
 
   // If using the denoiser, set the framebuffer to allow it.
   if (studioCommon.denoiserAvailable && optDenoiser)
