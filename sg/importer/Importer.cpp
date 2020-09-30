@@ -55,7 +55,12 @@ OSPSG_INTERFACE void importScene(
 
   context->refreshScene(true);
 
-  context->frame->child("world").add(lights);
+  if (lights == nullptr) {
+    std::cerr << "Scene file '" << fileName
+              << "' has no lights! Is this file correct?" << std::endl;
+  } else {
+    context->frame->child("world").add(lights);
+  }
 
   CameraState cs = j["camera"];
   context->setCameraState(cs);
