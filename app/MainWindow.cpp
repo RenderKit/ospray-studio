@@ -827,6 +827,13 @@ void MainWindow::updateTitleBar()
   std::stringstream windowTitle;
   windowTitle << "OSPRay Studio: ";
 
+  // Set indicators in the title bar for nav mode, frame modified and canceled
+  windowTitle << " <";
+  windowTitle << (navMode ? "n" : "_");
+  windowTitle << (frame->isModified() ? "m" : "_");
+  windowTitle << (frame->isCanceled() ? "c" : "_");
+  windowTitle << "> ";
+
   if (frame->pauseRendering) {
     windowTitle << "rendering paused";
   } else if (frame->accumLimitReached()) {
