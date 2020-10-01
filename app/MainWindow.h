@@ -136,6 +136,8 @@ class MainWindow : public StudioContext
   void setCameraSnapshot(size_t snapshot);
   void printHelp() override;
 
+  std::vector<CameraState> cameraStack;
+
   // Plugins //
   std::vector<std::unique_ptr<Panel>> pluginPanels;
   PluginManager pluginManager;

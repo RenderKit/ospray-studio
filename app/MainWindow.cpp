@@ -40,8 +40,6 @@
 
 using namespace ospray_studio;
 
-static std::vector<CameraState> g_cameraStack;
-
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 
 static bool g_quitNextFrame  = false;
@@ -402,7 +400,7 @@ void MainWindow::start()
   if (cams) {
     nlohmann::json j;
     cams >> j;
-    g_cameraStack = j.get<std::vector<CameraState>>();
+    cameraStack = j.get<std::vector<CameraState>>();
   }
 
   parseCommandLine();
@@ -1065,7 +1063,7 @@ void MainWindow::saveCurrentFrame()
 
 void MainWindow::pushLookMark()
 {
-  g_cameraStack.push_back(arcballCamera->getState());
+  cameraStack.push_back(arcballCamera->getState());
   vec3f from = arcballCamera->eyePos();
   vec3f up   = arcballCamera->upDir();
   vec3f at   = arcballCamera->lookDir() + from;
@@ -1084,10 +1082,10 @@ void MainWindow::pushLookMark()
 
 void MainWindow::popLookMark()
 {
-  if (g_cameraStack.empty())
+  if (cameraStack.empty())
     return;
-  CameraState cs = g_cameraStack.back();
-  g_cameraStack.pop_back();
+  CameraState cs = cameraStack.back();
+  cameraStack.pop_back();
   arcballCamera->setState(cs);
   updateCamera();
 }
@@ -1617,9 +1615,9 @@ void MainWindow::buildWindowKeyframes()
 
 void MainWindow::setCameraSnapshot(size_t snapshot)
 {
-  if (snapshot < g_cameraStack.size())
+  if (snapshot < cameraStack.size())
   {
-    const CameraState &cs = g_cameraStack.at(snapshot);
+    const CameraState &cs = cameraStack.at(snapshot);
     arcballCamera->setState(cs);
     updateCamera();
   }
@@ -1632,19 +1630,19 @@ void MainWindow::buildWindowSnapshots()
     return;
   }
   ImGui::Text("+ key to add new snapshots");
-  for (int s=0; s < g_cameraStack.size(); s++)
+  for (int s=0; s < cameraStack.size(); s++)
   {
     if (ImGui::Button(std::to_string(s).c_str())) {
       setCameraSnapshot(s);
     }
   }
-  if (g_cameraStack.size())
+  if (cameraStack.size())
   {
     if (ImGui::Button("save to cams.json")) {
       std::ofstream cams("cams.json");
       if (cams)
       {
-        nlohmann::json j = g_cameraStack;
+        nlohmann::json j = cameraStack;
         cams << j;
       }
     }

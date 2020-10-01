@@ -8,6 +8,8 @@
 #include "imgui.h"
 // rkcommon
 #include "rkcommon/tasking/parallel_for.h"
+// json
+#include "sg/JSONDefs.h"
 
 #include <chrono>
 
@@ -52,6 +54,14 @@ void TimeSeriesWindow::start()
             std::back_inserter(pluginPanels));
 
   parseCommandLine();
+
+  std::ifstream cams("cams.json");
+  if (cams) {
+    nlohmann::json j;
+    cams >> j;
+    cameraStack = j.get<std::vector<CameraState>>();
+  }
+
   mainLoop();
 }
 
