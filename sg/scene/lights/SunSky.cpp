@@ -39,15 +39,17 @@ SunSky::SunSky() : Light("sunSky")
       "vec3f",
       "main emission direction of the sun",
       vec3f(0.f, 1.f, 0.f));
-  // XXX enable horizon if it gets exposed in OSPRay
-  //createChild("horizon", "float", 0.01f);
+  createChild("horizonExtension",
+      "float",
+      "extend sky dome by stretching the horizon,\nfraction of the lower hemisphere to cover [0-1]",
+      0.01f);
 
-    // Set reasonable limits, this will set slider range
+  // Set reasonable limits, this will set slider range
   child("albedo").setMinMax(0.f, 1.f);
   child("azimuth").setMinMax(-180.f, 180.f);
   child("elevation").setMinMax(-90.f, 90.f);
   child("turbidity").setMinMax(0.f, 10.f);
-  //child("horizon").setMinMax(0.f, 1.f);
+  child("horizonExtension").setMinMax(0.f, 1.f);
 
   child("direction").setReadOnly();
 
