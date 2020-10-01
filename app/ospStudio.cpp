@@ -70,8 +70,6 @@ int main(int argc, const char *argv[])
     }
 
     // Parse argument list for any plugins.
-    // These need to be loaded before initializeOSPRay, as they can affect
-    // import types.
     for (int i = 1; i < argc; i++) {
       const auto arg = std::string(argv[i]);
       if (arg == "--plugin" || arg == "-p") {
@@ -111,6 +109,8 @@ int main(int argc, const char *argv[])
 
     if (context)
       context->start();
+    else
+      std::cerr << "Could not create a valid context. Stopping." << std::endl;
   }
 
   ospShutdown();

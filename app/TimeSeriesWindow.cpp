@@ -34,7 +34,7 @@ TimeSeriesWindow::~TimeSeriesWindow() {}
 
 void TimeSeriesWindow::start()
 {
-  std::cout << "***** Timeseries Mode *****" << std::endl;
+  std::cout << "Time Series mode" << std::endl;
 
   // load plugins //
 
@@ -87,9 +87,9 @@ void TimeSeriesWindow::mainLoop()
 {
   // generate timeseries data  and create necessary SG objects here.
 
-    if (allVariablesData.size() == 0) {
-      throw std::runtime_error("no data provided!");
-    }
+  if (allVariablesData.size() == 0) {
+    throw std::runtime_error("no data provided!");
+  }
 
   if (rendererTypeStr == "scivis" && lightTypeStr != "ambient") {
     throw std::runtime_error("wrong renderer and light type combination");
@@ -97,12 +97,13 @@ void TimeSeriesWindow::mainLoop()
 
   int numTimesteps = allVariablesData[0].size();
 
-if(!importAsSeparateTimeseries)
-  for (int i = 0; i < allVariablesData.size(); i++) {
-    if (numTimesteps != allVariablesData[i].size()) {
-      throw std::runtime_error("inconsistent number of timesteps per variable");
+  if (!importAsSeparateTimeseries)
+    for (int i = 0; i < allVariablesData.size(); i++) {
+      if (numTimesteps != allVariablesData[i].size()) {
+        throw std::runtime_error(
+            "inconsistent number of timesteps per variable");
+      }
     }
-  }
 
   std::cerr << "loaded " << numTimesteps << " timesteps across "
             << allVariablesData.size() << " variables" << std::endl;
@@ -129,7 +130,6 @@ if(!importAsSeparateTimeseries)
 
     // pre generate volumes/data for every timestep/world
     for (int i = 0; i < allVariablesData.size(); i++) {
-
       rkcommon::FileName fileName(allVariablesData[i][0]);
       size_t lastindex = fileName.base().find_first_of(".");
       variablesLoaded.push_back(fileName.base().substr(0, lastindex));
@@ -137,12 +137,13 @@ if(!importAsSeparateTimeseries)
       for (int f = 0; f < allVariablesData[i].size(); f++) {
         std::shared_ptr<sg::Volume> vol;
 
-        if (allVariablesData[i][f].length() > 4 &&
-            allVariablesData[i][f].substr(allVariablesData[i][f].length() -
-                                          4) == ".vdb") {
+        if (allVariablesData[i][f].length() > 4
+            && allVariablesData[i][f].substr(
+                   allVariablesData[i][f].length() - 4)
+                == ".vdb") {
           auto vdbVolumeTimestep = VDBVolumeTimestep(allVariablesData[i][f]);
           vdbVolumeTimestep.localLoading = g_localLoading;
-          vdbVolumeTimestep.variableNum  = i;
+          vdbVolumeTimestep.variableNum = i;
 
           if (!g_localLoading && !isTimestepVolumeLoaded(i, f)) {
             vdbVolumeTimestep.queueGenerateVolumeData();
@@ -161,13 +162,13 @@ if(!importAsSeparateTimeseries)
           if (voxelType == 0)
             throw std::runtime_error("improper voxelType specified for volume");
 
-          auto volumeTimestep         = VolumeTimestep(allVariablesData[i][f],
-                                               voxelType,
-                                               dimensions,
-                                               gridOrigin,
-                                               gridSpacing);
+          auto volumeTimestep = VolumeTimestep(allVariablesData[i][f],
+              voxelType,
+              dimensions,
+              gridOrigin,
+              gridSpacing);
           volumeTimestep.localLoading = g_localLoading;
-          volumeTimestep.variableNum  = i;
+          volumeTimestep.variableNum = i;
 
           if (!g_localLoading && !isTimestepVolumeLoaded(i, f)) {
             volumeTimestep.queueGenerateVolumeData();
@@ -181,8 +182,8 @@ if(!importAsSeparateTimeseries)
             sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
 
         for (int j = 0; j < numInstances; j++) {
-          auto xfm =
-              affine3f::translate(vec3f(j + 20*j + i*10, 0, 0)) * affine3f{one};
+          auto xfm = affine3f::translate(vec3f(j + 20 * j + i * 10, 0, 0))
+              * affine3f{one};
           auto newX = createNode("geomXfm" + to_string(j), "Transform", xfm);
           newX->add(vol);
           tfn->add(newX);
@@ -195,9 +196,8 @@ if(!importAsSeparateTimeseries)
       }
     }
   } else {
-     // pre generate volumes/data for every timestep/world
+    // pre generate volumes/data for every timestep/world
     for (int i = 0; i < allVariablesData.size(); i++) {
-      
       rkcommon::FileName fileName(allVariablesData[i][0]);
       size_t lastindex = fileName.base().find_first_of(".");
       variablesLoaded.push_back(fileName.base().substr(0, lastindex));
@@ -207,17 +207,18 @@ if(!importAsSeparateTimeseries)
 
       for (int f = 0; f < allVariablesData[i].size(); f++) {
         auto world = std::static_pointer_cast<ospray::sg::World>(
-          createNode("world", "world"));
+            createNode("world", "world"));
         singleVariableWorlds.push_back(world);
-      
+
         std::shared_ptr<sg::Volume> vol;
 
-        if (allVariablesData[i][f].length() > 4 &&
-            allVariablesData[i][f].substr(allVariablesData[i][f].length() -
-                                          4) == ".vdb") {
+        if (allVariablesData[i][f].length() > 4
+            && allVariablesData[i][f].substr(
+                   allVariablesData[i][f].length() - 4)
+                == ".vdb") {
           auto vdbVolumeTimestep = VDBVolumeTimestep(allVariablesData[i][f]);
           vdbVolumeTimestep.localLoading = g_localLoading;
-          vdbVolumeTimestep.variableNum  = i;
+          vdbVolumeTimestep.variableNum = i;
 
           if (!g_localLoading) {
             vdbVolumeTimestep.queueGenerateVolumeData();
@@ -236,13 +237,13 @@ if(!importAsSeparateTimeseries)
           if (voxelType == 0)
             throw std::runtime_error("improper voxelType specified for volume");
 
-          auto volumeTimestep         = VolumeTimestep(allVariablesData[i][f],
-                                               voxelType,
-                                               dimensions,
-                                               gridOrigin,
-                                               gridSpacing);
+          auto volumeTimestep = VolumeTimestep(allVariablesData[i][f],
+              voxelType,
+              dimensions,
+              gridOrigin,
+              gridSpacing);
           volumeTimestep.localLoading = g_localLoading;
-          volumeTimestep.variableNum  = i;
+          volumeTimestep.variableNum = i;
 
           if (!g_localLoading) {
             volumeTimestep.queueGenerateVolumeData();
@@ -257,7 +258,7 @@ if(!importAsSeparateTimeseries)
 
         for (int j = 0; j < numInstances; j++) {
           auto xfm =
-              affine3f::translate(vec3f(j + 20*j, 0, 0)) * affine3f{one};
+              affine3f::translate(vec3f(j + 20 * j, 0, 0)) * affine3f{one};
           auto newX = createNode("geomXfm" + to_string(j), "Transform", xfm);
           newX->add(vol);
           tfn->add(newX);
@@ -268,32 +269,29 @@ if(!importAsSeparateTimeseries)
       }
       g_allSeparateWorlds.push_back(singleVariableWorlds);
     }
-      }
-      if (importAsSeparateTimeseries)
-        arcballCamera.reset(
-            new ArcballCamera(g_allSeparateWorlds[0][0]->bounds(), windowSize));
-      else
-        arcballCamera.reset(
-            new ArcballCamera(g_allWorlds[0]->bounds(), windowSize));
-      this->activeWindow->updateCamera();
+  }
 
-      // set initial timestep
-      if(importAsSeparateTimeseries)
-        setVariableTimeseries(0, 0);
-        else 
-      setTimestep(0);
+  if (importAsSeparateTimeseries) {
+    arcballCamera.reset(
+        new ArcballCamera(g_allSeparateWorlds[0][0]->bounds(), windowSize));
+  } else {
+    arcballCamera.reset(
+        new ArcballCamera(g_allWorlds[0]->bounds(), windowSize));
+  }
+  this->activeWindow->updateCamera();
 
-      this->activeWindow->registerImGuiCallback([&]() { addTimeseriesUI(); });
+  // set initial timestep
+  if (importAsSeparateTimeseries)
+    setVariableTimeseries(0, 0);
+  else
+    setTimestep(0);
 
-      this->activeWindow->registerDisplayCallback(
-          [&](MainWindow *) { animateTimesteps(); });
+  this->activeWindow->registerImGuiCallback([&]() { addTimeseriesUI(); });
 
-      // this->activeWindow->registerKeyCallback(
-      //     std::function<void(
-      //         MainWindow *, int key, int scancode, int action, int
-      //         mods)> keyCallback);
+  this->activeWindow->registerDisplayCallback(
+      [&](MainWindow *) { animateTimesteps(); });
 
-      this->activeWindow->mainLoop();
+  this->activeWindow->mainLoop();
 }
 
 void TimeSeriesWindow::updateWindowTitle(std::string &updatedTitle)
