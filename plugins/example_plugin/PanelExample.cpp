@@ -10,8 +10,10 @@ namespace ospray {
 
     PanelExample::PanelExample() : Panel("Example Panel") {}
 
-    void PanelExample::buildUI()
+    void PanelExample::buildUI(void *ImGuiCtx)
     {
+      // Need to set ImGuiContext in *this* address space
+      ImGui::SetCurrentContext((ImGuiContext *)ImGuiCtx);
       ImGui::OpenPopup("Example Panel");
 
       if (ImGui::BeginPopupModal(

@@ -12,7 +12,7 @@ namespace ospray {
     {
       PanelExample();
 
-      void buildUI() override;
+      void buildUI(void *ImGuiCtx) override;
     };
 
   }  // namespace example_plugin

@@ -16,7 +16,7 @@ struct Panel
 
   // Function called by MainWindow to construct the desired ImGui widgets //
 
-  virtual void buildUI() = 0;
+  virtual void buildUI(void* ImGuiCtx) = 0;
 
   // Controls to show/hide the panel in the app //
 

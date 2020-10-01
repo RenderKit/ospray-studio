@@ -16,6 +16,7 @@ struct PluginManager
 
   void loadPlugin(const std::string &name);
   void removePlugin(const std::string &name);
+  void removeAllPlugins();
 
   // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
   PanelList getAllPanelsFromPlugins(

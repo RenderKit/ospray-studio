@@ -120,6 +120,9 @@ int main(int argc, const char *argv[])
       context->start();
   }
 
+  // Unload all plugins
+  pluginManager.removeAllPlugins();
+
   ospShutdown();
 
   return 0;

@@ -51,6 +51,11 @@ void PluginManager::removePlugin(const std::string &name)
   }));
 }
 
+void PluginManager::removeAllPlugins()
+{
+  plugins.clear();
+}
+
 PanelList PluginManager::getAllPanelsFromPlugins(
     std::shared_ptr<sg::Frame> scenegraph) const
 {

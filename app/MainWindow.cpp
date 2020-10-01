@@ -870,7 +870,7 @@ void MainWindow::buildUI()
 
   for (auto &p : pluginPanels)
     if (p->isShown())
-      p->buildUI();
+      p->buildUI(ImGui::GetCurrentContext());
 }
 
 void MainWindow::refreshRenderer()
