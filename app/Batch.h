@@ -48,7 +48,5 @@ class BatchContext : public StudioContext
   bool cmdlCam{false};
   vec3f pos, up{0.f, 1.f, 0.f}, gaze{0.f, 0.f, 1.f};
 
-  bool sgScene{false}; // whether we are loading a scene file
-
   void printHelp() override;
 };

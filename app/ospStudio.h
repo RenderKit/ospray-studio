@@ -95,6 +95,8 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
     std::cerr << "common Studio help message" << std::endl;
   }
 
+  bool sgScene{false}; // whether we are loading a scene file
+
   StudioCommon &studioCommon;
 };
 

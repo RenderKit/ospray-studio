@@ -927,7 +927,7 @@ void MainWindow::refreshScene(bool resetCam)
   // actually committed to OSPRay. This is just a bandaid
   frame->traverse<sg::CommitVisitor>(true);
 
-  if (resetCam) {
+  if (resetCam && !sgScene) {
     const auto &worldBounds = frame->child("world").bounds();
     arcballCamera.reset(new ArcballCamera(worldBounds, windowSize));
   }
@@ -989,6 +989,7 @@ void MainWindow::importFiles(sg::NodePtr world)
       // ALOK: handling loading a scene here for now
       if (fileName.ext() == "sg") {
         sg::importScene(shared_from_this(), fileName);
+        sgScene = true;
       } else {
         std::string nodeName = fileName.base() + "_importer";
         std::cout << "Importing: " << file << std::endl;
