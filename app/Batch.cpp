@@ -7,6 +7,7 @@
 #include "sg/fb/FrameBuffer.h"
 #include "sg/importer/Importer.h"
 #include "sg/renderer/MaterialRegistry.h"
+#include "sg/visitors/Commit.h"
 #include "sg/visitors/PrintNodes.h"
 // rkcommon
 #include "rkcommon/utility/SaveImage.h"
@@ -143,8 +144,6 @@ bool BatchContext::parseCommandLine()
 
 void BatchContext::render()
 {
-  // auto &frame = *frame;
-
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
   frame->createChild("camera", "camera_" + optCameraTypeStr);
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
@@ -165,12 +164,8 @@ void BatchContext::render()
   // Create a default ambient light
   frame->child("world").createChild("materialref", "reference_to_material", 0);
 
-  if (!optGridEnable) {
-    // Add imported models
-    frame->child("world").add(importedModels);
-  } else {
+  if (optGridEnable) {
     // Determine world bounds to calculate grid offsets
-    frame->child("world").add(importedModels);
     frame->child("world").render();
     frame->child("world").remove(importedModels);
 
@@ -195,8 +190,9 @@ void BatchContext::render()
   frame->child("world").render();
 
   // Update camera based on world bounds after import
-  arcballCamera.reset(
-      new ArcballCamera(frame->child("world").bounds(), optImageSize));
+  if (!sgScene)
+    arcballCamera.reset(
+        new ArcballCamera(frame->child("world").bounds(), optImageSize));
 
   std::ifstream cams("cams.json");
   if (cams) {
@@ -211,9 +207,6 @@ void BatchContext::render()
   auto &camera = frame->child("camera");
   if (camera.hasChild("aspect"))
     camera["aspect"] = optImageSize.x / (float)optImageSize.y;
-  camera["position"] = arcballCamera->eyePos();
-  camera["direction"] = arcballCamera->lookDir();
-  camera["up"] = arcballCamera->upDir();
 
   if (cmdlCam) {
     camera["position"] = pos;
@@ -224,10 +217,17 @@ void BatchContext::render()
   camera["stereoMode"] = optStereoMode;
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
 
-  frame->child("world").createChild("light", "ambient");
+  updateCamera();
+
+  // frame->child("world").createChild("light", "ambient");
   frame->child("navMode") = false;
 
   frame->render();
+
+  // this forces a commit, needed for scene imports (.sg)
+  // TODO: there is a desync between imported nodes marked as committed vs
+  // actually committed to OSPRay. This is just a bandaid
+  frame->traverse<CommitVisitor>(true);
 
   // Accumulate several frames
   for (auto i = 0; i < optSPP - 1; i++) {
@@ -277,7 +277,7 @@ void BatchContext::refreshScene(bool resetCam)
 
   frame->add(world);
 
-  if (resetCam)
+  if (resetCam && !sgScene)
     arcballCamera.reset(
         new ArcballCamera(frame->child("world").bounds(), optImageSize));
   updateCamera();
@@ -302,12 +302,14 @@ void BatchContext::setCameraState(CameraState &cs)
 void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform", affine3f{one});
+  frame->child("world").add(importedModels);
 
   for (auto file : filesToImport) {
     try {
       rkcommon::FileName fileName(file);
       if (fileName.ext() == "sg") {
         importScene(shared_from_this(), fileName);
+        sgScene = true;
       } else {
         std::string nodeName = fileName.base() + "_importer";
         std::cout << "Importing: " << file << std::endl;
