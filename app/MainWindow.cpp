@@ -48,16 +48,13 @@ static bool g_quitNextFrame  = false;
 static bool g_saveNextFrame  = false;
 static bool g_animatingPath  = false;
 
-static const std::vector<std::string> g_scenes = {"empty",
-                                                  "multilevel_hierarchy",
-                                                  "torus",
-                                                  "texture_volume_test",
-                                                  "tutorial_scene",
+static const std::vector<std::string> g_scenes = {"tutorial_scene",
                                                   "random_spheres",
                                                   "wavelet",
-                                                  "import volume",
-                                                  "import",
-                                                  "unstructured_volume"};
+                                                  "torus_volume",
+                                                  "unstructured_volume",
+                                                  "texture_volume_test",
+                                                  "multilevel_hierarchy"};
 
 static const std::vector<std::string> g_renderers = {
     "scivis", "pathtracer", "ao", "debug"};
@@ -143,7 +140,7 @@ void error_callback(int error, const char *desc)
 MainWindow *MainWindow::activeWindow = nullptr;
 
 MainWindow::MainWindow(StudioCommon &_common)
-    : StudioContext(_common), windowSize(_common.defaultSize), scene(g_scenes[0])
+    : StudioContext(_common), windowSize(_common.defaultSize), scene("")
 {
   if (activeWindow != nullptr) {
     throw std::runtime_error("Cannot create more than one MainWindow!");
@@ -908,11 +905,14 @@ void MainWindow::refreshScene(bool resetCam)
   if (!filesToImport.empty()) {
     importFiles(world);
   } else {
-    if (scene != "empty") {
+    if (scene != "") {
+      // Cancel any in-progress frame since we're changing the world.
+      frame->cancelFrame();
+      frame->waitOnFrame();
       auto &gen = world->createChildAs<sg::Generator>("generator",
                                                      "generator_" + scene);
-      gen.generateData();
       gen.setMaterialRegistry(baseMaterialRegistry);
+      gen.generateData();
 
       if (baseMaterialRegistry->matImportsList.size())
         refreshRenderer();
@@ -1109,8 +1109,7 @@ void MainWindow::buildMainMenuFile()
       animate = true;
     }
     if (ImGui::BeginMenu("Demo Scene")) {
-      //g_scene[0]='empty' works fine but not sure it makes sense as an user visible option
-      for (int i = 1; i < g_scenes.size(); ++i) {
+      for (int i = 0; i < g_scenes.size(); ++i) {
         if (ImGui::MenuItem(g_scenes[i].c_str(), nullptr)) {
            scene = g_scenes[i];
            refreshScene(true);
@@ -1127,7 +1126,7 @@ void MainWindow::buildMainMenuFile()
       baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
           "baseMaterialRegistry", "materialRegistry");
 
-      scene = "empty";
+      scene = "";
       refreshScene(true);
     }
     if (ImGui::BeginMenu("Save...")) {

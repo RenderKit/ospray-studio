@@ -18,7 +18,7 @@ namespace ospray {
     void generateData() override;
   };
 
-  OSP_REGISTER_SG_NODE_NAME(Torus, generator_torus);
+  OSP_REGISTER_SG_NODE_NAME(Torus, generator_torus_volume);
 
   // Torus definitions ////////////////////////////////////////////////
 
@@ -47,12 +47,12 @@ namespace ospray {
       }
     }
 
-
-    auto &tf     = createChild("transfer_function", "transfer_function_jet");
-    auto volume          = createNode("torus", "structuredRegular");
+    auto &tf = createChild("transfer_function", "transfer_function_jet");
+    auto volume = createNode("torus", "structuredRegular");
     volume->createChild("voxelType", "int", int(OSP_FLOAT));
-    volume->createChild("gridOrigin","vec3f", vec3f(-0.5f, -0.5f, -0.5f));
-    volume->createChild("gridSpacing", "vec3f", vec3f(1.f / size, 1.f / size, 1.f / size));
+    volume->createChild("gridOrigin", "vec3f", vec3f(-0.5f, -0.5f, -0.5f));
+    volume->createChild(
+        "gridSpacing", "vec3f", vec3f(1.f / size, 1.f / size, 1.f / size));
     volume->createChild("dimensions", "vec3i", vec3i(size));
     volume->createChildData("data", vec3i(size), 0, volumetricData.data());
     tf.add(volume);

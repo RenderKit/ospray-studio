@@ -59,20 +59,23 @@ namespace ospray {
     std::vector<vec3f> colors = {vec3f(1.0f, 0.0f, 0.0f),
                                  vec3f(0.0f, 1.0f, 0.0f)};
     tf.createChildData("color", colors);                            
-    auto &volume         = tf.createChild("volume", "volume_structured");
+    auto &volume         = tf.createChild("volume", "structuredRegular");
     volume["voxelType"]  = int(OSP_FLOAT);
     volume["gridOrigin"] = vec3f(-0.5f, -0.5f, -0.5f);
     volume["gridSpacing"] = vec3f(1.f / size, 1.f / size, 1.f / size);
     volume["dimensions"]  = vec3i(size);
     volume.createChildData("data", vec3i(size), 0, volumetricData.data());
 
-        // create sphere geometry
+    // create sphere geometry
     auto &spheres = texVolume.createChild("geometry", "geometry_spheres");
     vec3f center  = vec3f{1.f, 1.f, 1.f};
     float radius  = 1.f;
     spheres.createChildData("sphere.position", center);
     spheres.child("radius") = radius;
 
+    const std::vector<uint32_t> mID = {0};
+    spheres.createChildData("material", mID); // This is a scenegraph parameter
+    spheres.child("material").setSGOnly();
   }
 
   }  // namespace sg

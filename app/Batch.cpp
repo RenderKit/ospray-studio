@@ -20,7 +20,6 @@ BatchContext::BatchContext(StudioCommon &_common)
 
   baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
       "baseMaterialRegistry", "materialRegistry");
-  baseMaterialRegistry->addNewSGMaterial("obj");
 }
 
 void BatchContext::start()

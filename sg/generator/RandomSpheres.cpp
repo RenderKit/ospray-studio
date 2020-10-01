@@ -39,6 +39,10 @@ namespace ospray {
 
     spheres.createChildData("sphere.position", centers);
     spheres.child("radius") = radius;
+
+    const std::vector<uint32_t> mID = {0};
+    spheres.createChildData("material", mID); // This is a scenegraph parameter
+    spheres.child("material").setSGOnly();
   }
 
   }  // namespace sg

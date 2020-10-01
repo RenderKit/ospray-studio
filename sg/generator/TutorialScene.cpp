@@ -46,6 +46,10 @@ namespace ospray {
       mesh.createChildData("vertex.position", vertex);
       mesh.createChildData("vertex.color", color);
       mesh.createChildData("index", index);
+
+      const std::vector<uint32_t> mID = {0};
+      mesh.createChildData("material", mID); // This is a scenegraph parameter
+      mesh.child("material").setSGOnly();
     }
 
   }  // namespace sg

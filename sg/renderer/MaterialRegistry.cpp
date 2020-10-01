@@ -9,40 +9,27 @@ namespace ospray {
   MaterialRegistry::MaterialRegistry()
   {
     // ensure there's one OBJ material in the Registry as the default material
+    // use obj since it works with both SciVis and Pathtrace renderers
     addNewSGMaterial("obj");
   }
 
   void MaterialRegistry::addNewSGMaterial(std::string matType)
   {
-    if (!hasChild(matType))
-      createChild(matType, matType);
-  }
+    if (!hasChild(matType)) {
+      auto node = createNode("default", matType);
+      auto &mat = *node;
+      // Give it some editable parameters
+      mat.createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
+      mat.createChild("ks", "rgb", "specular color", vec3f(0.f));
+      mat.createChild("ns", "float", "shininess [2-10e4]", 10.f);
+      mat.createChild("d", "float", "opacity [0-1]", 1.f);
+      mat.createChild("tf", "rgb", "transparency filter color", vec3f(0.f));
+      add(node);
 
-  /*
-  void MaterialRegistry::refreshMaterialList(const std::string &matType, const std::string &rType)
-  {
-    cppMaterialList.clear();
-
-    //puts the provided material first in the list so that it will be used by default
-    //however doing so will also break other items because their indexes will be wrong
-    for (auto mat_it = sgMaterialList.begin(); mat_it != sgMaterialList.end(); ++mat_it) {
-      auto &materialNode = *(*mat_it);
-      if (materialNode.name() == matType) {
-        auto mat_x = *mat_it;
-        sgMaterialList.erase(mat_it);
-        sgMaterialList.insert(sgMaterialList.begin(), mat_x);
-        break;
-      }
-    }
-
-    for (auto mat_it = sgMaterialList.begin(); mat_it != sgMaterialList.end(); ++mat_it) {
-      auto &materialNode = *(*mat_it);
-      auto &ospHandleNode = materialNode.child("handles").child(rType);
-      auto &cppMaterial   = ospHandleNode.valueAs<cpp::Material>();
-      cppMaterialList.push_back(cppMaterial);
+      mat.child("ns").setMinMax(2.f,10000.f);
+      mat.child("d").setMinMax(0.f,1.f);
     }
   }
-  */
 
   void MaterialRegistry::createCPPMaterials(const std::string &rType) 
   {
