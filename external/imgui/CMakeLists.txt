@@ -5,7 +5,6 @@ set(libType STATIC)
 add_library(imgui ${libType}
   imgui.cpp
   imgui_draw.cpp
-  imgui_demo.cpp
   imgui_widgets.cpp
 )
 

@@ -21,7 +21,7 @@ struct PluginExample : public Plugin
   }
 };
 
-extern "C" Plugin *init_plugin_example()
+extern "C" PLUGIN_INTERFACE Plugin *init_plugin_example()
 {
   std::cout << "loaded plugin 'example'!" << std::endl;
   return new PluginExample();

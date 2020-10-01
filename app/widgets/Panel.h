@@ -7,9 +7,17 @@
 #include <string>
 #include <vector>
 
+#ifndef PANEL_INTERFACE
+  #ifdef _WIN32
+    #define PANEL_INTERFACE __declspec(dllexport)
+  #else
+    #define PANEL_INTERFACE
+  #endif
+#endif
+
 namespace ospray {
 
-struct Panel
+struct PANEL_INTERFACE Panel
 {
   Panel() = default;
   virtual ~Panel() = default;

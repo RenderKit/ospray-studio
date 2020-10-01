@@ -10,6 +10,14 @@
 
 #include "sg/Frame.h"
 
+#ifndef PLUGIN_INTERFACE
+  #ifdef _WIN32
+    #define PLUGIN_INTERFACE __declspec(dllexport)
+  #else
+    #define PLUGIN_INTERFACE
+  #endif
+#endif
+
 namespace ospray {
 
 struct Plugin
