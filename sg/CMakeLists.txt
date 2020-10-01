@@ -71,7 +71,6 @@ add_library(ospray_sg SHARED
   generator/WaveletVolume.cpp
   generator/UnstructuredVol.cpp
   generator/TestSphere.cpp
-  generator/TextureVolumeTest.cpp
   generator/Torus.cpp
   generator/Clouds.cpp
 
