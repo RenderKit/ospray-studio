@@ -27,7 +27,7 @@ void Importer::importScene() {}
 OSPSG_INTERFACE void importScene(
     std::shared_ptr<StudioContext> context, rkcommon::FileName &fileName)
 {
-  std::cout << "this is importScene!" << std::endl;
+  std::cout << "Importing a scene" << std::endl;
   context->filesToImport.clear();
   std::ifstream sgFile(fileName.str());
   if (!sgFile) {
@@ -66,12 +66,30 @@ OSPSG_INTERFACE void importScene(
   context->setCameraState(cs);
   context->updateCamera();
 
+  std::function<sg::NodePtr(const sg::NodePtr, const std::string &)>
+      findFirstChild = [&findFirstChild](const sg::NodePtr root,
+                           const std::string &name) -> sg::NodePtr {
+    sg::NodePtr found = nullptr;
+    for (auto child : root->children()) {
+      if (child.first == name) {
+        found = child.second;
+      } else {
+        found = findFirstChild(child.second, name);
+        if (found)
+          return found;
+      }
+    }
+    return found;
+  };
+
   for (auto &jChild : jWorld["children"]) {
     if (jChild["type"] == NodeType::IMPORTER) {
-      auto &imp = context->frame->child("world").child(jChild["name"]);
+      auto imp = findFirstChild(
+          context->frame->childNodeAs<sg::Node>("world"), jChild["name"]);
       auto &jXfm = jChild["children"][0];
       // set the correct value for the transform
-      imp.child(jXfm["name"]) = jXfm["value"].get<AffineSpace3f>();
+      if (imp)
+        imp->child(jXfm["name"]) = jXfm["value"].get<AffineSpace3f>();
     }
   }
 }
