@@ -46,7 +46,7 @@ OSPSG_INTERFACE void importScene(
       context->filesToImport.push_back(jChild["filename"]);
       break;
     case NodeType::LIGHTS:
-      lights = createNode(jChild);
+      lights = createNodeFromJSON(jChild);
       break;
     default:
       break;
