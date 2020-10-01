@@ -313,10 +313,19 @@ have been traversed), the `postChildren()` method is called.
 
 ### RenderScene Visitor
 
+This visitor is responsible for creating instances of geometries and volumes that are added to a World. It builds OSPRay scene heirarchy for rendering and is called everytime we want to render a new scene graph. Traversal of scene graph with this visitor allows for geometries to be matched with their surface representation(material etc.) and encapsulated in a `Geometric model`, volumes to be matched with their rendering apperance and encapsulated in a `Volumetric model`. It then collects geometric and volumetric models that belong to a single `OSPRay Group` and create an `Instance` to be placed in the World from this group.
+
 ### Commit Visitor
 
+This visitor is responsible for executing `preCommit()` and `postCommit()` methods of every `Node` in the subtree on which it is called based on their last modified and commit history. These methods interact with OSPRay API(`ospSetParam`) for setting parameter on the corresponding OSPRay object for the node and executing commit for allowing the parameters to take effect on the object.
+
+
 ### GenerateImGuiWidgets Visitor
+
+This visitor is responsible for creating `imgui widgets` for every corresponding node of the subtree it is traversing.
 
 ---
 
 ## Material Registry
+
+This class implements a material list for all imported materials with a model or a scene and manages insertion or deletion of new materal nodes for a scene. 
