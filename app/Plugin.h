@@ -8,7 +8,7 @@
 
 #include "widgets/Panel.h"
 
-#include "sg/Frame.h"
+#include "ospStudio.h"
 
 #ifndef PLUGIN_INTERFACE
   #ifdef _WIN32
@@ -25,9 +25,9 @@ struct Plugin
   Plugin() = default;
   virtual ~Plugin() = default;
 
-  // Create an instance of each panel, the parameter passed in the is root
-  // node in the scene graph
-  virtual PanelList createPanels(std::shared_ptr<sg::Frame> frame) = 0;
+  // Create an instance of each panel, the parameter passed in the is the
+  // current application context
+  virtual PanelList createPanels(std::shared_ptr<StudioContext> _context) = 0;
 
   std::string name() const;
 

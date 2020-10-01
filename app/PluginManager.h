@@ -5,7 +5,7 @@
 
 #include "Plugin.h"
 
-#include "sg/Frame.h"
+#include "ospStudio.h"
 
 namespace ospray {
 
@@ -20,7 +20,7 @@ struct PluginManager
 
   // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
   PanelList getAllPanelsFromPlugins(
-      std::shared_ptr<sg::Frame> scenegraph) const;
+      std::shared_ptr<StudioContext> _context) const;
 
  private:
   // Helper types //

@@ -359,14 +359,6 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
-  // create panels //
-
-  auto newPluginPanels =
-            studioCommon.pluginManager.getAllPanelsFromPlugins(frame);
-  std::move(newPluginPanels.begin(),
-            newPluginPanels.end(),
-            std::back_inserter(pluginPanels));
-
   baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
       "baseMaterialRegistry", "materialRegistry");
 
@@ -384,11 +376,27 @@ MainWindow::~MainWindow()
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
   glfwTerminate();
+  pluginManager.removeAllPlugins();
 }
 
 void MainWindow::start()
 {
   std::cerr << "GUI mode\n";
+
+  // load plugins //
+
+  for (auto &p : studioCommon.pluginsToLoad)
+    pluginManager.loadPlugin(p);
+
+  // create panels //
+  // doing this outside constructor to ensure shared_from_this()
+  // can wrap a valid weak_ptr (in constructor, not guaranteed)
+
+  auto newPluginPanels =
+      pluginManager.getAllPanelsFromPlugins(shared_from_this());
+  std::move(newPluginPanels.begin(),
+            newPluginPanels.end(),
+            std::back_inserter(pluginPanels));
 
   std::ifstream cams("cams.json");
   if (cams) {

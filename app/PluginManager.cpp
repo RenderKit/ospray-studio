@@ -57,12 +57,12 @@ void PluginManager::removeAllPlugins()
 }
 
 PanelList PluginManager::getAllPanelsFromPlugins(
-    std::shared_ptr<sg::Frame> scenegraph) const
+    std::shared_ptr<StudioContext> _context) const
 {
   PanelList allPanels;
 
   for (auto &plugin : plugins) {
-    auto panels = plugin.instance->createPanels(scenegraph);
+    auto panels = plugin.instance->createPanels(_context);
     std::move(panels.begin(), panels.end(), std::back_inserter(allPanels));
   }
 

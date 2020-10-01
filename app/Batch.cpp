@@ -27,6 +27,11 @@ void BatchContext::start()
 {
   std::cerr << "Batch mode\n";
 
+  // load plugins //
+
+  for (auto &p : studioCommon.pluginsToLoad)
+    pluginManager.loadPlugin(p);
+
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
     refreshScene(true);

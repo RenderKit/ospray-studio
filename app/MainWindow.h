@@ -94,10 +94,6 @@ class MainWindow : public StudioContext
 
 
  protected:
-  // Panels //
-
-  std::vector<std::unique_ptr<Panel>> pluginPanels;
-
   void buildPanel();
   void reshape(const vec2i &newWindowSize);
   void motion(const vec2f &position);
@@ -139,6 +135,10 @@ class MainWindow : public StudioContext
   void exitNavMode();
   void setCameraSnapshot(size_t snapshot);
   void printHelp() override;
+
+  // Plugins //
+  std::vector<std::unique_ptr<Panel>> pluginPanels;
+  PluginManager pluginManager;
 
   // imgui window visibility toggles
   bool showKeyframes{false};

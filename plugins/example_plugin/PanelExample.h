@@ -4,13 +4,14 @@
 #pragma once
 
 #include "app/widgets/Panel.h"
+#include "app/ospStudio.h"
 
 namespace ospray {
   namespace example_plugin {
 
     struct PanelExample : public Panel
     {
-      PanelExample();
+      PanelExample(std::shared_ptr<StudioContext> _context);
 
       void buildUI(void *ImGuiCtx) override;
     };

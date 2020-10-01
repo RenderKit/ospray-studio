@@ -35,6 +35,22 @@ TimeSeriesWindow::~TimeSeriesWindow() {}
 void TimeSeriesWindow::start()
 {
   std::cout << "***** Timeseries Mode *****" << std::endl;
+
+  // load plugins //
+
+  for (auto &p : studioCommon.pluginsToLoad)
+    pluginManager.loadPlugin(p);
+
+  // create panels //
+  // doing this outside constructor to ensure shared_from_this()
+  // can wrap a valid weak_ptr (in constructor, not guaranteed)
+
+  auto newPluginPanels =
+      pluginManager.getAllPanelsFromPlugins(shared_from_this());
+  std::move(newPluginPanels.begin(),
+            newPluginPanels.end(),
+            std::back_inserter(pluginPanels));
+
   parseCommandLine();
   mainLoop();
 }

@@ -10,6 +10,8 @@
 #include "sg/Frame.h"
 #include "sg/Node.h"
 #include "sg/renderer/MaterialRegistry.h"
+// Plugin
+#include "PluginManager.h"
 
 using namespace rkcommon::math;
 using namespace ospray;
@@ -31,6 +33,7 @@ class BatchContext : public StudioContext
   void render();
 
  protected:
+  PluginManager pluginManager;
   NodePtr importedModels;
 
   std::string optRendererTypeStr = "scivis";

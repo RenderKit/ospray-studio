@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "../ospStudio.h"
+
 #ifndef PANEL_INTERFACE
   #ifdef _WIN32
     #define PANEL_INTERFACE __declspec(dllexport)
@@ -14,6 +16,8 @@
     #define PANEL_INTERFACE
   #endif
 #endif
+
+class StudioContext;
 
 namespace ospray {
 
@@ -39,7 +43,10 @@ struct PANEL_INTERFACE Panel
 
  protected:
   // Constructor to be used by child classes
-  Panel(const std::string &_name) : currentName(_name) {}
+  Panel(const std::string &_name, std::shared_ptr<StudioContext> _context)
+      : currentName(_name), context(_context)
+  {}
+  std::shared_ptr<StudioContext> context;
 
  private:
   // Properties //

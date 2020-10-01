@@ -10,8 +10,6 @@
 using namespace ospray;
 using rkcommon::removeArgs;
 
-static std::vector<std::string> pluginsToLoad;
-
 int main(int argc, const char *argv[])
 {
   std::cout << "OSPRay Studio" << std::endl;
@@ -50,10 +48,16 @@ int main(int argc, const char *argv[])
     return fail;
   }
 
+  // Check for module denoiser support after iniaitlizing OSPRay
+  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
+  std::cout << "OpenImageDenoise is " << (denoiser ? "" : "not ") << "available"
+            << std::endl;
+
   // Parse first argument as StudioMode
   // (GUI is the default if no mode is given)
   // XXX Switch to using ospcommon/rkcommon ArgumentList
   auto mode = StudioMode::GUI;
+  std::vector<std::string> pluginsToLoad;
   if (argc > 1) {
     auto modeArg = std::string(argv[1]);
     if (modeArg.front() != '-') {
@@ -78,23 +82,12 @@ int main(int argc, const char *argv[])
     }
   }
 
-    // load plugins //
-    PluginManager pluginManager;
-    for (auto &p : pluginsToLoad)
-      pluginManager.loadPlugin(p);
-
-    // Check for module denoiser support after iniaitlizing OSPRay
-    bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
-    std::cout << "OpenImageDenoise is " << (denoiser ? "" : "not ")
-              << "available" << std::endl;
+  // Set parameters common to all modes
+  StudioCommon studioCommon(pluginsToLoad, denoiser, argc, argv);
 
   // This scope contains all OSPRay API calls. It enforces cleanly calling all
   // destructors before calling ospShutdown()
   {
-    // Set parameters common to all modes
-    // doing so after initializeOSPRay allows OSPRay to remove its cmdline
-    // params.
-    StudioCommon studioCommon(pluginManager, denoiser, argc, argv);
     std::shared_ptr<StudioContext> context = nullptr;
 
     // XXX Modes should be module loaded, statically linked causes
@@ -119,9 +112,6 @@ int main(int argc, const char *argv[])
     if (context)
       context->start();
   }
-
-  // Unload all plugins
-  pluginManager.removeAllPlugins();
 
   ospShutdown();
 

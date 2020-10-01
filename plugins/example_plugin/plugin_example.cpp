@@ -4,6 +4,8 @@
 #include <memory>
 
 #include "PanelExample.h"
+
+#include "app/ospStudio.h"
 #include "app/Plugin.h"
 
 namespace ospray {
@@ -13,10 +15,10 @@ struct PluginExample : public Plugin
 {
   PluginExample() : Plugin("Example") {}
 
-  PanelList createPanels(std::shared_ptr<sg::Frame>) override
+  PanelList createPanels(std::shared_ptr<StudioContext> _context) override
   {
     PanelList panels;
-    panels.emplace_back(new PanelExample());
+    panels.emplace_back(new PanelExample(_context));
     return panels;
   }
 };

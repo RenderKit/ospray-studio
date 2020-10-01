@@ -19,7 +19,6 @@
 #include "rkcommon/common.h"
 
 #include "version.h"
-#include "PluginManager.h"
 
 using namespace ospray;
 using namespace rkcommon::math;
@@ -43,13 +42,16 @@ const static std::map<std::string, StudioMode> StudioModeMap = {
 class StudioCommon
 {
  public:
+  StudioCommon(std::vector<std::string> _pluginsToLoad,
+      const bool denoiser,
+      int _argc,
+      const char **_argv)
+      : pluginsToLoad(_pluginsToLoad),
+        denoiserAvailable(denoiser),
+        argc(_argc),
+        argv(_argv){};
 
-  StudioCommon(PluginManager &_pluginManager, const bool denoiser,
-               int _argc, const char **_argv) :
-    pluginManager(_pluginManager), denoiserAvailable(denoiser),
-    argc(_argc), argv(_argv) {};
-
-  PluginManager &pluginManager;
+  std::vector<std::string> pluginsToLoad;
   bool denoiserAvailable{false};
   const vec2i defaultSize = vec2i(1024, 768);
 
