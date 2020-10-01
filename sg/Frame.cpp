@@ -44,6 +44,8 @@ namespace ospray {
     refreshFrameOperations();
 
     if (this->anyChildModified()) {
+      if (value().valid())
+        cancelFrame();
       currentAccum = 0;
       fb.resetAccumulation();
     }
