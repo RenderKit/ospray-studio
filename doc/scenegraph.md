@@ -243,51 +243,48 @@ more detail in [Visitors](#visitors). A node's `commit()` and `render()`
 methods are actually shortcuts to calling `traverse()` using the appropriate
 visitor.
 
-A node can check its modified status using
-`bool isModified()`. This will return `true` whenever any of a node's children
-are marked as modified (i.e. a node is considered "modified" if and only if one
-or more of its children are modified)
-
-### UI Generation
-
-UI is generated automatically, though `Node`s can affect the generated widgets.
-UI generation will be discussed either in a GUI section, or in the UI generator
-`Visitor`'s section.
+A node can check its modified status using `bool isModified()`. This will
+return `true` whenever any of a node's children are marked as modified (i.e. a
+node is considered "modified" if and only if one or more of its children are
+modified)
 
 ### Special Considerations
-
-Any other structural notes, C++-specific design principles (such as copy/move deletion), and any other unwritten `Node` lore.
 
 `Node`s cannot be copied or moved; this includes forbidding the use of copy
 constructors as well as `operator=` for other `Node`s. This design avoids some
 edge cases where SG structure may become fragile. Suppose we have `Node a = b`,
 where `b` is also a `Node`. Now, `b`'s parent contains two identical `Node`s --
-including the same name. When accessing that name, which node should be
-affected? Or, should `a` replace `b` entirely? We avoid these cases altogether.
+including the same name. When accessing that name, it is ambiguous which node
+is accessed. Nor is it clear that `b` should replace `a`. We avoid these cases
+altogether.
 
 ### Special Node Types
 
 There are two main special `Node` types: `Node_T` and `OSPNode`.
 
+`Node_T` represent a node used specifically to hold a single primitive/trivial
+value, such as an `int`, `float`, or `std::string`. Aliases for most types are
+provided in `sg/Node.h`, such as `IntNode`, `FloatNode`, and `StringNode`.
+These are primarily used as parameter nodes; that is, nodes that provide values
+for their parents' parameters.
+
+The `OSPNode` type is for nodes encapsulating OSPRay objects, such as a
+`Camera`, `World`, or a `Light`. Many of the classes defined throughout the
+`sg/` directory define these types of nodes. They hold a C++ wrapped object
+(using the OSPRay C++ API) within a `handle()`. Any children of these nodes are
+automatically provided to this internal object as an OSPRay parameter[^sgonly].
+Child nodes use their name to select the OSPRay parameter name, and their value
+as the parameter's value.
+
 ### OSPRay Studio SG Structure
 
-The actual structure of the SG in concrete terms: root `Frame` node, its
-`OSPNode` children, and so on.
+A basic example of a scenegraph contains a `Frame` node at the root.  By
+default, this node will have a `FrameBuffer`, `Camera`, `Renderer`, and `World`
+child.  The `World` will contain a `Lights` node (lights manager) which
+provides it a single ambient light `Light` node.
 
-### Creating Your Own Node Type
-
-The basic steps in creating your own node type. This is where experiential
-information comes into play. Things like, create children in the constructor,
-setting UI limiters and SG-only flags, registering it, settings its type, etc.
-
-[^anytype]: The `Any` type comes from `rkcommon`, in `utility/Any.h`. It
-  provides a C++11 interface similar to C++17's `std::any`.
-
-[^flatmaptype]: The `FlatMap` type comes from `rkcommon`, in
-  `utility/FlatMap.h`. It provides a similar interface to `std::map`, but uses
-  an `std::vector` for faster lookups.
-
----
+From here, importer nodes may be added to the world. `Transform`, `Geometry`,
+and `Volume` nodes are children of the importer node that loaded the file.
 
 ## Visitors
 
@@ -326,6 +323,13 @@ This visitor is responsible for creating `imgui widgets` for every corresponding
 
 ---
 
-## Material Registry
+[^anytype]: The `Any` type comes from `rkcommon`, in `utility/Any.h`. It
+  provides a C++11 interface similar to C++17's `std::any`.
 
-This class implements a material list for all imported materials with a model or a scene and manages insertion or deletion of new materal nodes for a scene. 
+[^flatmaptype]: The `FlatMap` type comes from `rkcommon`, in
+  `utility/FlatMap.h`. It provides a similar interface to `std::map`, but uses
+  an `std::vector` for faster lookups.
+
+[^sgonly]: Nodes may be marked as `sgOnly` to prevent this. For example,
+  `Geometry` nodes have a boolean visibility toggle that is not a valid OSPRay
+  `Geometry` parameter.
