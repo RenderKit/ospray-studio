@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 ## Copyright 2009-2020 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
@@ -7,9 +8,9 @@
 # Stop script on first failure
 $ErrorActionPreference = "Stop"
 
-# Versions if not set by CI
-if (! $OSPRAY_VER )   { set OSPRAY_VER "2.3.0"   }
-if (! $RKCOMMON_VER ) { set RKCOMMON_VER "1.5.0" }
+# Versions if not set by CI (standalone run)
+if (! $OSPRAY_VER )   { set OSPRAY_VER "2.4.0"   }
+if (! $RKCOMMON_VER ) { set RKCOMMON_VER "1.5.1" }
 if (! $GLFW_VER )     { set GLFW_VER "3.3.2"     }
 
 # Pull OSPRay and RKCommon releases from OSPRay github

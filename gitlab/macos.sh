@@ -2,9 +2,13 @@
 ## Copyright 2015-2020 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
-# XXX Remove for gitlab
-# OSPRAY_VER="2.3.0"
-# RKCOMMON_VER="1.5.0"
+# Stop script on first failure
+set -e
+
+# Versions if not set by CI (standalone run)
+OSPRAY_VER=${OSPRAY_VER:-"2.4.0"}
+RKCOMMON_VER=${RKCOMMON_VER:-"1.5.1"}
+GLFW_VER=${GLFW_VER:-"3.3.2"}
 
 # Pull OSPRay and RKCommon releases from github
 GITHUB_HOME="https://github.com/ospray"
