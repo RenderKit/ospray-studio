@@ -70,7 +70,7 @@ void TutorialSceneML::generateData()
   sphereX->add(sphereG);
 
   // create a single box geometry, then instance it
-  box3f boxes = {vec3f(1.f, 1.f, 1.f), vec3f(-1.f, -1.f, -1.f)};
+  box3f boxes = {box3f({vec3f(-1.f,-1.f,-1.f),vec3f(1.f,1.f,1.f)})};
   auto boxG = createNode("box", "geometry_boxes");
   boxG->createChildData("box", boxes);
   boxG->createChildData("material", mID); // This is a scenegraph parameter
