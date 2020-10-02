@@ -16,7 +16,7 @@ namespace ospray {
   void MaterialRegistry::addNewSGMaterial(std::string matType)
   {
     if (!hasChild(matType)) {
-      auto node = createNode("default", matType);
+      auto node = createNode("sgDefault", matType);
       auto &mat = *node;
       // Give it some editable parameters
       mat.createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
