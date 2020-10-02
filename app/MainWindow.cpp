@@ -598,11 +598,8 @@ void MainWindow::motion(const vec2f &position)
                          sensitivity);
     }
 
-    if (cameraChanged) {
-      // Only enter nav Mode on mouse button *and* motion
-      enterNavMode();
+    if (cameraChanged)
       updateCamera();
-    }
   }
 
   previousMouse = mouse;
@@ -612,14 +609,6 @@ void MainWindow::mouseButton(const vec2f &position)
 {
   if (frame->pauseRendering)
     return;
-
-  if (glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE
-      && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_RELEASE
-      && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
-  {
-    exitNavMode();
-    frame->cancelFrame();
-  }
 
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS &&
       glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -806,12 +795,11 @@ void MainWindow::display()
 void MainWindow::startNewOSPRayFrame()
 {
   // The baseMaterialRegistry doesn't hang off the frame, so must be checked
-  // separately.
+  // separately.  If modified, notify the frame by modifying a child.
   if (baseMaterialRegistry->isModified()) {
-    frame->cancelFrame();
     baseMaterialRegistry->commit();
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-    fb.resetAccumulation();
+    if (frame->hasChild("navMode"))
+      frame->child("navMode") = true; // navMode is perfect for this
   }
 
   frame->startNewFrame();
@@ -826,13 +814,6 @@ void MainWindow::updateTitleBar()
 {
   std::stringstream windowTitle;
   windowTitle << "OSPRay Studio: ";
-
-  // Set indicators in the title bar for nav mode, frame modified and canceled
-  windowTitle << " <";
-  windowTitle << (navMode ? "n" : "_");
-  windowTitle << (frame->isModified() ? "m" : "_");
-  windowTitle << (frame->isCanceled() ? "c" : "_");
-  windowTitle << "> ";
 
   if (frame->pauseRendering) {
     windowTitle << "rendering paused";
@@ -856,6 +837,9 @@ void MainWindow::updateTitleBar()
       windowTitle << progBar;
     }
   }
+
+  // Set indicator in the title bar for frame modified
+  windowTitle << (frame->isModified() ? "*" : "");
 
   glfwSetWindowTitle(glfwWindow, windowTitle.str().c_str());
 
@@ -1132,9 +1116,11 @@ void MainWindow::buildMainMenuFile()
     }
     ImGui::Separator();
     if (ImGui::MenuItem("Clear Scene...", nullptr)) {
+      // Cancel any in-progress frame since we're removing the world.
       frame->cancelFrame();
-      frame->waitOnFrame(); // must wait before removing world
+      frame->waitOnFrame();
       frame->remove("world");
+
       // Recreate MaterialRegistry, clearing old registry and all materials
       baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
           "baseMaterialRegistry", "materialRegistry");
@@ -1251,8 +1237,6 @@ void MainWindow::buildMainMenuEdit()
     }
 
     renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-    if (renderer.isModified())
-      frame->cancelFrame();
 
     ImGui::Separator();
 
@@ -1361,10 +1345,8 @@ void MainWindow::buildMainMenuEdit()
         ImGui::EndMenu();
       }
 
-      if (oldScale != scale) {
-        frame->cancelFrame();
+      if (oldScale != scale)
         frame->child("scale") = scale;
-      }
 
       ImGui::EndMenu();
     }
@@ -1408,10 +1390,8 @@ void MainWindow::buildMainMenuEdit()
         ImGui::EndMenu();
       }
 
-      if (oldScale != scale) {
-        frame->cancelFrame();
+      if (oldScale != scale)
         frame->child("scaleNav") = scale;
-      }
 
       ImGui::EndMenu();
     }
@@ -1805,21 +1785,13 @@ void MainWindow::buildWindowGeometryViewer()
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
 
-  auto replaceWorld = [&]() {
-    auto aWholeNewWorld = sg::createNode("world", "world");
-    auto weAreTheWorld = frame->child("world").children();
-
-    for (auto &child : weAreTheWorld) {
-      child.second->removeAllParents();
-      aWholeNewWorld->add(child.second);
-    }
-    aWholeNewWorld->render();
-
-    frame->remove("world");
-    frame->add(aWholeNewWorld);
-    frame->currentAccum = 0;
-
-    fb.resetAccumulation();
+  // If changing the contents of the world, stop current frame, then rerender world
+  auto rockMyWorld = [&]() {
+    auto &world = frame->child("world");
+      frame->waitOnFrame(); // must wait before changing the world
+      frame->child("world").render();
+      fb.resetAccumulation();
+      frame->currentAccum = 0;
   };
 
   static char searchTerm[1024] = "";
@@ -1868,7 +1840,7 @@ void MainWindow::buildWindowGeometryViewer()
       frame->child("world").traverse<sg::SetParamByNode>(
           sg::NodeType::GEOMETRY, "visible", true);
     }
-    replaceWorld();
+    rockMyWorld();
   }
 
   ImGui::SameLine();
@@ -1880,7 +1852,7 @@ void MainWindow::buildWindowGeometryViewer()
       frame->child("world").traverse<sg::SetParamByNode>(
           sg::NodeType::GEOMETRY, "visible", false);
     }
-    replaceWorld();
+    rockMyWorld();
   }
 
   if (searched) {
@@ -1894,20 +1866,24 @@ void MainWindow::buildWindowGeometryViewer()
   bool userUpdated = false;
   if (searched) {
     for (auto result : results) {
-      result->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ALLCLOSED,
-                                                 userUpdated);
+      result->traverse<sg::GenerateImGuiWidgets>(
+          sg::TreeState::ALLCLOSED, userUpdated);
+      if (userUpdated)
+        break;
     }
   } else {
     for (auto &node : frame->child("world").children()) {
-      if (node.second->type() == sg::NodeType::GENERATOR ||
-          node.second->type() == sg::NodeType::IMPORTER) {
-        node.second->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN,
-                                                        userUpdated);
+      if (node.second->type() == sg::NodeType::GENERATOR
+          || node.second->type() == sg::NodeType::IMPORTER) {
+        node.second->traverse<sg::GenerateImGuiWidgets>(
+            sg::TreeState::ROOTOPEN, userUpdated);
+        if (userUpdated)
+          break;
       }
     }
   }
   if (userUpdated)
-    replaceWorld();
+    rockMyWorld();
   ImGui::EndChild();
 
   ImGui::End();
@@ -1948,30 +1924,6 @@ void MainWindow::buildWindowRenderingStats()
   }
 
   ImGui::End();
-}
-
-void MainWindow::enterNavMode()
-{
-  if (!navMode)
-  {
-    frame->cancelFrame();
-    navMode = true;
-    frame->child("navMode") = true;
-    auto &renderer = frame->childAs<sg::Renderer>("renderer");
-    renderer.setNavMode(true);
-  }
-}
-
-void MainWindow::exitNavMode()
-{
-  if (navMode)
-  {
-    frame->cancelFrame();
-    navMode = false;
-    frame->child("navMode") = false;
-    auto &renderer = frame->childAs<sg::Renderer>("renderer");
-    renderer.setNavMode(false);
-  }
 }
 
 void MainWindow::printHelp()

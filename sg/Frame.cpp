@@ -43,11 +43,18 @@ namespace ospray {
 
     refreshFrameOperations();
 
-    if (this->anyChildModified()) {
-      if (value().valid())
+    // If working on a frame, cancel it, something has changed
+    if (isModified() && value().valid()) {
         cancelFrame();
-      currentAccum = 0;
-      fb.resetAccumulation();
+        currentAccum = 0;
+        fb.resetAccumulation();
+      // Enable navMode
+      if (!navMode)
+        child("navMode") = true;
+    } else {
+      // No frame changes, disable navMode
+      if (navMode)
+        child("navMode") = false;
     }
 
     this->commit();
@@ -136,17 +143,26 @@ namespace ospray {
 
   void Frame::preCommit()
   {
+    static bool currentNavMode = navMode;
     navMode = child("navMode").valueAs<bool>();
 
-    // Recreate framebuffers on windowsize or scale changes.
-    auto &fb     = child("framebuffer");
-    auto oldSize = fb["size"].valueAs<vec2i>();
-    auto scale = (navMode ? child("scaleNav").valueAs<float>() :
-                            child("scale").valueAs<float>());
+    if (navMode != currentNavMode) {
+      currentNavMode = navMode;
 
-    auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
-    if (oldSize != newSize)
-      fb["size"] = newSize; 
+      // Allow the renderer to use navigation settings
+      auto &renderer = childAs<Renderer>("renderer");
+      renderer.setNavMode(navMode);
+
+      // Recreate framebuffers on windowsize or scale changes.
+      auto &fb     = child("framebuffer");
+      auto oldSize = fb["size"].valueAs<vec2i>();
+      auto scale = (navMode ? child("scaleNav").valueAs<float>() :
+          child("scale").valueAs<float>());
+
+      auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
+      if (oldSize != newSize)
+        fb["size"] = newSize; 
+    }
 
     if (hasChild("lights")) {
       auto &lights = childAs<sg::Lights>("lights");

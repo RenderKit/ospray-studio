@@ -130,9 +130,6 @@ class MainWindow : public StudioContext
   void buildWindowGeometryViewer();
   void buildWindowRenderingStats();
 
-  bool navMode { false };
-  void enterNavMode();
-  void exitNavMode();
   void setCameraSnapshot(size_t snapshot);
   void printHelp() override;
 
