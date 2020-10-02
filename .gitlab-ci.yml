@@ -1,0 +1,81 @@
+## Copyright 2009-2020 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  OSPRAY_VER: "2.3.0"
+  RKCOMMON_VER: "1.5.0"
+
+stages:
+  - build
+  - test
+
+.build-linux:
+  stage: build
+  needs: []
+  tags: [docker]
+
+source-protex-scan:
+  stage: build
+  image: amd64/openjdk:8
+  script:
+    - gitlab/source-scan-protex.sh
+  tags: [docker]
+  dependencies: []
+  allow_failure: true
+
+build-ubuntu18.04:
+  extends: .build-linux
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  script:
+    - gitlab/build.sh
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build/
+
+build-osx-clang:
+  stage: build
+  tags: [osx, clang]
+  script:
+    - gitlab/macos.sh
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build-macos/
+
+build-windows-msvc15:
+  stage: build
+  tags: [win, msvc15]
+  script:
+    - gitlab\win.ps1 "Visual Studio 15 2017 Win64" "v141" "Release"
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build-win/
+
+build-kw:
+  extends: .build-linux
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  script:
+    - gitlab/build-kw.sh
+  artifacts:
+    paths:
+      - kw_build_number
+
+test-run-ubuntu18.04:
+  stage: test
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-ubuntu18.04]
+  tags: [docker]
+  script:
+    - gitlab/run.sh
+
+test-kw:
+  stage: test
+  tags: [docker]
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-kw]
+  script:
+    - gitlab/test-kw.sh
+  allow_failure: true

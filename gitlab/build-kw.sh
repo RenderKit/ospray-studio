@@ -1,4 +1,7 @@
 #!/bin/bash -x
+## Copyright 2009-2020 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
+
 KW_SERVER_PATH=$KW_PATH/server
 KW_CLIENT_PATH=$KW_PATH/client
 export KLOCWORK_LTOKEN=/tmp/ltoken
@@ -23,7 +26,7 @@ export rkcommon_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/rkcommon/lib/cma
 export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
 cmake -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
 
-$KW_CLIENT_PATH/bin/kwinject make -j8 
+$KW_CLIENT_PATH/bin/kwinject make -j8
 $KW_SERVER_PATH/bin/kwbuildproject --url http://$KW_SERVER_IP:$KW_SERVER_PORT/$KW_PROJECT_NAME --tables-directory $CI_PROJECT_DIR/kw_tables kwinject.out
 $KW_SERVER_PATH/bin/kwadmin --url http://$KW_SERVER_IP:$KW_SERVER_PORT/ load --force --name build-$CI_JOB_ID $KW_PROJECT_NAME $CI_PROJECT_DIR/kw_tables
 echo "build-$CI_JOB_ID" > $CI_PROJECT_DIR/kw_build_number

@@ -1,4 +1,7 @@
 #!/bin/bash -x
+## Copyright 2009-2020 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
+
 set -e
 apt-get update -y && apt-get install curl jq -y
 # check number of critical issues
