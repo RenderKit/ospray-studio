@@ -86,7 +86,7 @@ the `float` creator function, which should be found in the
 the `OSP_REGISTER_SG_NODE_NAME` macro, described more in detail in [Creating
 Your Own Node Type](#creating-your-own-node-type).
 
-A node's `value` is an `Any` type [^anytype].
+A node's `value` is an `Any` type[^1].
 
 ### Node Properties
 
@@ -117,7 +117,7 @@ they play in the SG.
 
 A node's connections to its parent and children are also held in `properties`.
 Children are held in a `FlatMap`, with keys being child node names and values
-being pointers to the child nodes [^flatmaptype].
+being pointers to the child nodes[^2].
 
 Finally, a number of `TimeStamp` objects track the modification status of this
 node and its children. These are used to determine if a subtree of the SG needs
@@ -272,7 +272,7 @@ The `OSPNode` type is for nodes encapsulating OSPRay objects, such as a
 `Camera`, `World`, or a `Light`. Many of the classes defined throughout the
 `sg/` directory define these types of nodes. They hold a C++ wrapped object
 (using the OSPRay C++ API) within a `handle()`. Any children of these nodes are
-automatically provided to this internal object as an OSPRay parameter[^sgonly].
+automatically provided to this internal object as an OSPRay parameter[^3].
 Child nodes use their name to select the OSPRay parameter name, and their value
 as the parameter's value.
 
@@ -335,13 +335,13 @@ for `RGBNode`s, and so on.
 
 ---
 
-[^anytype]: The `Any` type comes from `rkcommon`, in `utility/Any.h`. It
+[^1]: The `Any` type comes from `rkcommon`, in `utility/Any.h`. It
   provides a C++11 interface similar to C++17's `std::any`.
 
-[^flatmaptype]: The `FlatMap` type comes from `rkcommon`, in
+[^2]: The `FlatMap` type comes from `rkcommon`, in
   `utility/FlatMap.h`. It provides a similar interface to `std::map`, but uses
   an `std::vector` for faster lookups.
 
-[^sgonly]: Nodes may be marked as `sgOnly` to prevent this. For example,
+[^3]: Nodes may be marked as `sgOnly` to prevent this. For example,
   `Geometry` nodes have a boolean visibility toggle that is not a valid OSPRay
   `Geometry` parameter.
