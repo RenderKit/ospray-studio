@@ -922,7 +922,7 @@ void MainWindow::refreshScene(bool resetCam)
   // this forces a commit, needed for scene imports (.sg)
   // TODO: there is a desync between imported nodes marked as committed vs
   // actually committed to OSPRay. This is just a bandaid
-  frame->traverse<sg::CommitVisitor>(true);
+  frame->child("world").traverse<sg::CommitVisitor>(true);
 
   if (resetCam && !sgScene) {
     const auto &worldBounds = frame->child("world").bounds();
@@ -1788,10 +1788,15 @@ void MainWindow::buildWindowGeometryViewer()
   // If changing the contents of the world, stop current frame, then rerender world
   auto rockMyWorld = [&]() {
     auto &world = frame->child("world");
-      frame->waitOnFrame(); // must wait before changing the world
-      frame->child("world").render();
-      fb.resetAccumulation();
-      frame->currentAccum = 0;
+    frame->waitOnFrame(); // must wait before changing the world
+    frame->child("world").render();
+    fb.resetAccumulation();
+    frame->currentAccum = 0;
+
+    // this forces a commit, needed for scene imports (.sg)
+    // TODO: there is a desync between imported nodes marked as committed vs
+    // actually committed to OSPRay. This is just a bandaid
+    frame->child("world").traverse<sg::CommitVisitor>(true);
   };
 
   static char searchTerm[1024] = "";
