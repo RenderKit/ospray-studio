@@ -22,7 +22,7 @@ fi
 cd $CI_PROJECT_DIR
 mkdir build && cd build
 export ospray_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray/lib/cmake/ospray-$OSPRAY_VER
-export rkcommon_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/rkcommon/lib/cmake/rkcommon-1.4.2
+export rkcommon_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/rkcommon/lib/cmake/rkcommon-$RKCOMMON_VER
 export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
 cmake -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
 
