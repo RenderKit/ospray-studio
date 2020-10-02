@@ -310,16 +310,28 @@ have been traversed), the `postChildren()` method is called.
 
 ### RenderScene Visitor
 
-This visitor is responsible for creating instances of geometries and volumes that are added to a World. It builds OSPRay scene heirarchy for rendering and is called everytime we want to render a new scene graph. Traversal of scene graph with this visitor allows for geometries to be matched with their surface representation(material etc.) and encapsulated in a `Geometric model`, volumes to be matched with their rendering apperance and encapsulated in a `Volumetric model`. It then collects geometric and volumetric models that belong to a single `OSPRay Group` and create an `Instance` to be placed in the World from this group.
+This visitor is responsible for creating the underlying OSPRay render graph
+hierarchy, which includes `Instance`s. This visitor is called every time the
+scene is modified to rebuild the render graph.  Traversal with this visitor
+matches geometries with their materials and bundles them into a
+`GeometricModel`. The same is done for volumes into a `VolumetricModel`.
+Collections of these models are placed in a `Group` and then an `Instance`.
+`Instance`s are ultimately provided to the `World`'s internal handle.
 
 ### Commit Visitor
 
-This visitor is responsible for executing `preCommit()` and `postCommit()` methods of every `Node` in the subtree on which it is called based on their last modified and commit history. These methods interact with OSPRay API(`ospSetParam`) for setting parameter on the corresponding OSPRay object for the node and executing commit for allowing the parameters to take effect on the object.
-
+This visitor is responsible for executing `preCommit()` and `postCommit()`
+methods of every `Node` in the subtree on which it is called based on their
+last modified time. These methods finalize parameter values for the internal
+OSPRay objects. This visitor should be called before the `RenderScene` visitor
+to finalize nodes.
 
 ### GenerateImGuiWidgets Visitor
 
-This visitor is responsible for creating `imgui widgets` for every corresponding node of the subtree it is traversing.
+This visitor generate UI components for any node in the scenegraph.  It uses
+the parameter node children of a parent node to generate the appropriate
+widget; for example, it will create a checkbox for `BoolNode`s, a color picker
+for `RGBNode`s, and so on.
 
 ---
 
