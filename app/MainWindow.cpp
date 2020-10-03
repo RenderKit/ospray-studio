@@ -1735,6 +1735,10 @@ void MainWindow::buildWindowLightEditor()
         auto &hdriTex = hdri.createChild("map", "texture_2d");
         auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
         ast2d->load(texFileName, false, false);
+        // When using an HDRI, set background color to black.  It's otherwise
+        // confusing.  The user can still adjust it afterward.
+        auto &r = frame->childAs<sg::Renderer>("renderer");
+        r["backgroundColor"] = vec4f(0.f);
       }
     } else {
       lightNameWarning = true;
