@@ -260,12 +260,14 @@ MainWindow::MainWindow(StudioCommon &_common)
                 activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
                 break;
             case GLFW_KEY_SPACE:
-                g_animatingPath       = !g_animatingPath;
+              if (g_camAnchors.size() >= 2) {
+                g_animatingPath = !g_animatingPath;
                 g_camCurrentPathIndex = 0;
                 if (g_animatingPath) {
-                    g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
+                  g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
                 }
-                break;
+              }
+              break;
             case GLFW_KEY_EQUAL:
                 activeWindow->pushLookMark();
                 break;
@@ -1568,11 +1570,10 @@ void MainWindow::buildWindowKeyframes()
     if (g_camAnchors.size() >= 2) {
       ImGui::SameLine();
       if (ImGui::Button(g_animatingPath ? "stop" : "play")) {
-        g_animatingPath       = !g_animatingPath;
+        g_animatingPath = !g_animatingPath;
         g_camCurrentPathIndex = 0;
-        if (g_animatingPath) {
+        if (g_animatingPath)
           g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
-        }
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
