@@ -57,7 +57,7 @@ namespace ospray {
         child("navMode") = false;
     }
 
-    this->commit();
+    commit();
 
     if (!pauseRendering && !accumLimitReached()) {
       auto future = fb.handle().renderFrame(
@@ -163,25 +163,9 @@ namespace ospray {
       if (oldSize != newSize)
         fb["size"] = newSize; 
     }
-
-    if (hasChild("lights")) {
-      auto &lights = childAs<sg::Lights>("lights");
-      std::vector<cpp::Light> lightObjects;
-
-      for (auto &name : lights.lightNames) {
-        auto &l = lights.child(name).valueAs<cpp::Light>();
-        lightObjects.push_back(l);
-      }
-      auto &ospWorld = childAs<World>("world").valueAs<cpp::World>();
-
-      ospWorld.setParam("light", cpp::CopiedData(lightObjects));
-    }
   }
 
-  void Frame::postCommit() {
-    auto ospWorld = childAs<World>("world").valueAs<cpp::World>();
-    ospWorld.commit();
-  }
+  void Frame::postCommit() {}
 
   OSP_REGISTER_SG_NODE_NAME(Frame, frame);
 

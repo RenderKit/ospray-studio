@@ -5,33 +5,34 @@
 #include "lights/Lights.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  World::World()
-  {
-    setHandle(cpp::World());
-    createChild("lights", "lights");
-  }
+World::World()
+{
+  setHandle(cpp::World());
+  createChild("lights", "lights");
+}
 
-  void World::preCommit() {    
-    auto ospWorld = valueAs<cpp::World>();
-    auto &lights = childAs<sg::Lights>("lights");
-    std::vector<cpp::Light> lightObjects;
+void World::preCommit()
+{
+  auto &lights = childAs<sg::Lights>("lights");
+  if (lights.isModified()) {
+    lightObjects.clear();
 
     for (auto &name : lights.lightNames) {
       auto &l = lights.child(name).valueAs<cpp::Light>();
-      lightObjects.push_back(l);
+      lightObjects.emplace_back(l);
     }
-
-    ospWorld.setParam("light", cpp::CopiedData(lightObjects));
   }
+}
 
-  void World::postCommit() {
-    auto ospWorld = valueAs<cpp::World>();
-    ospWorld.commit();
-  }
+void World::postCommit()
+{
+  handle().setParam("light", cpp::CopiedData(lightObjects));
+  handle().commit();
+}
 
-  OSP_REGISTER_SG_NODE_NAME(World, world);
+OSP_REGISTER_SG_NODE_NAME(World, world);
 
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray

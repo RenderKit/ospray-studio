@@ -14,6 +14,8 @@ namespace ospray {
     World();
     ~World() override = default;
 
+    std::vector<cpp::Light> lightObjects = {};
+
     virtual void preCommit() override;
     virtual void postCommit() override;
   };
