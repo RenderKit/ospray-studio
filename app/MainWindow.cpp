@@ -1445,19 +1445,10 @@ void MainWindow::buildMainMenuEdit()
         }
       }
     }
-    int clearBackPlate = 0;
     ImGui::SameLine();
-    ImGui::RadioButton("clear", &clearBackPlate, 1);
-    if (clearBackPlate) {
+    if (ImGui::Button("clear")) {
       backPlateTexture = "";
       refreshRenderer();
-    }
-
-    ImGui::Separator();
-    ImGui::Text("interaction");
-    ImGui::Checkbox("auto rotate", &autorotate);
-    if (autorotate) {
-      ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
     }
 
     ImGui::EndMenu();
@@ -1496,6 +1487,11 @@ void MainWindow::buildMainMenuView()
     ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
     ImGui::DragInt(
         "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
+
+    ImGui::Checkbox("auto rotate", &autorotate);
+    if (autorotate) {
+      ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
+    }
 
     ImGui::Separator();
     ImGui::Checkbox("Show Tooltips...", &g_ShowTooltips);
