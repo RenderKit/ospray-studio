@@ -1787,7 +1787,6 @@ void MainWindow::buildWindowGeometryViewer()
 
   // If changing the contents of the world, stop current frame, then rerender world
   auto rockMyWorld = [&]() {
-    auto &world = frame->child("world");
     frame->waitOnFrame(); // must wait before changing the world
     frame->child("world").render();
     fb.resetAccumulation();
