@@ -364,8 +364,8 @@ MainWindow::MainWindow(StudioCommon &_common)
   refreshScene(true);
 
   // trigger window reshape events with current window size
-  glfwGetFramebufferSize(glfwWindow, &this->windowSize.x, &this->windowSize.y);
-  reshape(this->windowSize);
+  glfwGetFramebufferSize(glfwWindow, &windowSize.x, &windowSize.y);
+  reshape(windowSize);
 }
 
 MainWindow::~MainWindow()
@@ -1027,7 +1027,7 @@ void MainWindow::importFiles(sg::NodePtr world)
   if (animate && timesteps.size() > 0) {
     allAnimationWidgets.push_back(
         std::shared_ptr<AnimationWidget>(new AnimationWidget(
-            this->getFrame(), world, timesteps, "Animation Controls")));
+            getFrame(), world, timesteps, "Animation Controls")));
 
     registerImGuiCallback([&]() {
       for (auto i = 0; i < allAnimationWidgets.size(); ++i)

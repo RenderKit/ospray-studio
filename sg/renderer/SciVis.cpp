@@ -37,7 +37,7 @@ SciVis::SciVis() : Renderer("scivis")
 
 void SciVis::preCommit()
 {
-  this->Renderer::preCommit();
+  Renderer::preCommit();
 
   auto &renderer = handle();
   if (hasChild("map_backplate")) {

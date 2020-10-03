@@ -33,15 +33,15 @@ namespace ospray {
 
   void MaterialRegistry::createCPPMaterials(const std::string &rType) 
   {
-    this->traverse<sg::GenerateOSPRayMaterials>(rType);
-    this->commit();
+    traverse<sg::GenerateOSPRayMaterials>(rType);
+    commit();
   }
 
   void MaterialRegistry::rmMatImports()
   {
     if (matImportsList.size() != 0) {
       for (auto &m : matImportsList) {
-        this->remove(m);
+        remove(m);
       }
     }
     matImportsList.clear();
@@ -52,7 +52,7 @@ namespace ospray {
     createCPPMaterials(rType);
     sgMaterialList.clear();
     cppMaterialList.clear();
-    auto &mats = this->children();
+    auto &mats = children();
 
     for (auto &m : mats) {
       auto &matHandle = m.second->child("handles");

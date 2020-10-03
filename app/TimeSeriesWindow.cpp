@@ -118,16 +118,16 @@ void TimeSeriesWindow::mainLoop()
   std::cerr << "loaded " << numTimesteps << " timesteps across "
             << allVariablesData.size() << " variables" << std::endl;
 
-  auto frame = this->activeWindow->getFrame();
+  auto frame = activeWindow->getFrame();
   frame->immediatelyWait = true;
 
-  this->activeWindow->timeseriesMode = true;
-  this->activeWindow->rendererTypeStr = rendererTypeStr;
-  this->activeWindow->refreshRenderer();
+  activeWindow->timeseriesMode = true;
+  activeWindow->rendererTypeStr = rendererTypeStr;
+  activeWindow->refreshRenderer();
 
   auto &lightMan = frame->createChildAs<sg::Lights>("lights", "lights");
   lightMan.addLight(lightTypeStr, lightTypeStr);
-  this->activeWindow->lightTypeStr = lightTypeStr;
+  activeWindow->lightTypeStr = lightTypeStr;
   lightMan.removeLight("ambient");
 
   if (!importAsSeparateTimeseries) {
@@ -288,7 +288,7 @@ void TimeSeriesWindow::mainLoop()
     arcballCamera.reset(
         new ArcballCamera(g_allWorlds[0]->bounds(), windowSize));
   }
-  this->activeWindow->updateCamera();
+  activeWindow->updateCamera();
 
   // set initial timestep
   if (importAsSeparateTimeseries)
@@ -296,12 +296,12 @@ void TimeSeriesWindow::mainLoop()
   else
     setTimestep(0);
 
-  this->activeWindow->registerImGuiCallback([&]() { addTimeseriesUI(); });
+  activeWindow->registerImGuiCallback([&]() { addTimeseriesUI(); });
 
-  this->activeWindow->registerDisplayCallback(
+  activeWindow->registerDisplayCallback(
       [&](MainWindow *) { animateTimesteps(); });
 
-  this->activeWindow->mainLoop();
+  activeWindow->mainLoop();
 }
 
 void TimeSeriesWindow::updateWindowTitle(std::string &updatedTitle)
@@ -445,7 +445,7 @@ bool TimeSeriesWindow::parseCommandLine()
 
 void TimeSeriesWindow::addTimeseriesUI()
 {
-  auto frame = this->activeWindow->getFrame();
+  auto frame = activeWindow->getFrame();
   ImGui::Begin("Time series");
 
   int numTimesteps;
@@ -549,7 +549,7 @@ void TimeSeriesWindow::setTimestepsUI(int numTimesteps){
 
   if (ImGui::Checkbox("pause rendering",
                       &g_timeseriesParameters.pauseRendering)) {
-    if (this->activeWindow) {
+    if (activeWindow) {
       frame->pauseRendering = 
           g_timeseriesParameters.pauseRendering;
     }
@@ -598,7 +598,7 @@ void TimeSeriesWindow::animateTimesteps()
 
 void TimeSeriesWindow::setTimestepFb(int timestep)
 {
-  auto frame = this->activeWindow->getFrame();
+  auto frame = activeWindow->getFrame();
   if (currentTimestep == timestep) {
     return;
   }
@@ -626,7 +626,7 @@ void TimeSeriesWindow::setTimestepFb(int timestep)
 
 void TimeSeriesWindow::resetAccumulation()
 {
-  auto frame               = this->activeWindow->getFrame();
+  auto frame               = activeWindow->getFrame();
   framebufferResetRequired = rkcommon::utility::TimeStamp();
 
   if (frame->hasChild("framebuffer")) {
@@ -640,7 +640,7 @@ void TimeSeriesWindow::resetAccumulation()
 
 void TimeSeriesWindow::setVariableTimeseries(int whichVariable, int timestep)
 {
-  auto frame = this->activeWindow->getFrame();
+  auto frame = activeWindow->getFrame();
   auto world = g_allSeparateWorlds[whichVariable][timestep];
   frame->add(world);
 
@@ -653,7 +653,7 @@ void TimeSeriesWindow::setVariableTimeseries(int whichVariable, int timestep)
 
 void TimeSeriesWindow::setTimestep(int timestep)
 {
-  auto frame = this->activeWindow->getFrame();
+  auto frame = activeWindow->getFrame();
   auto world = g_allWorlds[timestep];
   frame->add(world); 
 

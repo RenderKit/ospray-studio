@@ -39,7 +39,7 @@ void HDRILight::postCommit()
   asLight.setParam("map", (cpp::Texture)map);
   map.commit();
 
-  this->Light::postCommit();
+  Light::postCommit();
 }
 
 } // namespace sg

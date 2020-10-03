@@ -43,7 +43,7 @@ PathTracer::PathTracer() : Renderer("pathtracer")
 
 void PathTracer::preCommit()
 {
-  this->Renderer::preCommit();
+  Renderer::preCommit();
 
   auto &renderer = handle();
   if (hasChild("map_backplate")) {

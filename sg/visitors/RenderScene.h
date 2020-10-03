@@ -133,10 +133,10 @@ namespace ospray {
       xfms.pop();
       break;
     case NodeType::MATERIAL_REFERENCE:
-      // materialIDs.pop();
       break;
     case NodeType::LIGHT:
       world.commit();
+      break;
     default:
       // Nothing
       break;
@@ -203,15 +203,6 @@ namespace ospray {
       texmaterial.commit();
       current.materials.push_back(texmaterial);
 
-      // auto matNode = createNode("sphereMaterial", "obj");
-      // auto &mat    = *matNode;
-      // std::shared_ptr<sg::TextureVolume> sgTex =
-      //     std::static_pointer_cast<sg::TextureVolume>(
-      //         sg::createNode("map_kd", "texture_volume"));
-      // matNode->add(sgTex);
-      // matNode->commit();
-      // materialRegistry->add(matNode);
-      // materialRegistry->matImportsList.push_back(matNode->name());
       current.textures.clear();
       setTextureVolume = false;
     } else

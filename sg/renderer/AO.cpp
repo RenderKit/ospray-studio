@@ -38,7 +38,7 @@ AORenderer::AORenderer() : Renderer("ao")
 
 void AORenderer::preCommit()
 {
-  this->Renderer::preCommit();
+  Renderer::preCommit();
 
   auto &renderer = handle();
   if (hasChild("map_backplate")) {

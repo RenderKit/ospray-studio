@@ -18,11 +18,6 @@ namespace ospray {
 
     void setNavMode(bool navMode);
 
-    inline bool isModified()
-    {
-      return this->anyChildModified();
-    }
-
     OSPPixelFilterTypes pixelFilter{OSP_PIXELFILTER_GAUSS};
   };
 
