@@ -1457,6 +1457,8 @@ void MainWindow::buildMainMenuEdit()
     if (autorotate) {
       ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
     }
+
+    ImGui::EndMenu();
   }
 }
 
