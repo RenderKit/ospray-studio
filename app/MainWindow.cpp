@@ -1457,10 +1457,6 @@ void MainWindow::buildMainMenuEdit()
     if (autorotate) {
       ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
     }
-
-    ImGui::Separator();
-    ImGui::Text("export");
-    ImGui::EndMenu();
   }
 }
 
