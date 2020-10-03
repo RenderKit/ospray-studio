@@ -71,9 +71,8 @@ static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
 static const std::vector<std::string> g_lightTypes = {
     "ambient", "distant", "hdri", "sphere", "spot", "sunSky", "quad"};
 
-std::vector<CameraState> g_camAnchors;  // user-defined anchor states
-std::vector<CameraState> g_camPath;     // interpolated path through anchors
-int g_camSelectedAnchorIndex = 0;
+std::vector<CameraState> g_camPath;     // interpolated path through cameraStack
+int g_camSelectedStackIndex = 0;
 int g_camCurrentPathIndex    = 0;
 float g_camPathSpeed = 5;  // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
 const int g_camPathPause = 2;  // _seconds_ to pause for at end of path
@@ -260,11 +259,11 @@ MainWindow::MainWindow(StudioCommon &_common)
                 activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
                 break;
             case GLFW_KEY_SPACE:
-              if (g_camAnchors.size() >= 2) {
+              if (activeWindow->cameraStack.size() >= 2) {
                 g_animatingPath = !g_animatingPath;
                 g_camCurrentPathIndex = 0;
                 if (g_animatingPath) {
-                  g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
+                  g_camPath = buildPath(activeWindow->cameraStack, g_camPathSpeed * 0.01);
                 }
               }
               break;
@@ -1549,27 +1548,27 @@ void MainWindow::buildWindowKeyframes()
   if (ImGui::ListBoxHeader("##")) {
     if (ImGui::Button(
             "+")) {  // add current camera state after the selected one
-      if (g_camAnchors.empty()) {
-        g_camAnchors.push_back(arcballCamera->getState());
-        g_camSelectedAnchorIndex = 0;
+      if (cameraStack.empty()) {
+        cameraStack.push_back(arcballCamera->getState());
+        g_camSelectedStackIndex = 0;
       } else {
-        g_camAnchors.insert(g_camAnchors.begin() + g_camSelectedAnchorIndex + 1,
+        cameraStack.insert(cameraStack.begin() + g_camSelectedStackIndex + 1,
                             arcballCamera->getState());
-        g_camSelectedAnchorIndex++;
+        g_camSelectedStackIndex++;
       }
     }
     ImGui::SameLine();
     if (ImGui::Button("-")) {  // remove the selected camera state
-      g_camAnchors.erase(g_camAnchors.begin() + g_camSelectedAnchorIndex);
-      g_camSelectedAnchorIndex = std::max(0, g_camSelectedAnchorIndex - 1);
+      cameraStack.erase(cameraStack.begin() + g_camSelectedStackIndex);
+      g_camSelectedStackIndex = std::max(0, g_camSelectedStackIndex - 1);
     }
-    if (g_camAnchors.size() >= 2) {
+    if (cameraStack.size() >= 2) {
       ImGui::SameLine();
       if (ImGui::Button(g_animatingPath ? "stop" : "play")) {
         g_animatingPath = !g_animatingPath;
         g_camCurrentPathIndex = 0;
         if (g_animatingPath)
-          g_camPath = buildPath(g_camAnchors, g_camPathSpeed * 0.01);
+          g_camPath = buildPath(cameraStack, g_camPathSpeed * 0.01);
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
@@ -1580,12 +1579,12 @@ void MainWindow::buildWindowKeyframes()
             "Slow speeds may cause jitter for small objects");
       }
     }
-    for (int i = 0; i < g_camAnchors.size(); i++) {
+    for (int i = 0; i < cameraStack.size(); i++) {
       if (ImGui::Selectable(
-              (std::to_string(i) + ": " + to_string(g_camAnchors[i])).c_str(),
-              (g_camSelectedAnchorIndex == i))) {
-        g_camSelectedAnchorIndex = i;
-        arcballCamera->setState(g_camAnchors[i]);
+              (std::to_string(i) + ": " + to_string(cameraStack[i])).c_str(),
+              (g_camSelectedStackIndex == i))) {
+        g_camSelectedStackIndex = i;
+        arcballCamera->setState(cameraStack[i]);
         updateCamera();
       }
     }
