@@ -3,7 +3,6 @@
 
 add_subdirectory(imgui)
 add_subdirectory(imguiFileDialog)
-#add_subdirectory(tfn_lib)
 add_subdirectory(tiny_obj_loader)
 add_subdirectory(tiny_gltf)
 add_subdirectory(stb_image)
