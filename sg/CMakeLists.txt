@@ -72,7 +72,6 @@ add_library(ospray_sg SHARED
   generator/UnstructuredVol.cpp
   generator/TestSphere.cpp
   generator/Torus.cpp
-  generator/Clouds.cpp
 
   importer/Importer.cpp
   importer/OBJ.cpp
