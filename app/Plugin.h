@@ -1,18 +1,5 @@
-// ======================================================================== //
-// Copyright 2009-2018 Intel Corporation                                    //
-//                                                                          //
-// Licensed under the Apache License, Version 2.0 (the "License");          //
-// you may not use this file except in compliance with the License.         //
-// You may obtain a copy of the License at                                  //
-//                                                                          //
-//     http://www.apache.org/licenses/LICENSE-2.0                           //
-//                                                                          //
-// Unless required by applicable law or agreed to in writing, software      //
-// distributed under the License is distributed on an "AS IS" BASIS,        //
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
-// See the License for the specific language governing permissions and      //
-// limitations under the License.                                           //
-// ======================================================================== //
+// Copyright 2018-2020 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
@@ -21,34 +8,43 @@
 
 #include "widgets/Panel.h"
 
-#include "ospray/sg/SceneGraph.h"
+#include "ospStudio.h"
+
+#ifndef PLUGIN_INTERFACE
+  #ifdef _WIN32
+    #define PLUGIN_INTERFACE __declspec(dllexport)
+  #else
+    #define PLUGIN_INTERFACE
+  #endif
+#endif
 
 namespace ospray {
 
-  struct Plugin
-  {
-    virtual ~Plugin() = default;
+struct Plugin
+{
+  Plugin() = default;
+  virtual ~Plugin() = default;
 
-    // Create an instance of each panel, the parameter passed in the is root
-    // node in the scene graph
-    virtual PanelList createPanels(std::shared_ptr<sg::Frame> scenegraph) = 0;
+  // Create an instance of each panel, the parameter passed in the is the
+  // current application context
+  virtual PanelList createPanels(std::shared_ptr<StudioContext> _context) = 0;
 
-    std::string name() const;
+  std::string name() const;
 
-   protected:
-    Plugin(const std::string &pluginName);
+ protected:
+  Plugin(const std::string &pluginName);
 
-   private:
-    std::string pluginName;
-  };
+ private:
+  std::string pluginName;
+};
 
-  // Inlined members //////////////////////////////////////////////////////////
+// Inlined members //////////////////////////////////////////////////////////
 
-  inline std::string Plugin::name() const
-  {
-    return pluginName;
-  }
+inline std::string Plugin::name() const
+{
+  return pluginName;
+}
 
-  inline Plugin::Plugin(const std::string &_name) : pluginName(_name) {}
+inline Plugin::Plugin(const std::string &_name) : pluginName(_name) {}
 
-}  // namespace ospray
+} // namespace ospray

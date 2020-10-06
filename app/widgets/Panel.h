@@ -1,18 +1,5 @@
-// ======================================================================== //
-// Copyright 2009-2018 Intel Corporation                                    //
-//                                                                          //
-// Licensed under the Apache License, Version 2.0 (the "License");          //
-// you may not use this file except in compliance with the License.         //
-// You may obtain a copy of the License at                                  //
-//                                                                          //
-//     http://www.apache.org/licenses/LICENSE-2.0                           //
-//                                                                          //
-// Unless required by applicable law or agreed to in writing, software      //
-// distributed under the License is distributed on an "AS IS" BASIS,        //
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
-// See the License for the specific language governing permissions and      //
-// limitations under the License.                                           //
-// ======================================================================== //
+// Copyright 2018-2020 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
@@ -20,66 +7,81 @@
 #include <string>
 #include <vector>
 
+#include "../ospStudio.h"
+
+#ifndef PANEL_INTERFACE
+  #ifdef _WIN32
+    #define PANEL_INTERFACE __declspec(dllexport)
+  #else
+    #define PANEL_INTERFACE
+  #endif
+#endif
+
+class StudioContext;
+
 namespace ospray {
 
-  struct Panel
-  {
-    Panel()          = default;
-    virtual ~Panel() = default;
+struct PANEL_INTERFACE Panel
+{
+  Panel() = default;
+  virtual ~Panel() = default;
 
-    // Function called by MainWindow to construct the desired ImGui widgets //
+  // Function called by MainWindow to construct the desired ImGui widgets //
 
-    virtual void buildUI() = 0;
+  virtual void buildUI(void* ImGuiCtx) = 0;
 
-    // Controls to show/hide the panel in the app //
+  // Controls to show/hide the panel in the app //
 
-    void setShown(bool shouldBeShown);
-    void toggleShown();
-    bool isShown() const;
+  void setShown(bool shouldBeShown);
+  void toggleShown();
+  bool isShown() const;
 
-    // Panel name controls //
+  // Panel name controls //
 
-    void setName(const std::string &newName);
-    std::string name() const;
+  void setName(const std::string &newName);
+  std::string name() const;
 
-   protected:
-    // Constructor to be used by child classes
-    Panel(const std::string &_name) : currentName(_name) {}
+ protected:
+  // Constructor to be used by child classes
+  Panel(const std::string &_name, std::shared_ptr<StudioContext> _context)
+      : currentName(_name), context(_context)
+  {}
+  std::shared_ptr<StudioContext> context;
 
-   private:
-    // Properties //
+ private:
+  // Properties //
 
-    bool show = false;
-    std::string currentName{"<unnamed panel>"};
-  };
+  bool show = false;
+  std::string currentName{"<unnamed panel>"};
+};
 
-  using PanelList = std::vector<std::unique_ptr<Panel>>;
+using PanelList = std::vector<std::unique_ptr<Panel>>;
 
-  // Inlined members //////////////////////////////////////////////////////////
+// Inlined members //////////////////////////////////////////////////////////
 
-  inline void Panel::setShown(bool shouldBeShown)
-  {
-    show = shouldBeShown;
-  }
+inline void Panel::setShown(bool shouldBeShown)
+{
+  show = shouldBeShown;
+}
 
-  inline void Panel::toggleShown()
-  {
-    show = !show;
-  }
+inline void Panel::toggleShown()
+{
+  show = !show;
+}
 
-  inline bool Panel::isShown() const
-  {
-    return show;
-  }
+inline bool Panel::isShown() const
+{
+  return show;
+}
 
-  inline void Panel::setName(const std::string &newName)
-  {
-    currentName = newName;
-  }
+inline void Panel::setName(const std::string &newName)
+{
+  currentName = newName;
+}
 
-  inline std::string Panel::name() const
-  {
-    return currentName;
-  }
+inline std::string Panel::name() const
+{
+  return currentName;
+}
 
-}  // namespace ospray
+} // namespace ospray

@@ -1,31 +1,25 @@
-## ======================================================================== ##
-## Copyright 2009-2018 Intel Corporation                                    ##
-##                                                                          ##
-## Licensed under the Apache License, Version 2.0 (the "License");          ##
-## you may not use this file except in compliance with the License.         ##
-## You may obtain a copy of the License at                                  ##
-##                                                                          ##
-##     http://www.apache.org/licenses/LICENSE-2.0                           ##
-##                                                                          ##
-## Unless required by applicable law or agreed to in writing, software      ##
-## distributed under the License is distributed on an "AS IS" BASIS,        ##
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. ##
-## See the License for the specific language governing permissions and      ##
-## limitations under the License.                                           ##
-## ======================================================================== ##
+## Copyright 2009-2020 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
 
-project(ospray_studio)
+cmake_policy(SET CMP0048 NEW) # required for project version after 3.18.3
+project(ospray_studio VERSION 0.5.0 LANGUAGES CXX)
 cmake_minimum_required(VERSION 3.1)
 
 if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW) # since 3.12
 endif()
 
+include(GNUInstallDirs)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-set(CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 14 CACHE STRING
+     "C++ standard for preference (11, 14, 17, 20, etc.)")
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
+message (STATUS "This build is for C++${CMAKE_CXX_STANDARD}")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -49,34 +43,26 @@ endif()
 set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL 2 REQUIRED)
 find_package(glfw3 REQUIRED)
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE) # for gcc6
-find_package(Threads REQUIRED)
-find_package(ospray 1.8.5 EXACT REQUIRED)
-find_package(OpenImageDenoise)
-
-# Prevent OSX 10.14+ OGL deprecation warnings
-if(APPLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGL_SILENCE_DEPRECATION")
-endif()
-
-include(${OSPRAY_USE_FILE})
-
-ospray_configure_tasking_system()
+find_package(rkcommon 1.4.0 REQUIRED)
+find_package(ospray 2.2.0 REQUIRED)
 
 ## Build application ##
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
-include_directories(
-  ${OSPRAY_INCLUDE_DIRS}
-  external/
-  external/imgui
-)
-
 add_subdirectory(external)
-add_subdirectory(app)
+add_subdirectory(sg)
+
+option(BUILD_APPS "Build OSPRay Studio Apps" ON)
+
+if (BUILD_APPS)
+  add_subdirectory(app)
+endif()
 
 ## Build plugins ##
 
-add_subdirectory(plugins)
+option(BUILD_PLUGINS "Build plugins subtree" OFF)
+
+if (BUILD_APPS AND BUILD_PLUGINS)
+  add_subdirectory(plugins)
+endif()
