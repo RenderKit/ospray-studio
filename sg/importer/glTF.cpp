@@ -42,8 +42,8 @@ namespace ospray {
 
   struct GLTFData
   {
-    GLTFData(NodePtr rootNode, const FileName &fileName)
-        : fileName(fileName), rootNode(rootNode)
+    GLTFData(NodePtr rootNode, const FileName &fileName, std::shared_ptr<sg::MaterialRegistry> _materialRegistry)
+        : fileName(fileName), rootNode(rootNode), materialRegistry(_materialRegistry)
     {
     }
 
@@ -51,14 +51,12 @@ namespace ospray {
     const FileName &fileName;
 
     bool parseAsset();
-    void createMaterials(MaterialRegistry &materialRegistry);
+    void createMaterials();
     void createGeometries();
     void createCameras(std::vector<NodePtr> &cameras);
     void buildScene();
     void loadAssetInfo(NodePtr sgNode);
-    void addReferenceLinkInfo(const int nid, NodePtr sgNode);
-    void setBaseMaterialRegistry(
-        std::shared_ptr<sg::MaterialRegistry> _baseMaterialRegistry);
+    void addReferenceLinkNodes(const int nid, NodePtr sgNode);
 
     // load animations AFTER loading scene nodes and their transforms
     void loadChannels();
@@ -73,7 +71,7 @@ namespace ospray {
 
    private:
     std::map<int, NodePtr> animatedNodes;
-    std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry = nullptr;
+    std::shared_ptr<sg::MaterialRegistry> materialRegistry;
 
     tinygltf::Model model;
 
@@ -114,12 +112,6 @@ namespace ospray {
   inline std::string pad(std::string string, char p = '0', int length = 4)
   {
     return std::string(std::max(0, length - (int)string.length()), p) + string;
-  }
-
-  void GLTFData::setBaseMaterialRegistry(
-      std::shared_ptr<sg::MaterialRegistry> _baseMaterialRegistry)
-  {
-    baseMaterialRegistry = _baseMaterialRegistry;
   }
 
   bool GLTFData::parseAsset()
@@ -214,7 +206,7 @@ namespace ospray {
     }
   }
 
-  void GLTFData::addReferenceLinkInfo(const int nid, NodePtr sgNode)
+  void GLTFData::addReferenceLinkNodes(const int nid, NodePtr sgNode)
   {
     const tinygltf::Node &n = model.nodes[nid];
     auto refLinkExtension = n.extensions.find("BIT_reference_link")->second;
@@ -237,7 +229,7 @@ namespace ospray {
     if (importer != "") {
       auto &imp = sgNode->createChildAs<sg::Importer>(nodeName, importer);
       imp.setFileName(file);
-      imp.setMaterialRegistry(baseMaterialRegistry);
+      imp.setMaterialRegistry(materialRegistry);
       imp.importScene();
       imp.createChild("id", "string", refId);
       imp.createChild("title", "string", refType);
@@ -245,7 +237,7 @@ namespace ospray {
     }
   }
 
-  void GLTFData::createMaterials(MaterialRegistry &materialRegistry)
+  void GLTFData::createMaterials()
   {
     //DEBUG << "Create Materials\n";
 
@@ -261,10 +253,10 @@ namespace ospray {
       ospMaterials.push_back(createOSPMaterial(material));
     }
 
-    baseMaterialOffset = materialRegistry.children().size();
+    baseMaterialOffset = materialRegistry->children().size();
     for (auto m : ospMaterials) {
-      materialRegistry.add(m);
-      materialRegistry.matImportsList.push_back(m->name());
+      materialRegistry->add(m);
+      materialRegistry->matImportsList.push_back(m->name());
     }
   }
 
@@ -426,7 +418,7 @@ namespace ospray {
     sgNode = newXfm;
 
     if (n.extensions.find("BIT_reference_link") != n.extensions.end())
-        addReferenceLinkInfo(nid, sgNode);
+        addReferenceLinkNodes(nid, sgNode);
 
     if (animate) {
     // for each scene node check if it is animated (if it's node ID exist in animatedNodes map)
@@ -936,19 +928,13 @@ namespace ospray {
     std::string baseName = fileName.name() + "_rootXfm";
     auto rootNode = createNode(baseName, "Transform", affine3f{one});
 
-    GLTFData gltf(rootNode, fileName);
+    GLTFData gltf(rootNode, fileName, materialRegistry);
 
     if (!gltf.parseAsset())
       return;
 
     gltf.animate = animate;
-
-    if(materialRegistry != nullptr) {
-      gltf.createMaterials(*materialRegistry);
-      // base material registry will only be used when importing recursively 
-      gltf.setBaseMaterialRegistry(materialRegistry);
-    }
-    
+    gltf.createMaterials();   
     gltf.createGeometries();
     gltf.buildScene();
     gltf.createCameras(*cameras);
