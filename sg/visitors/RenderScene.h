@@ -33,6 +33,7 @@ namespace ospray {
     {
       std::vector<cpp::GeometricModel> geometries;
       std::vector<cpp::VolumetricModel> volumes;
+      std::vector<cpp::GeometricModel> clippingGeometries;
       // make this a shared pointer instead of vector
       std::vector<cpp::Texture> textures;
       // make this a shared pointer instead of vector
@@ -160,7 +161,10 @@ namespace ospray {
         model.setParam("material", materialIDs.top());
     }
     model.commit();
-    current.geometries.push_back(model);
+    if (!node.child("isClipping").valueAs<bool>())
+      current.geometries.push_back(model);
+    else
+      current.clippingGeometries.push_back(model);
   }
 
   inline void RenderScene::createVolume(Node &node)
@@ -216,7 +220,8 @@ namespace ospray {
               << std::endl;
     #endif
 
-    if (current.geometries.empty() && current.volumes.empty())
+    if (current.geometries.empty() && current.volumes.empty()
+        && current.clippingGeometries.empty())
       return;
 
     cpp::Group group;
@@ -227,8 +232,13 @@ namespace ospray {
     if (!current.volumes.empty())
       group.setParam("volume", cpp::CopiedData(current.volumes));
 
+    if (!current.clippingGeometries.empty())
+      group.setParam(
+          "clippingGeometry", cpp::CopiedData(current.clippingGeometries));
+
     current.geometries.clear();
     current.volumes.clear();
+    current.clippingGeometries.clear();
 
     group.commit();
 
