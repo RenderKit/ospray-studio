@@ -1014,7 +1014,6 @@ void MainWindow::importFiles(sg::NodePtr world)
           imp.setMaterialRegistry(baseMaterialRegistry);
           imp.setCameraList(cameras);
           if (animate) {
-            imp.animate = animate;
             imp.setTimesteps(timesteps);
           }
           imp.importScene();
@@ -1029,14 +1028,7 @@ void MainWindow::importFiles(sg::NodePtr world)
       std::cerr << "Failed to open file '" << file << "'!\n";
     }
   }
-
   filesToImport.clear();
-
-  if (linkNodes) {
-    world->traverse<sg::RefLinkNodes>();
-
-    // TODO Important: remove empty importer nodes as well
-  }
 
   if(cameras.size() > 0){
     auto &mainCamera = frame->child("camera");

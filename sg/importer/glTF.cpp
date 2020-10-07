@@ -57,6 +57,8 @@ namespace ospray {
     void buildScene();
     void loadAssetInfo(NodePtr sgNode);
     void addReferenceLinkInfo(const int nid, NodePtr sgNode);
+    void setBaseMaterialRegistry(
+        std::shared_ptr<sg::MaterialRegistry> _baseMaterialRegistry);
 
     // load animations AFTER loading scene nodes and their transforms
     void loadChannels();
@@ -71,6 +73,7 @@ namespace ospray {
 
    private:
     std::map<int, NodePtr> animatedNodes;
+    std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry = nullptr;
 
     tinygltf::Model model;
 
@@ -111,6 +114,12 @@ namespace ospray {
   inline std::string pad(std::string string, char p = '0', int length = 4)
   {
     return std::string(std::max(0, length - (int)string.length()), p) + string;
+  }
+
+  void GLTFData::setBaseMaterialRegistry(
+      std::shared_ptr<sg::MaterialRegistry> _baseMaterialRegistry)
+  {
+    baseMaterialRegistry = _baseMaterialRegistry;
   }
 
   bool GLTFData::parseAsset()
@@ -192,11 +201,7 @@ namespace ospray {
 
   void GLTFData::loadAssetInfo(NodePtr sgNode) {
     auto asset = model.asset;
-
-    // currently load BIT_asset_info extension with partial properties only
-    // For reference links to work we need the 'id', 'type' and 'title'
-    auto fnd = asset.extensions.find("BIT_asset_info");
-    if (fnd != asset.extensions.end()) {
+    if (asset.extensions.find("BIT_asset_info") != asset.extensions.end()) {
       auto &assetExt = asset.extensions["BIT_asset_info"];
 
       auto assetId = assetExt.Get("id").Get<std::string>();
@@ -209,24 +214,35 @@ namespace ospray {
     }
   }
 
-  void GLTFData::addReferenceLinkInfo(const int nid, NodePtr sgNode) {
+  void GLTFData::addReferenceLinkInfo(const int nid, NodePtr sgNode)
+  {
     const tinygltf::Node &n = model.nodes[nid];
     auto refLinkExtension = n.extensions.find("BIT_reference_link")->second;
 
-    auto &refId =
-      refLinkExtension.Get("id").Get<std::string>(); 
-    auto &refType =
-      refLinkExtension.Get("type").Get<std::string>(); 
-    auto &refTitle =
-      refLinkExtension.Get("title").Get<std::string>();
+    auto &refId = refLinkExtension.Get("id").Get<std::string>();
+    auto &refType = refLinkExtension.Get("type").Get<std::string>();
+    auto &refTitle = refLinkExtension.Get("title").Get<std::string>();
 
-    auto refLinkInfoNode = createNode("refLink_" + refTitle , "Node");
-    refLinkInfoNode->createChild("id", "string", refId);
-    refLinkInfoNode->createChild("title", "string", refType);
-    refLinkInfoNode->createChild("type", "string", refTitle);
+    std::string refLinkFileName;
+    if (refType == "geometry")
+      refLinkFileName = refTitle + ".gltf";
 
-    sgNode->add(refLinkInfoNode);
+    std::string refLinkFullPath = fileName.path() + refLinkFileName;
+    std::string nodeName = refLinkFileName + "_refLink_importer";
 
+    rkcommon::FileName file(refLinkFullPath);
+    std::cout << "Importing: " << file << std::endl;
+
+    auto importer = sg::getImporter(refLinkFullPath);
+    if (importer != "") {
+      auto &imp = sgNode->createChildAs<sg::Importer>(nodeName, importer);
+      imp.setFileName(file);
+      imp.setMaterialRegistry(baseMaterialRegistry);
+      imp.importScene();
+      imp.createChild("id", "string", refId);
+      imp.createChild("title", "string", refType);
+      imp.createChild("type", "string", refTitle);
+    }
   }
 
   void GLTFData::createMaterials(MaterialRegistry &materialRegistry)
@@ -926,12 +942,18 @@ namespace ospray {
       return;
 
     gltf.animate = animate;
-    gltf.createMaterials(*materialRegistry);
+
+    if(materialRegistry != nullptr) {
+      gltf.createMaterials(*materialRegistry);
+      // base material registry will only be used when importing recursively 
+      gltf.setBaseMaterialRegistry(materialRegistry);
+    }
+    
     gltf.createGeometries();
     gltf.buildScene();
     gltf.createCameras(*cameras);
 
-    // load asset extensions as separate SG Asset-Info-nod
+    // load asset extensions as separate SG Asset-Info-node
     gltf.loadAssetInfo(rootNode);
 
     if (animate){

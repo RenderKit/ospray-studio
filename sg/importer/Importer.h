@@ -41,6 +41,7 @@ struct OSPSG_INTERFACE Importer : public Node
   inline void setTimesteps(std::vector<float> &_timesteps)
   {
     timesteps = &_timesteps;
+    animate = true;
   }
 
   inline void setCameraList(std::vector<NodePtr> &_cameras)
@@ -48,13 +49,12 @@ struct OSPSG_INTERFACE Importer : public Node
     cameras = &_cameras;
   }
 
-  bool animate{false};
-
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
   std::vector<float> *timesteps = nullptr;
   std::vector<NodePtr> *cameras = nullptr;
+  bool animate{false};
 };
 
 extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
