@@ -937,7 +937,8 @@ namespace ospray {
     gltf.createMaterials();   
     gltf.createGeometries();
     gltf.buildScene();
-    gltf.createCameras(*cameras);
+    if (importCameras)
+      gltf.createCameras(*cameras);
 
     // load asset extensions as separate SG Asset-Info-node
     gltf.loadAssetInfo(rootNode);

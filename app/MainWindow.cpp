@@ -24,7 +24,6 @@
 #include "sg/visitors/Search.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/SetParamByNode.h"
-#include "sg/visitors/RefLinkNodes.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
 #include "rkcommon/os/FileName.h"
@@ -959,8 +958,6 @@ bool MainWindow::parseCommandLine()
       optPF = max(0, atoi(av[i + 1]));
       rkcommon::removeArgs(ac, av, i, 2);
       --i;
-    } else if(arg == "--linkNodes" || arg == "-ln") {
-      linkNodes = true;
     } else if (arg == "--animate" || arg == "-a") {
       animate = true;
     } else if (arg == "--2160p")
@@ -1978,7 +1975,6 @@ void MainWindow::printHelp()
                                2 = Gaussian
                                3 = Mitchell-Netravali
                                4 = Blackman-Harris
-    -ln, --linkNodes         enable linking nodes
     -a, --animate            enable loading glTF animations
     --2160p, --1440p,        set window/frame resolution
     --1080p, --720p,

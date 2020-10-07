@@ -47,6 +47,7 @@ struct OSPSG_INTERFACE Importer : public Node
   inline void setCameraList(std::vector<NodePtr> &_cameras)
   {
     cameras = &_cameras;
+    importCameras = true;
   }
 
  protected:
@@ -54,6 +55,7 @@ struct OSPSG_INTERFACE Importer : public Node
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
   std::vector<float> *timesteps = nullptr;
   std::vector<NodePtr> *cameras = nullptr;
+  bool importCameras{false};
   bool animate{false};
 };
 
