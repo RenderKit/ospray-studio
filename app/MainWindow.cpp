@@ -1493,9 +1493,8 @@ void MainWindow::buildMainMenuView()
     ImGui::Separator();
     if (ImGui::MenuItem("Lights...", "", nullptr))
       showLightEditor = true;
-    if (ImGui::MenuItem("Camera...", "", nullptr)) {
+    if (ImGui::MenuItem("Camera...", "", nullptr))
       showCameraEditor = true;
-    }
     if (ImGui::MenuItem("Center camera", "", nullptr)) {
       arcballCamera.reset(
           new ArcballCamera(frame->child("world").bounds(), windowSize));
