@@ -16,15 +16,14 @@ AnimationWidget::AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
       widgetName(_widgetName)
 {
   numKeyframes = timesteps.size();
-  firstWorld->render();
-  activeFrame->add(firstWorld);
 
-  // traverse and collect the animation worlds
   for (auto iter = timesteps.begin(); iter != timesteps.end(); ++iter) {
     auto newWorld = ospray::sg::createNode("world", "world");
     newWorld->createChild("time", "float", *iter);
-    firstWorld->traverseAnimation<ospray::sg::GenerateAnimationWorld>(
-        newWorld);
+    // create copies of firstWorld
+    for (auto &c : firstWorld->children()){
+      newWorld->add(c.second);
+    }
     g_allWorlds.push_back(
         std::static_pointer_cast<ospray::sg::World>(newWorld));
 
@@ -161,7 +160,7 @@ void AnimationWidget::setKeyframe(int keyframe)
 {
   auto &world = g_allWorlds[keyframe];
   activeFrame->add(world);
-
+  activeFrame->waitOnFrame();
   activeFrame->childAs<ospray::sg::FrameBuffer>("framebuffer")
       .resetAccumulation();
 }

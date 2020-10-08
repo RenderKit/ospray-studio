@@ -24,8 +24,6 @@
 #include "../../sg/Frame.h"
 #include "../../sg/scene/World.h"
 #include "../../sg/fb/FrameBuffer.h"
-#include "../../sg/visitors/GenerateAnimationSequence.h"
-#include "../../sg/visitors/GenerateAnimationWorld.h"
 #include "../../sg/visitors/PrintNodes.h"
 
 using namespace rkcommon::math;
@@ -34,7 +32,7 @@ using namespace rkcommon::math;
   {
     int currentKeyframe           = 0;
     bool playKeyframes            = false;
-    int desiredKeyframesPerSecond = 1;
+    int desiredKeyframesPerSecond = 4;
 
     int animationCenter       = 0;
     int numTimesteps = 0;

@@ -28,7 +28,8 @@ void World::preCommit()
 
 void World::postCommit()
 {
-  handle().setParam("light", cpp::CopiedData(lightObjects));
+  if(lightObjects.size() != 0)
+    handle().setParam("light", cpp::CopiedData(lightObjects));
   handle().commit();
 }
 

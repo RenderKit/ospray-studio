@@ -19,7 +19,6 @@ namespace ospray {
   struct TraversalContext
   {
     int level{0};
-    NodePtr animationWorld;
   };
 
   // Base node visitor interface //////////////////////////////////////////////
