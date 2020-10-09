@@ -804,7 +804,9 @@ void MainWindow::startNewOSPRayFrame()
   // child.
   if (baseMaterialRegistry->isModified()) {
     baseMaterialRegistry->commit();
-    refreshRenderer();
+    baseMaterialRegistry->updateMaterialList(rendererTypeStr);
+    auto &r = frame->childAs<sg::Renderer>("renderer");
+    r.createChildData("material", baseMaterialRegistry->cppMaterialList);
     frame->child("navMode") = true; // navMode is perfect for this
   }
 
