@@ -54,8 +54,40 @@ namespace ospray {
       auto found = std::find(lightNames.begin(), lightNames.end(), name);
       lightNames.erase(found);
 
+      std::cout << "Lights::removeLight " << std::endl;
+
+      // XXX FIX: this markAsModified is not doing anything ?!?!
       markAsModified();
+      isStubborn = true; // XXX HACK, until we get markAsModified working here
       return true;
+    }
+
+    void Lights::preCommit()
+    {
+      isStubborn = false;
+      cppLightObjects.clear();
+
+      for (auto &name : lightNames) {
+        auto &l = child(name).valueAs<cpp::Light>();
+        cppLightObjects.emplace_back(l);
+      }
+    }
+
+    void Lights::postCommit()
+    {
+    }
+
+    void Lights::updateWorld(World &world)
+    {
+      // Commit lightsManager changes then apply lightObjects on the world.
+      commit();
+
+      if (!cppLightObjects.empty())
+        world.handle().setParam("light", cpp::CopiedData(cppLightObjects));
+      else
+        world.handle().removeParam("light");
+
+      world.handle().commit();
     }
 
   }  // namespace sg

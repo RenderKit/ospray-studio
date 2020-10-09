@@ -11,20 +11,18 @@ namespace ospray {
   struct CommitVisitor : public Visitor
   {
     CommitVisitor()           = default;
-    CommitVisitor(bool _force) : force(_force) {}
     ~CommitVisitor() override = default;
 
     bool operator()(Node &node, TraversalContext &) override;
     void postChildren(Node &node, TraversalContext &) override;
     protected:
-    bool force{false};
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
 
   inline bool CommitVisitor::operator()(Node &node, TraversalContext &)
   {
-    if (force || node.subtreeModifiedButNotCommitted()) {
+    if (node.subtreeModifiedButNotCommitted()) {
       node.preCommit();
       return true;
     } else {
@@ -34,7 +32,7 @@ namespace ospray {
 
   inline void CommitVisitor::postChildren(Node &node, TraversalContext &)
   {
-    if (force || node.subtreeModifiedButNotCommitted()) {
+    if (node.subtreeModifiedButNotCommitted()) {
       node.postCommit();
       node.properties.lastCommitted.renew();
     }

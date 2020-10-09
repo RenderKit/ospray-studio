@@ -66,6 +66,7 @@ OSPSG_INTERFACE void importScene(
       }
     } break;
     case NodeType::LIGHTS:
+      // Handle lights in either the (world) or the lightsManager
       lights = createNodeFromJSON(jChild);
       break;
     default:
@@ -73,13 +74,21 @@ OSPSG_INTERFACE void importScene(
     }
   }
 
+  // Handle lights in either the world or the (lightsManager)
+  if (j.contains("lightsManager"))
+    lights = createNodeFromJSON(j["lightsManager"]);
+
   context->refreshScene(true);
 
   if (lights == nullptr) {
     std::cerr << "Scene file '" << sceneFileName
               << "' has no lights! Is this file correct?" << std::endl;
   } else {
-    context->frame->child("world").add(lights);
+    // If the scene does contain lights, remove the default ambient.  The scene
+    // has the lights it wants.
+    context->lightsManager->removeLight("ambient");
+    for (auto &light : lights->children())
+      context->lightsManager->addLight(light.second);
   }
 
   CameraState cs = j["camera"];

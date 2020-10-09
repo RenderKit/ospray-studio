@@ -277,10 +277,8 @@ namespace ospray {
     }
 
     baseMaterialOffset = materialRegistry->children().size();
-    for (auto m : ospMaterials) {
+    for (auto m : ospMaterials)
       materialRegistry->add(m);
-      materialRegistry->matImportsList.push_back(m->name());
-    }
   }
 
   void GLTFData::createCameras(std::vector<NodePtr> &cameras)

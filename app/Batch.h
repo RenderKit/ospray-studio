@@ -36,7 +36,7 @@ class BatchContext : public StudioContext
   PluginManager pluginManager;
   NodePtr importedModels;
 
-  std::string optRendererTypeStr = "scivis";
+  std::string optRendererTypeStr = "pathtracer";
   std::string optCameraTypeStr   = "perspective";
   std::string optImageName       = "ospBatch";
   vec2i optImageSize             = {1024, 768};

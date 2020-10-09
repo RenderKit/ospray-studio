@@ -7,7 +7,6 @@
 #include "sg/fb/FrameBuffer.h"
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/World.h"
-#include "sg/scene/lights/Lights.h"
 
 namespace ospray {
   namespace sg {

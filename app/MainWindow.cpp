@@ -260,6 +260,9 @@ MainWindow::MainWindow(StudioCommon &_common)
             case GLFW_KEY_M:
                 activeWindow->baseMaterialRegistry->traverse<sg::PrintNodes>();
                 break;
+            case GLFW_KEY_L:
+                activeWindow->lightsManager->traverse<sg::PrintNodes>();
+                break;
             case GLFW_KEY_B:
                 PRINT(activeWindow->frame->bounds());
                 break;
@@ -361,13 +364,6 @@ MainWindow::MainWindow(StudioCommon &_common)
   glBindTexture(GL_TEXTURE_2D, framebufferTexture);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  // OSPRay setup //
-
-  frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
-
-  baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
-      "baseMaterialRegistry", "materialRegistry");
 
   refreshRenderer();
   refreshScene(true);
@@ -803,12 +799,18 @@ void MainWindow::display()
 
 void MainWindow::startNewOSPRayFrame()
 {
-  // The baseMaterialRegistry doesn't hang off the frame, so must be checked
-  // separately.  If modified, notify the frame by modifying a child.
+  // The baseMaterialRegistry and lightsManager don't hang off the frame, so
+  // must be checked separately.  If modified, notify the frame by modifying a
+  // child.
   if (baseMaterialRegistry->isModified()) {
     baseMaterialRegistry->commit();
-    if (frame->hasChild("navMode"))
-      frame->child("navMode") = true; // navMode is perfect for this
+    refreshRenderer();
+    frame->child("navMode") = true; // navMode is perfect for this
+  }
+
+  if (lightsManager->isModified() || lightsManager->isStubborn) {
+    lightsManager->updateWorld(frame->childAs<sg::World>("world"));
+    frame->child("navMode") = true; // navMode is perfect for this
   }
 
   frame->startNewFrame();
@@ -922,19 +924,15 @@ void MainWindow::refreshScene(bool resetCam)
       gen.setMaterialRegistry(baseMaterialRegistry);
       gen.generateData();
 
-      if (baseMaterialRegistry->matImportsList.size())
-        refreshRenderer();
     }
   }
+  
+  if (baseMaterialRegistry->isModified())
+    refreshRenderer();
 
   world->render();
 
   frame->add(world);
-
-  // this forces a commit, needed for scene imports (.sg)
-  // TODO: there is a desync between imported nodes marked as committed vs
-  // actually committed to OSPRay. This is just a bandaid
-  frame->child("world").traverse<sg::CommitVisitor>(true);
 
   if (resetCam && !sgScene) {
     const auto &worldBounds = frame->child("world").bounds();
@@ -1013,9 +1011,6 @@ void MainWindow::importFiles(sg::NodePtr world)
             importer->setTimesteps(timesteps);
           }
           importer->importScene();
-
-          if (baseMaterialRegistry->matImportsList.size())
-            refreshRenderer();
         }
       }
     } catch (...) {
@@ -1148,7 +1143,9 @@ void MainWindow::buildMainMenuFile()
       if (ImGui::MenuItem("Scene")) {
         std::ofstream dump("studio.sg");
         nlohmann::json j = {{"world", frame->child("world")},
-            {"camera", arcballCamera->getState()}};
+            {"camera", arcballCamera->getState()},
+            // XXX Not sure how to spell this otherwise???? lightsManager->Node()}};
+            {"lightsManager", studioTopLevel->child("lights")}};
         dump << j.dump();
       }
 
@@ -1653,13 +1650,7 @@ void MainWindow::buildWindowLightEditor()
     return;
   }
   
-  auto &f = *frame;
-  auto &lightsNode = f.hasChild("lights") ? f["lights"]
-                                          : f["world"]["lights"];
-
-  auto &lightMan = *lightsNode.nodeAs<sg::Lights>();
-
-  auto &lights   = lightMan.children();
+  auto &lights = lightsManager->children();
   static int whichLight = -1;
   static std::string selectedLight;
 
@@ -1677,7 +1668,7 @@ void MainWindow::buildWindowLightEditor()
 
     if (whichLight != -1) {
       ImGui::Text("edit");
-      lightMan.child(selectedLight)
+      lightsManager->child(selectedLight)
           .traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
     }
   }
@@ -1685,7 +1676,7 @@ void MainWindow::buildWindowLightEditor()
   if (lights.size() > 1) {
     if (ImGui::Button("remove")) {
       if (whichLight != -1) {
-        lightMan.removeLight(selectedLight);
+        lightsManager->removeLight(selectedLight);
         whichLight    = std::max(0, whichLight - 1);
         selectedLight = (*(lights.begin() + whichLight)).first;
       }
@@ -1711,7 +1702,7 @@ void MainWindow::buildWindowLightEditor()
 
   static char lightName[64] = "";
   if (ImGui::InputText("name", lightName, sizeof(lightName)))
-    lightNameWarning = !(*lightName) || lightMan.lightExists(lightName);
+    lightNameWarning = !(*lightName) || lightsManager->lightExists(lightName);
 
   // HDRI lights need a texture
   static bool showHDRIFileBrowser = false;
@@ -1738,9 +1729,9 @@ void MainWindow::buildWindowLightEditor()
   }
 
   if ((!lightNameWarning && !lightTexWarning) && ImGui::Button("add")) {
-    if (lightMan.addLight(lightName, lightType)) {
+    if (lightsManager->addLight(lightName, lightType)) {
       if (lightType == "hdri") {
-        auto &hdri = lightMan[lightName];
+        auto &hdri = lightsManager->child(lightName);
         auto &hdriTex = hdri.createChild("map", "texture_2d");
         auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
         ast2d->load(texFileName, false, false);
@@ -1815,19 +1806,6 @@ void MainWindow::buildWindowGeometryViewer()
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
 
-  // If changing the contents of the world, stop current frame, then rerender world
-  auto rockMyWorld = [&]() {
-    frame->waitOnFrame(); // must wait before changing the world
-    frame->child("world").render();
-    fb.resetAccumulation();
-    frame->currentAccum = 0;
-
-    // this forces a commit, needed for scene imports (.sg)
-    // TODO: there is a desync between imported nodes marked as committed vs
-    // actually committed to OSPRay. This is just a bandaid
-    frame->child("world").traverse<sg::CommitVisitor>(true);
-  };
-
   static char searchTerm[1024] = "";
   static bool searched         = false;
   static std::vector<sg::Node *> results;
@@ -1874,7 +1852,6 @@ void MainWindow::buildWindowGeometryViewer()
       frame->child("world").traverse<sg::SetParamByNode>(
           sg::NodeType::GEOMETRY, "visible", true);
     }
-    rockMyWorld();
   }
 
   ImGui::SameLine();
@@ -1886,7 +1863,6 @@ void MainWindow::buildWindowGeometryViewer()
       frame->child("world").traverse<sg::SetParamByNode>(
           sg::NodeType::GEOMETRY, "visible", false);
     }
-    rockMyWorld();
   }
 
   if (searched) {
@@ -1902,6 +1878,7 @@ void MainWindow::buildWindowGeometryViewer()
     for (auto result : results) {
       result->traverse<sg::GenerateImGuiWidgets>(
           sg::TreeState::ALLCLOSED, userUpdated);
+      // Don't continue traversing
       if (userUpdated)
         break;
     }
@@ -1911,13 +1888,12 @@ void MainWindow::buildWindowGeometryViewer()
           || node.second->type() == sg::NodeType::IMPORTER) {
         node.second->traverse<sg::GenerateImGuiWidgets>(
             sg::TreeState::ROOTOPEN, userUpdated);
+        // Don't continue traversing
         if (userUpdated)
           break;
       }
     }
   }
-  if (userUpdated)
-    rockMyWorld();
   ImGui::EndChild();
 
   ImGui::End();

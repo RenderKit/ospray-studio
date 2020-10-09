@@ -4,6 +4,7 @@
 #pragma once
 
 #include "../../Node.h"
+#include "../World.h"
 
 namespace ospray {
   namespace sg {
@@ -16,7 +17,7 @@ namespace ospray {
      * add/remove lights without adding unrelated functionality to the World
      * node
      */
-    struct OSPSG_INTERFACE Lights : public Node
+    struct OSPSG_INTERFACE Lights : public OSPNode<cpp::Light, NodeType::LIGHTS>
     {
       Lights();
       ~Lights() override = default;
@@ -26,8 +27,16 @@ namespace ospray {
       bool addLight(NodePtr light);
       bool removeLight(std::string name);
 
+      void updateWorld(World &world);
+
      // protected:
       std::vector<std::string> lightNames;
+      std::vector<cpp::Light> cppLightObjects = {};
+
+      bool isStubborn{false}; // XXX HACK, until markAsModified is reliable
+
+      virtual void preCommit() override;
+      virtual void postCommit() override;
     };
 
   }  // namespace sg

@@ -151,7 +151,12 @@ void BatchContext::render()
 {
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
   frame->createChild("camera", "camera_" + optCameraTypeStr);
+
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
+
+  lightsManager->commit();
+  lightsManager->updateWorld(frame->childAs<sg::World>("world"));
+
   frame->child("renderer")
       .createChildData("material", baseMaterialRegistry->cppMaterialList);
   // Set the frame "windowSize", it will create the right sized framebuffer
@@ -166,7 +171,6 @@ void BatchContext::render()
   if (studioCommon.denoiserAvailable && optDenoiser)
     frameBuffer["allowDenoising"] = true;
 
-  // Create a default ambient light
   frame->child("world").createChild("materialref", "reference_to_material", 0);
 
   if (optGridEnable) {
@@ -224,15 +228,9 @@ void BatchContext::render()
   camera["stereoMode"] = optStereoMode;
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
 
-  // frame->child("world").createChild("light", "ambient");
   frame->child("navMode") = false;
 
   frame->render();
-
-  // this forces a commit, needed for scene imports (.sg)
-  // TODO: there is a desync between imported nodes marked as committed vs
-  // actually committed to OSPRay. This is just a bandaid
-  frame->traverse<CommitVisitor>(true);
 
   // Accumulate several frames
   for (auto i = 0; i < optSPP - 1; i++) {

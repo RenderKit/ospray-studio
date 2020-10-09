@@ -4,7 +4,6 @@
 #pragma once
 
 #include "../Node.h"
-#include "lights/Light.h"
 
 namespace ospray {
   namespace sg {
@@ -13,8 +12,6 @@ namespace ospray {
   {
     World();
     ~World() override = default;
-
-    std::vector<cpp::Light> lightObjects = {};
 
     virtual void preCommit() override;
     virtual void postCommit() override;

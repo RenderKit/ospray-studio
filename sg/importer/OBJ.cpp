@@ -308,10 +308,8 @@ namespace ospray {
 
     size_t baseMaterialOffset = materialRegistry->children().size();
 
-    for (auto m : materialNodes) {
+    for (auto m : materialNodes)
       materialRegistry->add(m);
-      materialRegistry->matImportsList.push_back(m->name());
-    }
 
     auto &attrib = objData.attrib;
 

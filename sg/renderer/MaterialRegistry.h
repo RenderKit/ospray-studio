@@ -15,20 +15,10 @@ namespace ospray {
 
     ~MaterialRegistry() override = default;
 
-    void addNewSGMaterial(std::string matType);
-
     void createCPPMaterials(const std::string &rType);
-
     void updateMaterialList(const std::string &rType);
 
-    void refreshMaterialList(const std::string &matType, const std::string &rType);
-
-    void rmMatImports();
-
-    std::vector<std::string> matImportsList;
-
     std::vector<cpp::Material> cppMaterialList;
-
     std::vector<std::shared_ptr<sg::Material>> sgMaterialList;
 
   };

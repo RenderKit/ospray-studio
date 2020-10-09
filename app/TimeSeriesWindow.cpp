@@ -125,10 +125,9 @@ void TimeSeriesWindow::mainLoop()
   activeWindow->rendererTypeStr = rendererTypeStr;
   activeWindow->refreshRenderer();
 
-  auto &lightMan = frame->createChildAs<sg::Lights>("lights", "lights");
-  lightMan.addLight(lightTypeStr, lightTypeStr);
+  lightsManager->addLight(lightTypeStr, lightTypeStr);
   activeWindow->lightTypeStr = lightTypeStr;
-  lightMan.removeLight("ambient");
+  lightsManager->removeLight("ambient");
 
   if (!importAsSeparateTimeseries) {
     // generate one world per timestep
@@ -655,6 +654,7 @@ void TimeSeriesWindow::setTimestep(int timestep)
 {
   auto frame = activeWindow->getFrame();
   auto world = g_allWorlds[timestep];
+  lightsManager->updateWorld(*world);
   frame->add(world); 
 
   frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();

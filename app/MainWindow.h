@@ -103,7 +103,6 @@ class MainWindow : public StudioContext
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
   void buildUI();
-  void refreshMaterialRegistry();
   void addLight();
   void removeLight();
   void addPTMaterials();

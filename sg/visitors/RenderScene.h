@@ -258,8 +258,11 @@ namespace ospray {
 
   inline void RenderScene::addLightToWorld(Node &node)
   {
-    auto &light = node.valueAs<cpp::Light>();
-    world.setParam("light", (cpp::CopiedData)light);
+    // XXX remove.
+    std::cout << "!!!!! RenderScene::addLightToWorld: " << node.name() << std::endl;
+    std::cout << "!!!!! deprecated.  Add lights to the lightsManager" << std::endl;
+  //  auto &light = node.valueAs<cpp::Light>();
+  //  world.setParam("light", (cpp::CopiedData)light);
   }
 
   inline void RenderScene::placeInstancesInWorld()

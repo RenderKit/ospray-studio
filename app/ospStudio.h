@@ -13,6 +13,7 @@
 // ospray sg
 #include "sg/Frame.h"
 #include "sg/renderer/MaterialRegistry.h"
+#include "sg/scene/lights/Lights.h"
 // studio app
 #include "ArcballCamera.h"
 // ospcommon
@@ -67,9 +68,17 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   StudioContext(StudioCommon &_common)
     :studioCommon(_common)
   {
+    // Top-level container, easily accessible everywhere
+    studioTopLevel = sg::createNode("topLevel", "string");
+
     frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
     baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
         "baseMaterialRegistry", "materialRegistry");
+    lightsManager = sg::createNodeAs<sg::Lights>("lights", "lights");
+
+    studioTopLevel->add(frame);
+    studioTopLevel->add(baseMaterialRegistry);
+    studioTopLevel->add(lightsManager);
   }
 
   virtual ~StudioContext() {}
@@ -84,8 +93,15 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   // to compile/link with ArcballCamera/UI
   virtual void setCameraState(CameraState &cs) = 0;
 
+  // XXX perhaps use this to make materials and lights available everywhere????
+  // I only created this because I couldn't get the nlohmann::json initializer
+  // to work without it.
+  std::shared_ptr<sg::Node> studioTopLevel;
+  // XXX if so, then these don't need to be held here
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
+  std::shared_ptr<sg::Lights> lightsManager;
+
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
 
