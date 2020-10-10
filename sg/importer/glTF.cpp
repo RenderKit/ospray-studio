@@ -724,20 +724,6 @@ namespace ospray {
     std::vector<vec3f> vn;
     std::vector<vec2f> vt;
 
-    // XXX Handle this gracefully!
-    // XXX GLTF 2.0 spec supports
-    // POINTS
-    // LINES LINE_LOOP LINE_STRIP
-    // TRIANGLES TRIANGLE_STRIP TRIANGLE_FAN
-    // XXX There's code in gltf-loader.cc for convertedToTriangleList
-    if (prim.mode != TINYGLTF_MODE_TRIANGLES) {
-      ERROR << "Unsupported primitive mode! File must contain only "
-               "triangles\n";
-      throw std::runtime_error(
-          "Unsupported primitive mode! Only triangles are supported");
-      // continue;
-    }
-
 #if 1  // XXX: Generalize these with full component support!!!
        // In : 1,2,3,4 ubyte, ubyte(N), ushort, ushort(N), uint, float
        // Out:   2,3,4 int, float
@@ -749,35 +735,37 @@ namespace ospray {
     for (size_t i = 0; i < pos_accessor.size(); ++i)
       v.emplace_back(pos_accessor[i]);
 
-    // Indices: scalar ubyte/ushort/uint
-    if (model.accessors[prim.indices].componentType ==
-        TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-      Accessor<uint8_t> index_accessor(model.accessors[prim.indices], model);
-      vi.reserve(index_accessor.size() / 3);
-      for (size_t i = 0; i < index_accessor.size() / 3; ++i)
-        vi.emplace_back(vec3ui(index_accessor[i * 3],
-                               index_accessor[i * 3 + 1],
-                               index_accessor[i * 3 + 2]));
-    } else if (model.accessors[prim.indices].componentType ==
-               TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-      Accessor<uint16_t> index_accessor(model.accessors[prim.indices], model);
-      vi.reserve(index_accessor.size() / 3);
-      for (size_t i = 0; i < index_accessor.size() / 3; ++i)
-        vi.emplace_back(vec3ui(index_accessor[i * 3],
-                               index_accessor[i * 3 + 1],
-                               index_accessor[i * 3 + 2]));
-    } else if (model.accessors[prim.indices].componentType ==
-               TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-      Accessor<uint32_t> index_accessor(model.accessors[prim.indices], model);
-      vi.reserve(index_accessor.size() / 3);
-      for (size_t i = 0; i < index_accessor.size() / 3; ++i)
-        vi.emplace_back(vec3ui(index_accessor[i * 3],
-                               index_accessor[i * 3 + 1],
-                               index_accessor[i * 3 + 2]));
-    } else {
-      ERROR << "Unsupported index type: "
-            << model.accessors[prim.indices].componentType << "\n";
-      throw std::runtime_error("Unsupported index component type");
+    if (prim.indices >  -1) {
+      // Indices: scalar ubyte/ushort/uint
+      if (model.accessors[prim.indices].componentType ==
+          TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+        Accessor<uint8_t> index_accessor(model.accessors[prim.indices], model);
+        vi.reserve(index_accessor.size() / 3);
+        for (size_t i = 0; i < index_accessor.size() / 3; ++i)
+          vi.emplace_back(vec3ui(index_accessor[i * 3],
+                index_accessor[i * 3 + 1],
+                index_accessor[i * 3 + 2]));
+      } else if (model.accessors[prim.indices].componentType ==
+          TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+        Accessor<uint16_t> index_accessor(model.accessors[prim.indices], model);
+        vi.reserve(index_accessor.size() / 3);
+        for (size_t i = 0; i < index_accessor.size() / 3; ++i)
+          vi.emplace_back(vec3ui(index_accessor[i * 3],
+                index_accessor[i * 3 + 1],
+                index_accessor[i * 3 + 2]));
+      } else if (model.accessors[prim.indices].componentType ==
+          TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+        Accessor<uint32_t> index_accessor(model.accessors[prim.indices], model);
+        vi.reserve(index_accessor.size() / 3);
+        for (size_t i = 0; i < index_accessor.size() / 3; ++i)
+          vi.emplace_back(vec3ui(index_accessor[i * 3],
+                index_accessor[i * 3 + 1],
+                index_accessor[i * 3 + 2]));
+      } else {
+        ERROR << "Unsupported index type: "
+          << model.accessors[prim.indices].componentType << "\n";
+        throw std::runtime_error("Unsupported index component type");
+      }
     }
 
     // Colors: vec3/vec4 float/ubyte(N)/ushort(N) RGB/RGBA
@@ -856,22 +844,56 @@ namespace ospray {
 #endif
 #endif
 
-    // Add attribute arrays to mesh
-    auto ospGeom = createNode(primName + "_object", "geometry_triangles");
-    ospGeom->createChildData("vertex.position", v);
-    ospGeom->createChildData("index", vi);
-    if (!vc.empty())
-      ospGeom->createChildData("vertex.color", vc);
-    if (!vn.empty())
-      ospGeom->createChildData("vertex.normal", vn);
-    if (!vt.empty())
-      ospGeom->createChildData("vertex.texcoord", vt);
+    // XXX Handle this gracefully!
+    // XXX GLTF 2.0 spec supports
+    // POINTS
+    // LINES LINE_LOOP LINE_STRIP
+    // TRIANGLES TRIANGLE_STRIP TRIANGLE_FAN
+    // XXX There's code in gltf-loader.cc for convertedToTriangleList
+    NodePtr ospGeom = nullptr;
 
-    // add one for default, "no material" material
-    auto materialID = prim.material + 1 + baseMaterialOffset;
-    std::vector<uint32_t> mIDs(v.size(), materialID);
-    ospGeom->createChildData("material", mIDs);
-    ospGeom->child("material").setSGOnly();
+    // Add attribute arrays to mesh
+    if (prim.mode == TINYGLTF_MODE_TRIANGLES) {
+      ospGeom = createNode(primName + "_object", "geometry_triangles");
+      ospGeom->createChildData("vertex.position", v);
+      ospGeom->createChildData("index", vi);
+      if (!vc.empty())
+        ospGeom->createChildData("vertex.color", vc);
+      if (!vn.empty())
+        ospGeom->createChildData("vertex.normal", vn);
+      if (!vt.empty())
+        ospGeom->createChildData("vertex.texcoord", vt);
+
+    } else if (prim.mode == TINYGLTF_MODE_POINTS) {
+      ospGeom = createNode(primName + "_object", "geometry_spheres");
+      ospGeom->createChildData("sphere.position", v);
+      if (!vc.empty()) {
+        ospGeom->createChildData("color", vc);
+        // color will be added to the geometric model, it is not directly part
+        // of the spheres primitive
+        ospGeom->child("color").setSGOnly();
+      }
+      if (!vt.empty())
+        ospGeom->createChildData("spere.texcoord", vt);
+
+      // glTF doesn't specify point radius.
+      ospGeom->createChild("radius", "float", 0.05f);
+
+    } else {
+      ERROR << "Unsupported primitive mode! File must contain only "
+        "triangles or points\n";
+      throw std::runtime_error(
+          "Unsupported primitive mode! Only triangles are supported");
+      // continue;
+    }
+
+    if (ospGeom) {
+      // add one for default, "no material" material
+      auto materialID = prim.material + 1 + baseMaterialOffset;
+      std::vector<uint32_t> mIDs(v.size(), materialID);
+      ospGeom->createChildData("material", mIDs);
+      ospGeom->child("material").setSGOnly();
+    }
 
     return ospGeom;
   }

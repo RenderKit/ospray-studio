@@ -160,6 +160,11 @@ namespace ospray {
       } else
         model.setParam("material", materialIDs.top());
     }
+
+    if (node.hasChild("color")) {
+      model.setParam("color", node["color"].valueAs<cpp::CopiedData>());
+    }
+
     model.commit();
     if (!node.child("isClipping").valueAs<bool>())
       current.geometries.push_back(model);
