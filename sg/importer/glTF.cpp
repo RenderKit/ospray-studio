@@ -106,7 +106,11 @@ namespace ospray {
         float stepIncrement,
         std::map<float, affine3f> &keyframeTrack);
 
-    void generateRotationsTrack(std::vector<float> &kfInput,
+    void stepRotationsTrack(std::vector<float> &kfInput,
+        int outputAcc,
+        std::map<float, affine3f> &keyframeTrack);
+
+    void linearlyInterpolatedRotationsTrack(std::vector<float> &kfInput,
         int outputAcc,
         float stepIncrement,
         std::map<float, affine3f> &keyframeTrack);
@@ -463,6 +467,8 @@ namespace ospray {
       // expose step increment parameter
       auto stepIncrement = 0.2f;
 
+      std::cout << "KI " << kfInput.size()<<  std::endl;
+
       if (kfInput.size() < 2) {
         std::cout << "Need atleast 2 keyframes to build a track" << std::endl;
       }
@@ -470,15 +476,33 @@ namespace ospray {
       // also handle weights below
       if (targetPath == "translation" || targetPath == "scaling") {
         loadKeyframeOutput(outputAcc, kfOutput, targetPath);
-        if (interpolation != "LINEAR")
+        if (interpolation == "CUBIC")
           generateCubicKeyframeTrack(
               kfInput, kfOutput, stepIncrement, keyframeTrack);
-        else
+        else if (interpolation == "LINEAR")
           generateLinearKeyframeTrack(
               kfInput, kfOutput, stepIncrement, keyframeTrack);
+        else {
+          for (auto i = 0; i < kfInput.size(); ++i) {
+            keyframeTrack.insert(std::make_pair(kfInput[i], kfOutput[i]));
+          }
+        }
       } else if (targetPath == "rotation") {
-        generateRotationsTrack(
+
+        if (interpolation == "CUBIC") {
+          // currently not implemented
+          // can try with slerp
+          // however interpolation tests might fail 
+          // because number of output for every keyframe according to spec is expected to be 3(cubic hermite basis)
+          linearlyInterpolatedRotationsTrack(
             kfInput, outputAcc, stepIncrement, keyframeTrack);
+        }
+        else if (interpolation == "LINEAR")
+          linearlyInterpolatedRotationsTrack(
+            kfInput, outputAcc, stepIncrement, keyframeTrack);
+        else 
+          stepRotationsTrack(
+            kfInput, outputAcc, keyframeTrack);
       }
     }
 
@@ -598,10 +622,34 @@ namespace ospray {
     }
   }
 
-  void GLTFData::generateRotationsTrack(std::vector<float> &kfInput,
-      int outputAcc,
-      float stepIncrement,
-      std::map<float, affine3f> &keyframeTrack)
+  void GLTFData::stepRotationsTrack(std::vector<float> &kfInput,
+        int outputAcc,
+        std::map<float, affine3f> &keyframeTrack)
+  {
+    auto &outputAccessor = model.accessors[outputAcc];
+    std::vector<quaternionf> rotations;
+    Accessor<vec4f> rt_accessor(outputAccessor, model);
+    std::vector<vec4f> rt(rt_accessor.size());
+
+    for (size_t i = 0; i < rt_accessor.size(); ++i)
+      rt[i] = rt_accessor[i];
+
+    for (auto rt_it = rt.begin(); rt_it != rt.end(); ++rt_it) {
+      auto &r = *rt_it;
+      rotations.push_back(quaternionf(r[3], r[0], r[1], r[2]));
+    }
+
+    for (auto i = 0; i < kfInput.size(); ++i) {
+        affine3f xfm{one};
+        auto rot = affine3f(linear3f(rotations[i])) * xfm;
+        keyframeTrack.insert(std::make_pair(kfInput[i], rot));
+    }
+  }
+
+  void GLTFData::linearlyInterpolatedRotationsTrack(std::vector<float> &kfInput,
+        int outputAcc,
+        float stepIncrement,
+        std::map<float, affine3f> &keyframeTrack)
   {
     auto &outputAccessor = model.accessors[outputAcc];
     std::vector<quaternionf> rotations;
