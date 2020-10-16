@@ -1040,7 +1040,7 @@ void MainWindow::importFiles(sg::NodePtr world)
   if (animate && timesteps.size() > 0) {
     allAnimationWidgets.push_back(
         std::shared_ptr<AnimationWidget>(new AnimationWidget(
-            getFrame(), world, timesteps, "Animation Controls")));
+            getFrame(), world, activeWindow->lightsManager, timesteps, "Animation Controls")));
 
     registerImGuiCallback([&]() {
       for (auto i = 0; i < allAnimationWidgets.size(); ++i)

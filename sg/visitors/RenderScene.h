@@ -44,6 +44,7 @@ namespace ospray {
       //     - TransferFunction
       //     - ...others?
     } current;
+    bool hasAnimation{false};
     bool setTextureVolume{false};
     cpp::World world;
     int unusedGeoms = 0;
@@ -96,6 +97,7 @@ namespace ospray {
         auto timestep = c.second->child("timestep").valueAs<float>();
           if (timestep == currentTimestep) {
             xfms.push(xfms.top() * c.second->valueAs<affine3f>());
+            hasAnimation = true;
           }
       }
       traverseChildren = false;
@@ -131,7 +133,13 @@ namespace ospray {
       break;
     case NodeType::TRANSFORM:
       createInstanceFromGroup();
-      xfms.pop();
+      if(!node.hasChild("timestep")) {
+        xfms.pop();
+        if(hasAnimation) {
+          xfms.pop();
+          hasAnimation = false;
+        }
+      }
       break;
     case NodeType::MATERIAL_REFERENCE:
       break;

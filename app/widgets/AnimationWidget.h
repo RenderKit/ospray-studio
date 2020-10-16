@@ -22,6 +22,7 @@
 #include "../../sg/Node.h"
 
 #include "../../sg/Frame.h"
+#include "../../sg/scene/lights/Lights.h"
 #include "../../sg/scene/World.h"
 #include "../../sg/fb/FrameBuffer.h"
 #include "../../sg/visitors/PrintNodes.h"
@@ -47,7 +48,11 @@ using namespace rkcommon::math;
 class AnimationWidget
 {
  public:
-  AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame, ospray::sg::NodePtr firstWorld, std::vector<float> &timesteps, const std::string &_widgetName);
+  AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
+      ospray::sg::NodePtr firstWorld,
+      std::shared_ptr<ospray::sg::Lights> _lightsManager,
+      std::vector<float> &timesteps,
+      const std::string &_widgetName);
   ~AnimationWidget();
 
   // update UI and process any UI events
@@ -67,7 +72,7 @@ class AnimationWidget
   std::shared_ptr<ospray::sg::Frame> activeFrame;
   std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;
   ospray::sg::NodePtr firstWorld;
-
+  std::shared_ptr<ospray::sg::Lights> lightsManager;
   std::vector<float> &timesteps;
   int numKeyframes{0};
 };

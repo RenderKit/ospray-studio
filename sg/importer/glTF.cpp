@@ -12,6 +12,8 @@
 #include "glTF/gltf_types.h"
 
 #include "../visitors/PrintNodes.h"
+#include "interpolation/LinearInterpolationTrack.h"
+#include "interpolation/CubicInterpolationTrack.h"
 
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
@@ -83,37 +85,7 @@ namespace ospray {
 
     void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
 
-    void loadKeyframeOutput(int accessorID, std::vector<affine3f> &kfOutput, std::string &propertyName);
-
-    std::pair<float, affine3f> kfLerp(const std::pair<float, affine3f> &from,
-        const std::pair<float, affine3f> &to,
-        float currentStep);
-
-    void generateLinearKeyframeTrack(
-        std::vector<float> &kfInput,
-        std::vector<affine3f> &kfOutput,
-        float stepIncrement,
-        std::map<float, affine3f>& keyframeTrack);
-
-    std::pair<float, affine3f> crInterpolant(std::pair<float, affine3f> &prefix,
-        std::pair<float, affine3f> &from,
-        std::pair<float, affine3f> &to,
-        std::pair<float, affine3f> &suffix,
-        float currentStep);
-
-    void generateCubicKeyframeTrack(std::vector<float> &kfInput,
-        std::vector<affine3f> &kfOutput,
-        float stepIncrement,
-        std::map<float, affine3f> &keyframeTrack);
-
-    void stepRotationsTrack(std::vector<float> &kfInput,
-        int outputAcc,
-        std::map<float, affine3f> &keyframeTrack);
-
-    void linearlyInterpolatedRotationsTrack(std::vector<float> &kfInput,
-        int outputAcc,
-        float stepIncrement,
-        std::map<float, affine3f> &keyframeTrack);
+    void loadKeyframeOutput(std::vector<vec3f> &ts, std::vector<affine3f> &kfOutput, std::string &propertyName);
 
     void visitNode(NodePtr sgNode,
         const int nid,
@@ -467,54 +439,73 @@ namespace ospray {
       // expose step increment parameter
       auto stepIncrement = 0.2f;
 
-      std::cout << "KI " << kfInput.size()<<  std::endl;
-
       if (kfInput.size() < 2) {
         std::cout << "Need atleast 2 keyframes to build a track" << std::endl;
       }
 
-      // also handle weights below
-      if (targetPath == "translation" || targetPath == "scaling") {
-        loadKeyframeOutput(outputAcc, kfOutput, targetPath);
-        if (interpolation == "CUBIC")
-          generateCubicKeyframeTrack(
-              kfInput, kfOutput, stepIncrement, keyframeTrack);
-        else if (interpolation == "LINEAR")
-          generateLinearKeyframeTrack(
-              kfInput, kfOutput, stepIncrement, keyframeTrack);
-        else {
-          for (auto i = 0; i < kfInput.size(); ++i) {
-            keyframeTrack.insert(std::make_pair(kfInput[i], kfOutput[i]));
-          }
-        }
-      } else if (targetPath == "rotation") {
+        // also handle weights below
+        if (targetPath == "translation" || targetPath == "scale") {
+          auto &acc = model.accessors[outputAcc];
+          // translation and scaling will always have complete dataType of vec3f
+          Accessor<vec3f> ts_accessor(acc, model);
+          std::vector<vec3f> ts(ts_accessor.size());
+          for (size_t i = 0; i < ts_accessor.size(); ++i)
+            ts[i] = ts_accessor[i];
 
-        if (interpolation == "CUBIC") {
-          // currently not implemented
-          // can try with slerp
-          // however interpolation tests might fail 
-          // because number of output for every keyframe according to spec is expected to be 3(cubic hermite basis)
-          linearlyInterpolatedRotationsTrack(
-            kfInput, outputAcc, stepIncrement, keyframeTrack);
+          if (interpolation == "CUBICSPLINE")
+            hermiteInterpolationTSTrack(
+                kfInput, ts, stepIncrement, keyframeTrack, targetPath);
+          else {
+            loadKeyframeOutput(ts, kfOutput, targetPath);
+
+            if (interpolation == "LINEAR")
+              linearInterpolationTSTrack(
+                  kfInput, kfOutput, stepIncrement, keyframeTrack);
+            else
+              for (auto i = 0; i < kfInput.size(); ++i) {
+                keyframeTrack.insert(std::make_pair(kfInput[i], kfOutput[i]));
+              }
+          }
+        } else if (targetPath == "rotation") {
+          auto &outputAccessor = model.accessors[outputAcc];
+          std::vector<quaternionf> quaternions;
+          Accessor<vec4f> rt_accessor(outputAccessor, model);
+          std::vector<vec4f> rt(rt_accessor.size());
+
+          for (size_t i = 0; i < rt_accessor.size(); ++i)
+            rt[i] = rt_accessor[i];
+
+          for (auto rt_it = rt.begin(); rt_it != rt.end(); ++rt_it) {
+            auto &r = *rt_it;
+            quaternions.push_back(quaternionf(r[3], r[0], r[1], r[2]));
+          }
+
+          if (interpolation == "CUBICSPLINE")
+            hermiteInterpolationRotationtrack(
+                kfInput, rt, stepIncrement, keyframeTrack);
+          else if (interpolation == "LINEAR")
+            linearInterpolationRotationsTrack(
+                kfInput, quaternions, stepIncrement, keyframeTrack);
+          else
+            for (auto i = 0; i < kfInput.size(); ++i) {
+              affine3f xfm{one};
+              auto rot = affine3f(linear3f(quaternions[i])) * xfm;
+              keyframeTrack.insert(std::make_pair(kfInput[i], rot));
+            }
         }
-        else if (interpolation == "LINEAR")
-          linearlyInterpolatedRotationsTrack(
-            kfInput, outputAcc, stepIncrement, keyframeTrack);
-        else 
-          stepRotationsTrack(
-            kfInput, outputAcc, keyframeTrack);
-      }
     }
 
     static int numTimestep = 1;
 
-    if (keyframeTrack.size() != 0 || keyframeTrack.size() != 0) {
+    if (keyframeTrack.size() != 0) {
       static auto nAnimation = 0;
       auto &animParent = sgNode->createChild("animationNode_" + std::to_string(nAnimation), "animation");
 
       for (auto &i : keyframeTrack) {
-        auto newXfm = createNode(
-            "anim_" + std::to_string(nAnimation) + "_" + std::to_string(numTimestep), "Transform", i.second);
+        auto newXfm = createNode("anim_" + std::to_string(nAnimation) + "_"
+                + std::to_string(numTimestep),
+            "Transform",
+            i.second);
         newXfm->createChild("timestep", "float", i.first);
         animParent.add(newXfm);
         g_allTimesteps.insert(std::make_pair(i.first, numTimestep));
@@ -544,141 +535,6 @@ namespace ospray {
 
   }
 
-  std::pair<float, affine3f> GLTFData::kfLerp(const std::pair<float, affine3f> &from,
-      const std::pair<float, affine3f> &to,
-      float currentStep)
-  {
-    std::pair<float, affine3f> newKeyframe;
-    newKeyframe.first =
-        rkcommon::math::lerp<float>(currentStep, from.first, to.first);
-    newKeyframe.second =
-        rkcommon::math::lerp<affine3f>(currentStep, from.second, to.second);
-    return newKeyframe;
-  }
-
-  void GLTFData::generateLinearKeyframeTrack(
-      std::vector<float> &kfInput,
-      std::vector<affine3f> &kfOutput,
-      float stepIncrement,
-      std::map<float, affine3f>& keyframeTrack)
-
-  {
-    for (auto i = 0; i < kfInput.size() - 1; ++i) {
-      auto from = std::make_pair(kfInput[i], kfOutput[i]);
-      auto to = std::make_pair(kfInput[i + 1], kfOutput[i + 1]);
-      for (float step = 0.f; step <= 1.f; step += stepIncrement) {
-        keyframeTrack.insert(kfLerp(from, to, step));
-      }
-    }
-  }
-
-  std::pair<float, affine3f> GLTFData::crInterpolant(std::pair<float, affine3f> &prefix,
-      std::pair<float, affine3f> &from,
-      std::pair<float, affine3f> &to,
-      std::pair<float, affine3f> &suffix,
-      float currentStep)
-  {
-    if(currentStep == 0)
-      return from;
-      else if (currentStep == 1) return to;
-
-      auto k10 = kfLerp(prefix, from, currentStep + 1);
-      auto k11 = kfLerp(from, to, currentStep);
-      auto k12 = kfLerp(to, suffix, currentStep - 1);
-
-      auto k20 = kfLerp(k10, k11, (currentStep + 1) / 2.f);
-      auto k21 = kfLerp(k11, k12, currentStep / 2.f);
-
-      auto newKeyframe = kfLerp(k20, k21, currentStep);
-      return newKeyframe;
-  }
-
-  void GLTFData::generateCubicKeyframeTrack(
-      std::vector<float> &kfInput,
-      std::vector<affine3f> &kfOutput,
-      float stepIncrement,
-      std::map<float, affine3f> &keyframeTrack)
-  {
-    auto last = kfInput.size() - 1;
-
-    auto prefix = kfLerp(std::make_pair(kfInput[0], kfOutput[0]),
-        std::make_pair(kfInput[1], kfOutput[1]),
-        -0.1f);
-    auto suffix = kfLerp(std::make_pair(kfInput[last - 1], kfOutput[last - 1]),
-        std::make_pair(kfInput[last], kfOutput[last]),
-        1.1f);
-
-    for (auto i = 0; i < last; i++){
-      auto k0 =
-          (i == 0) ? prefix : std::make_pair(kfInput[i - 1], kfOutput[i - 1]);
-      auto k1 = std::make_pair(kfInput[i], kfOutput[i]);
-      auto k2 = std::make_pair(kfInput[i + 1], kfOutput[i + 1]);
-      auto k3 = (i == (last - 1))
-          ? suffix
-          : std::make_pair(kfInput[i + 2], kfOutput[i + 2]);
-      for (float step = 0.f; step <= 1.f; step +=stepIncrement) {
-        keyframeTrack.insert(crInterpolant(k0, k1, k2, k3, step));
-      }
-    }
-  }
-
-  void GLTFData::stepRotationsTrack(std::vector<float> &kfInput,
-        int outputAcc,
-        std::map<float, affine3f> &keyframeTrack)
-  {
-    auto &outputAccessor = model.accessors[outputAcc];
-    std::vector<quaternionf> rotations;
-    Accessor<vec4f> rt_accessor(outputAccessor, model);
-    std::vector<vec4f> rt(rt_accessor.size());
-
-    for (size_t i = 0; i < rt_accessor.size(); ++i)
-      rt[i] = rt_accessor[i];
-
-    for (auto rt_it = rt.begin(); rt_it != rt.end(); ++rt_it) {
-      auto &r = *rt_it;
-      rotations.push_back(quaternionf(r[3], r[0], r[1], r[2]));
-    }
-
-    for (auto i = 0; i < kfInput.size(); ++i) {
-        affine3f xfm{one};
-        auto rot = affine3f(linear3f(rotations[i])) * xfm;
-        keyframeTrack.insert(std::make_pair(kfInput[i], rot));
-    }
-  }
-
-  void GLTFData::linearlyInterpolatedRotationsTrack(std::vector<float> &kfInput,
-        int outputAcc,
-        float stepIncrement,
-        std::map<float, affine3f> &keyframeTrack)
-  {
-    auto &outputAccessor = model.accessors[outputAcc];
-    std::vector<quaternionf> rotations;
-    Accessor<vec4f> rt_accessor(outputAccessor, model);
-    std::vector<vec4f> rt(rt_accessor.size());
-
-    for (size_t i = 0; i < rt_accessor.size(); ++i)
-      rt[i] = rt_accessor[i];
-
-    for (auto rt_it = rt.begin(); rt_it != rt.end(); ++rt_it) {
-      auto &r = *rt_it;
-      rotations.push_back(quaternionf(r[3], r[0], r[1], r[2]));
-    }
-
-    for (auto i = 0; i < kfInput.size() - 1; ++i) {
-      auto from = std::make_pair(kfInput[i], rotations[i]);
-      auto to = std::make_pair(kfInput[i + 1], rotations[i + 1]);
-      for (float step = 0.f; step <= 1.f; step += stepIncrement) {
-        affine3f xfm{one};
-        std::pair<float, affine3f> newKeyframe;
-        newKeyframe.first =
-            rkcommon::math::lerp<float>(step, from.first, to.first);
-        auto rot = ospray::sg::slerp(from.second, to.second, step);
-        newKeyframe.second = affine3f(linear3f(rot)) * xfm;
-        keyframeTrack.insert(newKeyframe);
-      }
-    }
-  }
-
   void GLTFData::loadKeyframeInput(int accessorID, std::vector<float> &kfInput)
   {
     auto &acc = model.accessors[accessorID];
@@ -693,14 +549,8 @@ namespace ospray {
   }
 
   void GLTFData::loadKeyframeOutput(
-      int accessorID, std::vector<affine3f> &xfms, std::string &propertyName)
+      std::vector<vec3f> &ts, std::vector<affine3f> &xfms, std::string &propertyName)
   {
-    auto &acc = model.accessors[accessorID];
-    // translation and scaling will always have complete dataType of vec3f
-    Accessor<vec3f> ts_accessor(acc, model);
-    std::vector<vec3f> ts(ts_accessor.size());
-    for (size_t i = 0; i < ts_accessor.size(); ++i)
-      ts[i] = ts_accessor[i];
     if (propertyName == "translation") {
       for (auto ts_it = ts.begin(); ts_it != ts.end(); ++ts_it) {
         affine3f xfm{one};

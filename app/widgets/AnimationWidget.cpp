@@ -8,6 +8,7 @@
 
 AnimationWidget::AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
     ospray::sg::NodePtr firstWorld,
+    std::shared_ptr<ospray::sg::Lights> _lightsManager,
     std::vector<float> &timesteps,
     const std::string &_widgetName)
     : activeFrame(activeFrame),
@@ -16,7 +17,7 @@ AnimationWidget::AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
       widgetName(_widgetName)
 {
   numKeyframes = timesteps.size();
-
+  lightsManager = _lightsManager;
   for (auto iter = timesteps.begin(); iter != timesteps.end(); ++iter) {
     auto newWorld = ospray::sg::createNode("world", "world");
     newWorld->createChild("time", "float", *iter);
@@ -160,6 +161,7 @@ void AnimationWidget::setKeyframe(int keyframe)
 {
   auto &world = g_allWorlds[keyframe];
   activeFrame->add(world);
+  lightsManager->updateWorld(activeFrame->childAs<ospray::sg::World>("world"));
   activeFrame->waitOnFrame();
   activeFrame->childAs<ospray::sg::FrameBuffer>("framebuffer")
       .resetAccumulation();
