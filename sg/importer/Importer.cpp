@@ -13,6 +13,8 @@ OSPSG_INTERFACE std::map<std::string, std::string> importerMap = {
     {"gltf", "importer_gltf"},
     {"glb", "importer_gltf"},
     {"raw", "importer_raw"},
+    {"structured", "importer_raw"},
+    {"spherical", "importer_raw"},
     {"vdb", "importer_vdb"}};
 
 Importer::Importer() {}

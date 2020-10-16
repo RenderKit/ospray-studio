@@ -3,6 +3,7 @@
 
 #include "Importer.h"
 // ospcommon
+#include "../scene/volume/Structured.h"
 #include "../scene/volume/StructuredSpherical.h"
 #include "rkcommon/os/FileName.h"
 
@@ -28,11 +29,22 @@ void RawImporter::importScene()
   auto rootName = fileName.name() + "_rootXfm";
   auto nodeName = fileName.name() + "_volume";
 
-  auto rootNode = createNode(rootName, "Transform", affine3f{one});
-  auto volumeImport =
-      createNodeAs<StructuredSpherical>(nodeName, "structuredSpherical");
+  auto last = fileName.base().find_last_of(".");
+  auto volumeTypeExt = fileName.base().substr(last, fileName.base().length());
 
-  volumeImport->load(fileName);
+  auto rootNode = createNode(rootName, "Transform", affine3f{one});
+  NodePtr volumeImport;
+
+  if (volumeTypeExt == ".spherical") {
+    auto volume =
+        createNodeAs<StructuredSpherical>(nodeName, "structuredSpherical");
+    volume->load(fileName);
+    volumeImport = volume;
+  } else {
+    auto volume = createNodeAs<StructuredVolume>(nodeName, "structuredRegular");
+    volume->load(fileName);
+    volumeImport = volume;
+  }
 
   auto tf = createNode("transferFunction", "transfer_function_jet");
   volumeImport->add(tf);
