@@ -72,15 +72,19 @@ OSPSG_INTERFACE void importScene(
       findFirstChild = [&findFirstChild](const sg::NodePtr root,
                            const std::string &name) -> sg::NodePtr {
     sg::NodePtr found = nullptr;
+
+    // Quick shallow top-level search first
+    for (auto child : root->children())
+      if (child.first == name)
+        return child.second;
+
+    // Next level, deeper search if not found
     for (auto child : root->children()) {
-      if (child.first == name) {
-        found = child.second;
-      } else {
-        found = findFirstChild(child.second, name);
-        if (found)
-          return found;
-      }
+      found = findFirstChild(child.second, name);
+      if (found)
+        return found;
     }
+
     return found;
   };
 
