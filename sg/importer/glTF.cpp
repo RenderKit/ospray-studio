@@ -846,11 +846,14 @@ namespace ospray {
       for (size_t i = 0; i < uv_accessor.size(); ++i)
         vt.emplace_back(uv_accessor[i]);
     }
+#if 0 // OSPRay does not support a second uv texcoord set
+      // But, specifying it here isn't a problem.  Only on attempted usage.
     fnd = prim.attributes.find("TEXCOORD_1");
     if (fnd != prim.attributes.end()) {
-      WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
+      WARN << "gltf found TEXCOORD_1 attribute.  Not supported...\n"
            << std::endl;
     }
+#endif
 #endif
 
     // Add attribute arrays to mesh
@@ -906,6 +909,13 @@ namespace ospray {
 
     // All textures *can* specify a texcoord other than 0.  OSPRay only
     // supports one set of texcoords (TEXCOORD_0).
+    if (pbr.baseColorTexture.texCoord != 0
+        || pbr.metallicRoughnessTexture.texCoord != 0
+        || mat.normalTexture.texCoord != 0
+        || mat.emissiveTexture.texCoord != 0) {
+      WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
+           << std::endl;
+    }
 
     if (pbr.baseColorTexture.index != -1 &&
         pbr.baseColorTexture.texCoord == 0) {
