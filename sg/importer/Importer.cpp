@@ -55,15 +55,16 @@ OSPSG_INTERFACE void importScene(
           ""};
 
       for (auto tryFile : possibleFileNames) {
-        std::ifstream f(tryFile);
-        if (f.good()) {
-          context->filesToImport.push_back(tryFile);
-          break;
-        }
-        std::cerr << "Unable to find " << fileName << std::endl;
+        if (tryFile != "") {
+          std::ifstream f(tryFile);
+          if (f.good()) {
+            context->filesToImport.push_back(tryFile);
+            break;
+          }
+        } else
+          std::cerr << "Unable to find " << fileName << std::endl;
       }
-      break;
-    }
+    } break;
     case NodeType::LIGHTS:
       lights = createNodeFromJSON(jChild);
       break;
