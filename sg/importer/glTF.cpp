@@ -865,8 +865,22 @@ namespace ospray {
         ospGeom->createChildData("vertex.texcoord", vt);
 
     } else if (prim.mode == TINYGLTF_MODE_POINTS) {
+#if 0 // points as spheres
       ospGeom = createNode(primName + "_object", "geometry_spheres");
       ospGeom->createChildData("sphere.position", v);
+
+      // glTF doesn't specify point radius.
+      ospGeom->createChild("radius", "float", 0.02f);
+
+#else // points as boxes
+      ospGeom = createNode(primName + "_object", "geometry_boxes");
+      std::vector<box3f> boxes(v.size());
+      std::transform(v.begin(), v.end(),boxes.begin(),
+          [&](vec3f p) { return box3f({p,p+vec3f(0.1f)});});
+
+      ospGeom->createChildData("box", boxes);
+#endif
+
       if (!vc.empty()) {
         ospGeom->createChildData("color", vc);
         // color will be added to the geometric model, it is not directly part
@@ -875,10 +889,6 @@ namespace ospray {
       }
       if (!vt.empty())
         ospGeom->createChildData("spere.texcoord", vt);
-
-      // glTF doesn't specify point radius.
-      ospGeom->createChild("radius", "float", 0.05f);
-
     } else {
       ERROR << "Unsupported primitive mode! File must contain only "
         "triangles or points\n";
