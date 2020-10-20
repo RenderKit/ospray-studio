@@ -104,8 +104,8 @@ namespace ospray {
       if (unusedGeoms == current.geometries.size())
         xfms.push(xfms.top() * node.valueAs<affine3f>());
         else if (!node.hasChild("timestep")) {
-        createInstanceFromGroup();
-        xfms.push(xfms.top() * node.valueAs<affine3f>());
+          createInstanceFromGroup();
+          xfms.push(xfms.top() * node.valueAs<affine3f>());
       }
       break;
     case NodeType::LIGHT:

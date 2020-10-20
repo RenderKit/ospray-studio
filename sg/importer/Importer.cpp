@@ -27,13 +27,14 @@ NodeType Importer::type() const
 void Importer::importScene() {}
 
 OSPSG_INTERFACE void importScene(
-    std::shared_ptr<StudioContext> context, rkcommon::FileName &fileName)
+    std::shared_ptr<StudioContext> context, rkcommon::FileName &sceneFileName)
 {
   std::cout << "Importing a scene" << std::endl;
   context->filesToImport.clear();
-  std::ifstream sgFile(fileName.str());
+  std::ifstream sgFile(sceneFileName.str());
   if (!sgFile) {
-    std::cerr << "Could not open " << fileName << " for reading" << std::endl;
+    std::cerr << "Could not open " << sceneFileName << " for reading"
+              << std::endl;
     return;
   }
 
@@ -44,9 +45,25 @@ OSPSG_INTERFACE void importScene(
   auto &jWorld = j["world"];
   for (auto &jChild : jWorld["children"]) {
     switch (jChild["type"].get<NodeType>()) {
-    case NodeType::IMPORTER:
-      context->filesToImport.push_back(jChild["filename"]);
+    case NodeType::IMPORTER: {
+      FileName fileName = std::string(jChild["filename"]);
+
+      // Try a couple different paths to find the file before giving up
+      std::vector<std::string> possibleFileNames = {fileName, // as imported
+          sceneFileName.path() + fileName.base(), // in the scenefile directory
+          fileName.base(), // in local directory
+          ""};
+
+      for (auto tryFile : possibleFileNames) {
+        std::ifstream f(tryFile);
+        if (f.good()) {
+          context->filesToImport.push_back(tryFile);
+          break;
+        }
+        std::cerr << "Unable to find " << fileName << std::endl;
+      }
       break;
+    }
     case NodeType::LIGHTS:
       lights = createNodeFromJSON(jChild);
       break;
@@ -58,7 +75,7 @@ OSPSG_INTERFACE void importScene(
   context->refreshScene(true);
 
   if (lights == nullptr) {
-    std::cerr << "Scene file '" << fileName
+    std::cerr << "Scene file '" << sceneFileName
               << "' has no lights! Is this file correct?" << std::endl;
   } else {
     context->frame->child("world").add(lights);

@@ -1799,7 +1799,7 @@ void MainWindow::buildWindowCameraEditor()
 void MainWindow::buildWindowMaterialEditor()
 {
   if (!ImGui::Begin(
-          "Material editor", &showMaterialEditor, g_imguiWindowFlags)) {
+          "Material editor", &showMaterialEditor)) {
     ImGui::End();
     return;
   }

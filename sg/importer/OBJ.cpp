@@ -217,7 +217,8 @@ namespace ospray {
             if (paramName == "thin") {
               paramType = "bool";
               paramValue = paramValue == 0 ? false : true;
-            } else if (paramName.find("Color") != std::string::npos
+            } else if ((paramName.find("Color") != std::string::npos
+                           || paramName.find("color") != std::string::npos)
                 && paramType == "vec3f") {
               // rgb type allows for ImGui color editor
               paramType = "rgb";
