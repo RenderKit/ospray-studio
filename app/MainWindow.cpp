@@ -1146,8 +1146,7 @@ void MainWindow::buildMainMenuFile()
         std::ofstream dump("studio.sg");
         nlohmann::json j = {{"world", frame->child("world")},
             {"camera", arcballCamera->getState()},
-            // XXX Not sure how to spell this otherwise???? lightsManager->Node()}};
-            {"lightsManager", studioTopLevel->child("lights")}};
+            {"lightsManager", lightsManager->valueAs<sg::Lights>()}};
         dump << j.dump();
       }
 
