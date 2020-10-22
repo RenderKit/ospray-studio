@@ -1183,12 +1183,30 @@ void MainWindow::buildMainMenuFile()
       refreshScene(true);
     }
     if (ImGui::BeginMenu("Save...")) {
-      if (ImGui::MenuItem("Scene")) {
-        std::ofstream dump("studio.sg");
+      if (ImGui::MenuItem("Scene (entire)")) {
+        std::ofstream dump("studio_scene.sg");
         nlohmann::json j = {{"world", frame->child("world")},
             {"camera", arcballCamera->getState()},
-            {"lightsManager", lightsManager->valueAs<sg::Lights>()}};
+            {"lightsManager", *lightsManager},
+            {"materialRegistry", *baseMaterialRegistry}};
         dump << j.dump();
+      }
+
+      ImGui::Separator();
+      if (ImGui::MenuItem("Materials (only)")) {
+        std::ofstream materials("studio_materials.sg");
+        nlohmann::json j = {{"materialRegistry", *baseMaterialRegistry}};
+        materials << j.dump();
+      }
+      if (ImGui::MenuItem("Lights (only)")) {
+        std::ofstream lights("studio_lights.sg");
+        nlohmann::json j = {{"lightsManager", *lightsManager}};
+        lights << j.dump();
+      }
+      if (ImGui::MenuItem("Camera (only)")) {
+        std::ofstream camera("studio_camera.sg");
+        nlohmann::json j = {{"camera", arcballCamera->getState()}};
+        camera << j.dump();
       }
 
       ImGui::Separator();

@@ -39,8 +39,10 @@ inline void to_json(nlohmann::json &j, const Node &n)
 {
   j = nlohmann::json{{"name", n.name()},
       {"type", n.type()},
-      {"subType", n.subType()},
-      {"description", n.description()}};
+      {"subType", n.subType()}};
+  
+  if (n.description() != "<no description>")
+    j["description"] = n.description();
 
   // we only want the importer and its root transform, not the hierarchy of
   // geometry under it
@@ -62,6 +64,7 @@ inline void to_json(nlohmann::json &j, const Node &n)
       || n.type() == NodeType::TRANSFORM))
     j["value"] = n.value();
 
+  // XXX here, don't export the generic Node subType
   if (n.hasChildren() && n.type() != NodeType::TRANSFORM)
     j["children"] = n.children();
 }
@@ -70,9 +73,18 @@ inline void from_json(const nlohmann::json &j, Node &n) {}
 
 inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const nlohmann::json &j) {
   NodePtr n = nullptr;
+
+  // This is a generated value and can't be imported
+  // XXX shouldn't be *exported* to begin with.  Fix that side, too.
+  if (j["name"] == "handles")
+    return nullptr;
+
   if (j.contains("value")) {
-    n = createNode(
-        j["name"], j["subType"], j["description"], j["value"].get<Any>());
+    if (j.contains("description")) {
+      n = createNode(
+          j["name"], j["subType"], j["description"], j["value"].get<Any>());
+    } else
+      n = createNode(j["name"], j["subType"], j["value"].get<Any>());
   } else {
     n = createNode(j["name"], j["subType"]);
   }
@@ -85,10 +97,14 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const nlohmann::json &j) {
   if (j.contains("children")) {
     for (auto &jChild : j["children"]) {
       auto child = createNodeFromJSON(jChild);
+      if (!child)
+        continue;
       if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
         child->setSGOnly();
       if (j["type"] == NodeType::LIGHTS)
         n->nodeAs<Lights>()->addLight(child);
+      else if (j["type"] == NodeType::MATERIAL)
+        n->nodeAs<Material>()->add(child);
       else
         n->add(child);
     }

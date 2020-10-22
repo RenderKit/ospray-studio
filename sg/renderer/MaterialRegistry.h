@@ -12,7 +12,6 @@ namespace sg {
 struct OSPSG_INTERFACE MaterialRegistry : public Node
 {
   MaterialRegistry();
-
   ~MaterialRegistry() override = default;
 
   void createCPPMaterials(const std::string &rType);

@@ -54,8 +54,6 @@ namespace ospray {
       auto found = std::find(lightNames.begin(), lightNames.end(), name);
       lightNames.erase(found);
 
-      std::cout << "Lights::removeLight " << std::endl;
-
       // XXX FIX: this markAsModified is not doing anything ?!?!
       markAsModified();
       isStubborn = true; // XXX HACK, until we get markAsModified working here

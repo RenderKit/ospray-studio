@@ -132,9 +132,6 @@ namespace ospray {
 
     hasDenoiser = enabled;
     updateImageOps = true;
-
-    // Clear accum if changing denoiser
-    handle().clear();
   }
 
   void FrameBuffer::updateToneMapper(bool enabled)
@@ -144,9 +141,6 @@ namespace ospray {
 
     hasToneMapper = enabled;
     updateImageOps = true;
-
-    // Clear accum if changing toneMapper
-    handle().clear();
   }
 
   void FrameBuffer::updateImageOperations()
@@ -157,7 +151,7 @@ namespace ospray {
 
     updateImageOps = false; 
 
-    std::vector<cpp::ImageOperation> ops;
+    std::vector<cpp::ImageOperation> ops = {};
     if (hasToneMapper) {
       auto iop = cpp::ImageOperation("tonemapper");
       float exposure=child("exposure").valueAs<float>();
