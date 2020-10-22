@@ -209,6 +209,8 @@ void BatchContext::render()
     arcballCamera->setState(cs);
   }
 
+  updateCamera();
+
   auto &camera = frame->child("camera");
   if (camera.hasChild("aspect"))
     camera["aspect"] = optImageSize.x / (float)optImageSize.y;
@@ -221,8 +223,6 @@ void BatchContext::render()
 
   camera["stereoMode"] = optStereoMode;
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
-
-  updateCamera();
 
   // frame->child("world").createChild("light", "ambient");
   frame->child("navMode") = false;
