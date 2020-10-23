@@ -908,6 +908,9 @@ void MainWindow::refreshScene(bool resetCam)
       "materialref", "reference_to_material", defaultMaterialIdx);
 
   if (!filesToImport.empty()) {
+    // Cancel any in-progress frame since we're changing the world.
+    frame->cancelFrame();
+    frame->waitOnFrame();
     importFiles(world);
   } else {
     if (scene != "") {
@@ -923,7 +926,7 @@ void MainWindow::refreshScene(bool resetCam)
         refreshRenderer();
     }
   }
-  
+
   world->render();
 
   frame->add(world);
@@ -998,27 +1001,21 @@ void MainWindow::importFiles(sg::NodePtr world)
         sg::importScene(shared_from_this(), fileName);
         sgScene = true;
       } else {
-        std::string nodeName = fileName.base() + "_importer";
         std::cout << "Importing: " << file << std::endl;
 
-        auto importer = sg::getImporter(file);
-        if (importer != "") {
-          auto &imp = world->createChildAs<sg::Importer>(nodeName, importer);
-
+        auto importer = sg::getImporter(world, file);
+        if (importer) {
           // Could be any type of importer.  Need to pass the MaterialRegistry,
           // importer will use what it needs.
-          imp.setFileName(fileName);
-          imp.setMaterialRegistry(baseMaterialRegistry);
-          imp.setCameraList(cameras);
+          importer->setMaterialRegistry(baseMaterialRegistry);
+          importer->setCameraList(cameras);
           if (animate) {
-            imp.setTimesteps(timesteps);
+            importer->setTimesteps(timesteps);
           }
-          imp.importScene();
+          importer->importScene();
 
           if (baseMaterialRegistry->matImportsList.size())
             refreshRenderer();
-        } else {
-          std::cout << "No importer for this file type." << std::endl;
         }
       }
     } catch (...) {

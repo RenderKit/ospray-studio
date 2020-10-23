@@ -44,7 +44,7 @@ namespace ospray {
     refreshFrameOperations();
 
     // If working on a frame, cancel it, something has changed
-    if (isModified() && value().valid()) {
+    if (isModified()) {
         cancelFrame();
         currentAccum = 0;
         fb.resetAccumulation();
@@ -72,7 +72,7 @@ namespace ospray {
 
   bool Frame::frameIsReady()
   {
-    auto future = handle();
+    auto future = value().valid() ? handle() : nullptr;
     if (future)
       return future.isReady();
     else
@@ -81,7 +81,7 @@ namespace ospray {
 
   float Frame::frameProgress()
   {
-    auto future = handle();
+    auto future = value().valid() ? handle() : nullptr;
     if (future)
       return future.progress();
     else
@@ -90,7 +90,7 @@ namespace ospray {
 
   void Frame::waitOnFrame()
   {
-    auto future = handle();
+    auto future = value().valid() ? handle() : nullptr;
     if (future)
       future.wait();
     if (!accumLimitReached())
@@ -99,7 +99,7 @@ namespace ospray {
 
   void Frame::cancelFrame()
   {
-    auto future = handle();
+    auto future = value().valid() ? handle() : nullptr;
     if (future) {
       future.cancel();
       canceled = true;

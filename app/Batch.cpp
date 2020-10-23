@@ -316,18 +316,15 @@ void BatchContext::importFiles(sg::NodePtr world)
         importScene(shared_from_this(), fileName);
         sgScene = true;
       } else {
-        std::string nodeName = fileName.base() + "_importer";
         std::cout << "Importing: " << file << std::endl;
 
-        auto importer = sg::getImporter(file);
-        if (importer != "") {
-          auto &imp =
-              importedModels->createChildAs<sg::Importer>(nodeName, importer);
+        auto importer = sg::getImporter(world, file);
+        if (importer) {
           // Could be any type of importer.  Need to pass the MaterialRegistry,
           // importer will use what it needs.
-          imp.setFileName(fileName);
-          imp.setMaterialRegistry(baseMaterialRegistry);
-          imp.importScene();
+          importer->setFileName(fileName);
+          importer->setMaterialRegistry(baseMaterialRegistry);
+          importer->importScene();
         }
       }
     } catch (...) {

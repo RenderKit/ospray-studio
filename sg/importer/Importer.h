@@ -89,20 +89,57 @@ inline quaternionf slerp(const quaternionf &q0, const quaternionf &q1, float t)
 
 extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 
-inline std::string getImporter(rkcommon::FileName fileName)
+inline Importer *getImporter(NodePtr root, rkcommon::FileName fileName)
 {
+  std::string baseName = fileName.name();
   auto fnd = importerMap.find(fileName.ext());
   if (fnd == importerMap.end()) {
     std::cout << "No importer for " << fileName << std::endl;
-    return "";
+    return nullptr;
   }
 
   std::string importer = fnd->second;
-  std::string nodeName = "importer" + fileName.base();
+  std::string nodeName = baseName + "_importer";
 
-  // auto &node = createNodeAs<sg::Importer>(nodeName, importer);
-  // child("file") = fileName.base();
-  return importer;
+  Importer *importNode = nullptr;
+
+  if (root->hasChild(nodeName)) {
+    // Existing import, instance it!
+    std::cout << "Instancing: " << nodeName << std::endl;
+
+    // Importer node and its rootXfm
+    auto &origNode = root->child(nodeName);
+    std::string rootXfmName = baseName + "_rootXfm";
+    if (!origNode.hasChild(rootXfmName)) {
+      std::cout << "!!! error... importer rootXfm is missing?!" << std::endl;
+      return nullptr;
+    }
+    auto &rootXfmNode = origNode.child(rootXfmName);
+
+    // Create a unique instanceXfm nodeName
+    auto count = 1;
+    do {
+      nodeName = baseName + "_instanceXfm_" + std::to_string(count++);
+    } while (origNode.hasChild(nodeName));
+
+    auto instanceXfm = createNode(nodeName, "Transform", affine3f{one});
+
+    // Add all children of the original rootXfm to this instanceXfm
+    for (auto &g : rootXfmNode.children())
+      instanceXfm->add(g.second);
+
+    // add instance to importer parent
+    origNode.add(instanceXfm);
+
+    // Everything is done, no need to return a node.
+
+  } else {
+    // Import
+    importNode = &root->createChildAs<sg::Importer>(nodeName, importer);
+    importNode->setFileName(fileName);
+  }
+
+  return importNode;
 }
 
 // for loading scene (.sg) files

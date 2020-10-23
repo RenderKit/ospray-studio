@@ -246,20 +246,17 @@ namespace ospray {
       refLinkFileName = refTitle + ".gltf";
 
     std::string refLinkFullPath = fileName.path() + refLinkFileName;
-    std::string nodeName = refLinkFileName + "_refLink_importer";
 
     rkcommon::FileName file(refLinkFullPath);
     std::cout << "Importing: " << file << std::endl;
 
-    auto importer = sg::getImporter(refLinkFullPath);
-    if (importer != "") {
-      auto &imp = sgNode->createChildAs<sg::Importer>(nodeName, importer);
-      imp.setFileName(file);
-      imp.setMaterialRegistry(materialRegistry);
-      imp.importScene();
-      imp.createChild("id", "string", refId);
-      imp.createChild("title", "string", refType);
-      imp.createChild("type", "string", refTitle);
+    auto importer = sg::getImporter(sgNode, refLinkFullPath);
+    if (importer) {
+      importer->setMaterialRegistry(materialRegistry);
+      importer->importScene();
+      importer->createChild("id", "string", refId);
+      importer->createChild("title", "string", refType);
+      importer->createChild("type", "string", refTitle);
     }
   }
 
