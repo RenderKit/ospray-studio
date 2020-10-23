@@ -15,7 +15,7 @@ namespace ospray {
   struct OSPSG_INTERFACE Texture2D : public Texture
   {
     Texture2D();
-    virtual ~Texture2D() override = default;
+    ~Texture2D() override;
 
     //! \brief load texture from given file.
     /*! \detailed if file does not exist, or cannot be loaded for
@@ -27,6 +27,7 @@ namespace ospray {
               const bool nearestFilter = false);
 
     //! texture size, in pixels
+    FileName fileName;
     vec2i size{-1};
     int channels{0};
     int depth{0};

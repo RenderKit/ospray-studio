@@ -251,12 +251,16 @@ namespace ospray {
   // Texture2D definitions ////////////////////////////////////////////////////
 
   Texture2D::Texture2D() : Texture("texture2d") {}
+  Texture2D::~Texture2D()
+  {
+    textureCache.erase(fileName);
+  }
 
   void Texture2D::load(const FileName &_fileName,
       const bool preferLinear,
       const bool nearestFilter)
   {
-    const std::string fileName = _fileName;
+    fileName = _fileName;
     const std::string baseFileName = _fileName.base();
 
     std::shared_ptr<Texture2D> newTexNode = nullptr;
@@ -264,10 +268,7 @@ namespace ospray {
     // Check the cache before creating a new texture
     if (textureCache.find(fileName) != textureCache.end()) {
       newTexNode = textureCache[fileName];
-      std::cout << "Found texture " << fileName << " in cache."
-        << std::endl;
     } else {
-      std::cout << "Creating texture " << fileName << " in cache." << std::endl;
 
       newTexNode = createNodeAs<sg::Texture2D>(fileName, "texture_2d");
 
@@ -567,8 +568,6 @@ namespace ospray {
             (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
 
         textureCache[fileName] = newTexNode;
-        std::cout << "Adding texture " << newTexNode->name() << " to cache."
-                  << std::endl;
       } else {
         // The load must have failed, don't keep the node.
         std::cout << "Failed texture " << newTexNode->name()
@@ -579,12 +578,9 @@ namespace ospray {
     }
 
     // Populate the parent node with texture parameters
-    std::cout << "Populate the parent node with texture parameters" << std::endl;
     if (newTexNode)
-      for (auto &c : newTexNode->children()) {
-        std::cout << "   Adding child: " << c.second->name() << std::endl;
+      for (auto &c : newTexNode->children())
         add(c.second);
-      }
   }
 
   OSP_REGISTER_SG_NODE_NAME(Texture2D, texture_2d);
