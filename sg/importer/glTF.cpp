@@ -865,12 +865,12 @@ namespace ospray {
         ospGeom->createChildData("vertex.texcoord", vt);
 
     } else if (prim.mode == TINYGLTF_MODE_POINTS) {
-#if 0 // points as spheres
+#if 1 // points as spheres
       ospGeom = createNode(primName + "_object", "geometry_spheres");
       ospGeom->createChildData("sphere.position", v);
 
       // glTF doesn't specify point radius.
-      ospGeom->createChild("radius", "float", 0.02f);
+      ospGeom->createChild("radius", "float", 0.005f);
 
 #else // points as boxes
       ospGeom = createNode(primName + "_object", "geometry_boxes");
