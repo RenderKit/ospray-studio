@@ -70,7 +70,6 @@ namespace ospray {
         std::static_pointer_cast<sg::Texture2D>(
             sg::createNode(map_name, "texture_2d"));
 
-    auto &tex2D = *sgTex;
     sgTex->load(containingPath + texName, preferLinear, nearestFilter);
 
     return sgTex;
