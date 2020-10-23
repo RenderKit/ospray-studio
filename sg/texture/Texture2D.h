@@ -26,8 +26,9 @@ namespace ospray {
               const bool preferLinear  = false,
               const bool nearestFilter = false);
 
+    std::string fileName;
+
     //! texture size, in pixels
-    FileName fileName;
     vec2i size{-1};
     int channels{0};
     int depth{0};
