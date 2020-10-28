@@ -13,14 +13,16 @@ stages:
 .build-linux:
   stage: build
   needs: []
-  tags: [docker]
+  tags:
+    - docker
 
 source-protex-scan:
   stage: build
   image: amd64/openjdk:8
   script:
     - gitlab/source-scan-protex.sh
-  tags: [docker]
+  tags:
+    - docker
   dependencies: []
   allow_failure: true
 
@@ -36,7 +38,9 @@ build-ubuntu18.04:
 
 build-osx-clang:
   stage: build
-  tags: [osx, clang]
+  tags:
+    - osx
+    - clang
   script:
     - gitlab/macos.sh
   artifacts:
@@ -46,7 +50,9 @@ build-osx-clang:
 
 build-windows-msvc15:
   stage: build
-  tags: [win, msvc15]
+  tags:
+    - win
+    - msvc15
   script:
     - gitlab\win.ps1 "Visual Studio 15 2017 Win64" "v141" "Release"
   artifacts:
@@ -67,13 +73,15 @@ test-run-ubuntu18.04:
   stage: test
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
   needs: [build-ubuntu18.04]
-  tags: [docker]
+  tags:
+    - docker
   script:
     - gitlab/run.sh
 
 test-kw:
   stage: test
-  tags: [docker]
+  tags:
+    - docker
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
   needs: [build-kw]
   script:
