@@ -7,7 +7,7 @@ apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev
 if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
 then
     cd /tmp
-    git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/sdvis/ospray.git ospray-$OSPRAY_VER
+    git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@vis-gitlab.an.intel.com/renderkit/ospray.git ospray-$OSPRAY_VER
     cd ospray-$OSPRAY_VER/
     git checkout tags/"v${OSPRAY_VER}"
     mkdir build && cd build && cmake ../scripts/superbuild -DBUILD_OIDN=ON && cmake --build .
