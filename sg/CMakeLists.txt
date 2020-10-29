@@ -13,7 +13,7 @@ if(ENABLE_OPENIMAGEIO)
     message(STATUS "OpenImageIO not found. Using stb_image instead.")
   endif()
 else()
-  message(STATUS "Building without OpenVDB support. Using stb_image instead.")
+  message(STATUS "Building without OpenImageIO support. Using stb_image instead.")
 endif()
 
 ## OpenVDB support ##

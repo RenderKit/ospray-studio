@@ -7,21 +7,22 @@
 #include "../visitors/GenerateOSPRayMaterials.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE MaterialRegistry : public Node
-  {
-    MaterialRegistry();
+struct OSPSG_INTERFACE MaterialRegistry : public Node
+{
+  MaterialRegistry();
 
-    ~MaterialRegistry() override = default;
+  ~MaterialRegistry() override = default;
 
-    void createCPPMaterials(const std::string &rType);
-    void updateMaterialList(const std::string &rType);
+  void createCPPMaterials(const std::string &rType);
+  void updateMaterialList(const std::string &rType);
 
-    std::vector<cpp::Material> cppMaterialList;
-    std::vector<std::shared_ptr<sg::Material>> sgMaterialList;
+  std::vector<cpp::Material> cppMaterialList;
 
-  };
+ private:
+  std::vector<std::shared_ptr<sg::Material>> sgMaterialList;
+};
 
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray
