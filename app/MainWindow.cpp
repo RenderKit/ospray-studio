@@ -815,7 +815,12 @@ void MainWindow::startNewOSPRayFrame()
     frame->child("navMode") = true; // navMode is perfect for this
   }
 
-  frame->startNewFrame();
+  // UI responsiveness can be increased by knowing if we're in the middle of
+  // ImGui widget interaction
+  ImGuiIO &io = ImGui::GetIO();
+  bool interaction =
+      (io.WantCaptureMouse || io.WantCaptureKeyboard || io.WantTextInput);
+  frame->startNewFrame(interaction);
 }
 
 void MainWindow::waitOnOSPRayFrame()
@@ -1913,8 +1918,10 @@ void MainWindow::buildWindowGeometryViewer()
       result->traverse<sg::GenerateImGuiWidgets>(
           sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
-      if (userUpdated)
+      if (userUpdated) {
+        result->commit();
         break;
+      }
     }
   } else {
     for (auto &node : frame->child("world").children()) {
@@ -1924,8 +1931,10 @@ void MainWindow::buildWindowGeometryViewer()
         node.second->traverse<sg::GenerateImGuiWidgets>(
             sg::TreeState::ROOTOPEN, userUpdated);
         // Don't continue traversing
-        if (userUpdated)
+        if (userUpdated) {
+          node.second->commit();
           break;
+        }
       }
     }
   }

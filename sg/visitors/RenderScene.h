@@ -79,6 +79,8 @@ namespace ospray {
     switch (node.type()) {
     case NodeType::WORLD:
       world = node.valueAs<cpp::World>();
+      // XXX Can this be set only when in navMode?
+      world.setParam("dynamicScene", true);
       break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
@@ -274,6 +276,9 @@ namespace ospray {
     current.geometries.clear();
     current.volumes.clear();
     current.clippingGeometries.clear();
+
+    // XXX Can this be set only when in navMode?
+    group.setParam("dynamicScene", true);
 
     group.commit();
 
