@@ -36,6 +36,7 @@
 #include <fstream>
 // widgets
 #include "widgets/FileBrowserWidget.h"
+#include "widgets/TransferFunctionWidget.h"
 
 using namespace ospray_studio;
 
@@ -1554,6 +1555,8 @@ void MainWindow::buildMainMenuView()
       showGeometryViewer = true;
     if (ImGui::MenuItem("Materials...", "", nullptr))
       showMaterialEditor = true;
+    if (ImGui::MenuItem("Transfer function...", "", nullptr))
+      showTransferFunctionEditor = true;
 
     ImGui::Separator();
     ImGui::Checkbox("Rendering stats...", &showRenderingStats);
@@ -1607,6 +1610,8 @@ void MainWindow::buildWindows()
     buildWindowLightEditor();
   if (showMaterialEditor)
     buildWindowMaterialEditor();
+  if (showTransferFunctionEditor)
+    buildWindowTransferFunctionEditor();
   if (showGeometryViewer)
     buildWindowGeometryViewer();
   if (showRenderingStats)
@@ -1850,8 +1855,7 @@ void MainWindow::buildWindowCameraEditor()
 
 void MainWindow::buildWindowMaterialEditor()
 {
-  if (!ImGui::Begin(
-          "Material editor", &showMaterialEditor)) {
+  if (!ImGui::Begin("Material editor", &showMaterialEditor)) {
     ImGui::End();
     return;
   }
@@ -1861,14 +1865,43 @@ void MainWindow::buildWindowMaterialEditor()
   ImGui::End();
 }
 
+void MainWindow::buildWindowTransferFunctionEditor()
+{
+  if (!ImGui::Begin("Transfer Function editor", &showTransferFunctionEditor)) {
+    ImGui::End();
+    return;
+  }
+
+#if 0
+  // Search the world for volumes, and then allow an editor for each transfer
+  // function found
+
+    // Much like the Geometry and Materials editors do.
+    auto transferFunctionUpdatedCallback =
+        [&](const range1f &valueRange,
+            const std::vector<vec4f> &colorsAndOpacities) {
+          transferFunction = TransferFunction{valueRange, colorsAndOpacities};
+          scene.tfColorsAndOpacities =
+              transferFunction.colorsAndOpacities.data();
+          scene.tfNumColorsAndOpacities =
+              transferFunction.colorsAndOpacities.size();
+          scene.tfValueRange = valueRange;
+          scene.updateValueSelector(transferFunction, isoValues);
+          glfwVKLWindow->resetAccumulation();
+        };
+
+    static TransferFunctionWidget transferFunctionWidget(
+        transferFunctionUpdatedCallback, initialValueRange);
+    transferFunctionWidget.updateUI();
+#endif
+}
+
 void MainWindow::buildWindowGeometryViewer()
 {
   if (!ImGui::Begin("Geometry viewer", &showGeometryViewer)) {
     ImGui::End();
     return;
   }
-
-  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
 
   static char searchTerm[1024] = "";
   static bool searched         = false;

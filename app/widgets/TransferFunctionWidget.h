@@ -18,7 +18,7 @@
 
 #include <ospray/ospray.h>
 #include "rkcommon/math/vec.h"
-#include "../../sg/scene/transfer_function/TransferFunction.h"
+#include "sg/scene/transfer_function/TransferFunction.h"
 
 using namespace rkcommon::math;
 

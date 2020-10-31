@@ -127,6 +127,7 @@ class MainWindow : public StudioContext
   void buildWindowLightEditor();
   void buildWindowCameraEditor();
   void buildWindowMaterialEditor();
+  void buildWindowTransferFunctionEditor();
   void buildWindowGeometryViewer();
   void buildWindowRenderingStats();
 
@@ -149,6 +150,7 @@ class MainWindow : public StudioContext
   bool showLightEditor{false};
   bool showCameraEditor{false};
   bool showMaterialEditor{false};
+  bool showTransferFunctionEditor{false};
   bool showGeometryViewer{false};
   bool showRenderingStats{false};
 
