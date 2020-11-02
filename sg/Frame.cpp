@@ -33,7 +33,7 @@ namespace ospray {
     return NodeType::FRAME;
   }
 
-  void Frame::startNewFrame(bool interaction)
+  void Frame::startNewFrame(bool interacting)
   {
     auto &fb = childAs<FrameBuffer>("frameBuffer");
     auto &camera = childAs<Camera>("camera");
@@ -56,16 +56,11 @@ namespace ospray {
         child("navMode") = false;
     }
 
-    // If in the middle of UI interaction, back off on how frequently scene
-    // updates are committed.
-    static int skipCount = 0;
-    if (!interaction || (--skipCount < 0)) {
+    // Commit only when modified and not while interacting.
+    if (isModified() && !interacting)
       commit();
-      // 10 is a good imperical number.  If necessary, make UI adjustable
-      skipCount = 10;
-    }
 
-    if (!pauseRendering && !accumLimitReached()) {
+    if (!(interacting || pauseRendering || accumLimitReached())) {
       auto future = fb.handle().renderFrame(
           renderer.handle(), camera.handle(), world.handle());
       setHandle(future);
