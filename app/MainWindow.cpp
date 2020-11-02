@@ -16,12 +16,12 @@
 #include "sg/fb/FrameBuffer.h"
 #include "sg/generator/Generator.h"
 #include "sg/renderer/Renderer.h"
-#include "sg/scene/lights/Lights.h"
 #include "sg/scene/World.h"
+#include "sg/scene/lights/Lights.h"
 #include "sg/visitors/Commit.h"
 #include "sg/visitors/GenerateImGuiWidgets.h"
-#include "sg/visitors/Search.h"
 #include "sg/visitors/PrintNodes.h"
+#include "sg/visitors/Search.h"
 #include "sg/visitors/SetParamByNode.h"
 #include "sg/scene/volume/Volume.h"
 // rkcommon
@@ -29,11 +29,13 @@
 #include "rkcommon/os/FileName.h"
 #include "rkcommon/utility/SaveImage.h"
 #include "rkcommon/utility/getEnvVar.h"
+#include "rkcommon/utility/DataView.h"
+
 // json
 #include "sg/JSONDefs.h"
 
-#include <queue>
 #include <fstream>
+#include <queue>
 // widgets
 #include "widgets/FileBrowserWidget.h"
 #include "widgets/TransferFunctionWidget.h"
@@ -42,46 +44,47 @@ using namespace ospray_studio;
 
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 
-static bool g_quitNextFrame  = false;
-static bool g_saveNextFrame  = false;
-static bool g_animatingPath  = false;
+static bool g_quitNextFrame = false;
+static bool g_saveNextFrame = false;
+static bool g_animatingPath = false;
 
 static const std::vector<std::string> g_scenes = {"tutorial_scene",
-                                                  "random_spheres",
-                                                  "wavelet",
-                                                  "torus_volume",
-                                                  "unstructured_volume",
-                                                  "multilevel_hierarchy"};
+    "random_spheres",
+    "wavelet",
+    "torus_volume",
+    "unstructured_volume",
+    "multilevel_hierarchy"};
 
 static const std::vector<std::string> g_renderers = {
     "scivis", "pathtracer", "ao", "debug"};
 
-// list of cameras imported with the scene definition 
+// list of cameras imported with the scene definition
 static rkcommon::containers::FlatMap<std::string, sg::NodePtr> g_sceneCameras;
 
 static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
-                                                              "primID",
-                                                              "geomID",
-                                                              "instID",
-                                                              "Ng",
-                                                              "Ns",
-                                                              "backfacing_Ng",
-                                                              "backfacing_Ns",
-                                                              "dPds",
-                                                              "dPdt",
-                                                              "volume"};
+    "primID",
+    "geomID",
+    "instID",
+    "Ng",
+    "Ns",
+    "backfacing_Ng",
+    "backfacing_Ns",
+    "dPds",
+    "dPdt",
+    "volume"};
 
 static const std::vector<std::string> g_lightTypes = {
     "ambient", "distant", "hdri", "sphere", "spot", "sunSky", "quad"};
 
-std::vector<CameraState> g_camPath;     // interpolated path through cameraStack
+std::vector<CameraState> g_camPath; // interpolated path through cameraStack
 int g_camSelectedStackIndex = 0;
-int g_camCurrentPathIndex    = 0;
-float g_camPathSpeed = 5;  // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
-const int g_camPathPause = 2;  // _seconds_ to pause for at end of path
+int g_camCurrentPathIndex = 0;
+float g_camPathSpeed = 5; // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
+const int g_camPathPause = 2; // _seconds_ to pause for at end of path
 int g_rotationConstraint = -1;
 
-const double CAM_MOVERATE = 10.0; //TODO: the constant should be scene dependent or user changeable
+const double CAM_MOVERATE =
+    10.0; // TODO: the constant should be scene dependent or user changeable
 double g_camMoveX = 0.0;
 double g_camMoveY = 0.0;
 double g_camMoveZ = 0.0;
@@ -188,103 +191,104 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   glfwSetKeyCallback(
       glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
-      auto &io = ImGui::GetIO();
+        auto &io = ImGui::GetIO();
         if (!io.WantCaptureKeyboard)
           if (action == GLFW_PRESS) {
             switch (key) {
             case GLFW_KEY_UP:
-                if (mod != GLFW_MOD_ALT)
-                  g_camMoveZ = -CAM_MOVERATE;
-                else
-                  g_camMoveY = -CAM_MOVERATE;
-                break;
+              if (mod != GLFW_MOD_ALT)
+                g_camMoveZ = -CAM_MOVERATE;
+              else
+                g_camMoveY = -CAM_MOVERATE;
+              break;
             case GLFW_KEY_DOWN:
-                if (mod != GLFW_MOD_ALT)
-                  g_camMoveZ = CAM_MOVERATE;
-                else
-                  g_camMoveY = CAM_MOVERATE;
-                break;
+              if (mod != GLFW_MOD_ALT)
+                g_camMoveZ = CAM_MOVERATE;
+              else
+                g_camMoveY = CAM_MOVERATE;
+              break;
             case GLFW_KEY_LEFT:
-                g_camMoveX = -CAM_MOVERATE;
-                break;
+              g_camMoveX = -CAM_MOVERATE;
+              break;
             case GLFW_KEY_RIGHT:
-                g_camMoveX = CAM_MOVERATE;
-                break;
+              g_camMoveX = CAM_MOVERATE;
+              break;
             case GLFW_KEY_W:
-                g_camMoveE = CAM_MOVERATE;
-                break;
+              g_camMoveE = CAM_MOVERATE;
+              break;
             case GLFW_KEY_S:
-                if (mod != GLFW_MOD_CONTROL)
-                  g_camMoveE = -CAM_MOVERATE;
-                else
-                  g_saveNextFrame = true;
-                break;
+              if (mod != GLFW_MOD_CONTROL)
+                g_camMoveE = -CAM_MOVERATE;
+              else
+                g_saveNextFrame = true;
+              break;
             case GLFW_KEY_A:
-                if (mod != GLFW_MOD_ALT)
-                  g_camMoveA = -CAM_MOVERATE;
-                else
-                  g_camMoveR = -CAM_MOVERATE;
-                break;
+              if (mod != GLFW_MOD_ALT)
+                g_camMoveA = -CAM_MOVERATE;
+              else
+                g_camMoveR = -CAM_MOVERATE;
+              break;
             case GLFW_KEY_D:
-                if (mod != GLFW_MOD_ALT)
-                  g_camMoveA = CAM_MOVERATE;
-                else
-                  g_camMoveR = CAM_MOVERATE;
-                break;
+              if (mod != GLFW_MOD_ALT)
+                g_camMoveA = CAM_MOVERATE;
+              else
+                g_camMoveR = CAM_MOVERATE;
+              break;
 
             case GLFW_KEY_X:
-                g_rotationConstraint = 0;
-                break;
+              g_rotationConstraint = 0;
+              break;
             case GLFW_KEY_Y:
-                g_rotationConstraint = 1;
-                break;
+              g_rotationConstraint = 1;
+              break;
             case GLFW_KEY_Z:
-                g_rotationConstraint = 2;
-                break;
+              g_rotationConstraint = 2;
+              break;
 
             case GLFW_KEY_G:
-                activeWindow->showUi = !(activeWindow->showUi);
-                break;
+              activeWindow->showUi = !(activeWindow->showUi);
+              break;
             case GLFW_KEY_Q: {
-                auto showMode =
-                        rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
-                // XXX Invoke the "Jim-Q" key, make it more difficult to exit
-                // by mistake.
-                if (showMode && mod != GLFW_MOD_CONTROL)
-                    std::cout << "Use ctrl-Q to exit\n";
-                else
-                    g_quitNextFrame = true;
+              auto showMode =
+                  rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
+              // XXX Invoke the "Jim-Q" key, make it more difficult to exit
+              // by mistake.
+              if (showMode && mod != GLFW_MOD_CONTROL)
+                std::cout << "Use ctrl-Q to exit\n";
+              else
+                g_quitNextFrame = true;
             } break;
             case GLFW_KEY_P:
-                activeWindow->frame->traverse<sg::PrintNodes>();
-                break;
+              activeWindow->frame->traverse<sg::PrintNodes>();
+              break;
             case GLFW_KEY_M:
-                activeWindow->baseMaterialRegistry->traverse<sg::PrintNodes>();
-                break;
+              activeWindow->baseMaterialRegistry->traverse<sg::PrintNodes>();
+              break;
             case GLFW_KEY_L:
-                activeWindow->lightsManager->traverse<sg::PrintNodes>();
-                break;
+              activeWindow->lightsManager->traverse<sg::PrintNodes>();
+              break;
             case GLFW_KEY_B:
-                PRINT(activeWindow->frame->bounds());
-                break;
+              PRINT(activeWindow->frame->bounds());
+              break;
             case GLFW_KEY_V:
-                activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
-                break;
+              activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
+              break;
             case GLFW_KEY_SPACE:
               if (activeWindow->cameraStack.size() >= 2) {
                 g_animatingPath = !g_animatingPath;
                 g_camCurrentPathIndex = 0;
                 if (g_animatingPath) {
-                  g_camPath = buildPath(activeWindow->cameraStack, g_camPathSpeed * 0.01);
+                  g_camPath = buildPath(
+                      activeWindow->cameraStack, g_camPathSpeed * 0.01);
                 }
               }
               break;
             case GLFW_KEY_EQUAL:
-                activeWindow->pushLookMark();
-                break;
+              activeWindow->pushLookMark();
+              break;
             case GLFW_KEY_MINUS:
-                activeWindow->popLookMark();
-                break;
+              activeWindow->popLookMark();
+              break;
             case GLFW_KEY_0: /* fallthrough */
             case GLFW_KEY_1: /* fallthrough */
             case GLFW_KEY_2: /* fallthrough */
@@ -295,8 +299,8 @@ MainWindow::MainWindow(StudioCommon &_common)
             case GLFW_KEY_7: /* fallthrough */
             case GLFW_KEY_8: /* fallthrough */
             case GLFW_KEY_9:
-                activeWindow->setCameraSnapshot((key+9-GLFW_KEY_0) % 10);
-                break;
+              activeWindow->setCameraSnapshot((key + 9 - GLFW_KEY_0) % 10);
+              break;
             }
           }
         if (action == GLFW_RELEASE) {
@@ -304,26 +308,26 @@ MainWindow::MainWindow(StudioCommon &_common)
           case GLFW_KEY_X:
           case GLFW_KEY_Y:
           case GLFW_KEY_Z:
-              g_rotationConstraint = -1;
-              break;
+            g_rotationConstraint = -1;
+            break;
           case GLFW_KEY_UP:
           case GLFW_KEY_DOWN:
-              g_camMoveZ = 0;
-              g_camMoveY = 0;
-              break;
+            g_camMoveZ = 0;
+            g_camMoveY = 0;
+            break;
           case GLFW_KEY_LEFT:
           case GLFW_KEY_RIGHT:
-              g_camMoveX = 0;
-              break;
+            g_camMoveX = 0;
+            break;
           case GLFW_KEY_W:
           case GLFW_KEY_S:
-              g_camMoveE = 0;
-              break;
+            g_camMoveE = 0;
+            break;
           case GLFW_KEY_A:
           case GLFW_KEY_D:
-              g_camMoveA = 0;
-              g_camMoveR = 0;
-              break;
+            g_camMoveA = 0;
+            g_camMoveR = 0;
+            break;
           }
         }
       });
@@ -399,8 +403,8 @@ void MainWindow::start()
   auto newPluginPanels =
       pluginManager.getAllPanelsFromPlugins(shared_from_this());
   std::move(newPluginPanels.begin(),
-            newPluginPanels.end(),
-            std::back_inserter(pluginPanels));
+      newPluginPanels.end(),
+      std::back_inserter(pluginPanels));
 
   std::ifstream cams("cams.json");
   if (cams) {
@@ -418,7 +422,8 @@ MainWindow *MainWindow::getActiveWindow()
   return activeWindow;
 }
 
-std::shared_ptr<sg::Frame> MainWindow::getFrame() {
+std::shared_ptr<sg::Frame> MainWindow::getFrame()
+{
   return frame;
 }
 
@@ -428,10 +433,8 @@ void MainWindow::registerDisplayCallback(
   displayCallback = callback;
 }
 
-void MainWindow::registerKeyCallback(
-    std::function<
-        void(MainWindow *, int key, int scancode, int action, int mods)>
-        callback)
+void MainWindow::registerKeyCallback(std::function<void(
+        MainWindow *, int key, int scancode, int action, int mods)> callback)
 {
   keyCallback = callback;
 }
@@ -464,15 +467,18 @@ void MainWindow::reshape(const vec2i &newWindowSize)
   windowSize = newWindowSize;
   vec2i fSize = windowSize;
   if (lockAspectRatio) {
-    //Tell OSPRay to render the largest subset of the window that satisies the aspect ratio
-    float aspectCorrection = lockAspectRatio * static_cast<float>(newWindowSize.y) / static_cast<float>(newWindowSize.x);
+    // Tell OSPRay to render the largest subset of the window that satisies the
+    // aspect ratio
+    float aspectCorrection = lockAspectRatio
+        * static_cast<float>(newWindowSize.y)
+        / static_cast<float>(newWindowSize.x);
     if (aspectCorrection > 1.f) {
       fSize.y /= aspectCorrection;
     } else {
       fSize.x *= aspectCorrection;
     }
   }
-  frame->child("camera")["aspect"] = static_cast<float>(fSize.x)/fSize.y;
+  frame->child("camera")["aspect"] = static_cast<float>(fSize.x) / fSize.y;
 
   frame->child("windowSize") = fSize;
   frame->currentAccum = 0;
@@ -493,9 +499,9 @@ void MainWindow::updateCamera()
   frame->currentAccum = 0;
   auto &camera = frame->child("camera");
 
-  camera["position"]  = arcballCamera->eyePos();
+  camera["position"] = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
-  camera["up"]        = arcballCamera->upDir();
+  camera["up"] = arcballCamera->upDir();
 }
 
 void MainWindow::setCameraState(CameraState &cs)
@@ -511,11 +517,10 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   auto &c = frame->childAs<sg::Camera>("camera");
   auto &w = frame->childAs<sg::World>("world");
 
-  x = clamp(x/windowSize.x, 0.f, 1.f);
-  y = 1.f-clamp(y/windowSize.y, 0.f, 1.f);
+  x = clamp(x / windowSize.x, 0.f, 1.f);
+  y = 1.f - clamp(y / windowSize.y, 0.f, 1.f);
   res = fb.handle().pick(r, c, w, x, y);
-  if (res.hasHit)
-  {
+  if (res.hasHit) {
     arcballCamera->setCenter(vec3f(res.worldPosition));
     updateCamera();
   }
@@ -523,8 +528,8 @@ void MainWindow::pickCenterOfRotation(float x, float y)
 
 void MainWindow::keyboardMotion()
 {
-  if (!(g_camMoveX || g_camMoveY || g_camMoveZ ||
-        g_camMoveE || g_camMoveA || g_camMoveR))
+  if (!(g_camMoveX || g_camMoveY || g_camMoveZ || g_camMoveE || g_camMoveA
+          || g_camMoveR))
     return;
 
   auto sensitivity = 1.f;
@@ -532,7 +537,7 @@ void MainWindow::keyboardMotion()
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     sensitivity /= fineControl;
 
-  //6 degrees of freedom, four arrow keys? no problem.
+  // 6 degrees of freedom, four arrow keys? no problem.
   double inOut = g_camMoveZ;
   double leftRight = g_camMoveX;
   double upDown = g_camMoveY;
@@ -540,29 +545,26 @@ void MainWindow::keyboardMotion()
   double elevation = g_camMoveE;
   double azimuth = g_camMoveA;
 
-  if (inOut)
-  {
+  if (inOut) {
     arcballCamera->zoom(inOut * sensitivity);
   }
-  if (leftRight)
-  {
+  if (leftRight) {
     arcballCamera->pan(vec2f(leftRight, 0) * sensitivity);
   }
-  if (upDown)
-  {
+  if (upDown) {
     arcballCamera->pan(vec2f(0, upDown) * sensitivity);
   }
-  if (elevation)
-  {
-    arcballCamera->constrainedRotate(vec2f(-.5,0), vec2f(-.5,elevation*.005*sensitivity), 0);
+  if (elevation) {
+    arcballCamera->constrainedRotate(
+        vec2f(-.5, 0), vec2f(-.5, elevation * .005 * sensitivity), 0);
   }
-  if (azimuth)
-  {
-    arcballCamera->constrainedRotate(vec2f(0,-.5), vec2f(azimuth*.005*sensitivity,-0.5), 1);
+  if (azimuth) {
+    arcballCamera->constrainedRotate(
+        vec2f(0, -.5), vec2f(azimuth * .005 * sensitivity, -0.5), 1);
   }
-  if (roll)
-  {
-    arcballCamera->constrainedRotate(vec2f(-.5,0), vec2f(-.5,roll*.005*sensitivity), 2);
+  if (roll) {
+    arcballCamera->constrainedRotate(
+        vec2f(-.5, 0), vec2f(-.5, roll * .005 * sensitivity), 2);
   }
   updateCamera();
 }
@@ -591,17 +593,18 @@ void MainWindow::motion(const vec2f &position)
       sensitivity /= fineControl;
 
     if (leftDown) {
-      const vec2f mouseFrom(
-          clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
+      const vec2f mouseFrom(clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
           clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
       const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-                          clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
-      arcballCamera->constrainedRotate(mouseFrom, lerp(sensitivity, mouseFrom, mouseTo), g_rotationConstraint);
+          clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
+      arcballCamera->constrainedRotate(mouseFrom,
+          lerp(sensitivity, mouseFrom, mouseTo),
+          g_rotationConstraint);
     } else if (rightDown) {
       arcballCamera->zoom((mouse.y - prev.y) * sensitivity);
     } else if (middleDown) {
-      arcballCamera->pan(vec2f(mouse.x - prev.x, prev.y - mouse.y) *
-                         sensitivity);
+      arcballCamera->pan(
+          vec2f(mouse.x - prev.x, prev.y - mouse.y) * sensitivity);
     }
 
     if (cameraChanged)
@@ -616,9 +619,9 @@ void MainWindow::mouseButton(const vec2f &position)
   if (frame->pauseRendering)
     return;
 
-  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS &&
-      glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-    pickCenterOfRotation(position.x,position.y);
+  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
+      && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    pickCenterOfRotation(position.x, position.y);
   }
 }
 
@@ -635,7 +638,7 @@ void MainWindow::display()
 
   if (g_animatingPath) {
     static int framesPaused = 0;
-    CameraState current     = g_camPath[g_camCurrentPathIndex];
+    CameraState current = g_camPath[g_camCurrentPathIndex];
     arcballCamera->setState(current);
     updateCamera();
 
@@ -644,7 +647,7 @@ void MainWindow::display()
       framesPaused++;
       int framesToWait = g_camPathPause * ImGui::GetIO().Framerate;
       if (framesPaused > framesToWait) {
-        framesPaused          = 0;
+        framesPaused = 0;
         g_camCurrentPathIndex = 0;
       }
     } else {
@@ -670,8 +673,8 @@ void MainWindow::display()
       // display frame rate in window title
       auto displayEnd = std::chrono::high_resolution_clock::now();
       auto durationMilliseconds =
-      std::chrono::duration_cast<std::chrono::milliseconds>(displayEnd -
-          displayStart);
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              displayEnd - displayStart);
 
       latestFPS = 1000.f / float(durationMilliseconds.count());
 
@@ -682,21 +685,21 @@ void MainWindow::display()
       showAlbedo &= frameBuffer.hasAlbedoChannel();
       showDepth &= frameBuffer.hasDepthChannel();
 
-    auto *mappedFB =
-      (void *)frame->mapFrame(showDepth ? OSP_FB_DEPTH
+      auto *mappedFB = (void *)frame->mapFrame(showDepth
+              ? OSP_FB_DEPTH
               : (showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
 
       // This needs to query the actual framebuffer format
-    const GLenum glType = frameBuffer.hasFloatFormat()
-      ? GL_FLOAT : GL_UNSIGNED_BYTE;
+      const GLenum glType =
+          frameBuffer.hasFloatFormat() ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
       // Only create the copy if it's needed
       float *pDepthCopy = nullptr;
       if (showDepth) {
         // Create a local copy and don't modify OSPRay buffer
         const auto *mappedDepth = static_cast<const float *>(mappedFB);
-      std::vector<float> depthCopy(mappedDepth,
-          mappedDepth + fbSize.x * fbSize.y);
+        std::vector<float> depthCopy(
+            mappedDepth, mappedDepth + fbSize.x * fbSize.y);
         pDepthCopy = depthCopy.data();
 
         // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1, ignoring all
@@ -721,8 +724,7 @@ void MainWindow::display()
                 return (1.f - (depth - minDepth) * rcpDepthRange);
               });
         else
-        std::transform(
-            depthCopy.begin(),
+          std::transform(depthCopy.begin(),
               depthCopy.end(),
               depthCopy.begin(),
               [&](float depth) { return (depth - minDepth) * rcpDepthRange; });
@@ -757,10 +759,11 @@ void MainWindow::display()
 
   // render textured quad with OSPRay frame buffer contents
   vec2f border(0.f);
-  if (lockAspectRatio)
-  {
-    //when rendered aspect ratio doesn't match window, compute texture coordinates to center the display
-    float aspectCorrection = lockAspectRatio * static_cast<float>(windowSize.y) / static_cast<float>(windowSize.x);
+  if (lockAspectRatio) {
+    // when rendered aspect ratio doesn't match window, compute texture
+    // coordinates to center the display
+    float aspectCorrection = lockAspectRatio * static_cast<float>(windowSize.y)
+        / static_cast<float>(windowSize.x);
     if (aspectCorrection > 1.f) {
       border.y = 1.f - aspectCorrection;
     } else {
@@ -855,12 +858,12 @@ void MainWindow::updateTitleBar()
       std::string progBar;
       progBar.resize(barWidth + 2);
       auto start = progBar.begin() + 1;
-      auto end   = start + progress * barWidth;
+      auto end = start + progress * barWidth;
       std::fill(start, end, '=');
       std::fill(end, progBar.end(), '_');
-      *end            = '>';
+      *end = '>';
       progBar.front() = '[';
-      progBar.back()  = ']';
+      progBar.back() = ']';
       windowTitle << progBar;
     }
   }
@@ -869,10 +872,10 @@ void MainWindow::updateTitleBar()
   windowTitle << (frame->isModified() ? "*" : "");
 
   glfwSetWindowTitle(glfwWindow, windowTitle.str().c_str());
-
 }
 
-GLFWwindow* MainWindow::getGLFWWindow() {
+GLFWwindow *MainWindow::getGLFWWindow()
+{
   return glfwWindow;
 }
 
@@ -885,7 +888,7 @@ void MainWindow::buildUI()
   buildWindows();
 
   if (uiCallback) {
-      uiCallback();
+    uiCallback();
   }
 
   for (auto &p : pluginPanels)
@@ -905,8 +908,7 @@ void MainWindow::refreshRenderer()
     baseMaterialRegistry->updateMaterialList(rendererTypeStr);
     r.createChildData("material", baseMaterialRegistry->cppMaterialList);
   }
-  if (rendererTypeStr == "scivis" ||
-      rendererTypeStr == "pathtracer") {
+  if (rendererTypeStr == "scivis" || rendererTypeStr == "pathtracer") {
     if (backPlateTexture != "") {
       auto backplateTex =
           sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
@@ -935,14 +937,13 @@ void MainWindow::refreshScene(bool resetCam)
       // Cancel any in-progress frame since we're changing the world.
       frame->cancelFrame();
       frame->waitOnFrame();
-      auto &gen = world->createChildAs<sg::Generator>("generator",
-                                                     "generator_" + scene);
+      auto &gen = world->createChildAs<sg::Generator>(
+          "generator", "generator_" + scene);
       gen.setMaterialRegistry(baseMaterialRegistry);
       gen.generateData();
-
     }
   }
-  
+
   if (baseMaterialRegistry->isModified())
     refreshRenderer();
 
@@ -1065,7 +1066,7 @@ void MainWindow::importFiles(sg::NodePtr world)
   filesToImport.clear();
   sg::clearImporter();
 
-  if(cameras.size() > 0){
+  if (cameras.size() > 0) {
     auto &mainCamera = frame->child("camera");
     auto defaultCamera =
         sg::createNode("default_camera", frame->child("camera").subType());
@@ -1111,19 +1112,19 @@ void MainWindow::pushLookMark()
 {
   cameraStack.push_back(arcballCamera->getState());
   vec3f from = arcballCamera->eyePos();
-  vec3f up   = arcballCamera->upDir();
-  vec3f at   = arcballCamera->lookDir() + from;
+  vec3f up = arcballCamera->upDir();
+  vec3f at = arcballCamera->lookDir() + from;
   fprintf(stderr,
-          "-vp %f %f %f -vu %f %f %f -vi %f %f %f\n",
-          from.x,
-          from.y,
-          from.z,
-          up.x,
-          up.y,
-          up.z,
-          at.x,
-          at.y,
-          at.z);
+      "-vp %f %f %f -vu %f %f %f -vi %f %f %f\n",
+      from.x,
+      from.y,
+      from.z,
+      up.x,
+      up.y,
+      up.z,
+      at.x,
+      at.y,
+      at.z);
 }
 
 void MainWindow::popLookMark()
@@ -1163,8 +1164,8 @@ void MainWindow::buildMainMenuFile()
     if (ImGui::BeginMenu("Demo Scene")) {
       for (int i = 0; i < g_scenes.size(); ++i) {
         if (ImGui::MenuItem(g_scenes[i].c_str(), nullptr)) {
-           scene = g_scenes[i];
-           refreshScene(true);
+          scene = g_scenes[i];
+          refreshScene(true);
         }
       }
       ImGui::EndMenu();
@@ -1272,22 +1273,23 @@ void MainWindow::buildMainMenuFile()
 void MainWindow::buildMainMenuEdit()
 {
   if (ImGui::BeginMenu("Edit")) {
-
     ImGui::Text("general");
 
-    int whichRenderer = find(g_renderers.begin(), g_renderers.end(), rendererTypeStr) - g_renderers.begin();
+    int whichRenderer =
+        find(g_renderers.begin(), g_renderers.end(), rendererTypeStr)
+        - g_renderers.begin();
 
     static int whichDebuggerType = 0;
     if (ImGui::Combo("renderer##whichRenderer",
-                     &whichRenderer,
-                     rendererUI_callback,
-                     nullptr,
-                     g_renderers.size())) {
+            &whichRenderer,
+            rendererUI_callback,
+            nullptr,
+            g_renderers.size())) {
       rendererTypeStr = g_renderers[whichRenderer];
 
       if (rendererType == OSPRayRendererType::DEBUGGER)
-        whichDebuggerType = 0;  // reset UI if switching away
-                                // from debug renderer
+        whichDebuggerType = 0; // reset UI if switching away
+                               // from debug renderer
 
       if (rendererTypeStr == "scivis")
         rendererType = OSPRayRendererType::SCIVIS;
@@ -1307,10 +1309,10 @@ void MainWindow::buildMainMenuEdit()
 
     if (rendererType == OSPRayRendererType::DEBUGGER) {
       if (ImGui::Combo("debug type##whichDebugType",
-                       &whichDebuggerType,
-                       debugTypeUI_callback,
-                       nullptr,
-                       g_debugRendererTypes.size())) {
+              &whichDebuggerType,
+              debugTypeUI_callback,
+              nullptr,
+              g_debugRendererTypes.size())) {
         renderer["method"] = g_debugRendererTypes[whichDebuggerType];
       }
     }
@@ -1343,7 +1345,7 @@ void MainWindow::buildMainMenuEdit()
 
     switch (whichBuffer) {
     case 0:
-      showColor  = true;
+      showColor = true;
       showAlbedo = showDepth = showDepthInvert = false;
       break;
     case 1:
@@ -1386,20 +1388,20 @@ void MainWindow::buildMainMenuEdit()
 
     // XXX combine these two!  they're nearly identical
     if (ImGui::BeginMenu("Scale Resolution")) {
-      auto scale    = frame->child("scale").valueAs<float>();
+      auto scale = frame->child("scale").valueAs<float>();
       auto oldScale = scale;
-      auto custom   = true;
-      auto values   = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
+      auto custom = true;
+      auto values = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
       for (auto v : values) {
         char label[64];
         vec2i newSize = v * windowSize;
         snprintf(label,
-                 sizeof(label),
-                 "%s%1.2fx (%d,%d)",
-                 v == scale ? "*" : " ",
-                 v,
-                 newSize[0],
-                 newSize[1]);
+            sizeof(label),
+            "%s%1.2fx (%d,%d)",
+            v == scale ? "*" : " ",
+            v,
+            newSize[0],
+            newSize[1]);
         if (v == 1.f)
           ImGui::Separator();
         if (ImGui::MenuItem(label))
@@ -1414,11 +1416,11 @@ void MainWindow::buildMainMenuEdit()
       vec2i newSize = scale * windowSize;
       char label[64];
       snprintf(label,
-               sizeof(label),
-               "%scustom (%d,%d)",
-               custom ? "*" : " ",
-               newSize[0],
-               newSize[1]);
+          sizeof(label),
+          "%scustom (%d,%d)",
+          custom ? "*" : " ",
+          newSize[0],
+          newSize[1]);
       if (ImGui::BeginMenu(label)) {
         ImGui::InputFloat("x##fb_scaling", &scale);
         ImGui::EndMenu();
@@ -1431,20 +1433,20 @@ void MainWindow::buildMainMenuEdit()
     }
 
     if (ImGui::BeginMenu("Scale Nav Resolution")) {
-      auto scale    = frame->child("scaleNav").valueAs<float>();
+      auto scale = frame->child("scaleNav").valueAs<float>();
       auto oldScale = scale;
-      auto custom   = true;
-      auto values   = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
+      auto custom = true;
+      auto values = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
       for (auto v : values) {
         char label[64];
         vec2i newSize = v * windowSize;
         snprintf(label,
-                 sizeof(label),
-                 "%s%1.2fx (%d,%d)",
-                 v == scale ? "*" : " ",
-                 v,
-                 newSize[0],
-                 newSize[1]);
+            sizeof(label),
+            "%s%1.2fx (%d,%d)",
+            v == scale ? "*" : " ",
+            v,
+            newSize[0],
+            newSize[1]);
         if (v == 1.f)
           ImGui::Separator();
         if (ImGui::MenuItem(label))
@@ -1459,11 +1461,11 @@ void MainWindow::buildMainMenuEdit()
       vec2i newSize = scale * windowSize;
       char label[64];
       snprintf(label,
-               sizeof(label),
-               "%scustom (%d,%d)",
-               custom ? "*" : " ",
-               newSize[0],
-               newSize[1]);
+          sizeof(label),
+          "%scustom (%d,%d)",
+          custom ? "*" : " ",
+          newSize[0],
+          newSize[1]);
       if (ImGui::BeginMenu(label)) {
         ImGui::InputFloat("x##fb_scaling", &scale);
         ImGui::EndMenu();
@@ -1477,12 +1479,11 @@ void MainWindow::buildMainMenuEdit()
 
     if (ImGui::BeginMenu("Aspect Control")) {
       const float origAspect = lockAspectRatio;
-      if (ImGui::MenuItem("Lock"))
-      {
-        lockAspectRatio = static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
+      if (ImGui::MenuItem("Lock")) {
+        lockAspectRatio =
+            static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
       }
-      if (ImGui::MenuItem("Unlock"))
-      {
+      if (ImGui::MenuItem("Unlock")) {
         lockAspectRatio = 0.f;
       }
       ImGui::InputFloat("Set", &lockAspectRatio);
@@ -1501,8 +1502,8 @@ void MainWindow::buildMainMenuEdit()
     ImGui::SameLine();
     // This field won't be typed into.
     ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
-    ImGui::InputTextWithHint("##BPTex", "select...",
-        (char *)backPlateTexture.base().c_str(), 0);
+    ImGui::InputTextWithHint(
+        "##BPTex", "select...", (char *)backPlateTexture.base().c_str(), 0);
     if (ImGui::IsItemClicked())
       showFileBrowser = true;
 
@@ -1628,19 +1629,18 @@ void MainWindow::buildWindowKeyframes()
   ImGui::SetNextItemWidth(25 * ImGui::GetFontSize());
 
   if (ImGui::ListBoxHeader("##")) {
-    if (ImGui::Button(
-            "+")) {  // add current camera state after the selected one
+    if (ImGui::Button("+")) { // add current camera state after the selected one
       if (cameraStack.empty()) {
         cameraStack.push_back(arcballCamera->getState());
         g_camSelectedStackIndex = 0;
       } else {
         cameraStack.insert(cameraStack.begin() + g_camSelectedStackIndex + 1,
-                            arcballCamera->getState());
+            arcballCamera->getState());
         g_camSelectedStackIndex++;
       }
     }
     ImGui::SameLine();
-    if (ImGui::Button("-")) {  // remove the selected camera state
+    if (ImGui::Button("-")) { // remove the selected camera state
       cameraStack.erase(cameraStack.begin() + g_camSelectedStackIndex);
       g_camSelectedStackIndex = std::max(0, g_camSelectedStackIndex - 1);
     }
@@ -1673,13 +1673,11 @@ void MainWindow::buildWindowKeyframes()
     ImGui::ListBoxFooter();
     ImGui::End();
   }
-
 }
 
 void MainWindow::setCameraSnapshot(size_t snapshot)
 {
-  if (snapshot < cameraStack.size())
-  {
+  if (snapshot < cameraStack.size()) {
     const CameraState &cs = cameraStack.at(snapshot);
     arcballCamera->setState(cs);
     updateCamera();
@@ -1693,14 +1691,12 @@ void MainWindow::buildWindowSnapshots()
     return;
   }
   ImGui::Text("+ key to add new snapshots");
-  for (int s=0; s < cameraStack.size(); s++)
-  {
+  for (int s = 0; s < cameraStack.size(); s++) {
     if (ImGui::Button(std::to_string(s).c_str())) {
       setCameraSnapshot(s);
     }
   }
-  if (cameraStack.size())
-  {
+  if (cameraStack.size()) {
     if (ImGui::Button("save to cams.json")) {
       std::ofstream cams("cams.json");
       if (cams) {
@@ -1718,7 +1714,7 @@ void MainWindow::buildWindowLightEditor()
     ImGui::End();
     return;
   }
-  
+
   auto &lights = lightsManager->children();
   static int whichLight = -1;
   static std::string selectedLight;
@@ -1746,7 +1742,7 @@ void MainWindow::buildWindowLightEditor()
     if (ImGui::Button("remove")) {
       if (whichLight != -1) {
         lightsManager->removeLight(selectedLight);
-        whichLight    = std::max(0, whichLight - 1);
+        whichLight = std::max(0, whichLight - 1);
         selectedLight = (*(lights.begin() + whichLight)).first;
       }
     }
@@ -1758,10 +1754,10 @@ void MainWindow::buildWindowLightEditor()
 
   static std::string lightType = "";
   if (ImGui::Combo("type##whichLightType",
-               &whichLightType,
-               lightTypeUI_callback,
-               nullptr,
-               g_lightTypes.size())) {
+          &whichLightType,
+          lightTypeUI_callback,
+          nullptr,
+          g_lightTypes.size())) {
     if (whichLightType > -1 && whichLightType < g_lightTypes.size())
       lightType = g_lightTypes[whichLightType];
   }
@@ -1778,8 +1774,8 @@ void MainWindow::buildWindowLightEditor()
   static rkcommon::FileName texFileName("");
   if (lightType == "hdri") {
     // This field won't be typed into.
-    ImGui::InputTextWithHint("texture", "select...",
-        (char *)texFileName.base().c_str(), 0);
+    ImGui::InputTextWithHint(
+        "texture", "select...", (char *)texFileName.base().c_str(), 0);
     if (ImGui::IsItemClicked())
       showHDRIFileBrowser = true;
   }
@@ -1815,15 +1811,13 @@ void MainWindow::buildWindowLightEditor()
   }
 
   if (lightNameWarning)
-    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f),
-                       "Light must have unique non-empty name");
+    ImGui::TextColored(
+        ImVec4(1.f, 0.f, 0.f, 1.f), "Light must have unique non-empty name");
   if (lightTexWarning)
     ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "No texture provided");
 
   ImGui::End();
 }
-
-
 
 void MainWindow::buildWindowCameraEditor()
 {
@@ -1841,7 +1835,7 @@ void MainWindow::buildWindowCameraEditor()
       auto &currentCamera = g_sceneCameras.at_index(whichCamera);
       auto &cameraNode = currentCamera.second->children();
       auto &camera = frame->childAs<sg::Camera>("camera");
-      for (auto &c : cameraNode){
+      for (auto &c : cameraNode) {
         camera.add(c.second);
       }
       updateCamera();
@@ -1872,28 +1866,122 @@ void MainWindow::buildWindowTransferFunctionEditor()
     return;
   }
 
-#if 0
-  // Search the world for volumes, and then allow an editor for each transfer
-  // function found
+  // XXX, move this to Nodes if it's a useful enough utility function
+  std::function<sg::NodePtr(const sg::NodePtr, const sg::NodeType)>
+      findFirstNodeOfType = [&findFirstNodeOfType](const sg::NodePtr root,
+                                sg::NodeType nodeType) -> sg::NodePtr {
+    sg::NodePtr found = nullptr;
 
-    // Much like the Geometry and Materials editors do.
+    if (root->type() == nodeType)
+      return root;
+
+    // Quick shallow top-level search first
+    for (auto child : root->children())
+      if (child.second->type() == nodeType)
+        return child.second;
+
+    // Next level, deeper search if not found
+    for (auto child : root->children()) {
+      found = findFirstNodeOfType(child.second, nodeType);
+      if (found)
+        return found;
+    }
+
+    return found;
+  };
+
+  // Gather all transfer functions in the scene
+  std::map<std::string, sg::NodePtr> transferFunctions = {};
+  for (auto &node : frame->child("world").children())
+    if (node.second->type() == sg::NodeType::GENERATOR
+        || node.second->type() == sg::NodeType::IMPORTER
+        || node.second->type() == sg::NodeType::VOLUME) {
+      auto tfn =
+          findFirstNodeOfType(node.second, sg::NodeType::TRANSFER_FUNCTION);
+      // node.first is a unique name. tfn->name() is always "transferFunction"
+      if (tfn)
+        transferFunctions[node.first] = tfn;
+    }
+
+  if (transferFunctions.empty()) {
+    ImGui::Text("== empty == ");
+
+  } else {
+    ImGui::Text("TransferFunctions");
+    static int whichTFn = -1;
+    static std::string selected = "";
+
+    // Called by TransferFunctionWidget to update selected TFn
     auto transferFunctionUpdatedCallback =
         [&](const range1f &valueRange,
             const std::vector<vec4f> &colorsAndOpacities) {
-          transferFunction = TransferFunction{valueRange, colorsAndOpacities};
-          scene.tfColorsAndOpacities =
-              transferFunction.colorsAndOpacities.data();
-          scene.tfNumColorsAndOpacities =
-              transferFunction.colorsAndOpacities.size();
-          scene.tfValueRange = valueRange;
-          scene.updateValueSelector(transferFunction, isoValues);
-          glfwVKLWindow->resetAccumulation();
+          if (whichTFn != -1) {
+            auto &tfn =
+                *(transferFunctions[selected]->nodeAs<sg::TransferFunction>());
+            auto &colors = tfn.colors;
+            auto &opacities = tfn.opacities;
+
+            colors.resize(colorsAndOpacities.size());
+            opacities.resize(colorsAndOpacities.size());
+
+            // Separate out colors
+            std::transform(colorsAndOpacities.begin(),
+                colorsAndOpacities.end(),
+                colors.begin(),
+                [](vec4f c4) { return vec3f(c4[0], c4[1], c4[2]); });
+
+            // Separate out opacities
+            std::transform(colorsAndOpacities.begin(),
+                colorsAndOpacities.end(),
+                opacities.begin(),
+                [](vec4f c4) { return c4[3]; });
+
+            tfn["valueRange"] = valueRange.toVec2();
+            tfn.createChildData("color", colors);
+            tfn.createChildData("opacity", opacities);
+          }
         };
 
     static TransferFunctionWidget transferFunctionWidget(
-        transferFunctionUpdatedCallback, initialValueRange);
-    transferFunctionWidget.updateUI();
+        transferFunctionUpdatedCallback,
+        range1f(0.f, 1.f),
+        "TransferFunctionEditor");
+
+    if (ImGui::ListBoxHeader("", transferFunctions.size())) {
+      int i = 0;
+      for (auto t : transferFunctions) {
+        auto &tfn = *(t.second->nodeAs<sg::TransferFunction>());
+        if (ImGui::Selectable(t.first.c_str(), (whichTFn == i))) {
+          whichTFn = i;
+          selected = t.first;
+
+#if 0 // XXX Needs to be fixed.  This overwrites the default transferfunction
+          const auto numSamples = tfn.colors.size();
+
+          if (numSamples > 1) {
+            auto vRange = tfn["valueRange"].valueAs<vec2f>();
+
+            std::vector<vec4f> c4(numSamples);
+            for (int n = 0; n < numSamples; n++)
+              c4.emplace_back(vec4f(tfn.colors.at(n), tfn.opacities.at(n)));
+
+            transferFunctionWidget.setValueRange(range1f(vRange[0], vRange[1]));
+            transferFunctionWidget.setColorsAndOpacities(c4);
+          }
 #endif
+        }
+        i++;
+      }
+      ImGui::ListBoxFooter();
+
+      ImGui::Separator();
+      if (whichTFn != -1) {
+        transferFunctionWidget.updateUI();
+      }
+    }
+  }
+
+  ImGui::End();
 }
 
 void MainWindow::buildWindowGeometryViewer()
@@ -1904,10 +1992,10 @@ void MainWindow::buildWindowGeometryViewer()
   }
 
   static char searchTerm[1024] = "";
-  static bool searched         = false;
+  static bool searched = false;
   static std::vector<sg::Node *> results;
 
-  auto doClear  = [&]() {
+  auto doClear = [&]() {
     searched = false;
     results.clear();
     searchTerm[0] = '\0';
@@ -1924,12 +2012,11 @@ void MainWindow::buildWindowGeometryViewer()
   };
 
   if (ImGui::InputTextWithHint("##findgeometryviewer",
-                               "search...",
-                               searchTerm,
-                               1024,
-                               ImGuiInputTextFlags_CharsNoBlank |
-                                   ImGuiInputTextFlags_AutoSelectAll |
-                                   ImGuiInputTextFlags_EnterReturnsTrue)) {
+          "search...",
+          searchTerm,
+          1024,
+          ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_AutoSelectAll
+              | ImGuiInputTextFlags_EnterReturnsTrue)) {
     doSearch();
   }
   ImGui::SameLine();
@@ -2003,10 +2090,10 @@ void MainWindow::buildWindowGeometryViewer()
 
 void MainWindow::buildWindowRenderingStats()
 {
-  ImGuiWindowFlags flags =
-      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
-      ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
+  ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration
+      | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings
+      | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav
+      | ImGuiWindowFlags_NoMove;
   ImGui::SetNextWindowBgAlpha(0.75f);
 
   // Bottom left corner
@@ -2030,8 +2117,8 @@ void MainWindow::buildWindowRenderingStats()
     ImGui::Text("accumulation:");
     ImGui::SameLine();
     float progress = float(frame->currentAccum) / frame->accumLimit;
-    std::string progressStr = std::to_string(frame->currentAccum) + "/" +
-                              std::to_string(frame->accumLimit);
+    std::string progressStr = std::to_string(frame->currentAccum) + "/"
+        + std::to_string(frame->accumLimit);
     ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), progressStr.c_str());
   }
 

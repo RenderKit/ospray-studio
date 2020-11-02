@@ -2,31 +2,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "TransferFunctionWidget.h"
+#include <imconfig.h>
 #include <imgui.h>
-
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
 
 namespace help {
 
   template <typename T>
-  int find_idx(const T &A, float p, int l = -1, int r = -1)
+  int find_idx(const std::vector<T> &A, float p)
   {
-    l = l == -1 ? 0 : l;
-    r = r == -1 ? A.size() - 1 : r;
-
-    int m = (r + l) / 2;
-    if (A[l].x > p) {
-      return l;
-    } else if (A[r].x <= p) {
-      return r + 1;
-    } else if ((m == l) || (m == r)) {
-      return m + 1;
-    } else {
-      if (A[m].x <= p) {
-        return find_idx(A, p, m, r);
-      } else {
-        return find_idx(A, p, l, m);
-      }
-    }
+    auto found = std::upper_bound(
+        A.begin(), A.end(), T(p), [](const T &a, const T &b) { return a.x < b.x; });
+    return std::distance(A.begin(), found);
   }
 
   float lerp(const float &l,
@@ -42,53 +32,23 @@ namespace help {
 
 }  // namespace help
 
-
 TransferFunctionWidget::TransferFunctionWidget(
-    std::shared_ptr<ospray::sg::TransferFunction> _transferFunction,
-    std::function<void()> _transferFunctionUpdatedCallback,
-    const vec2f &_valueRange,
+    std::function<void(const range1f &, const std::vector<vec4f> &)>
+        _transferFunctionUpdatedCallback,
+    const range1f &_valueRange,
     const std::string &_widgetName)
-    : transferFunction(_transferFunction),
-      transferFunctionUpdatedCallback(_transferFunctionUpdatedCallback),
+    : transferFunctionUpdatedCallback(_transferFunctionUpdatedCallback),
       valueRange(_valueRange),
       widgetName(_widgetName)
 {
-  transferFunction->remove("color");
-  transferFunction->remove("opacity");
-
-  updateTransferFunction = [&](const std::vector<ColorPoint> &c,
-                               const std::vector<OpacityPoint> &a) {
-    float x0 = 0.f;
-    float dx = (1.f - x0) / (numSamples - 1);
-
-    // update colors
-    std::vector<vec3f> sampledColors;
-
-    for (int i = 0; i < numSamples; i++) {
-      sampledColors.push_back(interpolateColor(c, i * dx));
-    }
-
-    // update opacities
-    std::vector<float> sampledOpacities;
-
-    for (int i = 0; i < numSamples; i++) {
-      sampledOpacities.push_back(interpolateOpacity(a, i * dx) *
-                                 globalOpacityScale);
-    }
-  
-    transferFunction->createChildData("color", sampledColors);
-    transferFunction->createChildData("opacity", sampledOpacities);
-
-    transferFunctionUpdatedCallback();
-  };
-
   loadDefaultMaps();
 
   tfnColorPoints   = &(tfnsColorPoints[currentMap]);
   tfnOpacityPoints = &(tfnsOpacityPoints[currentMap]);
   tfnEditable      = tfnsEditable[currentMap];
 
-  updateTransferFunction(*tfnColorPoints, *tfnOpacityPoints);
+  transferFunctionUpdatedCallback(getValueRange(),
+                                  getSampledColorsAndOpacities());
 
   // set ImGui double click time to 1s, so it also works for slower frame rates
   ImGuiIO &io             = ImGui::GetIO();
@@ -102,46 +62,107 @@ TransferFunctionWidget::~TransferFunctionWidget()
   }
 }
 
-vec3f TransferFunctionWidget::interpolateColor(
-    const std::vector<ColorPoint> &controlPoints, float x)
+void TransferFunctionWidget::updateUI()
 {
-  auto first = controlPoints.front();
-  if (x <= first.x)
-    return vec3f(first.y, first.z, first.w);
-
-  for (uint32_t i = 1; i < controlPoints.size(); i++) {
-    auto current  = controlPoints[i];
-    auto previous = controlPoints[i - 1];
-    if (x <= current.x) {
-      const float t = (x - previous.x) / (current.x - previous.x);
-      return (1.0 - t) * vec3f(previous.y, previous.z, previous.w) +
-             t * vec3f(current.y, current.z, current.w);
-    }
+  if (tfnChanged) {
+    updateTfnPaletteTexture();
+    transferFunctionUpdatedCallback(getValueRange(),
+                                    getSampledColorsAndOpacities());
+    tfnChanged = false;
   }
 
-  auto last = controlPoints.back();
-  return vec3f(last.x, last.y, last.z);
+#if 0 // Don't want it to open a new window
+  // need a unique ImGui group name per widget
+  if (!ImGui::Begin(widgetName.c_str())) {
+    ImGui::End();
+    return;
+  }
+#endif
+
+  ImGui::Text("Linear Transfer Function");
+
+  // XXX Add file loading/saving of transfer functions
+
+  ImGui::Separator();
+  std::vector<const char *> names(tfnsNames.size(), nullptr);
+  std::transform(tfnsNames.begin(),
+                 tfnsNames.end(),
+                 names.begin(),
+                 [](const std::string &t) { return t.c_str(); });
+
+  int newMap = currentMap;
+  if (ImGui::ListBox("Color maps", &newMap, names.data(), names.size())) {
+    setMap(newMap);
+  }
+
+  ImGui::Separator();
+
+  ImGui::Text("Opacity scale");
+  ImGui::SameLine();
+  if (ImGui::SliderFloat("##OpacityScale", &globalOpacityScale, 0.f, 10.f)) {
+    tfnChanged = true;
+  }
+
+  ImGui::Separator();
+
+  if (ImGui::DragFloatRange2("Value range",
+                             &valueRange.lower,
+                             &valueRange.upper,
+                             0.1f,
+                             -10000.f,
+                             10000.0f,
+                             "Min: %.7f",
+                             "Max: %.7f")) {
+    tfnChanged = true;
+  }
+
+  drawEditor();
+
+#if 0 // Don't want it to open a new window
+  ImGui::End();
+#endif
 }
 
-float TransferFunctionWidget::interpolateOpacity(
-    const std::vector<OpacityPoint> &controlPoints, float x)
-
+void TransferFunctionWidget::setValueRange(const range1f &range)
 {
-  auto first = controlPoints.front();
-  if (x <= first.x)
-    return first.y;
+  valueRange = range;
+}
 
-  for (uint32_t i = 1; i < controlPoints.size(); i++) {
-    auto current  = controlPoints[i];
-    auto previous = controlPoints[i - 1];
-    if (x <= current.x) {
-      const float t = (x - previous.x) / (current.x - previous.x);
-      return (1.0 - t) * previous.y + t * current.y;
-    }
+void TransferFunctionWidget::setColorsAndOpacities(
+    const std::vector<vec4f> &colors)
+{
+  const auto numSamples = colors.size();
+  const float dx = 1.f / (numSamples - 1);
+
+  tfnColorPoints->resize(numSamples);
+  tfnOpacityPoints->resize(numSamples);
+
+  for (int i = 0; i < numSamples; i++) {
+    vec4f c4 = colors.at(i);
+    tfnColorPoints->at(i) = ColorPoint(i * dx, c4.x, c4.y, c4.z);
+    tfnOpacityPoints->at(i) = OpacityPoint(i * dx, c4.w);
+  }
+}
+
+range1f TransferFunctionWidget::getValueRange()
+{
+  return valueRange;
+}
+
+std::vector<vec4f> TransferFunctionWidget::getSampledColorsAndOpacities(
+    int numSamples)
+{
+  std::vector<vec4f> sampledColorsAndOpacities;
+
+  const float dx = 1.f / (numSamples - 1);
+
+  for (int i = 0; i < numSamples; i++) {
+    sampledColorsAndOpacities.push_back(vec4f(
+        interpolateColor(*tfnColorPoints, i * dx),
+        interpolateOpacity(*tfnOpacityPoints, i * dx) * globalOpacityScale));
   }
 
-  auto last = controlPoints.back();
-  return last.y;
+  return sampledColorsAndOpacities;
 }
 
 void TransferFunctionWidget::loadDefaultMaps()
@@ -210,8 +231,6 @@ void TransferFunctionWidget::loadDefaultMaps()
 
   // Rho
   colors.clear();
-
-  spacing = 1.f / 16.f;
 
   colors.emplace_back(0 * spacing, 0.286275, 0.0, 0.415686);
   colors.emplace_back(
@@ -473,73 +492,65 @@ void TransferFunctionWidget::loadDefaultMaps()
   tfnsNames.push_back("Er");
 };
 
-void TransferFunctionWidget::updateUI()
+void TransferFunctionWidget::setMap(int selection)
 {
-  if (tfnChanged) {
-    updateTfnPaletteTexture();
-    updateTransferFunction(*tfnColorPoints, *tfnOpacityPoints);
-    tfnChanged = false;
+  if (currentMap != selection) {
+    currentMap = selection;
+    // Remember to update other constructors as well
+    tfnColorPoints = &(tfnsColorPoints[selection]);
+#if 1  // NOTE(jda) - this will use the first tf's opacities for all color maps
+    tfnOpacityPoints = &(tfnsOpacityPoints[selection]);
+#endif
+    tfnEditable = tfnsEditable[selection];
+    tfnChanged  = true;
+  }
+}
+
+vec3f TransferFunctionWidget::interpolateColor(
+    const std::vector<ColorPoint> &controlPoints, float x)
+{
+  auto first = controlPoints.front();
+  if (x <= first.x)
+    return vec3f(first.y, first.z, first.w);
+
+  for (uint32_t i = 1; i < controlPoints.size(); i++) {
+    auto current  = controlPoints[i];
+    auto previous = controlPoints[i - 1];
+    if (x <= current.x) {
+      const float t = (x - previous.x) / (current.x - previous.x);
+      return (1.0 - t) * vec3f(previous.y, previous.z, previous.w) +
+             t * vec3f(current.y, current.z, current.w);
+    }
   }
 
-  // need a unique ImGui group name per widget
-  if (!ImGui::Begin(widgetName.c_str())) {
-    ImGui::End();
-    return;
+  auto last = controlPoints.back();
+  return vec3f(last.x, last.y, last.z);
+}
+
+float TransferFunctionWidget::interpolateOpacity(
+    const std::vector<OpacityPoint> &controlPoints, float x)
+
+{
+  auto first = controlPoints.front();
+  if (x <= first.x)
+    return first.y;
+
+  for (uint32_t i = 1; i < controlPoints.size(); i++) {
+    auto current  = controlPoints[i];
+    auto previous = controlPoints[i - 1];
+    if (x <= current.x) {
+      const float t = (x - previous.x) / (current.x - previous.x);
+      return (1.0 - t) * previous.y + t * current.y;
+    }
   }
 
-  ImGui::Text("Linear Transfer Function");
-
-  ImGui::InputText("filename", filenameInput.data(), filenameInput.size() - 1);
-
-  if (ImGui::Button("Save")) {
-    // saveFile(std::string(filenameInput.data()));
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Load")) {
-    // loadFile(std::string(filenameInput.data()));
-  }
-
-  ImGui::Separator();
-  std::vector<const char *> names(tfnsNames.size(), nullptr);
-  std::transform(tfnsNames.begin(),
-                 tfnsNames.end(),
-                 names.begin(),
-                 [](const std::string &t) { return t.c_str(); });
-
-  int newMap = currentMap;
-  if (ImGui::ListBox("Color maps", &newMap, names.data(), names.size())) {
-    setMap(newMap);
-  }
-
-  ImGui::Separator();
-
-  ImGui::Text("Opacity scale");
-  ImGui::SameLine();
-  if (ImGui::SliderFloat("##OpacityScale", &globalOpacityScale, 0.f, 10.f)) {
-    tfnChanged = true;
-  }
-
-  ImGui::Separator();
-
-  if (ImGui::DragFloatRange2("Value range",
-                             &valueRange.x,
-                             &valueRange.y,
-                             0.1f,
-                             -10000.f,
-                             10000.0f,
-                             "Min: %.7f",
-                             "Max: %.7f")) {
-    tfnChanged = true;
-  }
-
-  drawEditor();
-
-  ImGui::End();
+  auto last = controlPoints.back();
+  return last.y;
 }
 
 void TransferFunctionWidget::updateTfnPaletteTexture()
 {
-  const size_t textureWidth = numSamples, textureHeight = 1;
+  const size_t textureWidth = 256, textureHeight = 1;
 
   // backup currently bound texture
   GLint prevBinding = 0;
@@ -565,81 +576,23 @@ void TransferFunctionWidget::updateTfnPaletteTexture()
   }
 
   // sample the palette then upload the data
-  std::vector<uint8_t> palette(textureWidth * textureHeight * 4, 0);
-  std::vector<float> colors(3 * textureWidth, 1.f);
-  std::vector<float> alpha(2 * textureWidth, 1.f);
-
-  const float step = 1.0f / (float)(textureWidth - 1);
-
-  for (int i = 0; i < textureWidth; ++i) {
-    const float p = clamp(i * step, 0.0f, 1.0f);
-    int ir, il;
-    float pr, pl;
-    // color
-    ir = help::find_idx(*tfnColorPoints, p);
-    il = ir - 1;
-    pr = (*tfnColorPoints)[ir].x;
-    pl = (*tfnColorPoints)[il].x;
-
-    const float r =
-        help::lerp((*tfnColorPoints)[il].y, (*tfnColorPoints)[ir].y, pl, pr, p);
-    const float g =
-        help::lerp((*tfnColorPoints)[il].z, (*tfnColorPoints)[ir].z, pl, pr, p);
-    const float b =
-        help::lerp((*tfnColorPoints)[il].w, (*tfnColorPoints)[ir].w, pl, pr, p);
-
-    colors[3 * i + 0] = r;
-    colors[3 * i + 1] = g;
-    colors[3 * i + 2] = b;
-
-    // opacity
-    ir = help::find_idx(*tfnOpacityPoints, p);
-    il = ir - 1;
-    pr = (*tfnOpacityPoints)[ir].x;
-    pl = (*tfnOpacityPoints)[il].x;
-
-    const float a = help::lerp(
-        (*tfnOpacityPoints)[il].y, (*tfnOpacityPoints)[ir].y, pl, pr, p);
-
-    alpha[2 * i + 0] = p;
-    alpha[2 * i + 1] = a;
-
-    // palette
-    palette[i * 4 + 0] = static_cast<uint8_t>(r * 255.f);
-    palette[i * 4 + 1] = static_cast<uint8_t>(g * 255.f);
-    palette[i * 4 + 2] = static_cast<uint8_t>(b * 255.f);
-    palette[i * 4 + 3] = 255;
-  }
+  std::vector<vec4f> palette = getSampledColorsAndOpacities(textureWidth);
 
   // save palette to texture
   glBindTexture(GL_TEXTURE_2D, tfnPaletteTexture);
   glTexImage2D(GL_TEXTURE_2D,
                0,
-               GL_RGBA8,
+               GL_RGB,
                textureWidth,
                textureHeight,
                0,
                GL_RGBA,
-               GL_UNSIGNED_BYTE,
+               GL_FLOAT,
                static_cast<const void *>(palette.data()));
 
   // restore previously bound texture
   if (prevBinding) {
     glBindTexture(GL_TEXTURE_2D, prevBinding);
-  }
-}
-
-void TransferFunctionWidget::setMap(int selection)
-{
-  if (currentMap != selection) {
-    currentMap = selection;
-    // Remember to update other constructors as well
-    tfnColorPoints = &(tfnsColorPoints[selection]);
-#if 1  // NOTE(jda) - this will use the first tf's opacities for all color maps
-    tfnOpacityPoints = &(tfnsOpacityPoints[selection]);
-#endif
-    tfnEditable = tfnsEditable[selection];
-    tfnChanged  = true;
   }
 }
 
