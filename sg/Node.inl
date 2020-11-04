@@ -285,5 +285,32 @@ namespace ospray {
     ospSetParam(obj, param.c_str(), OSPTypeFor<HANDLE_T>::value, &h);
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+  // Find Node Utilities //////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  inline NodePtr findFirstNodeOfType(
+      const sg::NodePtr root, sg::NodeType nodeType)
+  {
+    sg::NodePtr found = nullptr;
+
+    if (root->type() == nodeType)
+      return root;
+
+    // Quick shallow top-level search first
+    for (auto child : root->children())
+      if (child.second->type() == nodeType)
+        return child.second;
+
+    // Next level, deeper search if not found
+    for (auto child : root->children()) {
+      found = findFirstNodeOfType(child.second, nodeType);
+      if (found)
+        return found;
+    }
+
+    return found;
+  };
+
   }  // namespace sg
 } // namespace ospray

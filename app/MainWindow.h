@@ -128,7 +128,8 @@ class MainWindow : public StudioContext
   void buildWindowCameraEditor();
   void buildWindowMaterialEditor();
   void buildWindowTransferFunctionEditor();
-  void buildWindowGeometryViewer();
+  void buildWindowIsosurfaceEditor();
+  void buildWindowTransformEditor();
   void buildWindowRenderingStats();
 
   void setCameraSnapshot(size_t snapshot);
@@ -151,7 +152,8 @@ class MainWindow : public StudioContext
   bool showCameraEditor{false};
   bool showMaterialEditor{false};
   bool showTransferFunctionEditor{false};
-  bool showGeometryViewer{false};
+  bool showIsosurfaceEditor{false};
+  bool showTransformEditor{false};
   bool showRenderingStats{false};
 
   // imgui-controlled options

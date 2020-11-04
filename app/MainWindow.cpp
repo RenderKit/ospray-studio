@@ -1552,12 +1552,14 @@ void MainWindow::buildMainMenuView()
     }
 
     ImGui::Separator();
-    if (ImGui::MenuItem("Geometry...", "", nullptr))
-      showGeometryViewer = true;
+    if (ImGui::MenuItem("Transforms...", "", nullptr))
+      showTransformEditor = true;
     if (ImGui::MenuItem("Materials...", "", nullptr))
       showMaterialEditor = true;
-    if (ImGui::MenuItem("Transfer function...", "", nullptr))
+    if (ImGui::MenuItem("Transfer Functions...", "", nullptr))
       showTransferFunctionEditor = true;
+    if (ImGui::MenuItem("Isosurfaces...", "", nullptr))
+      showIsosurfaceEditor = true;
 
     ImGui::Separator();
     ImGui::Checkbox("Rendering stats...", &showRenderingStats);
@@ -1613,8 +1615,10 @@ void MainWindow::buildWindows()
     buildWindowMaterialEditor();
   if (showTransferFunctionEditor)
     buildWindowTransferFunctionEditor();
-  if (showGeometryViewer)
-    buildWindowGeometryViewer();
+  if (showIsosurfaceEditor)
+    buildWindowIsosurfaceEditor();
+  if (showTransformEditor)
+    buildWindowTransformEditor();
   if (showRenderingStats)
     buildWindowRenderingStats();
 }
@@ -1866,30 +1870,6 @@ void MainWindow::buildWindowTransferFunctionEditor()
     return;
   }
 
-  // XXX, move this to Nodes if it's a useful enough utility function
-  std::function<sg::NodePtr(const sg::NodePtr, const sg::NodeType)>
-      findFirstNodeOfType = [&findFirstNodeOfType](const sg::NodePtr root,
-                                sg::NodeType nodeType) -> sg::NodePtr {
-    sg::NodePtr found = nullptr;
-
-    if (root->type() == nodeType)
-      return root;
-
-    // Quick shallow top-level search first
-    for (auto child : root->children())
-      if (child.second->type() == nodeType)
-        return child.second;
-
-    // Next level, deeper search if not found
-    for (auto child : root->children()) {
-      found = findFirstNodeOfType(child.second, nodeType);
-      if (found)
-        return found;
-    }
-
-    return found;
-  };
-
   // Gather all transfer functions in the scene
   std::map<std::string, sg::NodePtr> transferFunctions = {};
   for (auto &node : frame->child("world").children())
@@ -1984,9 +1964,102 @@ void MainWindow::buildWindowTransferFunctionEditor()
   ImGui::End();
 }
 
-void MainWindow::buildWindowGeometryViewer()
+void MainWindow::buildWindowIsosurfaceEditor()
 {
-  if (!ImGui::Begin("Geometry viewer", &showGeometryViewer)) {
+  if (!ImGui::Begin("Isosurface editor", &showIsosurfaceEditor)) {
+    ImGui::End();
+    return;
+  }
+
+  // Specialized node vector list box
+  using vNodePtr = std::vector<sg::NodePtr>;
+  static auto ListBox = [](const char *label, int *selected, vNodePtr &nodes) {
+    static auto getter = [](void *vec, int index, const char **name) {
+      auto nodes = static_cast<vNodePtr *>(vec);
+      if (0 > index || index >= nodes->size())
+        return false;
+      // Need longer lifetime than this lambda?
+      static std::string copy = "";
+      copy = nodes->at(index)->name();
+      *name = copy.data();
+      return true;
+    };
+
+    if (nodes.empty())
+      return false;
+    return ImGui::ListBox(
+        label, selected, getter, static_cast<void *>(&nodes), nodes.size());
+  };
+
+  // Gather all volumes in the scene
+  vNodePtr volumes = {};
+  for (auto &node : frame->child("world").children())
+    if (node.second->type() == sg::NodeType::GENERATOR
+        || node.second->type() == sg::NodeType::IMPORTER
+        || node.second->type() == sg::NodeType::VOLUME) {
+      auto volume =
+          findFirstNodeOfType(node.second, sg::NodeType::VOLUME);
+      if (volume)
+        volumes.push_back(volume);
+    }
+
+  if (volumes.empty()) {
+    ImGui::Text("== empty == ");
+
+  } else {
+    static int current = 0;
+    if (ListBox("Volumes", &current, volumes)) {
+      auto selected = volumes.at(current);
+
+      // Create an Isosurface gemoetry and add it to the world
+      // XXX temporary
+
+      auto &world = frame->childAs<sg::World>("world");
+
+      auto count = 1;
+      auto surfName = selected->name() + "_surf";
+      while (world.hasChild(surfName + std::to_string(count) + "_xfm"))
+        count++;
+      surfName += std::to_string(count);
+
+      auto isoXfm =
+          sg::createNode(surfName + "_xfm", "transform", affine3f{one});
+
+      auto isoGeom = sg::createNode(surfName, "geometry_isosurfaces");
+      isoGeom->createChild("isovalue", "float", 0.f);
+      isoGeom->child("isovalue").setMinMax(-1.f, 1.f);
+
+      uint32_t materialID = baseMaterialRegistry->children().size();
+      const std::vector<uint32_t> mID = {materialID};
+      auto mat = sg::createNode(surfName, "obj");
+      // Give it some editable parameters
+      mat->createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
+      mat->createChild("ks", "rgb", "specular color", vec3f(0.f));
+      mat->createChild("ns", "float", "shininess [2-10e4]", 10.f);
+      mat->createChild("d", "float", "opacity [0-1]", 1.f);
+      mat->createChild("tf", "rgb", "transparency filter color", vec3f(0.f));
+      mat->child("ns").setMinMax(2.f,10000.f);
+      mat->child("d").setMinMax(0.f,1.f);
+
+      baseMaterialRegistry->add(mat);
+      isoGeom->createChildData("material", mID);
+      isoGeom->child("material").setSGOnly();
+
+      auto &handle = isoGeom->valueAs<cpp::Geometry>();
+      handle.setParam("volume", selected->valueAs<cpp::Volume>());
+
+      isoXfm->add(isoGeom);
+
+      world.add(isoXfm);
+    }
+  }
+
+  ImGui::End();
+}
+
+void MainWindow::buildWindowTransformEditor()
+{
+  if (!ImGui::Begin("Transform Editor", &showTransformEditor)) {
     ImGui::End();
     return;
   }
@@ -2011,7 +2084,7 @@ void MainWindow::buildWindowGeometryViewer()
     }
   };
 
-  if (ImGui::InputTextWithHint("##findgeometryviewer",
+  if (ImGui::InputTextWithHint("##findTransformEditor",
           "search...",
           searchTerm,
           1024,
@@ -2064,7 +2137,6 @@ void MainWindow::buildWindowGeometryViewer()
           sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
       if (userUpdated) {
-        result->commit();
         break;
       }
     }
@@ -2077,7 +2149,6 @@ void MainWindow::buildWindowGeometryViewer()
             sg::TreeState::ROOTOPEN, userUpdated);
         // Don't continue traversing
         if (userUpdated) {
-          node.second->commit();
           break;
         }
       }
