@@ -98,7 +98,7 @@ inline NodePtr getImporter(NodePtr root, rkcommon::FileName fileName)
       nodeName = baseName + "_instanceXfm_" + std::to_string(count++);
     } while (origNode->hasChild(nodeName));
 
-    auto instanceXfm = createNode(nodeName, "Transform", affine3f{one});
+    auto instanceXfm = createNode(nodeName, "transform");
 
     // Add all children of the original rootXfm to this instanceXfm
     for (auto &g : rootXfmNode.children())

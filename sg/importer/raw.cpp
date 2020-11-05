@@ -32,7 +32,7 @@ void RawImporter::importScene()
   auto last = fileName.base().find_last_of(".");
   auto volumeTypeExt = fileName.base().substr(last, fileName.base().length());
 
-  auto rootNode = createNode(rootName, "Transform", affine3f{one});
+  auto rootNode = createNode(rootName, "transform");
   NodePtr volumeImport;
 
   if (volumeTypeExt == ".spherical") {

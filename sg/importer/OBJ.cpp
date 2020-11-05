@@ -296,7 +296,7 @@ namespace ospray {
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
     std::string baseName = fileName.name() + "_rootXfm";
-    auto rootNode = createNode(baseName, "Transform", affine3f{one});
+    auto rootNode = createNode(baseName, "transform");
 
     auto objData = loadFromFile(fileName);
 

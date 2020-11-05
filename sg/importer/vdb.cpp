@@ -29,7 +29,7 @@ void VDBImporter::importScene()
   auto rootName = fileName.name() + "_rootXfm";
   auto nodeName = fileName.name() + "_volume";
 
-  auto rootNode = createNode(rootName, "Transform", affine3f{one});
+  auto rootNode = createNode(rootName, "transform");
   auto volumeImport = createNodeAs<VdbVolume>(nodeName, "volume_vdb");
 
   volumeImport->load(fileName);

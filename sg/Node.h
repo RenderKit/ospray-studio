@@ -302,17 +302,17 @@ namespace sg {
   using Vec3iNode   = Node_T<vec3i>;
   using Vec4iNode   = Node_T<vec4i>;
   using VoidPtrNode = Node_T<void *>;
-
-  // Extra aliases //
-
   using Box3fNode   = Node_T<box3f>;
   using Box3iNode   = Node_T<box3i>;
   using Range1fNode = Node_T<range1f>;
+  using Affine3fNode = Node_T<affine3f>;
+  using QuaternionfNode = Node_T<quaternionf>;
+
+  // Extra aliases //
 
   using RGBNode  = Node_T<rgb>;
   using RGBANode = Node_T<rgba>;
 
-  using Transform = Node_T<affine3f>;
 
   /////////////////////////////////////////////////////////////////////////////
   // OSPRay Object Nodes //////////////////////////////////////////////////////

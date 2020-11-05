@@ -15,7 +15,6 @@ namespace ospray {
     RENDERER,
     CAMERA,
     WORLD,
-    INSTANCE,
     ANIMATION,
     TRANSFORM,
     TRANSFER_FUNCTION,

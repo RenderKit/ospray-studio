@@ -52,31 +52,19 @@ namespace ospray {
     return child(name).nodeAs<NODE_T>();
   }
 
-  template <typename T>
-  inline void Node::setValue(T _val)
-  {
-    Any val(_val);
-    bool modified = false;
-    if (val != properties.value) {
-      properties.value = val;
-      modified         = true;
-    }
-
-    if (modified)
-      markAsModified();
-  }
-
   template <>
   inline void Node::setValue(Any val)
   {
-    bool modified = false;
     if (val != properties.value) {
       properties.value = val;
-      modified         = true;
-    }
-
-    if (modified)
       markAsModified();
+    }
+  }
+
+  template <typename T>
+  inline void Node::setValue(T val)
+  {
+    setValue(Any(val));
   }
 
   template <typename T>
@@ -201,12 +189,6 @@ namespace ospray {
     return NodeType::PARAMETER;
   }
 
-  template <>
-  inline NodeType Transform::type() const
-  {
-    return NodeType::TRANSFORM;
-  }
-
   template <typename VALUE_T>
   inline const VALUE_T &Node_T<VALUE_T>::value() const
   {
@@ -240,6 +222,13 @@ namespace ospray {
   {
     auto *c_str = value().c_str();
     ospSetParam(obj, param.c_str(), OSP_STRING, c_str);
+  }
+
+  template <>
+  inline void Node_T<quaternionf>::setOSPRayParam(std::string param,
+                                                  OSPObject obj)
+  {
+    ospSetParam(obj, param.c_str(), OSP_VEC4F, &value());
   }
 
   /////////////////////////////////////////////////////////////////////////////

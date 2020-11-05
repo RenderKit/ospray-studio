@@ -4,7 +4,6 @@
 #pragma once
 
 #include "../Node.h"
-#include <stack>
 
 namespace ospray {
   namespace sg {
@@ -15,8 +14,6 @@ namespace ospray {
       virtual ~Animation() override = default;
 
       NodeType type() const override;
-
-      std::stack<affine3f> xfms;
     };
 
   }  // namespace sg

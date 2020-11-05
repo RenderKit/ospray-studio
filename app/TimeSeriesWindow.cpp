@@ -191,9 +191,8 @@ void TimeSeriesWindow::mainLoop()
             sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
 
         for (int j = 0; j < numInstances; j++) {
-          auto xfm = affine3f::translate(vec3f(j + 20 * j + i * 10, 0, 0))
-              * affine3f{one};
-          auto newX = createNode("geomXfm" + to_string(j), "Transform", xfm);
+          auto newX = createNode("geomXfm" + to_string(j), "transform");
+          newX->child("translation") = vec3f(j + 20 * j + i * 10, 0, 0);
           newX->add(vol);
           tfn->add(newX);
         }
@@ -266,9 +265,8 @@ void TimeSeriesWindow::mainLoop()
             sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
 
         for (int j = 0; j < numInstances; j++) {
-          auto xfm =
-              affine3f::translate(vec3f(j + 20 * j, 0, 0)) * affine3f{one};
-          auto newX = createNode("geomXfm" + to_string(j), "Transform", xfm);
+          auto newX = createNode("geomXfm" + to_string(j), "transform");
+          newX->child("translation") = vec3f(j + 20 * j + i, 0, 0);
           newX->add(vol);
           tfn->add(newX);
         }

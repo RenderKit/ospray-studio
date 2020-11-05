@@ -311,8 +311,8 @@ namespace ospray {
 
       // XXX Is there a better way to represent this "group" than a transform
       // node?
-      auto ospModel = createNode(
-          modelName + "_model", "Transform", affine3f{one});  // Model "group"
+      auto ospModel =
+          createNode(modelName + "_model", "transform"); // Model "group"
       // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
 
       NodePtr ospMesh;
@@ -416,7 +416,7 @@ namespace ospray {
     // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
     // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
     auto newXfm = createNode(
-        nodeName + "_xfm_" + std::to_string(level), "Transform", nodeXfm);
+        nodeName + "_xfm_" + std::to_string(level), "transform", nodeXfm);
     sgNode->add(newXfm);
     sgNode = newXfm;
 
@@ -515,7 +515,7 @@ namespace ospray {
       for (auto &i : keyframeTrack) {
         auto newXfm = createNode("anim_" + std::to_string(nAnimation) + "_"
                 + std::to_string(numTimestep),
-            "Transform",
+            "transform",
             i.second);
         newXfm->createChild("timestep", "float", i.first);
         animParent.add(newXfm);
@@ -1002,7 +1002,7 @@ namespace ospray {
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
     std::string baseName = fileName.name() + "_rootXfm";
-    auto rootNode = createNode(baseName, "Transform", affine3f{one});
+    auto rootNode = createNode(baseName, "transform");
 
     GLTFData gltf(rootNode, fileName, materialRegistry);
 

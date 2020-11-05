@@ -188,9 +188,8 @@ void BatchContext::render()
         for (auto x = 0; x < optGridSize.x; x++) {
           auto nodeName = "copy_" + std::to_string(x) + ":" + std::to_string(y)
               + ":" + std::to_string(z) + "_xfm";
-          auto copy = sg::createNode(nodeName,
-              "Transform",
-              affine3f::translate(vec3f(tx * x, ty * y, tz * z)));
+          auto copy = sg::createNode(nodeName, "transform");
+          copy->child("translation") = vec3f(tx * x, ty * y, tz * z);
           copy->add(importedModels);
           frame->child("world").add(copy);
         }
@@ -304,7 +303,7 @@ void BatchContext::setCameraState(CameraState &cs)
 
 void BatchContext::importFiles(sg::NodePtr world)
 {
-  importedModels = createNode("importXfm", "transform", affine3f{one});
+  importedModels = createNode("importXfm", "transform");
   frame->child("world").add(importedModels);
 
   for (auto file : filesToImport) {
