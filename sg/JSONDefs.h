@@ -79,6 +79,10 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const nlohmann::json &j) {
   if (j["name"] == "handles")
     return nullptr;
 
+  // XXX Textures import needs to be handled correctly.  Skip for now.
+  if (j["subType"] == "texture_2d")
+    return nullptr;
+
   if (j.contains("value")) {
     if (j.contains("description")) {
       n = createNode(
