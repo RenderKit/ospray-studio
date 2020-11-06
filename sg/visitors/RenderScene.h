@@ -184,7 +184,10 @@ namespace ospray {
     }
 
     if (node.hasChild("material")) {
-      model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
+      if (node["material"].valueIsType<cpp::CopiedData>())
+        model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
+      else
+        model.setParam("material", node["material"].valueAs<unsigned int>());
     } else {
       if (current.materials.size() != 0) {
         model.setParam("material", *current.materials.begin());
