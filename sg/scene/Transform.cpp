@@ -21,29 +21,14 @@ NodeType Transform::type() const
 
 void Transform::preCommit()
 {
-  affine3f xfm(one);
-  bool mod = false;
+  // XXX cannot know which param is modified, i.e.
+  // child("scale").isModified() is (always) false, despite is was
+  // markAsModified()...
 
-  if (child("scale").isModified()) {
-    xfm = affine3f::scale(child("scale").valueAs<vec3f>());
-    mod = true;
-  }
-  if (child("rotation").isModified()) {
-    affine3f newxfm(affine3f::rotate(child("rotation").valueAs<quaternionf>()));
-    if (mod) {
-      xfm = newxfm * xfm;
-    } else {
-      xfm = newxfm;
-      mod = true;
-    }
-  }
-  if (child("translation").isModified()) {
-    xfm.p = child("translation").valueAs<vec3f>();
-    mod = true;
-  }
-
-  if (mod)
-    setValue(xfm);
+  affine3f xfm = affine3f::rotate(child("rotation").valueAs<quaternionf>())
+      * affine3f::scale(child("scale").valueAs<vec3f>());
+  xfm.p = child("translation").valueAs<vec3f>();
+  setValue(xfm);
 }
 
 OSP_REGISTER_SG_NODE_NAME(Transform, transform);
