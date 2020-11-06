@@ -50,7 +50,7 @@ void TimeSeriesWindow::start()
 
   std::ifstream cams("cams.json");
   if (cams) {
-    nlohmann::json j;
+    JSON j;
     cams >> j;
     cameraStack = j.get<std::vector<CameraState>>();
   }

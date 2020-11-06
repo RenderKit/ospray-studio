@@ -231,7 +231,7 @@ void BatchContext::render()
   std::ifstream cams("cams.json");
   if (cams) {
     std::vector<CameraState> cameraStack;
-    nlohmann::json j;
+    JSON j;
     cams >> j;
     cameraStack = j.get<std::vector<CameraState>>();
     CameraState cs = cameraStack.front();

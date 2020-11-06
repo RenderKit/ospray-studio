@@ -403,7 +403,7 @@ void MainWindow::start()
 
   std::ifstream cams("cams.json");
   if (cams) {
-    nlohmann::json j;
+    JSON j;
     cams >> j;
     cameraStack = j.get<std::vector<CameraState>>();
   }
@@ -1185,7 +1185,7 @@ void MainWindow::buildMainMenuFile()
     if (ImGui::BeginMenu("Save...")) {
       if (ImGui::MenuItem("Scene (entire)")) {
         std::ofstream dump("studio_scene.sg");
-        nlohmann::json j = {{"world", frame->child("world")},
+        JSON j = {{"world", frame->child("world")},
             {"camera", arcballCamera->getState()},
             {"lightsManager", *lightsManager},
             {"materialRegistry", *baseMaterialRegistry}};
@@ -1195,17 +1195,17 @@ void MainWindow::buildMainMenuFile()
       ImGui::Separator();
       if (ImGui::MenuItem("Materials (only)")) {
         std::ofstream materials("studio_materials.sg");
-        nlohmann::json j = {{"materialRegistry", *baseMaterialRegistry}};
+        JSON j = {{"materialRegistry", *baseMaterialRegistry}};
         materials << j.dump();
       }
       if (ImGui::MenuItem("Lights (only)")) {
         std::ofstream lights("studio_lights.sg");
-        nlohmann::json j = {{"lightsManager", *lightsManager}};
+        JSON j = {{"lightsManager", *lightsManager}};
         lights << j.dump();
       }
       if (ImGui::MenuItem("Camera (only)")) {
         std::ofstream camera("studio_camera.sg");
-        nlohmann::json j = {{"camera", arcballCamera->getState()}};
+        JSON j = {{"camera", arcballCamera->getState()}};
         camera << j.dump();
       }
 
@@ -1698,9 +1698,8 @@ void MainWindow::buildWindowSnapshots()
   {
     if (ImGui::Button("save to cams.json")) {
       std::ofstream cams("cams.json");
-      if (cams)
-      {
-        nlohmann::json j = cameraStack;
+      if (cams) {
+        JSON j = cameraStack;
         cams << j;
       }
     }

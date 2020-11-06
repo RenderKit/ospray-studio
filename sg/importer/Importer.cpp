@@ -40,7 +40,7 @@ OSPSG_INTERFACE void importScene(
     return;
   }
 
-  nlohmann::json j;
+  JSON j;
   sgFile >> j;
 
   std::map<std::string, AffineSpace3f> importer_xfms = {};

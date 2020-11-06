@@ -13,18 +13,21 @@
 // used within Studio. These methods allow us to easily serialize and
 // deserialize SG nodes to JSON.
 
+// default nlohmann::json will sort map alphabetically. this leaves it as-is
+using JSON = nlohmann::ordered_json;
+
 // rkcommon type declarations /////////////////////////////////////////
 
 namespace rkcommon {
 namespace containers {
 void to_json(
-    nlohmann::json &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm);
+    JSON &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm);
 void from_json(
-    const nlohmann::json &j, FlatMap<std::string, ospray::sg::NodePtr> &fm);
+    const JSON &j, FlatMap<std::string, ospray::sg::NodePtr> &fm);
 } // namespace containers
 namespace utility {
-void to_json(nlohmann::json &j, const Any &a);
-void from_json(const nlohmann::json &j, Any &a);
+void to_json(JSON &j, const Any &a);
+void from_json(const JSON &j, Any &a);
 } // namespace utility
 } // namespace rkcommon
 
@@ -35,9 +38,9 @@ void from_json(const nlohmann::json &j, Any &a);
 namespace ospray {
 namespace sg {
 
-inline void to_json(nlohmann::json &j, const Node &n)
+inline void to_json(JSON &j, const Node &n)
 {
-  j = nlohmann::json{{"name", n.name()},
+  j = JSON{{"name", n.name()},
       {"type", n.type()},
       {"subType", n.subType()}};
   
@@ -69,9 +72,9 @@ inline void to_json(nlohmann::json &j, const Node &n)
     j["children"] = n.children();
 }
 
-inline void from_json(const nlohmann::json &j, Node &n) {}
+inline void from_json(const JSON &j, Node &n) {}
 
-inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const nlohmann::json &j) {
+inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
   NodePtr n = nullptr;
 
   // This is a generated value and can't be imported
@@ -128,72 +131,72 @@ namespace rkcommon {
 namespace containers {
 
 inline void to_json(
-    nlohmann::json &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm)
+    JSON &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm)
 {
   for (const auto e : fm)
     j.push_back(*(e.second));
 }
 
 inline void from_json(
-    const nlohmann::json &j, FlatMap<std::string, ospray::sg::NodePtr> &fm)
+    const JSON &j, FlatMap<std::string, ospray::sg::NodePtr> &fm)
 {}
 
 } // namespace containers
 
 namespace math {
 
-inline void to_json(nlohmann::json &j, const vec2f &v)
+inline void to_json(JSON &j, const vec2f &v)
 {
   j = {v.x, v.y};
 }
 
-inline void from_json(const nlohmann::json &j, vec2f &v)
+inline void from_json(const JSON &j, vec2f &v)
 {
   j.at(0).get_to(v.x);
   j.at(1).get_to(v.y);
 }
 
-inline void to_json(nlohmann::json &j, const vec3f &v)
+inline void to_json(JSON &j, const vec3f &v)
 {
   j = {v.x, v.y, v.z};
 }
 
-inline void from_json(const nlohmann::json &j, vec3f &v)
+inline void from_json(const JSON &j, vec3f &v)
 {
   j.at(0).get_to(v.x);
   j.at(1).get_to(v.y);
   j.at(2).get_to(v.z);
 }
 
-inline void to_json(nlohmann::json &j, const LinearSpace3f &ls)
+inline void to_json(JSON &j, const LinearSpace3f &ls)
 {
-  j = nlohmann::json{{"x", ls.vx}, {"y", ls.vy}, {"z", ls.vz}};
+  j = JSON{{"x", ls.vx}, {"y", ls.vy}, {"z", ls.vz}};
 }
 
-inline void from_json(const nlohmann::json &j, LinearSpace3f &ls)
+inline void from_json(const JSON &j, LinearSpace3f &ls)
 {
   j.at("x").get_to(ls.vx);
   j.at("y").get_to(ls.vy);
   j.at("z").get_to(ls.vz);
 }
 
-inline void to_json(nlohmann::json &j, const AffineSpace3f &as)
+inline void to_json(JSON &j, const AffineSpace3f &as)
 {
-  j = nlohmann::json{{"linear", as.l}, {"affine", as.p}};
+  j = JSON{{"linear", as.l}, {"affine", as.p}};
 }
 
-inline void from_json(const nlohmann::json &j, AffineSpace3f &as)
+inline void from_json(const JSON &j, AffineSpace3f &as)
 {
   j.at("linear").get_to(as.l);
   j.at("affine").get_to(as.p);
 }
 
-inline void to_json(nlohmann::json &j, const quaternionf &q)
+inline void to_json(JSON &j, const quaternionf &q)
 {
-  j = nlohmann::json{{"r", q.r}, {"i", q.i}, {"j", q.j}, {"k", q.k}};
+  j = JSON{{"r", q.r}, {"i", q.i}, {"j", q.j}, {"k", q.k}};
 }
 
-inline void from_json(const nlohmann::json &j, quaternionf &q)
+inline void from_json(const JSON &j, quaternionf &q)
 {
   j.at("r").get_to(q.r);
   j.at("i").get_to(q.i);
@@ -205,7 +208,7 @@ inline void from_json(const nlohmann::json &j, quaternionf &q)
 
 namespace utility {
 
-inline void to_json(nlohmann::json &j, const Any &a)
+inline void to_json(JSON &j, const Any &a)
 {
   if (a.is<int>())
     j = a.get<int>();
@@ -225,7 +228,7 @@ inline void to_json(nlohmann::json &j, const Any &a)
     j = ":^)";
 }
 
-inline void from_json(const nlohmann::json &j, Any &a)
+inline void from_json(const JSON &j, Any &a)
 {
   if (j.is_primitive()) { // string, number , bool, null, or binary
     if (j.is_null())
@@ -260,14 +263,14 @@ inline void from_json(const nlohmann::json &j, Any &a)
 // Global namespace type definitions //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-inline void to_json(nlohmann::json &j, const CameraState &cs)
+inline void to_json(JSON &j, const CameraState &cs)
 {
-  j = nlohmann::json{{"centerTranslation", cs.centerTranslation},
+  j = JSON{{"centerTranslation", cs.centerTranslation},
       {"translation", cs.translation},
       {"rotation", cs.rotation}};
 }
 
-inline void from_json(const nlohmann::json &j, CameraState &cs)
+inline void from_json(const JSON &j, CameraState &cs)
 {
   j.at("centerTranslation").get_to(cs.centerTranslation);
   j.at("translation").get_to(cs.translation);
