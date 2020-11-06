@@ -4,16 +4,14 @@
 #include "Animation.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  Animation::Animation(){}
+NodeType Animation::type() const
+{
+  return NodeType::ANIMATION;
+}
 
-  NodeType Animation::type() const
-  {
-    return NodeType::ANIMATION;
-  }
+OSP_REGISTER_SG_NODE_NAME(Animation, animation);
 
-  OSP_REGISTER_SG_NODE_NAME(Animation, animation);
-
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray

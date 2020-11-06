@@ -6,15 +6,14 @@
 #include "../Node.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-    struct OSPSG_INTERFACE Animation : public Node
-    {
-      Animation();
-      virtual ~Animation() override = default;
+struct OSPSG_INTERFACE Animation : public Node
+{
+  ~Animation() override = default;
 
-      NodeType type() const override;
-    };
+  NodeType type() const override;
+};
 
-  }  // namespace sg
-}  // namespace ospray
+} // namespace sg
+} // namespace ospray

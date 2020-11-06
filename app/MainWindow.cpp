@@ -988,8 +988,6 @@ bool MainWindow::parseCommandLine()
 // Importer for all known file types (geometry and models)
 void MainWindow::importFiles(sg::NodePtr world)
 {
-  std::vector<float> timesteps; // time stamps in units seconds in all files
-
   std::vector<sg::NodePtr> cameras;
 
   for (auto file : filesToImport) {
@@ -1009,9 +1007,6 @@ void MainWindow::importFiles(sg::NodePtr world)
           // importer will use what it needs.
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
-          if (animate) {
-            importer->setTimesteps(timesteps);
-          }
           importer->importScene();
         }
 
@@ -1040,10 +1035,12 @@ void MainWindow::importFiles(sg::NodePtr world)
       g_sceneCameras[c->name()] = c;
   }
 
-  if (animate && timesteps.size() > 0) {
+  if (animate) {
     allAnimationWidgets.push_back(
-        std::shared_ptr<AnimationWidget>(new AnimationWidget(
-            getFrame(), world, activeWindow->lightsManager, timesteps, "Animation Controls")));
+        std::shared_ptr<AnimationWidget>(new AnimationWidget(getFrame(),
+            world,
+            activeWindow->lightsManager,
+            "Animation Controls")));
 
     registerImGuiCallback([&]() {
       for (auto i = 0; i < allAnimationWidgets.size(); ++i)

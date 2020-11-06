@@ -9,11 +9,9 @@
 AnimationWidget::AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
     ospray::sg::NodePtr firstWorld,
     std::shared_ptr<ospray::sg::Lights> _lightsManager,
-    std::vector<float> &timesteps,
     const std::string &_widgetName)
     : activeFrame(activeFrame),
       firstWorld(firstWorld),
-      timesteps(timesteps),
       widgetName(_widgetName)
 {
   numKeyframes = timesteps.size();

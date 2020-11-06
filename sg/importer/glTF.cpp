@@ -64,10 +64,6 @@ namespace ospray {
 
     std::vector<NodePtr> ospMeshes;
 
-    bool animate{false};
-
-    bool hasAnimations{false};
-
     std::map<float, int> g_allTimesteps;
 
    private:
@@ -187,7 +183,6 @@ namespace ospray {
     INFO << "... " << model.cameras.size() << " cameras\n";
     INFO << "... " << model.scenes.size() << " scenes\n";
     INFO << "... " << model.lights.size() << " lights\n";
-    INFO << "... " << model.animations.size() << " animations\n";
 
     return ret;
   }
@@ -428,7 +423,6 @@ namespace ospray {
         n.extensions.find("BIT_reference_link") != n.extensions.end())
       loadNodeInfo(nid, sgNode);
 
-    if (animate) {
     // for each scene node check if it is animated (if it's node ID exist in animatedNodes map)
     // and load animation transforms
     std::vector<float> kfInput;
@@ -528,7 +522,6 @@ namespace ospray {
     kfInput.clear();
     kfOutput.clear();
     keyframeTrack.clear();
-    }
 
     if (n.mesh != -1) {
       // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
@@ -1009,18 +1002,11 @@ namespace ospray {
     if (!gltf.parseAsset())
       return;
 
-    gltf.animate = animate;
     gltf.createMaterials();   
     gltf.createGeometries();
     gltf.buildScene();
     if (importCameras)
       gltf.createCameras(*cameras);
-
-    if (animate){
-      for (auto iter = gltf.g_allTimesteps.begin(); iter != gltf.g_allTimesteps.end(); ++iter){
-        timesteps->push_back(iter->first);
-      }
-    }
 
     // Finally, add node hierarchy to importer parent
     add(rootNode);
