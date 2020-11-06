@@ -51,6 +51,7 @@ class AnimationWidget
   AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
       ospray::sg::NodePtr firstWorld,
       std::shared_ptr<ospray::sg::Lights> _lightsManager,
+      std::vector<ospray::sg::NodePtr> &animations,
       const std::string &_widgetName);
   ~AnimationWidget();
 
@@ -72,6 +73,6 @@ class AnimationWidget
   std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;
   ospray::sg::NodePtr firstWorld;
   std::shared_ptr<ospray::sg::Lights> lightsManager;
-  std::vector<float> timesteps;
+  std::vector<ospray::sg::NodePtr> &animations;
   int numKeyframes{0};
 };

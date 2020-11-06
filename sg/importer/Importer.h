@@ -50,10 +50,16 @@ struct OSPSG_INTERFACE Importer : public Node
     importCameras = true;
   }
 
+  inline void setAnimationList(std::vector<NodePtr> &_animations)
+  {
+    animations = &_animations;
+  }
+
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
   std::vector<NodePtr> *cameras = nullptr;
+  std::vector<NodePtr> *animations = nullptr;
   bool importCameras{false};
 };
 

@@ -58,17 +58,13 @@ namespace ospray {
     void createCameras(std::vector<NodePtr> &cameras);
     void buildScene();
     void loadNodeInfo(const int nid, NodePtr sgNode);
-
     // load animations AFTER loading scene nodes and their transforms
-    void loadChannels();
-
-    std::vector<NodePtr> ospMeshes;
-
-    std::map<float, int> g_allTimesteps;
+    void createAnimations(std::vector<NodePtr> &);
 
    private:
-    std::map<int, NodePtr> animatedNodes;
+    std::vector<NodePtr> ospMeshes;
     std::shared_ptr<sg::MaterialRegistry> materialRegistry;
+    std::vector<NodePtr> sceneNodes; // lookup table glTF:nodeID -> NodePtr
 
     tinygltf::Model model;
 
@@ -86,7 +82,7 @@ namespace ospray {
         const int nid,
         const int level); // XXX level is just for debug
 
-    affine3f nodeTransform(const tinygltf::Node &node);
+    void applyNodeTransform(NodePtr, const tinygltf::Node &node);
 
     NodePtr createOSPMesh(
         const std::string &primBaseName, tinygltf::Primitive &primitive);
@@ -310,12 +306,9 @@ namespace ospray {
           createNode(modelName + "_model", "transform"); // Model "group"
       // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
 
-      NodePtr ospMesh;
-
       for (auto &prim : m.primitives) {  // -> TriangleMesh
         // Create per 'primitive' geometry
-        auto ospMesh = createOSPMesh(modelName, prim);
-        ospModel->add(ospMesh);
+        ospModel->add(createOSPMesh(modelName, prim));
       }
 
       ospMeshes.push_back(ospModel);
@@ -324,48 +317,54 @@ namespace ospray {
 
   // create animation channels and load sampler information
   // link nodes with the channels that animate them in animatedNodes map
-
-  void GLTFData::loadChannels()
+  void GLTFData::createAnimations(std::vector<NodePtr> &animations)
   {
     auto numAnimations = model.animations.size();
 
-    std::vector<std::vector<NodePtr>> samplerNodes(numAnimations);
-
     int currentAnim = 0;
     for (auto &a : model.animations) {
-      samplerNodes[currentAnim].resize(a.samplers.size());
-      int samplerID = 0;
-
-      for (auto &s : a.samplers) {
-        auto sIn = s.input;
-        auto sOut = s.output;
-        auto interpolation = s.interpolation;
-
-        auto sampler = createNode("sampler");
-        sampler->createChild("inputAccessor", "int", sIn);
-        sampler->createChild("outputAccessor", "int", sOut);
-        sampler->createChild("interpolation", "string", interpolation);
-
-        samplerNodes[currentAnim][samplerID] = sampler;
-
-        samplerID++;
-      }
-
+      auto animNode = createNode(a.name);
+      animations.push_back(animNode);
+      // tracks
       int channelID = 0;
       for (auto &c : a.channels) {
-        auto targetNode = c.target_node;
-        auto targetPath = c.target_path;
-        auto samplerID = c.sampler;
+        if (c.target_node < 0)
+          continue;
+        auto &s = a.samplers[c.sampler];
+        auto &inputAcc = model.accessors[s.input];
+        if (inputAcc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT)
+          continue;
 
-        auto channel = createNode("channel_" + std::to_string(channelID) + "_"
-            + std::to_string(currentAnim));
-        channel->createChild("targetNode", "int", targetNode);
-        channel->createChild("targetPath", "string", targetPath);
-        channel->add(samplerNodes[currentAnim][samplerID]);
+        auto &trackNode = animNode->createChild(
+            "track_" + std::to_string(channelID), "animation");
+        trackNode.add(
+            sceneNodes[c.target_node]->child(c.target_path), "target");
+        trackNode.createChild("interpolation", "string", s.interpolation);
+
+        Accessor<float> time(inputAcc, model);
+        trackNode.createChildData(
+            "time", time.size(), time.byteStride(), time.data());
+
+        auto &valueAcc = model.accessors[s.output];
+        if (c.target_path == "translation" || c.target_path == "scale") {
+          // translation and scaling will always have complete dataType of vec3f
+          Accessor<vec3f> value(valueAcc, model);
+          trackNode.createChildData(
+              "value", value.size(), value.byteStride(), value.data());
+        }
+        if (c.target_path == "rotation") {
+          if (valueAcc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
+            WARN
+                << "animation rotation is not in 'float' format; conversion not implemented yet"
+                << std::endl;
+            continue;
+          }
+          Accessor<vec4f> value(valueAcc, model);
+          trackNode.createChildData(
+              "value", value.size(), value.byteStride(), value.data());
+        }
 
         channelID++;
-
-        animatedNodes.insert(std::make_pair(targetNode, channel));
       }
       currentAnim++;
     }
@@ -373,46 +372,43 @@ namespace ospray {
 
   void GLTFData::buildScene()
   {
+    if (model.scenes.empty())
+      return;
+
+    const auto defaultScene = std::max(0, model.defaultScene);
+
+    if (model.scenes[defaultScene].nodes.empty())
+      return;
+
     // DEBUG << "Build Scene\n";
-    if(model.scenes.empty())
-      return;
-
-    if (model.defaultScene == -1)
-      model.defaultScene = 0;
-
-    if(model.scenes[model.defaultScene].nodes.empty())
-      return;
-
-    // create animation channels for each animation
-    loadChannels();
+    auto &scene = model.scenes[defaultScene];
+    sceneNodes.resize(scene.nodes.size());
 
     // Process all nodes in default scene
-    for (const auto &nid : model.scenes[model.defaultScene].nodes) {
-      NodePtr sgNode = rootNode;
+    for (const auto &nid : scene.nodes) {
       // DEBUG << "... Top Node (#" << nid << ")\n";
       // recursively process node hierarchy
-      visitNode(sgNode, nid, 1);
+      visitNode(rootNode, nid, 1);
     }
   }
 
   void GLTFData::visitNode(NodePtr sgNode,
-                           const int nid,
-                           const int level)  // XXX just for debug
+      const int nid,
+      const int level) // XXX just for debug
   {
     const tinygltf::Node &n = model.nodes[nid];
     // DEBUG << pad("", '.', 3 * level) << nid << ":" << n.name
     //     << " (children:" << n.children.size() << ")\n";
 
-    // Apply any transform in this node -> xfm
-    const auto nodeXfm = nodeTransform(n);
-
     static auto nNode = 0;
     auto nodeName = n.name + "_" + pad(std::to_string(nNode++));
     // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
     // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
-    auto newXfm = createNode(
-        nodeName + "_xfm_" + std::to_string(level), "transform", nodeXfm);
+    auto newXfm =
+        createNode(nodeName + "_xfm_" + std::to_string(level), "transform");
+    sceneNodes[nid] = newXfm;
     sgNode->add(newXfm);
+    applyNodeTransform(newXfm, n);
     sgNode = newXfm;
 
     // while parsing assets from BIT-TS look for BIT_asset_info to add to assetCatalogue
@@ -422,106 +418,6 @@ namespace ospray {
         n.extensions.find("BIT_node_info") != n.extensions.end() ||
         n.extensions.find("BIT_reference_link") != n.extensions.end())
       loadNodeInfo(nid, sgNode);
-
-    // for each scene node check if it is animated (if it's node ID exist in animatedNodes map)
-    // and load animation transforms
-    std::vector<float> kfInput;
-    std::vector<affine3f> kfOutput;
-    std::map<float, affine3f> keyframeTrack;
-
-    if (animatedNodes.find(nid) != animatedNodes.end()) {
-      auto &animChannel = animatedNodes[nid];
-      auto &sampler = animChannel->child("sampler");
-      auto &targetPath =
-          animChannel->child("targetPath").valueAs<std::string>();
-      auto &interpolation =
-          sampler.child("interpolation").valueAs<std::string>();
-
-      auto outputAcc = sampler.child("outputAccessor").valueAs<int>();
-      int inputAcc = sampler.child("inputAccessor").valueAs<int>();
-      loadKeyframeInput(inputAcc, kfInput);
-
-      // expose step increment parameter
-      auto stepIncrement = 0.2f;
-
-      if (kfInput.size() < 2) {
-        std::cout << "Need atleast 2 keyframes to build a track" << std::endl;
-      }
-
-        // also handle weights below
-        if (targetPath == "translation" || targetPath == "scale") {
-          auto &acc = model.accessors[outputAcc];
-          // translation and scaling will always have complete dataType of vec3f
-          Accessor<vec3f> ts_accessor(acc, model);
-          std::vector<vec3f> ts(ts_accessor.size());
-          for (size_t i = 0; i < ts_accessor.size(); ++i)
-            ts[i] = ts_accessor[i];
-
-          if (interpolation == "CUBICSPLINE")
-            hermiteInterpolationTSTrack(
-                kfInput, ts, stepIncrement, keyframeTrack, targetPath);
-          else {
-            loadKeyframeOutput(ts, kfOutput, targetPath);
-
-            if (interpolation == "LINEAR")
-              linearInterpolationTSTrack(
-                  kfInput, kfOutput, stepIncrement, keyframeTrack);
-            else
-              for (auto i = 0; i < kfInput.size(); ++i) {
-                keyframeTrack.insert(std::make_pair(kfInput[i], kfOutput[i]));
-              }
-          }
-        } else if (targetPath == "rotation") {
-          auto &outputAccessor = model.accessors[outputAcc];
-          std::vector<quaternionf> quaternions;
-          Accessor<vec4f> rt_accessor(outputAccessor, model);
-          std::vector<vec4f> rt(rt_accessor.size());
-
-          for (size_t i = 0; i < rt_accessor.size(); ++i)
-            rt[i] = rt_accessor[i];
-
-          for (auto rt_it = rt.begin(); rt_it != rt.end(); ++rt_it) {
-            auto &r = *rt_it;
-            quaternions.push_back(quaternionf(r[3], r[0], r[1], r[2]));
-          }
-
-          if (interpolation == "CUBICSPLINE")
-            hermiteInterpolationRotationtrack(
-                kfInput, rt, stepIncrement, keyframeTrack);
-          else if (interpolation == "LINEAR")
-            linearInterpolationRotationsTrack(
-                kfInput, quaternions, stepIncrement, keyframeTrack);
-          else
-            for (auto i = 0; i < kfInput.size(); ++i) {
-              affine3f xfm{one};
-              auto rot = affine3f(linear3f(quaternions[i])) * xfm;
-              keyframeTrack.insert(std::make_pair(kfInput[i], rot));
-            }
-        }
-    }
-
-    static int numTimestep = 1;
-
-    if (keyframeTrack.size() != 0) {
-      static auto nAnimation = 0;
-      auto &animParent = sgNode->createChild("animationNode_" + std::to_string(nAnimation), "animation");
-
-      for (auto &i : keyframeTrack) {
-        auto newXfm = createNode("anim_" + std::to_string(nAnimation) + "_"
-                + std::to_string(numTimestep),
-            "transform",
-            i.second);
-        newXfm->createChild("timestep", "float", i.first);
-        animParent.add(newXfm);
-        g_allTimesteps.insert(std::make_pair(i.first, numTimestep));
-        numTimestep++;
-      }
-      nAnimation++;
-    }
-
-    kfInput.clear();
-    kfOutput.clear();
-    keyframeTrack.clear();
 
     if (n.mesh != -1) {
       // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
@@ -536,69 +432,32 @@ namespace ospray {
     for (const auto &cid : n.children) {
       visitNode(sgNode, cid, level + 1);
     }
-
   }
 
-  void GLTFData::loadKeyframeInput(int accessorID, std::vector<float> &kfInput)
+  void GLTFData::applyNodeTransform(NodePtr xfmNode, const tinygltf::Node &n)
   {
-    auto &acc = model.accessors[accessorID];
-
-    if (acc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
-      Accessor<float> input_accessor(acc, model);
-
-      kfInput.resize(input_accessor.size());
-      for (size_t i = 0; i < input_accessor.size(); ++i)
-        kfInput[i] = input_accessor[i];
-    }
-  }
-
-  void GLTFData::loadKeyframeOutput(
-      std::vector<vec3f> &ts, std::vector<affine3f> &xfms, std::string &propertyName)
-  {
-    if (propertyName == "translation") {
-      for (auto ts_it = ts.begin(); ts_it != ts.end(); ++ts_it) {
-        affine3f xfm{one};
-        auto &t = *ts_it;
-        xfm = affine3f::translate(vec3f(t[0], t[1], t[2])) * xfm;
-        xfms.push_back(xfm);
-      }
-    } else {
-      for (auto ts_it = ts.begin(); ts_it != ts.end(); ++ts_it) {
-        affine3f xfm{one};
-        auto &t = *ts_it;
-        xfm = affine3f::scale(vec3f(t[0], t[1], t[2])) * xfm;
-        xfms.push_back(xfm);
-      }
-    }
-  }
-
-  affine3f GLTFData::nodeTransform(const tinygltf::Node &n)
-  {
-    affine3f xfm{one};
-
     if (!n.matrix.empty()) {
       // Matrix must decompose to T/R/S, no skew/shear
       const auto &m = n.matrix;
-      xfm           = {vec3f(m[0 * 4 + 0], m[0 * 4 + 1], m[0 * 4 + 2]),
-             vec3f(m[1 * 4 + 0], m[1 * 4 + 1], m[1 * 4 + 2]),
-             vec3f(m[2 * 4 + 0], m[2 * 4 + 1], m[2 * 4 + 2]),
-             vec3f(m[3 * 4 + 0], m[3 * 4 + 1], m[3 * 4 + 2])};
+      xfmNode->setValue(
+          affine3f(vec3f(m[0 * 4 + 0], m[0 * 4 + 1], m[0 * 4 + 2]),
+              vec3f(m[1 * 4 + 0], m[1 * 4 + 1], m[1 * 4 + 2]),
+              vec3f(m[2 * 4 + 0], m[2 * 4 + 1], m[2 * 4 + 2]),
+              vec3f(m[3 * 4 + 0], m[3 * 4 + 1], m[3 * 4 + 2])));
     } else {
       if (!n.scale.empty()) {
         const auto &s = n.scale;
-        xfm           = affine3f::scale(vec3f(s[0], s[1], s[2])) * xfm;
+        xfmNode->child("scale") = vec3f(s[0], s[1], s[2]);
       }
       if (!n.rotation.empty()) {
-        // Given the quaternion, create the affine rotation matrix
         const auto &r = n.rotation;
-        xfm = affine3f(linear3f(quaternionf(r[3], r[0], r[1], r[2]))) * xfm;
+        xfmNode->child("rotation") = quaternionf(r[3], r[0], r[1], r[2]);
       }
       if (!n.translation.empty()) {
         const auto &t = n.translation;
-        xfm           = affine3f::translate(vec3f(t[0], t[1], t[2])) * xfm;
+        xfmNode->child("translation") = vec3f(t[0], t[1], t[2]);
       }
     }
-    return xfm;
   }
 
   NodePtr GLTFData::createOSPMesh(const std::string &primBaseName,
@@ -1005,6 +864,7 @@ namespace ospray {
     gltf.createMaterials();   
     gltf.createGeometries();
     gltf.buildScene();
+    gltf.createAnimations(*animations);
     if (importCameras)
       gltf.createCameras(*cameras);
 

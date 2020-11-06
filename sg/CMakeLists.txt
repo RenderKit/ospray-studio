@@ -79,7 +79,6 @@ add_library(ospray_sg SHARED
   importer/OBJ/tiny_obj_loader_impl.cpp
   importer/glTF.cpp
   importer/glTF/tiny_gltf_impl.cpp
-  importer/glTF/buffer_view.cpp
   importer/glTF/gltf_types.cpp
   importer/raw.cpp
   importer/vdb.cpp

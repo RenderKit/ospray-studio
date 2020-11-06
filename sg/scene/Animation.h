@@ -8,6 +8,7 @@
 namespace ospray {
 namespace sg {
 
+// an animation track, i.e. an array of keyframes = time:value pair
 struct OSPSG_INTERFACE Animation : public Node
 {
   ~Animation() override = default;

@@ -989,6 +989,7 @@ bool MainWindow::parseCommandLine()
 void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<sg::NodePtr> cameras;
+  std::vector<sg::NodePtr> animations;
 
   for (auto file : filesToImport) {
     try {
@@ -1007,6 +1008,7 @@ void MainWindow::importFiles(sg::NodePtr world)
           // importer will use what it needs.
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
+          importer->setAnimationList(animations);
           importer->importScene();
         }
 
@@ -1040,6 +1042,7 @@ void MainWindow::importFiles(sg::NodePtr world)
         std::shared_ptr<AnimationWidget>(new AnimationWidget(getFrame(),
             world,
             activeWindow->lightsManager,
+            animations,
             "Animation Controls")));
 
     registerImGuiCallback([&]() {

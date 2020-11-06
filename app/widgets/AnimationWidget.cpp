@@ -9,25 +9,13 @@
 AnimationWidget::AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
     ospray::sg::NodePtr firstWorld,
     std::shared_ptr<ospray::sg::Lights> _lightsManager,
+    std::vector<ospray::sg::NodePtr> &animations,
     const std::string &_widgetName)
     : activeFrame(activeFrame),
       firstWorld(firstWorld),
+      animations(animations),
       widgetName(_widgetName)
 {
-  numKeyframes = timesteps.size();
-  lightsManager = _lightsManager;
-  for (auto iter = timesteps.begin(); iter != timesteps.end(); ++iter) {
-    auto newWorld = ospray::sg::createNode("world", "world");
-    newWorld->createChild("time", "float", *iter);
-    // create copies of firstWorld
-    for (auto &c : firstWorld->children()){
-      newWorld->add(c.second);
-    }
-    g_allWorlds.push_back(
-        std::static_pointer_cast<ospray::sg::World>(newWorld));
-
-    newWorld->render();
-  }
 }
 
 AnimationWidget::~AnimationWidget() {}
