@@ -153,6 +153,7 @@ class MainWindow : public StudioContext
   bool screenshotDepth{false};
   bool screenshotNormal{false};
   bool screenshotLayers{false};
+  bool screenshotMetaData{false};
 
   static MainWindow *activeWindow;
 

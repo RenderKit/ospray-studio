@@ -6,6 +6,7 @@
 #include "Visitor.h"
 // stl
 #include <map>
+#include <unordered_map>
 #include <memory>
 #include <vector>
 // rkcommon
@@ -21,6 +22,8 @@
 // ospray_sg
 #include "version.h"
 #include "NodeType.h"
+
+#include "sg/UUIDUtils.h"
 
 #ifndef OSPSG_INTERFACE
 #ifdef _WIN32
@@ -179,6 +182,8 @@ namespace sg {
 
     void commit();
     void render();
+    void render(UUIDMap &uuidMap);
+
     box3f bounds();
 
     virtual void setOSPRayParam(std::string param, OSPObject handle);

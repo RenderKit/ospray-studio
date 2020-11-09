@@ -12,7 +12,7 @@
 #include "glTF/gltf_types.h"
 
 #include "../visitors/PrintNodes.h"
-
+#include "../UUIDUtils.h"
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
@@ -434,7 +434,20 @@ namespace ospray {
 
     if (n.mesh != -1) {
       // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
-      sgNode->add(ospMeshes[n.mesh]);
+      auto &ospMesh = ospMeshes[n.mesh];
+      // this node has a mesh associated with it, i.e. Geometry in terms of OSPRay scene
+      // check if it has BIT extension : BIT_node_info
+      // this extension holds UUID of the mesh/geometry
+      // note: an asset in BIT is also called a "geometry"
+
+      if (n.extensions.find("BIT_node_info") != n.extensions.end())
+      {
+        auto &nodeInfoExt = n.extensions.find("BIT_node_info")->second;
+        auto nodeId = nodeInfoExt.Get("id").Get<std::string>();
+      
+        ospMesh->createChild("GeomId", "string", nodeId);
+      }
+      sgNode->add(ospMesh);
     }
 
     if (n.skin != -1) {

@@ -5,6 +5,7 @@
 
 #include "../Node.h"
 #include "rkcommon/os/FileName.h"
+#include "sg/UUIDUtils.h"
 
 namespace ospray {
   namespace sg {
@@ -17,6 +18,8 @@ namespace ospray {
     NodeType type() const override;
 
     virtual void doExport() {}
+
+    uint32_t *xyMetaData;
   };
 
   static const std::map<std::string, std::string> exporterMap = {

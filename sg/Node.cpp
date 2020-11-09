@@ -212,6 +212,12 @@ namespace ospray {
     traverse<RenderScene>();
   }
 
+  void Node::render(UUIDMap &uuidMap)
+  {
+    commit();
+    traverse<RenderScene>(uuidMap);
+  }
+
   box3f Node::bounds()
   {
     GetBounds visitor;

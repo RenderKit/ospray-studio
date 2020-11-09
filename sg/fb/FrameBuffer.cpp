@@ -4,6 +4,10 @@
 #include "FrameBuffer.h"
 #include "../exporter/ImageExporter.h"
 
+#include "sg/camera/Camera.h"
+#include "sg/renderer/Renderer.h"
+#include "sg/scene/World.h"
+
 namespace ospray {
   namespace sg {
 
@@ -168,7 +172,6 @@ namespace ospray {
     handle().commit();
   }
 
-
   void FrameBuffer::saveFrame(std::string filename, int flags)
   {
     auto exporter = getExporter(FileName(filename));
@@ -193,6 +196,7 @@ namespace ospray {
     bool depth     = flags & 0b10;
     bool normal    = flags & 0b100;
     bool asLayers  = flags & 0b1000;
+    bool metaData = flags & 0b10000;
 
     if (albedo) {
       abuf = (void *)map(OSP_FB_ALBEDO);
@@ -221,6 +225,19 @@ namespace ospray {
       exp->createChild("asLayers", "bool", true);
     }
 
+    if (metaData) {
+      // get pick information
+      std::cout << "saving meta data for pixels .." << std::endl;
+      pickFrame();
+
+      if (xyMetaData != nullptr) {
+        // TODO: instanceID and world coordinates
+        exp->child("asLayers").setValue(true);
+        exp->xyMetaData = xyMetaData;
+        exp->createChild("geomId");
+      }
+    }
+
     exp->doExport();
 
     unmap(fb);
@@ -230,6 +247,50 @@ namespace ospray {
       unmap(zbuf);
     if (normal)
       unmap(nbuf);
+  }
+
+  void FrameBuffer::pickFrame()
+  {
+    auto &frame = parents().front();
+    auto &world = frame->childAs<sg::World>("world").handle();
+    auto &camera = frame->childAs<sg::Camera>("camera").handle();
+    auto &renderer = frame->childAs<sg::Renderer>("renderer").handle();
+    auto size = child("size").valueAs<vec2i>();
+
+    xyMetaData =
+        (uint32_t *)std::malloc(size.x * size.y * 4 * sizeof(uint32_t));
+
+    std::vector<FrameMetadata *> metaDataRows(size.y);
+    metaDataRows[0] = (FrameMetadata *)xyMetaData;
+    for (int i = 1; i < size.y; i++) {
+      metaDataRows[i] = metaDataRows[i - 1] + size.x;
+    }
+
+    // change this to parallel_for
+    for (auto i = 0; i < size.y; ++i) {
+      for (auto j = 0; j < size.x; ++j) {
+        float normalize_x = (float) j / (float) size.x;
+        float normalize_y = (float) i / (float) size.y;
+
+        auto pickResult =
+            handle().pick(renderer, camera, world, normalize_x, normalize_y);
+
+        FrameMetadata metaData;
+
+        // Ensure it has 128 bits assigned
+        static_assert(sizeof(metaData) == 128 / CHAR_BIT, "incorrect allotted UUID size");
+
+        auto ospGeometricModel = pickResult.model.handle();
+
+        if(pickResult.hasHit) {
+          UUID modelUUID = makeUUID(m[ospGeometricModel]);
+          metaData.modelId = modelUUID; 
+        } else {          
+          metaData.modelId = makeUUID(0, 0, 0, 0);
+        }
+        metaDataRows[i][j] = metaData;
+      }
+    }
   }
 
   OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);
