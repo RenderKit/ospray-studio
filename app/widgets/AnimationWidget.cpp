@@ -3,154 +3,69 @@
 
 #include "AnimationWidget.h"
 #include <imgui.h>
-// std
-#include <chrono>
 
 AnimationWidget::AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
-    ospray::sg::NodePtr firstWorld,
-    std::shared_ptr<ospray::sg::Lights> _lightsManager,
-    std::vector<ospray::sg::NodePtr> &animations,
-    const std::string &_widgetName)
-    : activeFrame(activeFrame),
-      firstWorld(firstWorld),
-      animations(animations),
-      widgetName(_widgetName)
+    std::vector<ospray::sg::Animation> &animations,
+    const std::string &name)
+    : name(name), activeFrame(activeFrame), animations(animations)
 {
+  for (auto &a : animations)
+    timeRange.extend(a.timeRange);
+  time = timeRange.lower;
+  lastUpdated = std::chrono::system_clock::now();
 }
-
-AnimationWidget::~AnimationWidget() {}
 
 // update UI and process any UI events
 void AnimationWidget::addAnimationUI()
 {
-  ImGui::Begin(widgetName.c_str());
+  ImGui::Begin(name.c_str());
 
-  animateKeyframes();
-
-  insertKeyframeMenu();
-
-  ImGui::End();
-}
-
-void AnimationWidget::insertKeyframeMenu()
-{
-  int numTimesteps = numKeyframes;
-
-  if (animationParameters.playKeyframes) {
-    if (ImGui::Button("Pause")) {
-      animationParameters.playKeyframes = false;
-    }
-  } else {
-    if (ImGui::Button("Play")) {
-      animationParameters.playKeyframes = true;
-    }
+  if (ImGui::Button(play ? "Pause" : "Play ")) {
+    play = !play;
+    lastUpdated = std::chrono::system_clock::now();
   }
+
+  bool modified = play;
 
   ImGui::SameLine();
+  if (ImGui::SliderFloat("time", &time, timeRange.lower, timeRange.upper))
+    modified = true;
 
-  if (ImGui::SliderInt("Keyframe",
-          &animationParameters.currentKeyframe,
-          0,
-          numTimesteps - 1)) {
-    setKeyframe(animationParameters.currentKeyframe);
+  ImGui::SameLine();
+  ImGui::Checkbox("Loop", &loop);
+
+  { // simulate log slider
+    static float exp = 0.f;
+    ImGui::SliderFloat("speedup: ", &exp, -3.f, 3.f);
+    speedup = std::pow(10.0f, exp);
+    ImGui::SameLine();
+    ImGui::Text("%.*f", speedup, std::max(0, int(1.99f - exp)));
   }
 
-  // set numTimesteps in animation params equal to numTimesteps of widget
-  // constructor
-  if (animationParameters.numTimesteps == 0) {
-    animationParameters.numTimesteps = numTimesteps;
-  }
-
-  ImGui::SliderInt("Number of Keyframes",
-      &animationParameters.numTimesteps,
-      1,
-      numTimesteps - 1);
-
-  ImGui::SliderInt(
-      "Animation increment", &animationParameters.animationIncrement, 1, 16);
-
-  ImGui::SliderInt("Animation center",
-      &animationParameters.animationCenter,
-      0,
-      numTimesteps - 1);
-
-  // compute actual animation bounds
-  animationParameters.computedAnimationMin =
-      animationParameters.animationCenter
-      - 0.5 * animationParameters.numTimesteps
-          * animationParameters.animationIncrement;
-
-  animationParameters.computedAnimationMax =
-      animationParameters.animationCenter
-      + 0.5 * animationParameters.numTimesteps
-          * animationParameters.animationIncrement;
-
-  if (animationParameters.computedAnimationMin < 0) {
-    int delta = -animationParameters.computedAnimationMin;
-    animationParameters.computedAnimationMin = 0;
-    animationParameters.computedAnimationMax += delta;
-  }
-
-  if (animationParameters.computedAnimationMax > numTimesteps - 1) {
-    int delta = animationParameters.computedAnimationMax - (numTimesteps - 1);
-    animationParameters.computedAnimationMax = numTimesteps - 1;
-    animationParameters.computedAnimationMin -= delta;
-  }
-
-  animationParameters.computedAnimationMin =
-      std::max(0, animationParameters.computedAnimationMin);
-  animationParameters.computedAnimationMax =
-      std::min(numTimesteps - 1, animationParameters.computedAnimationMax);
-
-  ImGui::Text("animation range: %d -> %d",
-      animationParameters.computedAnimationMin,
-      animationParameters.computedAnimationMax);
+  for (auto &a : animations)
+    ImGui::Checkbox(a.name.c_str(), &a.active);
 
   ImGui::Spacing();
+  ImGui::End();
+
+  if (modified)
+    update();
 }
 
-void AnimationWidget::animateKeyframes()
+void AnimationWidget::update()
 {
-  int numTimesteps = numKeyframes;
-
-  if (numTimesteps != 1 && animationParameters.playKeyframes) {
-    static auto keyframeLastChanged = std::chrono::system_clock::now();
-    double minChangeInterval =
-        1. / double(animationParameters.desiredKeyframesPerSecond);
-    auto now = std::chrono::system_clock::now();
-
-    std::chrono::duration<double> elapsedSeconds = now - keyframeLastChanged;
-
-    if (elapsedSeconds.count() > minChangeInterval) {
-      animationParameters.currentKeyframe +=
-          animationParameters.animationIncrement;
-
-      if (animationParameters.currentKeyframe
-          < animationParameters.computedAnimationMin) {
-        animationParameters.currentKeyframe =
-            animationParameters.computedAnimationMin;
-      }
-
-      if (animationParameters.currentKeyframe
-          > animationParameters.computedAnimationMax) {
-        animationParameters.currentKeyframe =
-            animationParameters.computedAnimationMin;
-      }
-
-      setKeyframe(animationParameters.currentKeyframe);
-      keyframeLastChanged = now;
+  auto now = std::chrono::system_clock::now();
+  if (play) {
+    time += std::chrono::duration<float>(now - lastUpdated).count() * speedup;
+    if (loop && time > timeRange.upper) {
+      const float d = timeRange.size();
+      time = d == 0.f ? timeRange.lower : timeRange.lower + std::fmod(time, d);
     }
   }
-}
+  lastUpdated = now;
 
-void AnimationWidget::setKeyframe(int keyframe)
-{
-  auto &world = g_allWorlds[keyframe];
-  activeFrame->add(world);
-  lightsManager->updateWorld(activeFrame->childAs<ospray::sg::World>("world"));
-  activeFrame->waitOnFrame();
-  activeFrame->childAs<ospray::sg::FrameBuffer>("framebuffer")
-      .resetAccumulation();
+  for (auto &a : animations)
+    a.update(time);
 }
 
 // stack implementation of keyframes

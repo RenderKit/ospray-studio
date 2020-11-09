@@ -22,57 +22,39 @@
 #include "../../sg/Node.h"
 
 #include "../../sg/Frame.h"
-#include "../../sg/scene/lights/Lights.h"
-#include "../../sg/scene/World.h"
 #include "../../sg/fb/FrameBuffer.h"
+#include "../../sg/scene/Animation.h"
+#include "../../sg/scene/World.h"
+#include "../../sg/scene/lights/Lights.h"
 #include "../../sg/visitors/PrintNodes.h"
 
+// std
+#include <chrono>
 using namespace rkcommon::math;
-
-  struct AnimationParameters
-  {
-    int currentKeyframe           = 0;
-    bool playKeyframes            = false;
-    int desiredKeyframesPerSecond = 4;
-
-    int animationCenter       = 0;
-    int numTimesteps = 0;
-    int animationIncrement    = 1;
-
-    int computedAnimationMin = 0;
-    int computedAnimationMax = 0;
-
-    bool pauseRendering = false;
-  };
 
 class AnimationWidget
 {
  public:
   AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
-      ospray::sg::NodePtr firstWorld,
-      std::shared_ptr<ospray::sg::Lights> _lightsManager,
-      std::vector<ospray::sg::NodePtr> &animations,
-      const std::string &_widgetName);
-  ~AnimationWidget();
+      std::vector<ospray::sg::Animation> &animations,
+      const std::string &name);
 
-  // update UI and process any UI events
+  // update UI, called every frame
   void addAnimationUI();
 
-  void insertKeyframeMenu();
-
   // widget name (use different names to support multiple concurrent widgets)
-  std::string widgetName;
-
-  void setKeyframe(int numKeyframe);
-
-  void animateKeyframes();
+  std::string name;
 
  private:
-  AnimationParameters animationParameters;
+  void update();
+
+  bool play{false};
+  bool loop{true};
+  float time{0.0f};
+  std::chrono::time_point<std::chrono::system_clock> lastUpdated;
+  float speed{1.0f / 24};
+  float speedup{1.0f};
+  range1f timeRange;
   std::shared_ptr<ospray::sg::Frame> activeFrame;
-  std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;
-  ospray::sg::NodePtr firstWorld;
-  std::shared_ptr<ospray::sg::Lights> lightsManager;
-  std::vector<ospray::sg::NodePtr> &animations;
-  int numKeyframes{0};
+  std::vector<ospray::sg::Animation> &animations;
 };

@@ -989,7 +989,7 @@ bool MainWindow::parseCommandLine()
 void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<sg::NodePtr> cameras;
-  std::vector<sg::NodePtr> animations;
+  static std::vector<sg::Animation> animations; // XXX
 
   for (auto file : filesToImport) {
     try {
@@ -1037,13 +1037,9 @@ void MainWindow::importFiles(sg::NodePtr world)
       g_sceneCameras[c->name()] = c;
   }
 
-  if (animate) {
-    allAnimationWidgets.push_back(
-        std::shared_ptr<AnimationWidget>(new AnimationWidget(getFrame(),
-            world,
-            activeWindow->lightsManager,
-            animations,
-            "Animation Controls")));
+  if (animate && animations.size()) {
+    allAnimationWidgets.push_back(std::shared_ptr<AnimationWidget>(
+        new AnimationWidget(getFrame(), animations, "Animation Control")));
 
     registerImGuiCallback([&]() {
       for (auto i = 0; i < allAnimationWidgets.size(); ++i)

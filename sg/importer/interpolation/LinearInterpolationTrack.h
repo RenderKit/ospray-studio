@@ -24,29 +24,6 @@ std::pair<float, affine3f> kfLerp(const std::pair<float, affine3f> &from,
   return newKeyframe;
 }
 
-inline quaternionf quatSlerp(const quaternionf &q0, const quaternionf &q1, float t)
-{
-  quaternionf qt0 = q0, qt1 = q1;
-  float d = q0.r * q1.r + q0.i * q1.i + q0.j * q1.j + q0.k * q1.k;
-  if (d < 0.f) {
-    // prevent "long way around"
-    qt0 = -qt0;
-    d = -d;
-  } else if (d > 0.9995) {
-    // angles too small
-    quaternionf l = lerp(t, q0, q1);
-    return normalize(l);
-  }
-
-  float theta = std::acos(d);
-  float thetat = theta * t;
-
-  float s0 = std::cos(thetat) - d * std::sin(thetat) / std::sin(theta);
-  float s1 = std::sin(thetat) / std::sin(theta);
-
-  return s0 * qt0 + s1 * qt1;
-}
-
 void linearInterpolationTSTrack(std::vector<float> &kfInput,
     std::vector<affine3f> &kfOutput,
     float stepIncrement,
@@ -75,7 +52,7 @@ void linearInterpolationRotationsTrack(std::vector<float> &kfInput,
       std::pair<float, affine3f> newKeyframe;
       newKeyframe.first =
           rkcommon::math::lerp<float>(step, from.first, to.first);
-      auto rot = quatSlerp(from.second, to.second, step);
+      auto rot = slerp(step, from.second, to.second);
       newKeyframe.second = affine3f(linear3f(rot)) * xfm;
       keyframeTrack.insert(newKeyframe);
     }

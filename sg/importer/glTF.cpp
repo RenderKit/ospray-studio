@@ -59,7 +59,7 @@ namespace ospray {
     void buildScene();
     void loadNodeInfo(const int nid, NodePtr sgNode);
     // load animations AFTER loading scene nodes and their transforms
-    void createAnimations(std::vector<NodePtr> &);
+    void createAnimations(std::vector<Animation> &);
 
    private:
     std::vector<NodePtr> ospMeshes;
@@ -317,16 +317,14 @@ namespace ospray {
 
   // create animation channels and load sampler information
   // link nodes with the channels that animate them in animatedNodes map
-  void GLTFData::createAnimations(std::vector<NodePtr> &animations)
+  void GLTFData::createAnimations(std::vector<Animation> &animations)
   {
     auto numAnimations = model.animations.size();
 
-    int currentAnim = 0;
     for (auto &a : model.animations) {
-      auto animNode = createNode(a.name);
-      animations.push_back(animNode);
+      animations.emplace_back(a.name);
+      auto &animation = animations.back();
       // tracks
-      int channelID = 0;
       for (auto &c : a.channels) {
         if (c.target_node < 0)
           continue;
@@ -335,22 +333,16 @@ namespace ospray {
         if (inputAcc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT)
           continue;
 
-        auto &trackNode = animNode->createChild(
-            "track_" + std::to_string(channelID), "animation");
-        trackNode.add(
-            sceneNodes[c.target_node]->child(c.target_path), "target");
-        trackNode.createChild("interpolation", "string", s.interpolation);
-
-        Accessor<float> time(inputAcc, model);
-        trackNode.createChildData(
-            "time", time.size(), time.byteStride(), time.data());
-
+        AnimationTrackBase *track;
         auto &valueAcc = model.accessors[s.output];
         if (c.target_path == "translation" || c.target_path == "scale") {
           // translation and scaling will always have complete dataType of vec3f
           Accessor<vec3f> value(valueAcc, model);
-          trackNode.createChildData(
-              "value", value.size(), value.byteStride(), value.data());
+          auto *t = new AnimationTrack<vec3f>();
+          track = t;
+          t->values.reserve(value.size());
+          for (size_t i = 0; i < value.size(); ++i)
+            t->values.push_back(value[i]);
         }
         if (c.target_path == "rotation") {
           if (valueAcc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
@@ -360,13 +352,29 @@ namespace ospray {
             continue;
           }
           Accessor<vec4f> value(valueAcc, model);
-          trackNode.createChildData(
-              "value", value.size(), value.byteStride(), value.data());
+          auto *t = new AnimationTrack<quaternionf>();
+          track = t;
+          t->values.reserve(value.size());
+          for (size_t i = 0; i < value.size(); ++i)
+            t->values.push_back(quaternionf(value[i]));
         }
 
-        channelID++;
+        track->interpolation = InterpolationMode::STEP;
+        if (s.interpolation == "LINEAR")
+          track->interpolation = InterpolationMode::LINEAR;
+        if (s.interpolation == "CUBICSPLINE")
+          track->interpolation = InterpolationMode::CUBIC;
+
+        track->target =
+            sceneNodes[c.target_node]->child(c.target_path).shared_from_this();
+
+        Accessor<float> time(inputAcc, model);
+        track->times.reserve(time.size());
+        for (size_t i = 0; i < time.size(); ++i)
+          track->times.push_back(time[i]);
+
+        animation.addTrack(track);
       }
-      currentAnim++;
     }
   }
 

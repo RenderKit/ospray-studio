@@ -90,18 +90,6 @@ namespace ospray {
     case NodeType::TRANSFER_FUNCTION:
       tfns.push(node.valueAs<cpp::TransferFunction>());
       break;
-    case NodeType::ANIMATION:
-    {
-      auto &nc = node.children();
-      for (auto &c : nc) {
-        auto timestep = c.second->child("timestep").valueAs<float>();
-          if (timestep == currentTimestep) {
-            xfms.push(xfms.top() * c.second->valueAs<affine3f>());
-            hasAnimation = true;
-          }
-      }
-      traverseChildren = false;
-    } break;
     case NodeType::TRANSFORM:
       if (unusedGeoms == current.geometries.size())
         xfms.push(xfms.top() * node.valueAs<affine3f>());

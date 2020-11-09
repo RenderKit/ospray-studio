@@ -6,6 +6,7 @@
 #include "../Node.h"
 #include "rkcommon/os/FileName.h"
 #include "sg/renderer/MaterialRegistry.h"
+#include "sg/scene/Animation.h"
 #include "sg/texture/Texture2D.h"
 
 #include "../../app/ospStudio.h"
@@ -50,7 +51,7 @@ struct OSPSG_INTERFACE Importer : public Node
     importCameras = true;
   }
 
-  inline void setAnimationList(std::vector<NodePtr> &_animations)
+  inline void setAnimationList(std::vector<sg::Animation> &_animations)
   {
     animations = &_animations;
   }
@@ -59,7 +60,7 @@ struct OSPSG_INTERFACE Importer : public Node
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
   std::vector<NodePtr> *cameras = nullptr;
-  std::vector<NodePtr> *animations = nullptr;
+  std::vector<sg::Animation> *animations = nullptr;
   bool importCameras{false};
 };
 
