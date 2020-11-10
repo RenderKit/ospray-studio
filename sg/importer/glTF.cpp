@@ -389,10 +389,10 @@ namespace ospray {
       return;
 
     // DEBUG << "Build Scene\n";
-    auto &scene = model.scenes[defaultScene];
-    sceneNodes.resize(scene.nodes.size());
+    sceneNodes.resize(model.nodes.size());
 
     // Process all nodes in default scene
+    auto &scene = model.scenes[defaultScene];
     for (const auto &nid : scene.nodes) {
       // DEBUG << "... Top Node (#" << nid << ")\n";
       // recursively process node hierarchy
