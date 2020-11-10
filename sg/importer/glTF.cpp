@@ -353,8 +353,10 @@ namespace ospray {
           auto *t = new AnimationTrack<quaternionf>();
           track = t;
           t->values.reserve(value.size());
-          for (size_t i = 0; i < value.size(); ++i)
-            t->values.push_back(quaternionf(value[i]));
+          for (size_t i = 0; i < value.size(); ++i) {
+            const auto &v = value[i];
+            t->values.push_back(quaternionf(v.w, v.x, v.y, v.z));
+          }
         }
 
         track->interpolation = InterpolationMode::STEP;
