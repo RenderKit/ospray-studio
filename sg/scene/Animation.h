@@ -19,6 +19,7 @@ struct OSPSG_INTERFACE AnimationTrackBase
 {
   virtual ~AnimationTrackBase() = default;
   virtual void update(const float time) = 0;
+  virtual bool valid() = 0;
 
   InterpolationMode interpolation{InterpolationMode::STEP};
   NodePtr target;
@@ -26,7 +27,8 @@ struct OSPSG_INTERFACE AnimationTrackBase
 
  protected:
   void updateIndex(const float time);
-  size_t index{0}; // [i]<=time<[i+1], cache to avoid binary search
+  ssize_t index{0}; // times[i] <= time < times[i+1], i.e. index in [-1, size-1]
+                    // cache to avoid binary search
 };
 
 struct OSPSG_INTERFACE Animation
@@ -49,6 +51,7 @@ struct OSPSG_INTERFACE AnimationTrack : public AnimationTrackBase
 {
   ~AnimationTrack() override = default;
   void update(const float time) override;
+  bool valid() override;
 
   std::vector<VALUE_T> values;
 };

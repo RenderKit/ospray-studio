@@ -12,8 +12,6 @@
 #include "glTF/gltf_types.h"
 
 #include "../visitors/PrintNodes.h"
-#include "interpolation/LinearInterpolationTrack.h"
-#include "interpolation/CubicInterpolationTrack.h"
 
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
