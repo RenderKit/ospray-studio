@@ -44,15 +44,12 @@ namespace ospray {
       //     - TransferFunction
       //     - ...others?
     } current;
-    bool hasAnimation{false};
     bool setTextureVolume{false};
     cpp::World world;
-    int unusedGeoms = 0;
     std::vector<cpp::Instance> instances;
     std::stack<affine3f> xfms;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
-    float currentTimestep;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -69,8 +66,6 @@ namespace ospray {
     switch (node.type()) {
     case NodeType::WORLD:
       world = node.valueAs<cpp::World>();
-      if(node.hasChild("time"))
-        currentTimestep = node.child("time").valueAs<float>();
       break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
@@ -90,14 +85,14 @@ namespace ospray {
     case NodeType::TRANSFER_FUNCTION:
       tfns.push(node.valueAs<cpp::TransferFunction>());
       break;
-    case NodeType::TRANSFORM:
-      if (unusedGeoms == current.geometries.size())
-        xfms.push(xfms.top() * node.valueAs<affine3f>());
-        else if (!node.hasChild("timestep")) {
-          createInstanceFromGroup();
-          xfms.push(xfms.top() * node.valueAs<affine3f>());
-      }
+    case NodeType::TRANSFORM: {
+      affine3f xfm =
+          affine3f::rotate(node.child("rotation").valueAs<quaternionf>())
+          * affine3f::scale(node.child("scale").valueAs<vec3f>());
+      xfm.p = node.child("translation").valueAs<vec3f>();
+      xfms.push(xfms.top() * xfm * node.valueAs<affine3f>());
       break;
+    }
     case NodeType::LIGHT:
       addLightToWorld(node);
       break;
@@ -121,13 +116,7 @@ namespace ospray {
       break;
     case NodeType::TRANSFORM:
       createInstanceFromGroup();
-      if(!node.hasChild("timestep")) {
-        xfms.pop();
-        if(hasAnimation) {
-          xfms.pop();
-          hasAnimation = false;
-        }
-      }
+      xfms.pop();
       break;
     case NodeType::MATERIAL_REFERENCE:
       break;
