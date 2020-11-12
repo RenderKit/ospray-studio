@@ -57,8 +57,7 @@ namespace ospray {
     void createGeometries();
     void createCameras(std::vector<NodePtr> &cameras);
     void buildScene();
-    void loadAssetInfo(NodePtr sgNode);
-    void addReferenceLinkNodes(const int nid, NodePtr sgNode);
+    void loadAndStoreNodeInfo(const int nid, NodePtr sgNode);
 
     // load animations AFTER loading scene nodes and their transforms
     void loadChannels();
@@ -70,6 +69,7 @@ namespace ospray {
     bool hasAnimations{false};
 
     std::map<float, int> g_allTimesteps;
+    AssetsCatalogue g;
 
    private:
     std::map<int, NodePtr> animatedNodes;
@@ -193,46 +193,65 @@ namespace ospray {
     return ret;
   }
 
-  void GLTFData::loadAssetInfo(NodePtr sgNode) {
-    auto asset = model.asset;
-    if (asset.extensions.find("BIT_asset_info") != asset.extensions.end()) {
-      auto &assetExt = asset.extensions["BIT_asset_info"];
-
-      auto assetId = assetExt.Get("id").Get<std::string>();
-      auto assetTitle = assetExt.Get("title").Get<std::string>();
-      auto assetType = assetExt.Get("type").Get<std::string>();
-
-      sgNode->createChild("asset_id", "string", assetId);
-      sgNode->createChild("asset_title", "string", assetTitle);
-      sgNode->createChild("asset_type", "string", assetType);
-    }
-  }
-
-  void GLTFData::addReferenceLinkNodes(const int nid, NodePtr sgNode)
-  {
+  // build asset catalogue from parsing main secene file
+  void GLTFData::loadAndStoreNodeInfo(const int nid, NodePtr sgNode) {
     const tinygltf::Node &n = model.nodes[nid];
-    auto refLinkExtension = n.extensions.find("BIT_reference_link")->second;
+    std::string refTitle{""};
+    std::string assetTitle{""};
+    if (n.extensions.find("BIT_asset_info") != n.extensions.end()) {
+      auto assetObj = n.extensions.find("BIT_asset_info")->second;
+      auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
+      auto &assetId = asset.Get("id").Get<std::string>();
+      auto &assetType = asset.Get("type").Get<std::string>();
+      assetTitle = asset.Get("title").Get<std::string>();
+    }
+    if (n.extensions.find("BIT_node_info") != n.extensions.end()) {
+      auto node = n.extensions.find("BIT_node_info")->second;
+      auto &nodeId = node.Get("id").Get<std::string>();
+    }
+    if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
+      auto refLink = n.extensions.find("BIT_reference_link")->second;
+      auto &refId = refLink.Get("id").Get<std::string>();
+      auto &refType = refLink.Get("type").Get<std::string>();
+      refTitle = refLink.Get("title").Get<std::string>();
+    }
 
-    auto &refId = refLinkExtension.Get("id").Get<std::string>();
-    auto &refType = refLinkExtension.Get("type").Get<std::string>();
-    auto &refTitle = refLinkExtension.Get("title").Get<std::string>();
+    if (refTitle.empty())
+      return;
 
-    std::string refLinkFileName;
-    if (refType == "geometry")
-      refLinkFileName = refTitle + ".gltf";
+    // node has asset Info and asset title should match refernce link title
+    if (!assetTitle.empty() && assetTitle != refTitle) {
+      std::cout << "mistmatch in asset information and reference link "
+                << std::endl;
+      return;
+    }
 
-    std::string refLinkFullPath = fileName.path() + refLinkFileName;
+    if (g.find(assetTitle) == g.end()) {
+      std::string refLinkFileName = refTitle + ".gltf";
+      std::string refLinkFullPath = fileName.path() + refLinkFileName;
+      rkcommon::FileName file(refLinkFullPath);
+      std::cout << "Importing: " << file << std::endl;
 
-    rkcommon::FileName file(refLinkFullPath);
-    std::cout << "Importing: " << file << std::endl;
-
-    auto importer = sg::getImporter(sgNode, refLinkFullPath);
-    if (importer) {
+      std::string nodeName = refTitle + "_importer";
+      auto importer = sg::createNodeAs<sg::Importer>(nodeName, "importer_gltf");
+      importer->setFileName(file);
       importer->setMaterialRegistry(materialRegistry);
       importer->importScene();
-      importer->createChild("id", "string", refId);
-      importer->createChild("title", "string", refType);
-      importer->createChild("type", "string", refTitle);
+      g.insert(AssetsCatalogue::value_type(assetTitle, importer));
+    } else {
+      // instantiate with new transform but old node data
+      std::cout << "loading from assetCatalogue : " << assetTitle << std::endl;
+      auto &importer = g[assetTitle];
+
+      // following is a copy from importer
+      std::string rootXfmName = refTitle + "_rootXfm";
+      if (!importer->hasChild(rootXfmName)) {
+        std::cout << "!!! error... importer rootXfm is missing?!" << std::endl;
+        return;
+      }
+      auto &rootXfmNode = importer->child(rootXfmName);
+      for (auto &g : rootXfmNode.children())
+        sgNode->add(g.second);
     }
   }
 
@@ -378,9 +397,14 @@ namespace ospray {
   void GLTFData::buildScene()
   {
     // DEBUG << "Build Scene\n";
+    if(model.scenes.empty())
+      return;
 
     if (model.defaultScene == -1)
       model.defaultScene = 0;
+
+    if(model.scenes[model.defaultScene].nodes.empty())
+      return;
 
     // create animation channels for each animation
     loadChannels();
@@ -414,8 +438,13 @@ namespace ospray {
     sgNode->add(newXfm);
     sgNode = newXfm;
 
-    if (n.extensions.find("BIT_reference_link") != n.extensions.end())
-        addReferenceLinkNodes(nid, sgNode);
+    // while parsing assets from BIT-TS look for BIT_asset_info to add to assetCatalogue
+    // followed by  BIT_node_info for adding that particular instance
+    // followed by BIT_reference_link to load that reference
+    if (n.extensions.find("BIT_asset_info") != n.extensions.end() ||
+        n.extensions.find("BIT_node_info") != n.extensions.end() ||
+        n.extensions.find("BIT_reference_link") != n.extensions.end())
+      loadAndStoreNodeInfo(nid, sgNode);
 
     if (animate) {
     // for each scene node check if it is animated (if it's node ID exist in animatedNodes map)
@@ -1005,9 +1034,6 @@ namespace ospray {
     if (importCameras)
       gltf.createCameras(*cameras);
 
-    // load asset extensions as separate SG Asset-Info-node
-    gltf.loadAssetInfo(rootNode);
-
     if (animate){
       for (auto iter = gltf.g_allTimesteps.begin(); iter != gltf.g_allTimesteps.end(); ++iter){
         timesteps->push_back(iter->first);
@@ -1016,6 +1042,8 @@ namespace ospray {
 
     // Finally, add node hierarchy to importer parent
     add(rootNode);
+
+    // rootNode->traverse<sg::PrintNodes>();
 
     INFO << "finished import!\n";
   }

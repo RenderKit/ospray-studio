@@ -13,6 +13,9 @@
 namespace ospray {
 namespace sg {
 
+// map of asset Titles and corresponding original importer nodes
+typedef std::map<std::string, NodePtr> AssetsCatalogue;
+
 struct OSPSG_INTERFACE Importer : public Node
 {
   Importer();
