@@ -358,6 +358,11 @@ namespace ospray {
             t->values.push_back(quaternionf(v.w, v.x, v.y, v.z));
           }
         }
+        if (c.target_path == "weights") {
+          WARN << "animating weights of morph targets not implemented yet"
+               << std::endl;
+          continue;
+        }
 
         track->interpolation = InterpolationMode::STEP;
         if (s.interpolation == "LINEAR")
