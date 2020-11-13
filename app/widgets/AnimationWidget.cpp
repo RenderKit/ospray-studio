@@ -57,10 +57,15 @@ void AnimationWidget::update()
   auto now = std::chrono::system_clock::now();
   if (play) {
     time += std::chrono::duration<float>(now - lastUpdated).count() * speedup;
-    if (loop && time > timeRange.upper) {
-      const float d = timeRange.size();
-      time = d == 0.f ? timeRange.lower : timeRange.lower + std::fmod(time, d);
-    }
+    if (time > timeRange.upper)
+      if (loop) {
+        const float d = timeRange.size();
+        time =
+            d == 0.f ? timeRange.lower : timeRange.lower + std::fmod(time, d);
+      } else {
+        time = timeRange.lower;
+        play = false;
+      }
   }
   lastUpdated = now;
 
