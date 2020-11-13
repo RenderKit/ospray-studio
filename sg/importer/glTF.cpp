@@ -57,7 +57,7 @@ namespace ospray {
     void createGeometries();
     void createCameras(std::vector<NodePtr> &cameras);
     void buildScene();
-    void loadAndStoreNodeInfo(const int nid, NodePtr sgNode);
+    void loadNodeInfo(const int nid, NodePtr sgNode);
 
     // load animations AFTER loading scene nodes and their transforms
     void loadChannels();
@@ -69,7 +69,6 @@ namespace ospray {
     bool hasAnimations{false};
 
     std::map<float, int> g_allTimesteps;
-    AssetsCatalogue g;
 
    private:
     std::map<int, NodePtr> animatedNodes;
@@ -193,8 +192,7 @@ namespace ospray {
     return ret;
   }
 
-  // build asset catalogue from parsing main secene file
-  void GLTFData::loadAndStoreNodeInfo(const int nid, NodePtr sgNode) {
+  void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode) {
     const tinygltf::Node &n = model.nodes[nid];
     std::string refTitle{""};
     std::string assetTitle{""};
@@ -225,33 +223,16 @@ namespace ospray {
                 << std::endl;
       return;
     }
+    std::string refLinkFileName = refTitle + ".gltf";
+    std::string refLinkFullPath = fileName.path() + refLinkFileName;
+    rkcommon::FileName file(refLinkFullPath);
+    std::cout << "Importing: " << file << std::endl;
 
-    if (g.find(assetTitle) == g.end()) {
-      std::string refLinkFileName = refTitle + ".gltf";
-      std::string refLinkFullPath = fileName.path() + refLinkFileName;
-      rkcommon::FileName file(refLinkFullPath);
-      std::cout << "Importing: " << file << std::endl;
-
-      std::string nodeName = refTitle + "_importer";
-      auto importer = sg::createNodeAs<sg::Importer>(nodeName, "importer_gltf");
-      importer->setFileName(file);
+    auto importer =
+        std::static_pointer_cast<sg::Importer>(sg::getImporter(sgNode, file));
+    if (importer) {
       importer->setMaterialRegistry(materialRegistry);
       importer->importScene();
-      g.insert(AssetsCatalogue::value_type(assetTitle, importer));
-    } else {
-      // instantiate with new transform but old node data
-      std::cout << "loading from assetCatalogue : " << assetTitle << std::endl;
-      auto &importer = g[assetTitle];
-
-      // following is a copy from importer
-      std::string rootXfmName = refTitle + "_rootXfm";
-      if (!importer->hasChild(rootXfmName)) {
-        std::cout << "!!! error... importer rootXfm is missing?!" << std::endl;
-        return;
-      }
-      auto &rootXfmNode = importer->child(rootXfmName);
-      for (auto &g : rootXfmNode.children())
-        sgNode->add(g.second);
     }
   }
 
@@ -444,7 +425,7 @@ namespace ospray {
     if (n.extensions.find("BIT_asset_info") != n.extensions.end() ||
         n.extensions.find("BIT_node_info") != n.extensions.end() ||
         n.extensions.find("BIT_reference_link") != n.extensions.end())
-      loadAndStoreNodeInfo(nid, sgNode);
+      loadNodeInfo(nid, sgNode);
 
     if (animate) {
     // for each scene node check if it is animated (if it's node ID exist in animatedNodes map)
@@ -1042,8 +1023,6 @@ namespace ospray {
 
     // Finally, add node hierarchy to importer parent
     add(rootNode);
-
-    // rootNode->traverse<sg::PrintNodes>();
 
     INFO << "finished import!\n";
   }

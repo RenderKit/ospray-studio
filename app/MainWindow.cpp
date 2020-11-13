@@ -1003,7 +1003,7 @@ void MainWindow::importFiles(sg::NodePtr world)
       } else {
         std::cout << "Importing: " << file << std::endl;
 
-        auto importer = sg::getImporter(world, file);
+        auto importer = std::static_pointer_cast<sg::Importer>(sg::getImporter(world, file));
         if (importer) {
           // Could be any type of importer.  Need to pass the MaterialRegistry,
           // importer will use what it needs.

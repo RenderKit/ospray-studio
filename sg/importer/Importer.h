@@ -16,6 +16,9 @@ namespace sg {
 // map of asset Titles and corresponding original importer nodes
 typedef std::map<std::string, NodePtr> AssetsCatalogue;
 
+// global assets catalogue
+static AssetsCatalogue cat;
+
 struct OSPSG_INTERFACE Importer : public Node
 {
   Importer();
@@ -64,38 +67,36 @@ struct OSPSG_INTERFACE Importer : public Node
 
 extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 
-inline Importer *getImporter(NodePtr root, rkcommon::FileName fileName)
+// Providing a unique transform instance as root to add existing imported model to, 
+// should probably be the responsibility of the calling routine
+inline NodePtr getImporter(NodePtr root, rkcommon::FileName fileName)
 {
   std::string baseName = fileName.name();
   auto fnd = importerMap.find(fileName.ext());
   if (fnd == importerMap.end()) {
     std::cout << "No importer for " << fileName << std::endl;
-    return nullptr;
   }
-
   std::string importer = fnd->second;
   std::string nodeName = baseName + "_importer";
 
-  Importer *importNode = nullptr;
-
-  if (root->hasChild(nodeName)) {
+  if (cat.find(baseName) != cat.end()) {
     // Existing import, instance it!
     std::cout << "Instancing: " << nodeName << std::endl;
 
     // Importer node and its rootXfm
-    auto &origNode = root->child(nodeName);
+    auto &origNode = cat[baseName];
     std::string rootXfmName = baseName + "_rootXfm";
-    if (!origNode.hasChild(rootXfmName)) {
+
+    if (!origNode->hasChild(rootXfmName)) {
       std::cout << "!!! error... importer rootXfm is missing?!" << std::endl;
-      return nullptr;
     }
-    auto &rootXfmNode = origNode.child(rootXfmName);
+    auto &rootXfmNode = origNode->child(rootXfmName);
 
     // Create a unique instanceXfm nodeName
     auto count = 1;
     do {
       nodeName = baseName + "_instanceXfm_" + std::to_string(count++);
-    } while (origNode.hasChild(nodeName));
+    } while (origNode->hasChild(nodeName));
 
     auto instanceXfm = createNode(nodeName, "Transform", affine3f{one});
 
@@ -103,18 +104,17 @@ inline Importer *getImporter(NodePtr root, rkcommon::FileName fileName)
     for (auto &g : rootXfmNode.children())
       instanceXfm->add(g.second);
 
-    // add instance to importer parent
-    origNode.add(instanceXfm);
+    root->add(instanceXfm);
 
-    // Everything is done, no need to return a node.
+    return nullptr;
 
   } else {
-    // Import
-    importNode = &root->createChildAs<sg::Importer>(nodeName, importer);
+    auto importNode = createNodeAs<sg::Importer>(nodeName, importer);
     importNode->setFileName(fileName);
+    cat.insert(AssetsCatalogue::value_type(baseName, importNode));
+    root->add(importNode);
+    return importNode;
   }
-
-  return importNode;
 }
 
 // for loading scene (.sg) files
