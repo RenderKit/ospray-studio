@@ -12,7 +12,7 @@ high fidelity rendering or very large scenes requiring supercomputing
 resources.
 
 The main control structure is a scene graph which allows users to
-create an abstract scene in a generic tree hierarchy. Scenes can either be
+create an abstract scene in a `directed acyclical graph` manner. Scenes can either be
 imported or created using scene graph nodes and structure support.  The scenes
 can then be rendered either with a `pathtracer` or a `scivis` renderer.
  
@@ -123,7 +123,7 @@ cmake --build . --config Release --target install
 ## Using OSPRay Studio
  
 At its core, OSPRay Studio maintains a scenegraph of nodes representing the
-current scene as a tree.  This simplifies user interaction with the scene and
+current scene as a `DAG`.  This simplifies user interaction with the scene and
 hides the maintenance of OSPRay state.  The scenegraph manages the four primary
 OSPRay components: the `FrameBuffer`, `Camera`, `Renderer`, and `World`.
 OSPRay Studio currently offers three different modes in which it can operate.

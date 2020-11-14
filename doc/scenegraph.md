@@ -1,26 +1,21 @@
 % OSPRay Studio Scene Graph
 
-OSPRay Studio's scene graph (SG) is a tree structure that simplifies
-construction and manipulation of OSPRay objects.  The SG is fundamentally a
-tree data structure comprised of nodes. In contrast to the old OSPRay SG, the
-new OSPRay Studio SG does _not_ have a 1:1 correspondence with OSPRay objects.
-Instead, the OSPRay Studio SG presents a higher level interface that is easier
-to understand and manipulate.
+OSPRay Studio's scene graph (SG) is a `directed acyclical graph(DAG)` structure that is an abstraction of `OSPRay` scene hierarchy into a graph comprised of `sg::Nodes`. In contrast to the old OSPRay SG, the
+new OSPRay Studio SG does _not_ have a 1:1 correspondence with OSPRay scene objects.
+Instead, the OSPRay Studio SG presents a higher level interface comprising of a subset of OSPRay scene object types along with scene graph specific node types, together comprising the `sg::Nodes` types.
 
 ## SG Design Overview
 
 The OSPRay Studio SG provides a high-level representation of OSPRay objects
-that can be manipulated efficiently.  The SG is comprised of _nodes_, which can
+which are flexible for organization within the DAG.  The SG is comprised of _nodes_, which can
 represent OSPRay objects, custom data importers/exporters, and even individual
 parameters for other nodes.  Nodes are connected with parent-child
-relationships. Each node may have at most one parent, forming a tree structure.
-This tree is easily traversed and searched, making manipulating the scene
-heirarchy easy.
+relationships. Every node has an array of parents node hence forming a directed acyclical graph structure.
+This graph structure is easy to traverse using parent-child links either via get methods like `node.child(child-name-string)`or via access specifiers like `node[child-name-string]`.
 
-Nodes alone generally do not provide much functionality; instead, they manage
-data and maintain the current state of the SG (there are some exceptions to
-this detailed later).  Complex functionality, such as updating, committing, and
-rendering is handled by _visitors_, which traverse the tree, performing various
+All nodes classes manage node-data and node-state using the standard `sg:Nodes` API, while certain node classes provide routines which are specific to that node-type like a lights-manager node type would provide API to add/remove lights.
+Complex functionality, such as updating, committing, and
+rendering is handled by _visitors_, which traverse the graph, performing various
 actions based on nodes visited.
 
 The general SG design is to build the scene heirarchy with nodes, then traverse
@@ -120,7 +115,7 @@ Children are held in a `FlatMap`, with keys being child node names and values
 being pointers to the child nodes[^2].
 
 Finally, a number of `TimeStamp` objects track the modification status of this
-node and its children. These are used to determine if a subtree of the SG needs
+node and its children. These are used to determine if a subgraph of the SG needs
 to be processed and committed to OSPRay.
 
 A node's `name` and `subType` can be accessed via its `name()` and `subType()`
@@ -141,7 +136,7 @@ myNewNode = 1.f;
 
 In either case, the node will mark itself as modified if the new value is
 different from the current value. More detail on the modified status is
-provided in [Tree Traversal Interface](#tree-traversal-interface).
+provided in [Graph Traversal Interface](#graph-traversal-interface).
 
 ### Parent-child Interface
 
@@ -232,13 +227,13 @@ std::shared_ptr<NODE_T> childNodeAs(const std::string &name)
 Similar to the factory functions, these are useful if you need to access
 derived class methods of the node.
 
-### Tree Traversal Interface
+### Graph Traversal Interface
 
-Once nodes are connected into a tree, the tree needs to be traversed in order
+Once nodes are connected into a graph, the graph needs to be traversed in order
 to translate it into an OSPRay render graph.  A node's `traverse` method
-provides an "entry point" for tree traversal.
+provides an "entry point" for graph traversal.
 
-Tree traversal is performed mainly by `Visitor` objects, which are described in
+Graph traversal is performed mainly by `Visitor` objects, which are described in
 more detail in [Visitors](#visitors). A node's `commit()` and `render()`
 methods are actually shortcuts to calling `traverse()` using the appropriate
 visitor.
@@ -290,7 +285,7 @@ and `Volume` nodes are children of the importer node that loaded the file.
 
 The `Visitor` class defines objects used to traverse the SG and perform complex
 functions based on the nodes encountered. A `Visitor` can be called from the
-root node to traverse the whole tree, or be limited to a subtree.
+root node to traverse the whole graph, or be limited to a subgraph.
 
 `Visitor`s are essentially functors -- objects treated like functions. As such,
 the functionality provided by a `Visitor` is defined in its `operator()`
@@ -321,7 +316,7 @@ Collections of these models are placed in a `Group` and then an `Instance`.
 ### Commit Visitor
 
 This visitor is responsible for executing `preCommit()` and `postCommit()`
-methods of every `Node` in the subtree on which it is called based on their
+methods of every `Node` in the subgraph on which it is called based on their
 last modified time. These methods finalize parameter values for the internal
 OSPRay objects. This visitor should be called before the `RenderScene` visitor
 to finalize nodes.
