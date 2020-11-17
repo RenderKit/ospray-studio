@@ -932,12 +932,7 @@ void MainWindow::refreshScene(bool resetCam)
   if (baseMaterialRegistry->isModified())
     refreshRenderer();
 
-  if (screenshotMetaData) {
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-    auto &metaDataMap = fb.m;
-    world->render(metaDataMap);
-  } else
-    world->render();
+  world->render();
 
   frame->add(world);
 
@@ -968,8 +963,6 @@ bool MainWindow::parseCommandLine()
       --i;
     } else if (arg == "--animate" || arg == "-a") {
       animate = true;
-    } else if (arg == "--metadata" || arg == "-m") {
-      screenshotMetaData = true;
     } else if (arg == "--2160p")
       glfwSetWindowSize(glfwWindow, 3840, 2160);
     else if (arg == "--1440p")
@@ -1064,9 +1057,8 @@ void MainWindow::saveCurrentFrame()
   do
     std::snprintf(filename, 64, "studio.%04d.%s", filenum++, ext);
   while (std::ifstream(filename).good());
-
-  int screenshotFlags = screenshotMetaData << 4 | screenshotLayers << 3 | screenshotNormal << 2 |
-                        screenshotDepth << 1 | screenshotAlbedo;
+  int screenshotFlags = screenshotMetaData << 4 | screenshotLayers << 3
+      | screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
 
   frame->saveFrame(std::string(filename), screenshotFlags);
 }
@@ -1210,6 +1202,9 @@ void MainWindow::buildMainMenuFile()
       refreshScene(resetCam);
     }
   }
+
+  if(screenshotMetaData)
+    frame->child("world").child("saveMetaData").setValue(true);
 }
 
 void MainWindow::buildMainMenuEdit()

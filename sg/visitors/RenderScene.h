@@ -5,7 +5,6 @@
 
 #include "../Node.h"
 #include "../renderer/MaterialRegistry.h"
-#include "sg/UUIDUtils.h"
 // std
 #include <stack>
 
@@ -15,7 +14,7 @@ namespace ospray {
   struct RenderScene : public Visitor
   {
     RenderScene();
-    RenderScene(UUIDMap &uuidMap);
+    RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
     void postChildren(Node &node, TraversalContext &) override;
@@ -52,8 +51,10 @@ namespace ospray {
     std::stack<affine3f> xfms;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
+    std::string instanceId{""};
     std::string geomId{""};
-    UUIDMap *m{nullptr};
+    GeomIdMap *g{nullptr};
+    InstanceIdMap *in{nullptr};
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -63,10 +64,11 @@ namespace ospray {
     xfms.emplace(math::one);
   }
 
-  inline RenderScene::RenderScene(UUIDMap &uuidMap)
+  inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap)
   {
     xfms.emplace(math::one);
-    m = &uuidMap;
+    g = &geomIdMap;
+    in = &instanceIdMap;
   }
 
   inline bool RenderScene::operator()(Node &node, TraversalContext &ctx)
@@ -101,8 +103,10 @@ namespace ospray {
           * affine3f::scale(node.child("scale").valueAs<vec3f>());
       xfm.p = node.child("translation").valueAs<vec3f>();
       xfms.push(xfms.top() * xfm * node.valueAs<affine3f>());
-      if(node.hasChild("geomId"))
+      if(node.hasChild("instanceID") && node.hasChild("geomId")) {
+        instanceId = node.child("instanceId").valueAs<std::string>();
         geomId = node.child("geomId").valueAs<std::string>();
+      }
       break;
     }
     case NodeType::LIGHT:
@@ -129,6 +133,10 @@ namespace ospray {
     case NodeType::TRANSFORM:
       createInstanceFromGroup();
       xfms.pop();
+      if(node.hasChild("instanceID") && node.hasChild("geomId")) {
+        instanceId = "";
+        geomId = "";
+      }
       break;
     case NodeType::MATERIAL_REFERENCE:
       break;
@@ -150,10 +158,9 @@ namespace ospray {
     cpp::GeometricModel model(geom);
 
     // fetch the geometry UUID and add it to the UUID map
-    if (m != nullptr && !geomId.empty()) {
+    if (g != nullptr && !geomId.empty()) {
       auto ospGeometricModel = model.handle();
-      m->insert(UUIDMap::value_type(ospGeometricModel, geomId));
-      geomId = "";
+      g->insert(GeomIdMap::value_type(ospGeometricModel, geomId));
     }
 
     if (node.hasChild("material")) {
@@ -256,6 +263,11 @@ namespace ospray {
     inst.setParam("xfm", xfms.top());
     inst.commit();
     instances.push_back(inst);
+
+    if (in != nullptr && !instanceId.empty()) {
+      auto ospInstance = inst.handle();
+      in->insert(InstanceIdMap::value_type(ospInstance, instanceId));
+    }
     #if defined(DEBUG)
     std::cout << "number of instances : " << instances.size() << std::endl;
     #endif

@@ -12,7 +12,6 @@
 #include "glTF/gltf_types.h"
 
 #include "../visitors/PrintNodes.h"
-#include "../UUIDUtils.h"
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
@@ -185,22 +184,26 @@ namespace ospray {
     const tinygltf::Node &n = model.nodes[nid];
     std::string refTitle{""};
     std::string assetTitle{""};
-    if (n.extensions.find("BIT_asset_info") != n.extensions.end()) {
+
+    // ignore in-asset information.
+    // Only load node info from main scene file for semantic segmentation
+    if (n.extensions.find("BIT_asset_info") != n.extensions.end() &&
+        n.extensions.find("BIT_reference_link") != n.extensions.end()) {
       auto assetObj = n.extensions.find("BIT_asset_info")->second;
       auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
       auto &assetId = asset.Get("id").Get<std::string>();
-      auto &assetType = asset.Get("type").Get<std::string>();
       assetTitle = asset.Get("title").Get<std::string>();
-    }
-    if (n.extensions.find("BIT_node_info") != n.extensions.end()) {
-      auto node = n.extensions.find("BIT_node_info")->second;
-      auto &nodeId = node.Get("id").Get<std::string>();
-    }
-    if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
+
       auto refLink = n.extensions.find("BIT_reference_link")->second;
       auto &refId = refLink.Get("id").Get<std::string>();
-      auto &refType = refLink.Get("type").Get<std::string>();
       refTitle = refLink.Get("title").Get<std::string>();
+      sgNode->createChild("geomId", "string", refId);
+
+      if (n.extensions.find("BIT_node_info") != n.extensions.end()) {
+        auto node = n.extensions.find("BIT_node_info")->second;
+        auto &nodeId = node.Get("id").Get<std::string>();
+        sgNode->createChild("instanceId", "string", nodeId);
+      }
     }
 
     if (refTitle.empty())

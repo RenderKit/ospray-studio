@@ -212,10 +212,10 @@ namespace ospray {
     traverse<RenderScene>();
   }
 
-  void Node::render(UUIDMap &uuidMap)
+  void Node::render(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap)
   {
     commit();
-    traverse<RenderScene>(uuidMap);
+    traverse<RenderScene>(geomIdMap, instanceIdMap);
   }
 
   box3f Node::bounds()

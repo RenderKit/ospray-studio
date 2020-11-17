@@ -23,8 +23,6 @@
 #include "version.h"
 #include "NodeType.h"
 
-#include "sg/UUIDUtils.h"
-
 #ifndef OSPSG_INTERFACE
 #ifdef _WIN32
 #ifdef ospray_sg_EXPORTS
@@ -62,6 +60,9 @@ namespace sg {
   using NodePtr = std::shared_ptr<Node>;
 
   struct Data;
+
+  typedef std::unordered_map<OSPGeometricModel, std::string> GeomIdMap;
+  typedef std::unordered_map<OSPInstance, std::string> InstanceIdMap;
 
   struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
   {
@@ -182,7 +183,7 @@ namespace sg {
 
     void commit();
     void render();
-    void render(UUIDMap &uuidMap);
+    void render(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap);
 
     box3f bounds();
 
@@ -317,7 +318,6 @@ namespace sg {
 
   using RGBNode  = Node_T<rgb>;
   using RGBANode = Node_T<rgba>;
-
 
   /////////////////////////////////////////////////////////////////////////////
   // OSPRay Object Nodes //////////////////////////////////////////////////////

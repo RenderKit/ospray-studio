@@ -230,11 +230,11 @@ namespace ospray {
       std::cout << "saving meta data for pixels .." << std::endl;
       pickFrame();
 
-      if (xyMetaData != nullptr) {
+      if (geomData != nullptr && instData != nullptr) {
         // TODO: instanceID and world coordinates
         exp->child("asLayers").setValue(true);
-        exp->xyMetaData = xyMetaData;
-        exp->createChild("geomId");
+        exp->_geomData = geomData;
+        exp->_instData = instData;
       }
     }
 
@@ -256,14 +256,27 @@ namespace ospray {
     auto &camera = frame->childAs<sg::Camera>("camera").handle();
     auto &renderer = frame->childAs<sg::Renderer>("renderer").handle();
     auto size = child("size").valueAs<vec2i>();
+    instData =
+        (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
+    geomData =
+        (uint16_t *)std::malloc(size.x * size.y * sizeof(uint16_t));
 
-    xyMetaData =
-        (uint32_t *)std::malloc(size.x * size.y * 4 * sizeof(uint32_t));
+    // ensure size of id maps are same
+    if(ge.size()!= in.size()) {
+      std::cout << " mismatch in size of id arrays, cannot save image file" << std::endl;
+      return;
+    }
 
-    std::vector<FrameMetadata *> metaDataRows(size.y);
-    metaDataRows[0] = (FrameMetadata *)xyMetaData;
+    std::vector<uint32_t *> instRows(size.y);
+    instRows[0] = (uint32_t *)instData;
     for (int i = 1; i < size.y; i++) {
-      metaDataRows[i] = metaDataRows[i - 1] + size.x;
+      instRows[i] = instRows[i - 1] + size.x;
+    }
+
+    std::vector<uint16_t *> geomRows(size.y);
+    geomRows[0] = (uint16_t *)geomData;
+    for (int i = 1; i < size.y; i++) {
+      geomRows[i] = geomRows[i - 1] + size.x;
     }
 
     // change this to parallel_for
@@ -275,21 +288,51 @@ namespace ospray {
         auto pickResult =
             handle().pick(renderer, camera, world, normalize_x, normalize_y);
 
-        FrameMetadata metaData;
+        uint32_t instId;
+        uint16_t geomId;
 
-        // Ensure it has 128 bits assigned
-        static_assert(sizeof(metaData) == 128 / CHAR_BIT, "incorrect allotted UUID size");
+        if (pickResult.hasHit) {
+          auto ospGeometricModel = pickResult.model.handle();
+          auto ospInstance = pickResult.instance.handle();
 
-        auto ospGeometricModel = pickResult.model.handle();
-
-        if(pickResult.hasHit) {
-          UUID modelUUID = makeUUID(m[ospGeometricModel]);
-          metaData.modelId = modelUUID; 
-        } else {          
-          metaData.modelId = makeUUID(0, 0, 0, 0);
+          auto &geomId = ge[ospGeometricModel];
+          auto &instanceId = in[ospInstance];
+          // use index as keys of json map for exporting UUIDs
+          geomId = distance(ge.begin(), ge.find(ospGeometricModel));
+          instId = distance(in.begin(), in.find(ospInstance));
+        } else {
+          // use largest values as dummy values 
+          geomId = 0xFFFF;
+          instId = 0xFFFFFFFF;
         }
-        metaDataRows[i][j] = metaData;
+        geomRows[i][j] = geomId;
+        instRows[i][j] = instId;
       }
+    }
+    std::ofstream geomDump("geomId.sg");
+    std::ofstream instDump("instId.sg");
+    int i = 0;
+    nlohmann::json gj;
+    for (auto &g : ge) {
+      if (g.second.length() == 36) {
+        gj = {i, g.second};
+        geomDump << "\n" << gj.dump();
+      } else {
+        gj = {i, ""};
+        geomDump << "\n" << gj.dump();
+      }
+      i++;
+    }
+    i = 0;
+    for (auto &g : in) {
+      if (g.second.length() == 36) {
+        gj = {i, g.second};
+        instDump << "\n" << gj.dump();
+      } else {
+        gj = {i, ""};
+        instDump << "\n" << gj.dump();
+      }
+      i++;
     }
   }
 

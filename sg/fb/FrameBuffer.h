@@ -5,8 +5,6 @@
 
 #include "sg/Node.h"
 
-#include "sg/UUIDUtils.h"
-
 namespace ospray {
   namespace sg {
 
@@ -21,9 +19,11 @@ namespace ospray {
     const void *map(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmap(const void *mem);
     float variance();
-    // std::vector<FrameMetadata> xyMetaData;
-    uint32_t *xyMetaData{nullptr};
-    UUIDMap m; // meta-data map
+    uint32_t *instData{nullptr};
+    uint16_t *geomData{nullptr};
+
+    GeomIdMap ge;
+    InstanceIdMap in;
 
     void resetAccumulation();
     void updateDenoiser(bool enabled);
