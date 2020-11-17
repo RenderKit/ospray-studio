@@ -400,6 +400,8 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(Vec2fNode, vec2f);
   OSP_REGISTER_SG_NODE_NAME(Vec3fNode, vec3f);
   OSP_REGISTER_SG_NODE_NAME(Vec4fNode, vec4f);
+  OSP_REGISTER_SG_NODE_NAME(CharNode, char);
+  OSP_REGISTER_SG_NODE_NAME(UcharNode, uchar);
   OSP_REGISTER_SG_NODE_NAME(IntNode, int);
   OSP_REGISTER_SG_NODE_NAME(UIntNode, uint32_t);
   OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);

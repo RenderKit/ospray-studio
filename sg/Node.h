@@ -303,6 +303,8 @@ namespace sg {
   using Vec2fNode   = Node_T<vec2f>;
   using Vec3fNode   = Node_T<vec3f>;
   using Vec4fNode   = Node_T<vec4f>;
+  using CharNode    = Node_T<char>;
+  using UcharNode   = Node_T<unsigned char>;
   using IntNode     = Node_T<int>;
   using UIntNode    = Node_T<uint32_t>;
   using Vec2iNode   = Node_T<vec2i>;
