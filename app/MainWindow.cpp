@@ -1014,6 +1014,8 @@ void MainWindow::importFiles(sg::NodePtr world)
           }
           importer->importScene();
         }
+
+        world->traverse<sg::PrintNodes>();
       }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
@@ -1886,7 +1888,8 @@ void MainWindow::buildWindowGeometryViewer()
   } else {
     for (auto &node : frame->child("world").children()) {
       if (node.second->type() == sg::NodeType::GENERATOR
-          || node.second->type() == sg::NodeType::IMPORTER) {
+          || node.second->type() == sg::NodeType::IMPORTER
+          || node.second->type() == sg::NodeType::TRANSFORM) {
         node.second->traverse<sg::GenerateImGuiWidgets>(
             sg::TreeState::ROOTOPEN, userUpdated);
         // Don't continue traversing
