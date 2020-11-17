@@ -117,6 +117,12 @@ inline NodePtr getImporter(NodePtr root, rkcommon::FileName fileName)
   }
 }
 
+inline void clearImporter()
+{
+  if(cat.size() != 0)
+    cat.clear();
+}
+
 // for loading scene (.sg) files
 OSPSG_INTERFACE void importScene(
     std::shared_ptr<StudioContext> context, rkcommon::FileName &fileName);

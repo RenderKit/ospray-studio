@@ -324,6 +324,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->importScene();
           world->add(importer);
         }
+        sg::clearImporter();
       }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";

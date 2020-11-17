@@ -234,6 +234,7 @@ namespace ospray {
       importer->setMaterialRegistry(materialRegistry);
       importer->importScene();
     }
+    sg::clearImporter();
   }
 
   void GLTFData::createMaterials()

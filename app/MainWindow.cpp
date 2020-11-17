@@ -1022,6 +1022,7 @@ void MainWindow::importFiles(sg::NodePtr world)
     }
   }
   filesToImport.clear();
+  sg::clearImporter();
 
   if(cameras.size() > 0){
     auto &mainCamera = frame->child("camera");
@@ -1050,7 +1051,6 @@ void MainWindow::importFiles(sg::NodePtr world)
     });
   }
 }
-
 
 void MainWindow::saveCurrentFrame()
 {
