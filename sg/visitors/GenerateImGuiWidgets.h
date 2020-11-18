@@ -436,6 +436,32 @@ inline bool generateWidget_range1f(const std::string &title, Node &node)
   return false;
 }
 
+inline bool generateWidget_quaternionf(const std::string &title, Node &node)
+{
+  quaternionf q = node.valueAs<quaternionf>();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s", (node.name() + ": quaternionf").c_str());
+    ImGui::Text("%s",
+        (node.name() + ": " + std::to_string(q.r) + ", " + std::to_string(q.i)
+            + ", " + std::to_string(q.j) + ", " + std::to_string(q.k))
+            .c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  vec4f v(q.r, q.i, q.j, q.k);
+  if (ImGui::DragFloat4("q", v)) {
+    q = quaternionf(v.x, vec3f(v.y, v.z, v.w));
+    node.setValue(q);
+    nodeTooltip(node);
+    return true;
+  }
+
+  nodeTooltip(node);
+  return false;
+}
+
 inline bool generateWidget_string(const std::string &, Node &node)
 {
   std::string s = node.valueAs<std::string>();
@@ -460,6 +486,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"affine3f", generateWidget_affine3f},
     {"range1i", generateWidget_range1i},
     {"range1f", generateWidget_range1f},
+    {"quaternionf", generateWidget_quaternionf},
     {"string", generateWidget_string},
 };
 
