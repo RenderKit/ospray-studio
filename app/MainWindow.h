@@ -17,6 +17,7 @@
 #include "PluginManager.h"
 
 #include "widgets/AnimationWidget.h"
+#include "sg/importer/Importer.h"
 
 using namespace rkcommon::math;
 using namespace ospray;
@@ -133,6 +134,10 @@ class MainWindow : public StudioContext
   void printHelp() override;
 
   std::vector<CameraState> cameraStack;
+
+  //Volume parameters
+  sg::VolumeParams vp;
+  bool useVolumeParams{false};
 
   // Plugins //
   std::vector<std::unique_ptr<Panel>> pluginPanels;

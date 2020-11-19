@@ -9,25 +9,12 @@ namespace ospray {
 
   // StructuredSpherical definitions /////////////////////////////////////////////
 
-  StructuredSpherical::StructuredSpherical() : Volume("structuredSpherical")
-  {
-    createChild("voxelType", "int");
-    createChild("gridOrigin", "vec3f");
-    createChild("gridSpacing", "vec3f");
-    createChild("dimensions", "vec3i");
-  }
+  StructuredSpherical::StructuredSpherical() : Volume("structuredSpherical") {}
 
     ///! \brief file name of the xml doc when the node was loaded from xml
   /*! \detailed we need this to properly resolve relative file names */
   void StructuredSpherical::load(const FileName &fileNameAbs)
   {
-    // the following hard coded volume properties should exist either in volume file headers or,
-    // xml kind supporting docs with binary volume data
-    createChild("voxelType", "int", int(OSP_FLOAT));
-    createChild("dimensions", "vec3i", vec3i(180, 180, 180));
-    createChild("gridOrigin", "vec3f", vec3f(0));
-    createChild("gridSpacing", "vec3f", vec3f(1, 1, 1));
-
     auto &dimensions = child("dimensions").valueAs<vec3i>();
     if (dimensions.x <= 0 || dimensions.y <= 0 || dimensions.z <= 0) {
       throw std::runtime_error(

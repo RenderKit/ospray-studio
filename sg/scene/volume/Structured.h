@@ -6,8 +6,6 @@
 // sg
 #include "../../Data.h"
 #include "Volume.h"
-// rkcommon
-#include "rkcommon/os/FileName.h"
 
 namespace ospray {
   namespace sg {
@@ -16,7 +14,7 @@ namespace ospray {
   {
     StructuredVolume();
     virtual ~StructuredVolume() override = default;
-    void load(const FileName &fileName);
+    void load(const FileName &fileName) override;
 
    private:
     bool fileLoaded{false};

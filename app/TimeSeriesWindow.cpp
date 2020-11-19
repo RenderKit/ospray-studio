@@ -15,18 +15,11 @@
 
 #include "../sg/scene/volume/VDBVolumeTimeStep.h"
 #include "../sg/scene/volume/VolumeTimeStep.h"
+#include "../sg/scene/volume/Volume.h"
 
 using namespace ospray::sg;
 
 std::vector<std::string> variablesLoaded;
-
-static std::unordered_map<std::string, OSPDataType> const tableDataType = {
-    {"float", OSP_FLOAT},
-    {"int", OSP_INT},
-    {"uchar", OSP_UCHAR},
-    {"short", OSP_SHORT},
-    {"ushort", OSP_USHORT},
-    {"double", OSP_DOUBLE}};
 
 TimeSeriesWindow::TimeSeriesWindow(StudioCommon &_common) 
   : MainWindow(_common)
@@ -361,8 +354,8 @@ bool TimeSeriesWindow::parseCommandLine()
 
     else if (switchArg == "-voxelType") {
       auto voxelTypeStr = std::string(argv[argIndex++]);
-      auto it           = tableDataType.find(voxelTypeStr);
-      if (it != tableDataType.end()) {
+      auto it           = sg::volumeVoxelType.find(voxelTypeStr);
+      if (it != sg::volumeVoxelType.end()) {
         voxelType = it->second;
       } else {
         throw std::runtime_error("improper -voxelType format requested");

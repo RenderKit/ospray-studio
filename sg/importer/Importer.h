@@ -20,6 +20,13 @@ typedef std::map<std::string, NodePtr> AssetsCatalogue;
 // global assets catalogue
 static AssetsCatalogue cat;
 
+typedef struct {
+  vec3i dimensions;
+  vec3f gridSpacing{0.02f};
+  vec3f gridOrigin{-1.f};
+  int voxelType;
+} VolumeParams;
+
 struct OSPSG_INTERFACE Importer : public Node
 {
   Importer();
@@ -56,12 +63,37 @@ struct OSPSG_INTERFACE Importer : public Node
     animations = &_animations;
   }
 
+  inline void setVolumeParams(VolumeParams *_p)
+  {
+    p = _p;
+    hasVolumeParams = true;
+  }
+
+  inline VolumeParams* setDefaultParams(bool structured) {
+    if (structured) {
+      defaultParams.voxelType = int(OSP_FLOAT);
+      defaultParams.dimensions = vec3i(18, 25, 18);
+      defaultParams.gridOrigin = vec3f(-1.f);
+      defaultParams.gridSpacing = vec3f(2.f / 100);
+    } else {
+      defaultParams.voxelType = int(OSP_FLOAT);
+      defaultParams.dimensions = vec3i(180, 180, 180);
+      defaultParams.gridOrigin = vec3f(0);
+      defaultParams.gridSpacing = vec3f(1, 1, 1);
+    }
+    return &defaultParams;
+  }
+
+  VolumeParams defaultParams;
+  bool hasVolumeParams{false};
+
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
   std::vector<NodePtr> *cameras = nullptr;
   std::vector<sg::Animation> *animations = nullptr;
   bool importCameras{false};
+  VolumeParams *p{nullptr};
 };
 
 extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
@@ -109,6 +141,15 @@ inline NodePtr getImporter(NodePtr root, rkcommon::FileName fileName)
 
   } else {
     auto importNode = createNodeAs<sg::Importer>(nodeName, importer);
+    if(importer == "importer_raw" && !importNode->hasVolumeParams) {
+      std::cout
+        << "Loading volumes with default volume parameters ..."
+        << std::endl;
+      auto volumeFile = fnd->first;
+      bool structured = (volumeFile == "structured") || (volumeFile == "raw");
+      auto vp = importNode->setDefaultParams(structured);
+      importNode->setVolumeParams(vp);
+    }
     importNode->setFileName(fileName);
     cat.insert(AssetsCatalogue::value_type(baseName, importNode));
     root->add(importNode);

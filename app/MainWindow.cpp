@@ -15,7 +15,6 @@
 #include "sg/exporter/Exporter.h"
 #include "sg/fb/FrameBuffer.h"
 #include "sg/generator/Generator.h"
-#include "sg/importer/Importer.h"
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/lights/Lights.h"
 #include "sg/scene/World.h"
@@ -24,6 +23,7 @@
 #include "sg/visitors/Search.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/SetParamByNode.h"
+#include "sg/scene/volume/Volume.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
 #include "rkcommon/os/FileName.h"
@@ -963,6 +963,35 @@ bool MainWindow::parseCommandLine()
       --i;
     } else if (arg == "--animate" || arg == "-a") {
       animate = true;
+    } else if (arg == "--dimensions" || arg == "-d") {
+      const std::string dimX(av[++i]);
+      const std::string dimY(av[++i]);
+      const std::string dimZ(av[++i]);
+      useVolumeParams = true;
+      vp.dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
+    } else if (arg == "--gridSpacing" || arg == "-g") {
+      const std::string gridSpacingX(av[++i]);
+      const std::string gridSpacingY(av[++i]);
+      const std::string gridSpacingZ(av[++i]);
+      useVolumeParams = true;
+      vp.gridSpacing =
+          vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
+    } else if (arg == "--gridOrigin" || arg == "-o") {
+      const std::string gridOriginX(av[++i]);
+      const std::string gridOriginY(av[++i]);
+      const std::string gridOriginZ(av[++i]);
+      useVolumeParams = true;
+      vp.gridOrigin =
+          vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
+    } else if (arg == "--voxelType" || arg == "-v") {
+      auto voxelTypeStr = std::string(av[++i]);
+      auto it           = sg::volumeVoxelType.find(voxelTypeStr);
+      if (it != sg::volumeVoxelType.end()) {
+        vp.voxelType = it->second;
+        useVolumeParams = true;
+      } else {
+        throw std::runtime_error("improper -voxelType format requested");
+      }
     } else if (arg == "--2160p")
       glfwSetWindowSize(glfwWindow, 3840, 2160);
     else if (arg == "--1440p")
@@ -1006,6 +1035,9 @@ void MainWindow::importFiles(sg::NodePtr world)
         if (importer) {
           // Could be any type of importer.  Need to pass the MaterialRegistry,
           // importer will use what it needs.
+          if(useVolumeParams)
+            importer->setVolumeParams(&vp);
+       
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setAnimationList(animations);

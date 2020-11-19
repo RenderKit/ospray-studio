@@ -63,25 +63,12 @@ namespace ospray {
 
   // StructuredVolume definitions /////////////////////////////////////////////
 
-  StructuredVolume::StructuredVolume() : Volume("structuredRegular")
-  {
-    createChild("voxelType", "int");
-    createChild("gridOrigin", "vec3f");
-    createChild("gridSpacing", "vec3f");
-    createChild("dimensions", "vec3i");
-  }
+  StructuredVolume::StructuredVolume() : Volume("structuredRegular") {}
 
   ///! \brief file name of the xml doc when the node was loaded from xml
   /*! \detailed we need this to properly resolve relative file names */
   void StructuredVolume::load(const FileName &fileNameAbs)
   {
-    // the following hard coded volume properties should exist either in volume file headers or,
-    // xml kind supporting docs with binary volume data
-    createChild("voxelType", "int", int(OSP_FLOAT));
-    createChild("dimensions", "vec3i", vec3i(18, 25, 18));
-    createChild("gridOrigin", "vec3f", vec3f(-1.f));
-    createChild("gridSpacing", "vec3f", vec3f(2.f / 100));
-
     auto &dimensions = child("dimensions").valueAs<vec3i>();
     std::vector<float> voxels(dimensions.long_product());
 
