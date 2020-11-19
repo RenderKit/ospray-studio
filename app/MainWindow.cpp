@@ -1011,8 +1011,6 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->setAnimationList(animations);
           importer->importScene();
         }
-
-        world->traverse<sg::PrintNodes>();
       }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
