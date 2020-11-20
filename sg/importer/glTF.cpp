@@ -182,29 +182,20 @@ namespace ospray {
 
   void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode) {
     const tinygltf::Node &n = model.nodes[nid];
-    std::string refTitle{""};
-    std::string assetTitle{""};
 
-    // ignore in-asset information.
-    // Only load node info from main scene file for semantic segmentation
-    if (n.extensions.find("BIT_asset_info") != n.extensions.end() &&
-        n.extensions.find("BIT_reference_link") != n.extensions.end()) {
-      auto assetObj = n.extensions.find("BIT_asset_info")->second;
-      auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
-      auto &assetId = asset.Get("id").Get<std::string>();
-      assetTitle = asset.Get("title").Get<std::string>();
+    auto assetObj = n.extensions.find("BIT_asset_info")->second;
+    auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
+    auto &assetId = asset.Get("id").Get<std::string>();
+    auto assetTitle = asset.Get("title").Get<std::string>();
 
-      auto refLink = n.extensions.find("BIT_reference_link")->second;
-      auto &refId = refLink.Get("id").Get<std::string>();
-      refTitle = refLink.Get("title").Get<std::string>();
-      sgNode->createChild("geomId", "string", refId);
+    auto refLink = n.extensions.find("BIT_reference_link")->second;
+    auto &refId = refLink.Get("id").Get<std::string>();
+    auto refTitle = refLink.Get("title").Get<std::string>();
+    sgNode->createChild("geomId", "string", refId);
 
-      if (n.extensions.find("BIT_node_info") != n.extensions.end()) {
-        auto node = n.extensions.find("BIT_node_info")->second;
-        auto &nodeId = node.Get("id").Get<std::string>();
-        sgNode->createChild("instanceId", "string", nodeId);
-      }
-    }
+    auto node = n.extensions.find("BIT_node_info")->second;
+    auto &nodeId = node.Get("id").Get<std::string>();
+    sgNode->createChild("instanceId", "string", nodeId);
 
     if (refTitle.empty())
       return;
@@ -430,26 +421,14 @@ namespace ospray {
     // while parsing assets from BIT-TS look for BIT_asset_info to add to assetCatalogue
     // followed by  BIT_node_info for adding that particular instance
     // followed by BIT_reference_link to load that reference
-    if (n.extensions.find("BIT_asset_info") != n.extensions.end() ||
-        n.extensions.find("BIT_node_info") != n.extensions.end() ||
+    if (n.extensions.find("BIT_asset_info") != n.extensions.end() &&
+        n.extensions.find("BIT_node_info") != n.extensions.end() &&
         n.extensions.find("BIT_reference_link") != n.extensions.end())
       loadNodeInfo(nid, sgNode);
 
     if (n.mesh != -1) {
       // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
       auto &ospMesh = ospMeshes[n.mesh];
-      // this node has a mesh associated with it, i.e. Geometry in terms of OSPRay scene
-      // check if it has BIT extension : BIT_node_info
-      // this extension holds UUID of the mesh/geometry
-      // note: an asset in BIT is also called a "geometry"
-
-      if (n.extensions.find("BIT_node_info") != n.extensions.end())
-      {
-        auto &nodeInfoExt = n.extensions.find("BIT_node_info")->second;
-        auto nodeId = nodeInfoExt.Get("id").Get<std::string>();
-      
-        ospMesh->createChild("GeomId", "string", nodeId);
-      }
       sgNode->add(ospMesh);
     }
 

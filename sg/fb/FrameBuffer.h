@@ -20,7 +20,7 @@ namespace ospray {
     void unmap(const void *mem);
     float variance();
     uint32_t *instData{nullptr};
-    uint16_t *geomData{nullptr};
+    uint32_t *geomData{nullptr};
 
     GeomIdMap ge;
     InstanceIdMap in;

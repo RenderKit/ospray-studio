@@ -19,7 +19,7 @@ namespace ospray {
     virtual void doExport() {}
 
     uint32_t *_instData;
-    uint16_t *_geomData;
+    uint32_t *_geomData;
   };
 
   static const std::map<std::string, std::string> exporterMap = {

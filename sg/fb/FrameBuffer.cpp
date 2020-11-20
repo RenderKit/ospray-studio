@@ -231,7 +231,7 @@ namespace ospray {
       pickFrame();
 
       if (geomData != nullptr && instData != nullptr) {
-        // TODO: instanceID and world coordinates
+
         exp->child("asLayers").setValue(true);
         exp->_geomData = geomData;
         exp->_instData = instData;
@@ -259,7 +259,7 @@ namespace ospray {
     instData =
         (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
     geomData =
-        (uint16_t *)std::malloc(size.x * size.y * sizeof(uint16_t));
+        (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
 
     // ensure size of id maps are same
     if(ge.size()!= in.size()) {
@@ -273,11 +273,14 @@ namespace ospray {
       instRows[i] = instRows[i - 1] + size.x;
     }
 
-    std::vector<uint16_t *> geomRows(size.y);
-    geomRows[0] = (uint16_t *)geomData;
+    std::vector<uint32_t *> geomRows(size.y);
+    geomRows[0] = (uint32_t *)geomData;
     for (int i = 1; i < size.y; i++) {
       geomRows[i] = geomRows[i - 1] + size.x;
     }
+
+    std::map<std::string, int> gUnique;
+    std::map<std::string, int> iUnique;
 
     // change this to parallel_for
     for (auto i = 0; i < size.y; ++i) {
@@ -289,49 +292,57 @@ namespace ospray {
             handle().pick(renderer, camera, world, normalize_x, normalize_y);
 
         uint32_t instId;
-        uint16_t geomId;
+        uint32_t geomId;
 
         if (pickResult.hasHit) {
           auto ospGeometricModel = pickResult.model.handle();
           auto ospInstance = pickResult.instance.handle();
+          if (ge.find(ospGeometricModel) != ge.end()) {
+            auto g_uuid = ge[ospGeometricModel];
+            if(gUnique.find(g_uuid) == gUnique.end()) {
+              auto size = gUnique.size();
+              gUnique.insert(std::make_pair(g_uuid, size));
+              geomId = size + 1;
+            } else {
+              auto dist = distance(gUnique.begin(), gUnique.find(g_uuid));
+              geomId = dist + 1;
+            }
+          }
 
-          auto &geomId = ge[ospGeometricModel];
-          auto &instanceId = in[ospInstance];
-          // use index as keys of json map for exporting UUIDs
-          geomId = distance(ge.begin(), ge.find(ospGeometricModel));
-          instId = distance(in.begin(), in.find(ospInstance));
+          if (in.find(ospInstance) != in.end()) {
+            auto i_uuid = in[ospInstance];
+            if(iUnique.find(i_uuid) == iUnique.end()) {
+              auto size = iUnique.size();
+              iUnique.insert(std::make_pair(i_uuid, size));
+              instId = size;
+            } else {
+              auto dist = distance(iUnique.begin(), iUnique.find(i_uuid));
+              instId = dist;
+            }
+          }
+
         } else {
-          // use largest values as dummy values 
-          geomId = 0xFFFF;
-          instId = 0xFFFFFFFF;
+          geomId = 0;
+          instId = 0;
         }
         geomRows[i][j] = geomId;
         instRows[i][j] = instId;
       }
     }
-    std::ofstream geomDump("geomId.sg");
-    std::ofstream instDump("instId.sg");
+    std::ofstream geomDump("geomId.json");
+    std::ofstream instDump("instId.json");
     int i = 0;
     nlohmann::json gj;
-    for (auto &g : ge) {
-      if (g.second.length() == 36) {
-        gj = {i, g.second};
-        geomDump << "\n" << gj.dump();
-      } else {
-        gj = {i, ""};
-        geomDump << "\n" << gj.dump();
-      }
+    for (auto &g : gUnique) {
+      gj = g.first;
+      geomDump << "\n" << gj.dump();
       i++;
     }
     i = 0;
-    for (auto &g : in) {
-      if (g.second.length() == 36) {
-        gj = {i, g.second};
-        instDump << "\n" << gj.dump();
-      } else {
-        gj = {i, ""};
-        instDump << "\n" << gj.dump();
-      }
+    nlohmann::json nj;
+    for (auto &g : iUnique) {
+      nj = g.first;
+      instDump << "\n" << nj.dump();
       i++;
     }
   }
