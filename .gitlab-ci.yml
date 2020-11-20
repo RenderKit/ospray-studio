@@ -26,11 +26,26 @@ source-protex-scan:
   dependencies: []
   allow_failure: true
 
+# This build phase will no longer work on current branches, due to non-release branch dependencies
 build-ubuntu18.04:
   extends: .build-linux
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
   script:
     - gitlab/build.sh
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build/
+  only:
+    refs:
+      - master, release-0.5.x
+
+# Transitional phase, only works against devel branch dependencies
+build-ubuntu18.04-dev:
+  extends: .build-linux
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  script:
+    - gitlab/build-dev.sh
   artifacts:
     name: ospray-studio
     paths:
@@ -60,6 +75,7 @@ build-windows-msvc15:
     paths:
       - build-win/
 
+# This test phase will no longer work on current branches, due to non-release branch dependencies
 build-kw:
   extends: .build-linux
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
@@ -68,7 +84,21 @@ build-kw:
   artifacts:
     paths:
       - kw_build_number
+  only:
+    refs:
+      - master, release-0.5.x
 
+# Transitional phase, only works against devel branch dependencies
+build-kw-dev:
+  extends: .build-linux
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  script:
+    - gitlab/build-kw-dev.sh
+  artifacts:
+    paths:
+      - kw_build_number
+
+# This test phase will no longer work on current branches, due to non-release branch dependencies
 test-run-ubuntu18.04:
   stage: test
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
@@ -77,13 +107,41 @@ test-run-ubuntu18.04:
     - docker
   script:
     - gitlab/run.sh
+  only:
+    refs:
+      - master, release-0.5.x
 
+# Transitional phase, only works against devel branch dependencies
+test-run-ubuntu18.04-dev:
+  stage: test
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-ubuntu18.04-dev]
+  tags:
+    - docker
+  script:
+    - gitlab/run-dev.sh
+
+# This test phase will no longer work on current branches, due to non-release branch dependencies
 test-kw:
   stage: test
   tags:
     - docker
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
   needs: [build-kw]
+  script:
+    - gitlab/test-kw.sh
+  allow_failure: true
+  only:
+    refs:
+      - master, release-0.5.x
+
+# Transitional phase, only works against devel branch dependencies
+test-kw-dev:
+  stage: test
+  tags:
+    - docker
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-kw-dev]
   script:
     - gitlab/test-kw.sh
   allow_failure: true

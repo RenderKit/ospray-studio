@@ -1,0 +1,35 @@
+#!/bin/bash -x
+## Copyright 2015-2020 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
+
+KW_SERVER_PATH=$KW_PATH/server
+KW_CLIENT_PATH=$KW_PATH/client
+export KLOCWORK_LTOKEN=/tmp/ltoken
+
+echo "$KW_SERVER_IP;$KW_SERVER_PORT;$KW_USER;$KW_LTOKEN" > $KLOCWORK_LTOKEN
+
+# XXX This script is transitional
+# !!! This script only builds ospray and rkcommon devel branches !!!
+# Override veresions set by CI
+OSPRAY_VER="devel"
+RKCOMMON_VER="devel"
+
+set -e
+dpkg --add-architecture i386
+apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev libtinfo5:i386 -y
+if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
+then
+  build-dev.sh
+fi
+
+cd $CI_PROJECT_DIR
+mkdir build && cd build
+export CMAKE_PREFIX_PATH="$CACHE_DIR/ospray-$OSPRAY_VER/build/install"
+export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
+cmake -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
+
+$KW_CLIENT_PATH/bin/kwinject make -j8
+$KW_SERVER_PATH/bin/kwbuildproject --url http://$KW_SERVER_IP:$KW_SERVER_PORT/$KW_PROJECT_NAME --tables-directory $CI_PROJECT_DIR/kw_tables kwinject.out
+$KW_SERVER_PATH/bin/kwadmin --url http://$KW_SERVER_IP:$KW_SERVER_PORT/ load --force --name build-$CI_JOB_ID $KW_PROJECT_NAME $CI_PROJECT_DIR/kw_tables
+echo "build-$CI_JOB_ID" > $CI_PROJECT_DIR/kw_build_number
+
