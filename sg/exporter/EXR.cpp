@@ -122,19 +122,19 @@ namespace ospray {
     }
 
     if (_geomData != nullptr && _instData != nullptr) {
-      exrHeader.channels().insert("geomId", Imf::Channel(IMF::UINT));
-      exrHeader.channels().insert("instId", Imf::Channel(IMF::UINT));
+      exrHeader.channels().insert("objectId", Imf::Channel(IMF::UINT));
+      exrHeader.channels().insert("id", Imf::Channel(IMF::UINT));
       const void *geomData = (const void *)_geomData;
       const void *instData = (const void *)_instData;
       auto flippedGeomData = flipBuffer<uint32_t>(geomData, 1);
       auto flippedInstData = flipBuffer<uint32_t>(instData, 1);
 
-      exrFb.insert("geomId",
+      exrFb.insert("objectId",
           Imf::Slice(IMF::UINT,
               (char *)((uint32_t *)flippedGeomData),
               sizeof(uint32_t) * 1,
               size.x * sizeof(uint32_t)));
-      exrFb.insert("instId",
+      exrFb.insert("id",
           Imf::Slice(IMF::UINT,
               (char *)((uint32_t *)flippedInstData),
               sizeof(uint32_t) * 1,
