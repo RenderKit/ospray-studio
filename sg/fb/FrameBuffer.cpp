@@ -329,8 +329,8 @@ namespace ospray {
         instRows[i][j] = instId;
       }
     }
-    std::ofstream geomDump("geomId.json");
-    std::ofstream instDump("instId.json");
+    std::ofstream geomDump("geomId.export");
+    std::ofstream instDump("instId.export");
     int i = 0;
     nlohmann::json gj;
     for (auto &g : gUnique) {
