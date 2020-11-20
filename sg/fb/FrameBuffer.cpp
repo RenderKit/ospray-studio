@@ -267,66 +267,50 @@ namespace ospray {
       return;
     }
 
-    std::vector<uint32_t *> instRows(size.y);
-    instRows[0] = (uint32_t *)instData;
-    for (int i = 1; i < size.y; i++) {
-      instRows[i] = instRows[i - 1] + size.x;
-    }
-
-    std::vector<uint32_t *> geomRows(size.y);
-    geomRows[0] = (uint32_t *)geomData;
-    for (int i = 1; i < size.y; i++) {
-      geomRows[i] = geomRows[i - 1] + size.x;
-    }
-
     std::map<std::string, int> gUnique;
     std::map<std::string, int> iUnique;
 
     // change this to parallel_for
-    for (auto i = 0; i < size.y; ++i) {
-      for (auto j = 0; j < size.x; ++j) {
-        float normalize_x = (float) j / (float) size.x;
-        float normalize_y = (float) i / (float) size.y;
+    size_t idx = 0;
+    for (auto j = 0; j < size.y; ++j) {
+      for (auto i = 0; i < size.x; ++i, ++idx) {
+        float normalize_x = (i + 0.5f) / size.x;
+        float normalize_y = (j + 0.5f) / size.y;
 
         auto pickResult =
             handle().pick(renderer, camera, world, normalize_x, normalize_y);
 
-        uint32_t instId;
-        uint32_t geomId;
+        uint32_t instId = 0;
+        uint32_t geomId = 0;
 
         if (pickResult.hasHit) {
           auto ospGeometricModel = pickResult.model.handle();
-          auto ospInstance = pickResult.instance.handle();
           if (ge.find(ospGeometricModel) != ge.end()) {
             auto g_uuid = ge[ospGeometricModel];
             if(gUnique.find(g_uuid) == gUnique.end()) {
-              auto size = gUnique.size();
+              auto size = gUnique.size() + 1;
               gUnique.insert(std::make_pair(g_uuid, size));
-              geomId = size + 1;
+              geomId = size;
             } else {
-              auto dist = distance(gUnique.begin(), gUnique.find(g_uuid));
-              geomId = dist + 1;
+              geomId = gUnique[g_uuid];
             }
           }
 
+          auto ospInstance = pickResult.instance.handle();
           if (in.find(ospInstance) != in.end()) {
             auto i_uuid = in[ospInstance];
             if(iUnique.find(i_uuid) == iUnique.end()) {
-              auto size = iUnique.size();
+              auto size = iUnique.size() + 1;
               iUnique.insert(std::make_pair(i_uuid, size));
-              instId = size;
+              instId = size + 1;
             } else {
-              auto dist = distance(iUnique.begin(), iUnique.find(i_uuid));
-              instId = dist;
+              instId = iUnique[i_uuid];
             }
           }
 
-        } else {
-          geomId = 0;
-          instId = 0;
         }
-        geomRows[i][j] = geomId;
-        instRows[i][j] = instId;
+        geomData[idx] = geomId;
+        instData[idx] = instId;
       }
     }
     std::ofstream geomDump("geomId.export");
