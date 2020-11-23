@@ -1680,6 +1680,42 @@ void MainWindow::buildWindowKeyframes()
           "Animation speed for computed path. \n"
           "Slow speeds may cause jitter for small objects");
     }
+
+    static bool showCameraPath = false;
+    if (ImGui::Checkbox("show camera path", &showCameraPath)) {
+      if (!showCameraPath) {
+        frame->cancelFrame();
+        frame->waitOnFrame();
+        frame->child("world").remove("cameraPath");
+        refreshScene(false);
+      } else {
+        auto path = sg::createNode("cameraPath", "geometry_curves");
+
+        std::vector<CameraState> cameraPath =
+            buildPath(cameraStack, g_camPathSpeed * 0.01f);
+        std::vector<vec4f> vertexes; // position and radius
+        for (const auto &state : cameraPath)
+          vertexes.emplace_back(state.position(), 0.5f);
+
+        std::vector<uint32_t> indexes(std::max(1ul, vertexes.size() - 4));
+        std::iota(indexes.begin(), indexes.end(), 0);
+
+        std::vector<vec4f> colors(vertexes);
+        std::fill(colors.begin(), colors.end(), vec4f(vec3f(0.8f), 1.f));
+
+        path->remove("radius");
+        path->createChildData("vertex.position_radius", vertexes);
+        path->createChildData("vertex.color", colors);
+        path->createChildData("index", indexes);
+        path->createChild("type", "uchar", (unsigned char)OSP_ROUND);
+        path->createChild("basis", "uchar", (unsigned char)OSP_CATMULL_ROM);
+        const std::vector<uint32_t> mID = {0};
+        path->createChildData("material", mID);
+        path->child("material").setSGOnly();
+
+        frame->child("world").add(path);
+      }
+    }
   }
 
   if (ImGui::ListBoxHeader("##")) {
@@ -1693,42 +1729,6 @@ void MainWindow::buildWindowKeyframes()
       }
     }
     ImGui::ListBoxFooter();
-  }
-
-  static bool showCameraPath = false;
-  if (ImGui::Checkbox("show camera path", &showCameraPath)) {
-    if (!showCameraPath) {
-      frame->cancelFrame();
-      frame->waitOnFrame();
-      frame->child("world").remove("cameraPath");
-      refreshScene(false);
-    } else {
-      auto path = sg::createNode("cameraPath", "geometry_curves");
-
-      std::vector<CameraState> cameraPath =
-          buildPath(cameraStack, g_camPathSpeed * 0.01f);
-      std::vector<vec4f> vertexes; // position and radius
-      for (const auto &state : cameraPath)
-        vertexes.emplace_back(state.position(), 0.5f);
-
-      std::vector<uint32_t> indexes(std::max(1ul, vertexes.size() - 4));
-      std::iota(indexes.begin(), indexes.end(), 0);
-
-      std::vector<vec4f> colors(vertexes);
-      std::fill(colors.begin(), colors.end(), vec4f(vec3f(0.8f), 1.f));
-
-      path->remove("radius");
-      path->createChildData("vertex.position_radius", vertexes);
-      path->createChildData("vertex.color", colors);
-      path->createChildData("index", indexes);
-      path->createChild("type", "uchar", (unsigned char)OSP_ROUND);
-      path->createChild("basis", "uchar", (unsigned char)OSP_CATMULL_ROM);
-      const std::vector<uint32_t> mID = {0};
-      path->createChildData("material", mID);
-      path->child("material").setSGOnly();
-
-      frame->child("world").add(path);
-    }
   }
 
   ImGui::End();
