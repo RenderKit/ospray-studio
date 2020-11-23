@@ -1635,40 +1635,55 @@ void MainWindow::buildWindowKeyframes()
 
   ImGui::SetNextItemWidth(25 * ImGui::GetFontSize());
 
-  if (ImGui::ListBoxHeader("##")) {
-    if (ImGui::Button("+")) { // add current camera state after the selected one
-      if (cameraStack.empty()) {
-        cameraStack.push_back(arcballCamera->getState());
-        g_camSelectedStackIndex = 0;
-      } else {
-        cameraStack.insert(cameraStack.begin() + g_camSelectedStackIndex + 1,
-            arcballCamera->getState());
-        g_camSelectedStackIndex++;
-      }
+  if (ImGui::Button("add")) { // add current camera state after the selected one
+    if (cameraStack.empty()) {
+      cameraStack.push_back(arcballCamera->getState());
+      g_camSelectedStackIndex = 0;
+    } else {
+      cameraStack.insert(cameraStack.begin() + g_camSelectedStackIndex + 1,
+          arcballCamera->getState());
+      g_camSelectedStackIndex++;
+    }
+  }
+  if (g_ShowTooltips && ImGui::IsItemHovered()
+      && ImGui::GetCurrentContext()->HoveredIdTimer > g_TooltipDelay * 0.001) {
+    ImGui::SetTooltip(
+        "insert a new keyframe after the selected keyframe based "
+        "on the current camera state");
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("remove")) { // remove the selected camera state
+    cameraStack.erase(cameraStack.begin() + g_camSelectedStackIndex);
+    g_camSelectedStackIndex = std::max(0, g_camSelectedStackIndex - 1);
+  }
+  if (g_ShowTooltips && ImGui::IsItemHovered()
+      && ImGui::GetCurrentContext()->HoveredIdTimer > g_TooltipDelay * 0.001) {
+    ImGui::SetTooltip("remove the currently selected keyframe");
+  }
+
+  if (cameraStack.size() >= 2) {
+    ImGui::SameLine();
+    if (ImGui::Button(g_animatingPath ? "stop" : "play")) {
+      g_animatingPath = !g_animatingPath;
+      g_camCurrentPathIndex = 0;
+      if (g_animatingPath)
+        g_camPath = buildPath(cameraStack, g_camPathSpeed * 0.01);
     }
     ImGui::SameLine();
-    if (ImGui::Button("-")) { // remove the selected camera state
-      cameraStack.erase(cameraStack.begin() + g_camSelectedStackIndex);
-      g_camSelectedStackIndex = std::max(0, g_camSelectedStackIndex - 1);
+    ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
+    ImGui::SliderFloat("speed##path", &g_camPathSpeed, 0.f, 10.0);
+    if (g_ShowTooltips && ImGui::IsItemHovered()
+        && ImGui::GetCurrentContext()->HoveredIdTimer
+            > g_TooltipDelay * 0.001) {
+      ImGui::SetTooltip(
+          "Animation speed for computed path. \n"
+          "Slow speeds may cause jitter for small objects");
     }
-    if (cameraStack.size() >= 2) {
-      ImGui::SameLine();
-      if (ImGui::Button(g_animatingPath ? "stop" : "play")) {
-        g_animatingPath = !g_animatingPath;
-        g_camCurrentPathIndex = 0;
-        if (g_animatingPath)
-          g_camPath = buildPath(cameraStack, g_camPathSpeed * 0.01);
-      }
-      ImGui::SameLine();
-      ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
-      ImGui::SliderFloat("speed##path", &g_camPathSpeed, 0.f, 10.0);
-      if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip(
-            "Animation speed for computed path. \n"
-            "Slow speeds may cause jitter for small objects");
-      }
-    }
-    for (size_t i = 0; i < cameraStack.size(); i++) {
+  }
+
+  if (ImGui::ListBoxHeader("##")) {
+    for (int i = 0; i < cameraStack.size(); i++) {
       if (ImGui::Selectable(
               (std::to_string(i) + ": " + to_string(cameraStack[i])).c_str(),
               (g_camSelectedStackIndex == (int) i))) {
