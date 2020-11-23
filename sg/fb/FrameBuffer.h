@@ -21,6 +21,7 @@ namespace ospray {
     float variance();
     uint32_t *instData{nullptr};
     uint32_t *geomData{nullptr};
+    float *worldPosData{nullptr};
 
     GeomIdMap ge;
     InstanceIdMap in;

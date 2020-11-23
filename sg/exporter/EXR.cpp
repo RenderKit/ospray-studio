@@ -21,8 +21,6 @@ namespace ospray {
     void doExport() override;
     template <typename T>
     T* flipBuffer(const void *buf, int ncomp = 4);
-    // float *flipBuffer(const void *buf, int ncomp = 4);
-    // uint32_t *createMetaDataBuffer();
 
    private:
     void doExportAsLayers();
@@ -139,6 +137,17 @@ namespace ospray {
               (char *)((uint32_t *)flippedInstData),
               sizeof(uint32_t) * 1,
               size.x * sizeof(uint32_t)));
+    }
+
+    if(_worldPosition != nullptr) {
+      exrHeader.channels().insert("worldPosition.X", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("worldPosition.Y", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("worldPosition.Z", Imf::Channel(IMF::FLOAT));
+      const void *worldPosition = (const void *)_worldPosition;
+      auto flippedWorldPosition = flipBuffer<float>(worldPosition, 3);
+      exrFb.insert("worldPosition.X", makeSlice(flippedWorldPosition, 0, 3));
+      exrFb.insert("worldPosition.Y", makeSlice(flippedWorldPosition, 1, 3));
+      exrFb.insert("worldPosition.Z", makeSlice(flippedWorldPosition, 2, 3));
     }
 
     Imf::OutputFile exrFile(file.c_str(), exrHeader);

@@ -235,6 +235,7 @@ namespace ospray {
         exp->child("asLayers").setValue(true);
         exp->_geomData = geomData;
         exp->_instData = instData;
+        exp->_worldPosition = worldPosData;
       }
     }
 
@@ -260,7 +261,7 @@ namespace ospray {
         (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
     geomData =
         (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
-
+    worldPosData = (float *)std::malloc(size.x * size.y * 3 * sizeof(float));
     std::map<std::string, int> gUnique;
     std::map<std::string, int> iUnique;
 
@@ -276,6 +277,7 @@ namespace ospray {
 
         uint32_t instId = 0;
         uint32_t geomId = 0;
+        float worldPosition[3];
 
         if (pickResult.hasHit) {
           auto ospGeometricModel = pickResult.model.handle();
@@ -301,18 +303,22 @@ namespace ospray {
               instId = iUnique[i_uuid];
             }
           }
-          // world coordinates
-
+          worldPosition[0] = pickResult.worldPosition[0];
+          worldPosition[1] = pickResult.worldPosition[1];
+          worldPosition[2] = pickResult.worldPosition[2];
         }
         geomData[idx] = geomId;
         instData[idx] = instId;
+        worldPosData[idx * 3] = worldPosition[0];
+        worldPosData[idx * 3 +1] = worldPosition[1];
+        worldPosData[idx * 3 +2] = worldPosition[2];
       }
     }
     std::ofstream geomDump("objectId.export");
     std::ofstream instDump("id.export");
     // a real json array would not get exported into the output stream as the
-    // new-line separated ids, all the ids would exist in the same line. So I am
-    // exporting it one element at a time and appending brackets in start and end.
+    // new-line separated ids, all the ids would exist in the same line.
+    // So exporting it one element at a time and appending brackets in start and end.
     int i = 0;
     nlohmann::json gj;
     geomDump << "[";

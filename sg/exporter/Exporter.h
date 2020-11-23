@@ -20,6 +20,7 @@ namespace ospray {
 
     uint32_t *_instData;
     uint32_t *_geomData;
+    float *_worldPosition;
   };
 
   static const std::map<std::string, std::string> exporterMap = {
