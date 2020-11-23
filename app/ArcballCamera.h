@@ -36,12 +36,16 @@ class CameraState
     return cs;
   }
 
+  vec3f position() const {
+    const AffineSpace3f rot = LinearSpace3f(rotation);
+    const AffineSpace3f camera = translation * rot * centerTranslation;
+    return xfmPoint(rcp(camera), vec3f(0, 0, 1));
+  }
+
   friend std::string to_string(const CameraState &state)
   {
     // returns the world position
-    const AffineSpace3f rot = LinearSpace3f(state.rotation);
-    const AffineSpace3f camera = state.translation * rot * state.centerTranslation;
-    vec3f pos = xfmPoint(rcp(camera), vec3f(0, 0, 1));
+    vec3f pos = state.position();
     std::stringstream ss;
     ss << pos;
     return ss.str();
