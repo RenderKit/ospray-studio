@@ -1691,11 +1691,13 @@ void MainWindow::buildWindowKeyframes()
       } else {
         auto path = sg::createNode("cameraPath", "geometry_curves");
 
+        const auto &worldBounds = frame->child("world").bounds();
+        float pathRad = 0.01f * worldBounds.size().sum() / 3.f;
         std::vector<CameraState> cameraPath =
             buildPath(cameraStack, g_camPathSpeed * 0.01f);
         std::vector<vec4f> vertexes; // position and radius
         for (const auto &state : cameraPath)
-          vertexes.emplace_back(state.position(), 0.5f);
+          vertexes.emplace_back(state.position(), pathRad);
 
         std::vector<uint32_t> indexes(std::max(1ul, vertexes.size() - 4));
         std::iota(indexes.begin(), indexes.end(), 0);
