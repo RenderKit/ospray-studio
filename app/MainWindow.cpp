@@ -1687,6 +1687,7 @@ void MainWindow::buildWindowKeyframes()
         frame->cancelFrame();
         frame->waitOnFrame();
         frame->child("world").remove("cameraPath");
+        frame->child("world").remove("cameraPathCaps");
         refreshScene(false);
       } else {
         auto path = sg::createNode("cameraPath", "geometry_curves");
@@ -1698,8 +1699,9 @@ void MainWindow::buildWindowKeyframes()
         std::vector<vec4f> vertexes; // position and radius
         for (const auto &state : cameraPath)
           vertexes.emplace_back(state.position(), pathRad);
+        vertexes.emplace_back(cameraStack.back().position(), pathRad);
 
-        std::vector<uint32_t> indexes(std::max(1ul, vertexes.size() - 4));
+        std::vector<uint32_t> indexes(vertexes.size());
         std::iota(indexes.begin(), indexes.end(), 0);
 
         std::vector<vec4f> colors(vertexes);
@@ -1710,12 +1712,36 @@ void MainWindow::buildWindowKeyframes()
         path->createChildData("vertex.color", colors);
         path->createChildData("index", indexes);
         path->createChild("type", "uchar", (unsigned char)OSP_ROUND);
-        path->createChild("basis", "uchar", (unsigned char)OSP_CATMULL_ROM);
+        path->createChild("basis", "uchar", (unsigned char)OSP_LINEAR);
         const std::vector<uint32_t> mID = {0};
         path->createChildData("material", mID);
         path->child("material").setSGOnly();
 
         frame->child("world").add(path);
+
+        auto caps = sg::createNode("cameraPathCaps", "geometry_spheres");
+
+        unsigned long f = 1, b = vertexes.size() - 3;
+        std::vector<vec3f> capVertexes;
+        std::vector<vec4f> capColors;
+        for (int i = 0; i < cameraStack.size(); i++) {
+          capVertexes.push_back(cameraStack[i].position());
+          if (i == 0)
+            capColors.push_back(vec4f(.047f, .482f, .863f, 1.f));
+          else if (i == cameraStack.size() - 1)
+            capColors.push_back(vec4f(1.f, .761f, .039f, 1.f));
+          else
+            capColors.push_back(vec4f(vec3f(0.2f), 1.f));
+        }
+
+        caps->createChildData("sphere.position", capVertexes);
+        caps->createChildData("color", capColors);
+        caps->child("color").setSGOnly();
+        caps->child("radius") = pathRad * 1.5f;
+        caps->createChildData("material", mID);
+        caps->child("material").setSGOnly();
+
+        frame->child("world").add(caps);
       }
     }
   }
