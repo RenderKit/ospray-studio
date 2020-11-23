@@ -302,7 +302,7 @@ namespace ospray {
             if(iUnique.find(i_uuid) == iUnique.end()) {
               auto size = iUnique.size() + 1;
               iUnique.insert(std::make_pair(i_uuid, size));
-              instId = size + 1;
+              instId = size;
             } else {
               instId = iUnique[i_uuid];
             }
@@ -313,22 +313,29 @@ namespace ospray {
         instData[idx] = instId;
       }
     }
-    std::ofstream geomDump("geomId.export");
-    std::ofstream instDump("instId.export");
+    std::ofstream geomDump("objectId.export");
+    std::ofstream instDump("id.export");
+    // a real json array would not get exported into the output stream as the
+    // new-line separated ids, all the ids would exist in the same line. So I am
+    // exporting it one element at a time and appending brackets in start and end.
     int i = 0;
     nlohmann::json gj;
+    geomDump << "[";
     for (auto &g : gUnique) {
       gj = g.first;
       geomDump << "\n" << gj.dump();
       i++;
     }
+    geomDump << "\n" << "]";
     i = 0;
     nlohmann::json nj;
+    instDump << "[";
     for (auto &g : iUnique) {
       nj = g.first;
       instDump << "\n" << nj.dump();
       i++;
     }
+    instDump << "\n" << "]";
   }
 
   OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);
