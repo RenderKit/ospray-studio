@@ -430,6 +430,7 @@ namespace ospray {
       // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
       auto &ospMesh = ospMeshes[n.mesh];
       sgNode->add(ospMesh);
+      sgNode->createChild("instanceId", "string", sgNode->name());
     }
 
     if (n.skin != -1) {

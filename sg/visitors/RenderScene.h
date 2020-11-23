@@ -103,10 +103,10 @@ namespace ospray {
           * affine3f::scale(node.child("scale").valueAs<vec3f>());
       xfm.p = node.child("translation").valueAs<vec3f>();
       xfms.push(xfms.top() * xfm * node.valueAs<affine3f>());
-      if(node.hasChild("instanceID") && node.hasChild("geomId")) {
+      if (node.hasChild("instanceID"))
         instanceId = node.child("instanceId").valueAs<std::string>();
+      if (node.hasChild("geomId"))
         geomId = node.child("geomId").valueAs<std::string>();
-      }
       break;
     }
     case NodeType::LIGHT:
@@ -133,10 +133,10 @@ namespace ospray {
     case NodeType::TRANSFORM:
       createInstanceFromGroup();
       xfms.pop();
-      if(node.hasChild("instanceID") && node.hasChild("geomId")) {
+      if (node.hasChild("instanceID"))
         instanceId = "";
+      if (node.hasChild("geomId"))
         geomId = "";
-      }
       break;
     case NodeType::MATERIAL_REFERENCE:
       break;
@@ -156,11 +156,15 @@ namespace ospray {
 
     auto geom = node.valueAs<cpp::Geometry>();
     cpp::GeometricModel model(geom);
+    auto ospGeometricModel = model.handle();
 
-    // fetch the geometry UUID and add it to the UUID map
-    if (g != nullptr && !geomId.empty()) {
-      auto ospGeometricModel = model.handle();
-      g->insert(GeomIdMap::value_type(ospGeometricModel, geomId));
+    if (g != nullptr) {
+      // if geometric Id was set by a parent transform node
+      // this happens in very specific cases like BIT reference extensions
+      if (!geomId.empty())
+        g->insert(GeomIdMap::value_type(ospGeometricModel, geomId));
+      else
+        g->insert(GeomIdMap::value_type(ospGeometricModel, node.name()));
     }
 
     if (node.hasChild("material")) {

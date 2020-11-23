@@ -261,12 +261,6 @@ namespace ospray {
     geomData =
         (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
 
-    // ensure size of id maps are same
-    if(ge.size()!= in.size()) {
-      std::cout << " mismatch in size of id arrays, cannot save image file" << std::endl;
-      return;
-    }
-
     std::map<std::string, int> gUnique;
     std::map<std::string, int> iUnique;
 
@@ -307,6 +301,7 @@ namespace ospray {
               instId = iUnique[i_uuid];
             }
           }
+          // world coordinates
 
         }
         geomData[idx] = geomId;
