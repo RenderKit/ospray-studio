@@ -50,6 +50,12 @@ class BatchContext : public StudioContext
   float optInterpupillaryDistance = 0.0635f;
   bool cmdlCam{false};
   vec3f pos, up{0.f, 1.f, 0.f}, gaze{0.f, 0.f, 1.f};
+  bool saveAlbedo{false};
+  bool saveDepth{false};
+  bool saveNormal{false};
+  bool saveLayers{false};
+  bool saveMetaData{false};
+  std::string optImageFormat{".png"};
 
   void printHelp() override;
 };

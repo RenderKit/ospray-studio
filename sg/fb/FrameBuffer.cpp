@@ -278,12 +278,11 @@ namespace ospray {
       worldPosData = (float *)std::malloc(size.x * size.y * 3 * sizeof(float));
 
     std::map<std::string, int> gUnique;
-    gUnique.insert(std::make_pair("", gUnique.size()));
+    gUnique.insert(std::make_pair("", 0));
 
     std::map<std::string, int> iUnique;
-    iUnique.insert(std::make_pair("", iUnique.size()));
+    iUnique.insert(std::make_pair("", 0));
 
-    // change this to parallel_for
     size_t idx = 0;
     for (auto j = 0; j < size.y; ++j) {
       for (auto i = 0; i < size.x; ++i, ++idx) {

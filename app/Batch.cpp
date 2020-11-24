@@ -134,6 +134,20 @@ bool BatchContext::parseCommandLine()
         optGridEnable = true;
         removeArgs(argc, argv, i, 4);
         --i;
+      } else if (arg == "-f" || arg == "--format") {
+        optImageFormat = argv[i + 1];
+        removeArgs(argc, argv, i, 2);
+        --i;
+      } else if (arg == "-a" || arg == "--albedo") {
+        saveAlbedo = true;
+      } else if (arg == "-d" || arg == "--depth") {
+        saveDepth = true;
+      } else if (arg == "-n" || arg == "--normal") {
+        saveNormal = true;
+      } else if (arg == "-l" || arg == "--layers") {
+        saveLayers = true;
+      } else if (arg == "-m" || arg == "--metadata") {
+        saveMetaData = true;
       } else {
         // Unknown option, can't continue
         std::cout << " Unknown option: " << arg << std::endl;
@@ -172,6 +186,8 @@ void BatchContext::render()
     frameBuffer["allowDenoising"] = true;
 
   frame->child("world").createChild("materialref", "reference_to_material", 0);
+  if(saveMetaData)
+    frame->child("world").child("saveMetaData").setValue(true);
 
   if (optGridEnable) {
     // Determine world bounds to calculate grid offsets
@@ -246,21 +262,19 @@ void BatchContext::render()
   frame->immediatelyWait = true;
   frame->startNewFrame();
 
-  auto size = frameBuffer["size"].valueAs<vec2i>();
-  const void *pixels = frame->mapFrame();
+  int filenum = 0;
+  char filename[64];
+  const char *ext = optImageFormat.c_str();
+  auto fileFormat = optImageName + ".%04d.%s";
 
-  if (frameBuffer.hasFloatFormat()) {
-    optImageName += ".pfm";
-    rkcommon::utility::writePFM(optImageName, size.x, size.y, (vec4f *)pixels);
-  } else {
-    optImageName += ".ppm";
-    rkcommon::utility::writePPM(
-        optImageName, size.x, size.y, (uint32_t *)pixels);
-  }
+  do
+    std::snprintf(filename, 64, fileFormat.c_str(), filenum++, ext);
+  while (std::ifstream(filename).good());
 
-  frame->unmapFrame((void *)pixels);
+  int screenshotFlags = saveMetaData << 4 | saveLayers << 3
+      | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
 
-  std::cout << "\nresult saved to '" << optImageName << "'\n";
+  frame->saveFrame(filename, screenshotFlags);
 }
 
 void BatchContext::refreshScene(bool resetCam)
@@ -271,6 +285,8 @@ void BatchContext::refreshScene(bool resetCam)
 
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
+  if (saveMetaData)
+    world->child("saveMetaData").setValue(true);
 
   if (!filesToImport.empty())
     importFiles(world);
@@ -340,6 +356,14 @@ void BatchContext::printHelp()
 ./ospStudio batch [parameters] [scene_files]
 
 ospStudio batch specific parameters:
+   -a    --albedo
+   -d    --depth
+   -n    --normal
+   -m    --metadata
+   -l    --layers
+   -f    --format (default png)
+          format for saving the image
+          (sg, exr, hdr, jpg, pfm,png, ppm)
    -i     --image [baseFilename] (default 'ospBatch')
             base name of saved image
    -s     --size [x y] (default 1024x768)
