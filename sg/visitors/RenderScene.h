@@ -53,6 +53,7 @@ namespace ospray {
     std::stack<cpp::TransferFunction> tfns;
     std::string instanceId{""};
     std::string geomId{""};
+    bool useCustomIds{false};
     GeomIdMap *g{nullptr};
     InstanceIdMap *in{nullptr};
   };
@@ -103,8 +104,12 @@ namespace ospray {
           * affine3f::scale(node.child("scale").valueAs<vec3f>());
       xfm.p = node.child("translation").valueAs<vec3f>();
       xfms.push(xfms.top() * xfm * node.valueAs<affine3f>());
-      if (node.hasChild("instanceID"))
+      // special Ids overwrite all id writing implementations
+      if (node.hasChild("instanceID") && !useCustomIds){
         instanceId = node.child("instanceId").valueAs<std::string>();
+        if (node.hasChild("useCustomIds"))
+          useCustomIds = true;
+      }
       if (node.hasChild("geomId"))
         geomId = node.child("geomId").valueAs<std::string>();
       break;
@@ -133,8 +138,15 @@ namespace ospray {
     case NodeType::TRANSFORM:
       createInstanceFromGroup();
       xfms.pop();
-      if (node.hasChild("instanceID"))
-        instanceId = "";
+      if (node.hasChild("instanceID")) {
+        if (useCustomIds) {
+          if (node.hasChild("useCustomIds")){
+            instanceId = "";
+            useCustomIds = false;
+          }
+        } else
+          instanceId = "";
+      }
       if (node.hasChild("geomId"))
         geomId = "";
       break;
