@@ -226,7 +226,6 @@ namespace ospray {
     }
 
     if (metaData) {
-      // get pick information
       std::cout << "saving meta data for pixels .." << std::endl;
       pickFrame();
 
@@ -262,8 +261,12 @@ namespace ospray {
     geomData =
         (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
     worldPosData = (float *)std::malloc(size.x * size.y * 3 * sizeof(float));
+
     std::map<std::string, int> gUnique;
+    gUnique.insert(std::make_pair("", gUnique.size()));
+
     std::map<std::string, int> iUnique;
+    iUnique.insert(std::make_pair("", iUnique.size()));
 
     // change this to parallel_for
     size_t idx = 0;
@@ -277,14 +280,14 @@ namespace ospray {
 
         uint32_t instId = 0;
         uint32_t geomId = 0;
-        float worldPosition[3];
+        float worldPosition[3] = {0,0,0};
 
         if (pickResult.hasHit) {
           auto ospGeometricModel = pickResult.model.handle();
           if (ge.find(ospGeometricModel) != ge.end()) {
             auto g_uuid = ge[ospGeometricModel];
             if(gUnique.find(g_uuid) == gUnique.end()) {
-              auto size = gUnique.size() + 1;
+              auto size = gUnique.size();
               gUnique.insert(std::make_pair(g_uuid, size));
               geomId = size;
             } else {
@@ -296,7 +299,7 @@ namespace ospray {
           if (in.find(ospInstance) != in.end()) {
             auto i_uuid = in[ospInstance];
             if(iUnique.find(i_uuid) == iUnique.end()) {
-              auto size = iUnique.size() + 1;
+              auto size = iUnique.size();
               iUnique.insert(std::make_pair(i_uuid, size));
               instId = size;
             } else {
@@ -314,29 +317,23 @@ namespace ospray {
         worldPosData[idx * 3 +2] = worldPosition[2];
       }
     }
-    std::ofstream geomDump("objectId.export");
-    std::ofstream instDump("id.export");
-    // a real json array would not get exported into the output stream as the
-    // new-line separated ids, all the ids would exist in the same line.
-    // So exporting it one element at a time and appending brackets in start and end.
+    std::ofstream geomDump("objectId.json");
+    std::ofstream instDump("id.json");
+
     int i = 0;
-    nlohmann::json gj;
-    geomDump << "[";
+    auto gj = nlohmann::json::array();
     for (auto &g : gUnique) {
-      gj = g.first;
-      geomDump << "\n" << gj.dump();
+      gj.push_back(g.first);
       i++;
     }
-    geomDump << "\n" << "]";
+    geomDump << gj.dump();
     i = 0;
-    nlohmann::json nj;
-    instDump << "[";
+    auto nj = nlohmann::json::array();
     for (auto &g : iUnique) {
-      nj = g.first;
-      instDump << "\n" << nj.dump();
+      nj.push_back(g.first);
       i++;
     }
-    instDump << "\n" << "]";
+    instDump << nj.dump();
   }
 
   OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);

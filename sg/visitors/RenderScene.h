@@ -163,8 +163,10 @@ namespace ospray {
       // this happens in very specific cases like BIT reference extensions
       if (!geomId.empty())
         g->insert(GeomIdMap::value_type(ospGeometricModel, geomId));
-      else
+      else {
+        // add geometry SG node name as unique geometry ID 
         g->insert(GeomIdMap::value_type(ospGeometricModel, node.name()));
+      }
     }
 
     if (node.hasChild("material")) {
