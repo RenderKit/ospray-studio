@@ -1693,7 +1693,7 @@ void MainWindow::buildWindowKeyframes()
         auto path = sg::createNode("cameraPath", "geometry_curves");
 
         const auto &worldBounds = frame->child("world").bounds();
-        float pathRad = 0.01f * worldBounds.size().sum() / 3.f;
+        float pathRad = 0.005f * reduce_min(worldBounds.size());
         std::vector<CameraState> cameraPath =
             buildPath(cameraStack, g_camPathSpeed * 0.01f);
         std::vector<vec4f> vertexes; // position and radius
@@ -1705,7 +1705,7 @@ void MainWindow::buildWindowKeyframes()
         std::iota(indexes.begin(), indexes.end(), 0);
 
         std::vector<vec4f> colors(vertexes);
-        std::fill(colors.begin(), colors.end(), vec4f(vec3f(0.8f), 1.f));
+        std::fill(colors.begin(), colors.end(), vec4f(0.8f, 0.4f, 0.4f, 1.f));
 
         const std::vector<uint32_t> mID = {
             static_cast<uint32_t>(baseMaterialRegistry->children().size())};
@@ -1732,10 +1732,8 @@ void MainWindow::buildWindowKeyframes()
           capVertexes.push_back(cameraStack[i].position());
           if (i == 0)
             capColors.push_back(vec4f(.047f, .482f, .863f, 1.f));
-          else if (i == cameraStack.size() - 1)
-            capColors.push_back(vec4f(1.f, .761f, .039f, 1.f));
           else
-            capColors.push_back(vec4f(vec3f(0.2f), 1.f));
+            capColors.push_back(vec4f(vec3f(0.8f), 1.f));
         }
 
         caps->createChildData("sphere.position", capVertexes);
