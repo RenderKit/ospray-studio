@@ -1707,13 +1707,17 @@ void MainWindow::buildWindowKeyframes()
         std::vector<vec4f> colors(vertexes);
         std::fill(colors.begin(), colors.end(), vec4f(vec3f(0.8f), 1.f));
 
+        const std::vector<uint32_t> mID = {
+            static_cast<uint32_t>(baseMaterialRegistry->children().size())};
+        auto mat = sg::createNode("pathGlass", "thinGlass");
+        baseMaterialRegistry->add(mat);
+
         path->remove("radius");
         path->createChildData("vertex.position_radius", vertexes);
         path->createChildData("vertex.color", colors);
         path->createChildData("index", indexes);
         path->createChild("type", "uchar", (unsigned char)OSP_ROUND);
         path->createChild("basis", "uchar", (unsigned char)OSP_LINEAR);
-        const std::vector<uint32_t> mID = {0};
         path->createChildData("material", mID);
         path->child("material").setSGOnly();
 
