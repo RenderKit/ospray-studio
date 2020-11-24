@@ -227,7 +227,7 @@ namespace ospray {
 
     if (metaData) {
       std::cout << "saving meta data for pixels .." << std::endl;
-      pickFrame();
+      pickFrame(filename);
 
       if (geomData != nullptr && instData != nullptr) {
 
@@ -249,7 +249,7 @@ namespace ospray {
       unmap(nbuf);
   }
 
-  void FrameBuffer::pickFrame()
+  void FrameBuffer::pickFrame(std::string filename)
   {
     auto &frame = parents().front();
     auto &world = frame->childAs<sg::World>("world").handle();
@@ -317,21 +317,23 @@ namespace ospray {
         worldPosData[idx * 3 +2] = worldPosition[2];
       }
     }
-    std::ofstream geomDump("objectId.json");
-    std::ofstream instDump("id.json");
+    auto geomStream = filename.substr(0, filename.find_last_of(".")) + ".objectId.json";
+    auto instStream = filename.substr(0, filename.find_last_of(".")) + ".id.json";
+    
+    std::ofstream geomDump(geomStream);
+    std::ofstream instDump(instStream);
 
-    int i = 0;
+    std::cout << "JSON maps saved to : " << geomStream << " and " << instStream << std::endl;
+
     auto gj = nlohmann::json::array();
     for (auto &g : gUnique) {
       gj.push_back(g.first);
-      i++;
     }
     geomDump << gj.dump();
-    i = 0;
+
     auto nj = nlohmann::json::array();
     for (auto &g : iUnique) {
       nj.push_back(g.first);
-      i++;
     }
     instDump << nj.dump();
   }

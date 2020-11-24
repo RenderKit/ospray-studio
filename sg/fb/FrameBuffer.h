@@ -31,7 +31,7 @@ namespace ospray {
     void updateToneMapper(bool enabled);
     void updateImageOperations();
     void saveFrame(std::string filename, int flags);
-    void pickFrame();
+    void pickFrame(std::string filename);
 
     inline bool hasFloatFormat()
     {

@@ -20,7 +20,7 @@ void World::preCommit()
 
 void World::postCommit()
 {
-  if (child("saveMetaData").valueAs<bool>() == true){
+  if (child("saveMetaData").valueAs<bool>()){
     auto &frame = parents().front();
     auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
     auto &geomIdmap = fb.ge;
