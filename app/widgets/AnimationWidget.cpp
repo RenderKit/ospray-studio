@@ -39,7 +39,7 @@ void AnimationWidget::addAnimationUI()
     ImGui::SliderFloat("speedup: ", &exp, -3.f, 3.f);
     speedup = std::pow(10.0f, exp);
     ImGui::SameLine();
-    ImGui::Text("%.*f", speedup, std::max(0, int(1.99f - exp)));
+    ImGui::Text("%.*f", std::max(0, int(1.99f - exp)), speedup);
   }
 
   for (auto &a : animations)
