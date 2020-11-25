@@ -55,6 +55,13 @@ namespace ospray {
     updateHandle();
   }
 
+  FrameBuffer::~FrameBuffer()
+  {
+    std::free(instData);
+    std::free(geomData);
+    std::free(worldPosData);
+  }
+
   NodeType FrameBuffer::type() const
   {
     return NodeType::FRAME_BUFFER;
@@ -100,6 +107,13 @@ namespace ospray {
 
     auto size           = child("size").valueAs<vec2i>();
     auto colorFormatStr = child("colorFormat").valueAs<std::string>();
+
+    std::free(instData);
+    std::free(geomData);
+    std::free(worldPosData);
+    instData = nullptr;
+    geomData = nullptr;
+    worldPosData = nullptr;
 
     auto fb = cpp::FrameBuffer(
         size.x, size.y, colorFormats[colorFormatStr], channels);
@@ -256,11 +270,12 @@ namespace ospray {
     auto &camera = frame->childAs<sg::Camera>("camera").handle();
     auto &renderer = frame->childAs<sg::Renderer>("renderer").handle();
     auto size = child("size").valueAs<vec2i>();
-    instData =
-        (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
-    geomData =
-        (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
-    worldPosData = (float *)std::malloc(size.x * size.y * 3 * sizeof(float));
+    if (!instData)
+      instData = (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
+    if (!geomData)
+      geomData = (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
+    if (!worldPosData)
+      worldPosData = (float *)std::malloc(size.x * size.y * 3 * sizeof(float));
 
     std::map<std::string, int> gUnique;
     gUnique.insert(std::make_pair("", gUnique.size()));

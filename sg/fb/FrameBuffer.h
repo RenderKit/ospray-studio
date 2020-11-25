@@ -12,7 +12,7 @@ namespace ospray {
       : public OSPNode<cpp::FrameBuffer, NodeType::FRAME_BUFFER>
   {
     FrameBuffer();
-    ~FrameBuffer() override = default;
+    ~FrameBuffer() override;
 
     NodeType type() const override;
 
