@@ -331,6 +331,7 @@ namespace ospray {
         worldPosData[idx * 3 +2] = worldPosition[2];
       }
     }
+
     auto geomStream = filename.substr(0, filename.find_last_of(".")) + ".objectId.json";
     auto instStream = filename.substr(0, filename.find_last_of(".")) + ".id.json";
     

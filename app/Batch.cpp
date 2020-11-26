@@ -191,7 +191,6 @@ void BatchContext::render()
 
   if (optGridEnable) {
     // Determine world bounds to calculate grid offsets
-    frame->child("world").render();
     frame->child("world").remove(importedModels);
 
     box3f bounds = frame->child("world").bounds();
@@ -210,8 +209,6 @@ void BatchContext::render()
           frame->child("world").add(copy);
         }
   }
-
-  frame->child("world").render();
 
   // Update camera based on world bounds after import
   if (!sgScene)
@@ -244,8 +241,6 @@ void BatchContext::render()
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
 
   frame->child("navMode") = false;
-
-  frame->render();
 
   // Accumulate several frames
   for (auto i = 0; i < optSPP - 1; i++) {
