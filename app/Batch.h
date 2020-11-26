@@ -55,7 +55,7 @@ class BatchContext : public StudioContext
   bool saveNormal{false};
   bool saveLayers{false};
   bool saveMetaData{false};
-  std::string optImageFormat{".png"};
+  std::string optImageFormat{"png"};
 
   void printHelp() override;
 };

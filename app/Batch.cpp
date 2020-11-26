@@ -45,120 +45,137 @@ bool BatchContext::parseCommandLine()
 {
   int argc = studioCommon.argc;
   const char **argv = studioCommon.argv;
+  int argIndex = 1;
 
-  bool retVal = true;
-  // Very basic command-line parsing
-  // Anything beginning with - is an option.
-  // Everything else is considered an import filename
-  for (int i = 1; i < argc; i++) {
-    const std::string arg = argv[i];
-    std::cout << "Arg: " << arg << "\n";
-    if (arg.front() == '-') {
-      if (arg == "--help") {
-        printHelp();
-        retVal = false;
-      } else if (arg == "-r" || arg == "--renderer") {
-        optRendererTypeStr = argv[i + 1];
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-c" || arg == "--camera") {
-        optCameraTypeStr = argv[i + 1];
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-vp") {
+  auto argAvailability = [&](std::string switchArg, int nComp) {
+    if (argc >= argIndex + nComp) {
+      std::string arg = argv[argIndex];
+      if (arg.front() != '-' && arg.front() != '.') {
+        return true;
+      } else {
+        std::cout << "Missing argument value for : " << switchArg
+                  << std::endl;
+        return false;
+      }
+    } else {
+      std::cout << "Missing argument value for : " << switchArg << std::endl;
+      return false;
+    }
+  };
+
+  while (argIndex < argc) {
+    std::string switchArg(argv[argIndex++]);
+
+    if (switchArg == "--help") {
+      printHelp();
+      return 0;
+    } else if (switchArg == "-r" || switchArg == "--renderer") {
+      if (argAvailability(switchArg, 1))
+        optRendererTypeStr = argv[argIndex++];
+
+    } else if (switchArg == "-c" || switchArg == "--camera") {
+      if (argAvailability(switchArg, 1))
+        optCameraTypeStr = argv[argIndex++];
+
+    } else if (switchArg == "-vp") {
+      if (argAvailability(switchArg, 3)) {
         vec3f posVec;
-        posVec.x = atof(argv[i + 1]);
-        posVec.y = atof(argv[i + 2]);
-        posVec.z = atof(argv[i + 3]);
-        removeArgs(argc, argv, i, 4);
-        --i;
-        pos     = posVec;
+        posVec.x = atof(argv[argIndex++]);
+        posVec.y = atof(argv[argIndex++]);
+        posVec.z = atof(argv[argIndex++]);
+        pos = posVec;
         cmdlCam = true;
-      } else if (arg == "-vu") {
+      }
+
+    } else if (switchArg == "-vu") {
+      if (argAvailability(switchArg, 3)) {
         vec3f upVec;
-        upVec.x = atof(argv[i + 1]);
-        upVec.y = atof(argv[i + 2]);
-        upVec.z = atof(argv[i + 3]);
-        removeArgs(argc, argv, i, 4);
-        --i;
-        up      = upVec;
+        upVec.x = atof(argv[argIndex++]);
+        upVec.y = atof(argv[argIndex++]);
+        upVec.z = atof(argv[argIndex++]);
+        up = upVec;
         cmdlCam = true;
-      } else if (arg == "-vi") {
+      }
+
+    } else if (switchArg == "-f" || switchArg == "--format") {
+      if (argAvailability(switchArg, 1))
+        optImageFormat = argv[argIndex++];
+
+    } else if (switchArg == "-i" || switchArg == "--image") {
+      if (argAvailability(switchArg, 1))
+        optImageName = argv[argIndex++];
+
+    } else if (switchArg == "-vi") {
+      if (argAvailability(switchArg, 3)) {
         vec3f gazeVec;
-        gazeVec.x = atof(argv[i + 1]);
-        gazeVec.y = atof(argv[i + 2]);
-        gazeVec.z = atof(argv[i + 3]);
-        removeArgs(argc, argv, i, 4);
-        --i;
-        gaze    = gazeVec;
+        gazeVec.x = atof(argv[argIndex++]);
+        gazeVec.y = atof(argv[argIndex++]);
+        gazeVec.z = atof(argv[argIndex++]);
+        gaze = gazeVec;
         cmdlCam = true;
-      } else if (arg == "-id" || arg == "--interpupillaryDistance") {
-        optInterpupillaryDistance = max(0.0, atof(argv[i + 1]));
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-sm" || arg == "--stereoMode") {
-        optStereoMode = max(0, atoi(argv[i + 1]));
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-i" || arg == "--image") {
-        optImageName = argv[i + 1];
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-s" || arg == "--size") {
-        auto x       = max(0, atoi(argv[i + 1]));
-        auto y       = max(0, atoi(argv[i + 2]));
+      }
+
+    } else if (switchArg == "-id" || switchArg == "--interpupillaryDistance") {
+      if (argAvailability(switchArg, 1))
+        optInterpupillaryDistance = max(0.0, atof(argv[argIndex++]));
+
+    } else if (switchArg == "-sm" || switchArg == "--stereoMode") {
+      if (argAvailability(switchArg, 1))
+        optStereoMode = max(0, atoi(argv[argIndex++]));
+
+    } else if (switchArg == "-s" || switchArg == "--size") {
+      if (argAvailability(switchArg, 2)) {
+        auto x = max(0, atoi(argv[argIndex++]));
+        auto y = max(0, atoi(argv[argIndex++]));
         optImageSize = vec2i(x, y);
-        removeArgs(argc, argv, i, 3);
-        --i;
-      } else if (arg == "-spp" || arg == "--samples") {
-        optSPP = max(1, atoi(argv[i + 1]));
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-pf" || arg == "--pixelfilter") {
-        optPF = max(0, atoi(argv[i + 1]));
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-oidn" || arg == "--denoiser") {
-        if (studioCommon.denoiserAvailable)
-          optDenoiser = min(2, max(0, atoi(argv[i + 1])));
+      }
+
+    } else if (switchArg == "-spp" || switchArg == "--samples") {
+      if (argAvailability(switchArg, 1))
+        optSPP = max(1, atoi(argv[argIndex++]));
+
+    } else if (switchArg == "-pf" || switchArg == "--pixelfilter") {
+      if (argAvailability(switchArg, 1))
+        optPF = max(0, atoi(argv[argIndex++]));
+
+    } else if (switchArg == "-oidn" || switchArg == "--denoiser") {
+      if (studioCommon.denoiserAvailable)
+        if (argAvailability(switchArg, 1))
+          optDenoiser = min(2, max(0, atoi(argv[argIndex++])));
         else
           std::cout << " Denoiser not enabled. Check OSPRay module.\n";
 
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-g" || arg == "--grid") {
-        auto x        = max(0, atoi(argv[i + 1]));
-        auto y        = max(0, atoi(argv[i + 2]));
-        auto z        = max(0, atoi(argv[i + 3]));
-        optGridSize   = vec3i(x, y, z);
+    } else if (switchArg == "-g" || switchArg == "--grid") {
+      if (argAvailability(switchArg, 3)) {
+        auto x = max(0, atoi(argv[argIndex++]));
+        auto y = max(0, atoi(argv[argIndex++]));
+        auto z = max(0, atoi(argv[argIndex++]));
+        optGridSize = vec3i(x, y, z);
         optGridEnable = true;
-        removeArgs(argc, argv, i, 4);
-        --i;
-      } else if (arg == "-f" || arg == "--format") {
-        optImageFormat = argv[i + 1];
-        removeArgs(argc, argv, i, 2);
-        --i;
-      } else if (arg == "-a" || arg == "--albedo") {
-        saveAlbedo = true;
-      } else if (arg == "-d" || arg == "--depth") {
-        saveDepth = true;
-      } else if (arg == "-n" || arg == "--normal") {
-        saveNormal = true;
-      } else if (arg == "-l" || arg == "--layers") {
-        saveLayers = true;
-      } else if (arg == "-m" || arg == "--metadata") {
-        saveMetaData = true;
-      } else {
-        // Unknown option, can't continue
-        std::cout << " Unknown option: " << arg << std::endl;
-        retVal = false;
-        break;
       }
-    } else
-      filesToImport.push_back(arg);
+    } else if (switchArg == "-a" || switchArg == "--albedo") {
+      saveAlbedo = true;
+    } else if (switchArg == "-d" || switchArg == "--depth") {
+      saveDepth = true;
+    } else if (switchArg == "-n" || switchArg == "--normal") {
+      saveNormal = true;
+    } else if (switchArg == "-l" || switchArg == "--layers") {
+      saveLayers = true;
+    } else if (switchArg == "-m" || switchArg == "--metadata") {
+      saveMetaData = true;
+    } else if (switchArg.front() == '-') {
+      std::cout << " Unknown option: " << switchArg << std::endl;
+      break;
+    } else {
+      filesToImport.push_back(switchArg);
+    }
   }
 
-  return retVal;
+  if (filesToImport.size() == 0) {
+    std::cout << "No files to import " << std::endl;
+    return 0;
+  } else
+    return 1;
 }
 
 void BatchContext::render()
@@ -367,7 +384,7 @@ ospStudio batch specific parameters:
             samples per pixel
    -pf    --pixelfilter (default gauss)
             (0=point, 1=box, 2=gauss, 3=mitchell, 4=blackman_harris)
-   -r     --renderer [type] (default "scivis")
+   -r     --renderer [type] (default "pathtracer")
             rendererType scivis or pathtracer
    -c     --camera [type] (default "perspective")
             cameraType perspective or panoramic
