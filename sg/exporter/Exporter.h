@@ -18,9 +18,9 @@ namespace ospray {
 
     virtual void doExport() {}
 
-    uint32_t *_instData;
-    uint32_t *_geomData;
-    float *_worldPosition;
+    uint32_t *_instData{nullptr};
+    uint32_t *_geomData{nullptr};
+    float *_worldPosition{nullptr};
   };
 
   static const std::map<std::string, std::string> exporterMap = {

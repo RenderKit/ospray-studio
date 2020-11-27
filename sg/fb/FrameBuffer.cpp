@@ -243,7 +243,7 @@ namespace ospray {
       std::cout << "saving meta data for pixels .." << std::endl;
       pickFrame(filename);
 
-      if (geomData != nullptr && instData != nullptr) {
+      if (geomData != nullptr && instData != nullptr && worldPosData != nullptr) {
 
         exp->child("asLayers").setValue(true);
         exp->_geomData = geomData;

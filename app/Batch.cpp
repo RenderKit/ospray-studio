@@ -50,17 +50,12 @@ bool BatchContext::parseCommandLine()
   auto argAvailability = [&](std::string switchArg, int nComp) {
     if (argc >= argIndex + nComp) {
       std::string arg = argv[argIndex];
-      if (arg.front() != '-' && arg.front() != '.') {
+      if (arg.front() != '-') {
         return true;
-      } else {
-        std::cout << "Missing argument value for : " << switchArg
-                  << std::endl;
-        return false;
-      }
-    } else {
-      std::cout << "Missing argument value for : " << switchArg << std::endl;
-      return false;
+      } 
     }
+    std::cout << "Missing argument value for : " << switchArg << std::endl;
+    return false;
   };
 
   while (argIndex < argc) {
@@ -142,9 +137,10 @@ bool BatchContext::parseCommandLine()
       if (studioCommon.denoiserAvailable)
         if (argAvailability(switchArg, 1))
           optDenoiser = min(2, max(0, atoi(argv[argIndex++])));
-        else
-          std::cout << " Denoiser not enabled. Check OSPRay module.\n";
-
+      else{
+        std::cout << " Denoiser not enabled. Check OSPRay module.\n";
+        argIndex++;
+      }
     } else if (switchArg == "-g" || switchArg == "--grid") {
       if (argAvailability(switchArg, 3)) {
         auto x = max(0, atoi(argv[argIndex++]));
