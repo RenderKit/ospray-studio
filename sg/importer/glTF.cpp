@@ -875,7 +875,8 @@ namespace ospray {
     gltf.createMaterials();   
     gltf.createGeometries();
     gltf.buildScene();
-    gltf.createAnimations(*animations);
+    if (animations)
+      gltf.createAnimations(*animations);
     if (importCameras)
       gltf.createCameras(*cameras);
 
