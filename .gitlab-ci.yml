@@ -26,7 +26,9 @@ source-protex-scan:
   dependencies: []
   allow_failure: true
 
-# This build phase will no longer work on current branches, due to non-release branch dependencies
+########        
+# These build phases will no longer work on current branches, due to non-release branch dependencies
+########        
 build-ubuntu18.04:
   extends: .build-linux
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
@@ -40,17 +42,6 @@ build-ubuntu18.04:
     refs:
       - master, release-0.5.x
 
-# Transitional phase, only works against devel branch dependencies
-build-ubuntu18.04-dev:
-  extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
-  script:
-    - gitlab/build-dev.sh
-  artifacts:
-    name: ospray-studio
-    paths:
-      - build/
-
 build-osx-clang:
   stage: build
   tags:
@@ -62,6 +53,9 @@ build-osx-clang:
     name: ospray-studio
     paths:
       - build-macos/
+  only:
+    refs:
+      - master, release-0.5.x
 
 build-windows-msvc15:
   stage: build
@@ -74,8 +68,10 @@ build-windows-msvc15:
     name: ospray-studio
     paths:
       - build-win/
+  only:
+    refs:
+      - master, release-0.5.x
 
-# This test phase will no longer work on current branches, due to non-release branch dependencies
 build-kw:
   extends: .build-linux
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
@@ -88,17 +84,6 @@ build-kw:
     refs:
       - master, release-0.5.x
 
-# Transitional phase, only works against devel branch dependencies
-build-kw-dev:
-  extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
-  script:
-    - gitlab/build-kw-dev.sh
-  artifacts:
-    paths:
-      - kw_build_number
-
-# This test phase will no longer work on current branches, due to non-release branch dependencies
 test-run-ubuntu18.04:
   stage: test
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
@@ -111,17 +96,6 @@ test-run-ubuntu18.04:
     refs:
       - master, release-0.5.x
 
-# Transitional phase, only works against devel branch dependencies
-test-run-ubuntu18.04-dev:
-  stage: test
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
-  needs: [build-ubuntu18.04-dev]
-  tags:
-    - docker
-  script:
-    - gitlab/run-dev.sh
-
-# This test phase will no longer work on current branches, due to non-release branch dependencies
 test-kw:
   stage: test
   tags:
@@ -135,7 +109,52 @@ test-kw:
     refs:
       - master, release-0.5.x
 
-# Transitional phase, only works against devel branch dependencies
+########        
+# Transitional phases, only works against devel branch dependencies
+########        
+build-ubuntu18.04-dev:
+  extends: .build-linux
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  script:
+    - gitlab/build-dev.sh
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build/
+
+build-osx-clang-dev:
+  stage: build
+  tags:
+    - osx
+    - clang
+  script:
+    - gitlab/macos-dev.sh
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build-macos/
+
+build-windows-msvc15-dev:
+  stage: build
+  tags:
+    - win
+    - msvc15
+  script:
+    - gitlab\win-dev.ps1 "Visual Studio 15 2017 Win64" "v141" "Release"
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build-win/
+
+build-kw-dev:
+  extends: .build-linux
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  script:
+    - gitlab/build-kw-dev.sh
+  artifacts:
+    paths:
+      - kw_build_number
+
 test-kw-dev:
   stage: test
   tags:
@@ -145,3 +164,12 @@ test-kw-dev:
   script:
     - gitlab/test-kw.sh
   allow_failure: true
+
+test-run-ubuntu18.04-dev:
+  stage: test
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-ubuntu18.04-dev]
+  tags:
+    - docker
+  script:
+    - gitlab/run-dev.sh
