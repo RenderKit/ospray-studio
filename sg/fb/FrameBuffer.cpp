@@ -277,6 +277,9 @@ namespace ospray {
     if (!worldPosData)
       worldPosData = (float *)std::malloc(size.x * size.y * 3 * sizeof(float));
 
+    if(!instData || !geomData || !worldPosData)
+      return;
+
     std::map<std::string, int> gUnique;
     gUnique.insert(std::make_pair("", 0));
 
