@@ -92,7 +92,7 @@ template <typename VALUE_T>
 void AnimationTrack<VALUE_T>::update(const float time)
 {
   updateIndex(time);
-  const size_t idx0 = std::max(index, 0l);
+  const ssize_t idx0 = std::max(index, ssize_t(0));
   const bool isCubic = interpolation == InterpolationMode::CUBIC;
   auto val = values[isCubic ? idx0 * 3 + 1 : idx0];
 
