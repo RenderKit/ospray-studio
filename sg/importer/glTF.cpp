@@ -326,7 +326,7 @@ namespace ospray {
         if (inputAcc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT)
           continue;
 
-        AnimationTrackBase *track;
+        AnimationTrackBase *track{nullptr};
         auto &valueAcc = model.accessors[s.output];
         if (c.target_path == "translation" || c.target_path == "scale") {
           // translation and scaling will always have complete dataType of vec3f
@@ -358,6 +358,8 @@ namespace ospray {
                << std::endl;
           continue;
         }
+        if (!track)
+          continue;
 
         track->interpolation = InterpolationMode::STEP;
         if (s.interpolation == "LINEAR")

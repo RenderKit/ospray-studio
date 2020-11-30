@@ -271,13 +271,12 @@ void BatchContext::render()
   frame->startNewFrame();
 
   int filenum = 0;
-  char filename[64];
-  const char *ext = optImageFormat.c_str();
-  auto fileFormat = optImageName + ".%04d.%s";
-
-  do
-    std::snprintf(filename, 64, fileFormat.c_str(), filenum++, ext);
-  while (std::ifstream(filename).good());
+  char filenumber[7];
+  std::string filename;
+  do {
+    std::snprintf(filenumber, 7, ".%04d.", filenum++);
+    filename = optImageName + filenumber + optImageFormat;
+  } while (std::ifstream(filename.c_str()).good());
 
   int screenshotFlags = saveMetaData << 4 | saveLayers << 3
       | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
