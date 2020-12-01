@@ -729,6 +729,10 @@ namespace ospray {
         ospMat->createChild("metallic", "float")  = (float)pbr.metallicFactor;
         ospMat->createChild("roughness", "float") = (float)pbr.roughnessFactor;
 
+        // Unspec'd defaults
+        ospMat->createChild("diffuse", "float") = 1.0f;
+        ospMat->createChild("ior", "float") = 1.5f;
+
         // XXX will require texture tweaks to get closer to glTF spec, if needed
         // BLEND is always used, so OPAQUE can be achieved by setting all texture
         // texels alpha to 1.0.  OSPRay doesn't support alphaCutoff for MASK mode.
@@ -776,6 +780,200 @@ namespace ospray {
         }
 #endif
 
+#if 1 // Material Extensions
+      const auto &exts = mat.extensions;
+      if (exts.find("KHR_materials_pbrSpecularGlossiness") != exts.end()) {
+        // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_pbrSpecularGlossiness
+        auto params = exts.find("KHR_materials_pbrSpecularGlossiness")->second;
+
+        // diffuseFactor: The reflected diffuse factor of the material.
+        // default:[1.0,1.0,1.0,1.0]
+        vec3f diffuse = vec3f(1.f);
+        float opacity = 1.f;
+        if (params.Has("diffuseFactor")) {
+          std::vector<tinygltf::Value> dv =
+              params.Get("diffuseFactor").Get<tinygltf::Value::Array>();
+          diffuse = vec3f(
+              dv[0].Get<double>(), dv[1].Get<double>(), dv[2].Get<double>());
+          opacity = (float)dv[3].Get<double>();
+        }
+        ospMat->createChild("baseColor", "rgb") = diffuse;
+        ospMat->createChild("opacity", "float") = opacity;
+
+        // diffuseTexture: The diffuse texture.
+        if (params.Has("diffuseTexture")) {
+          setOSPTexture(ospMat,
+              "baseColor",
+              params.Get("diffuseTexture").Get("index").Get<int>());
+        }
+
+        // specularFactor: The specular RGB color of the material.
+        // default:[1.0,1.0,1.0]
+        vec3f specular = vec3f(1.f);
+        if (params.Has("specularFactor")) {
+          std::vector<tinygltf::Value> sv =
+              params.Get("specularFactor").Get<tinygltf::Value::Array>();
+          specular = vec3f(
+              sv[0].Get<double>(), sv[1].Get<double>(), sv[2].Get<double>());
+        }
+        // XXX this can't simply overwrite baseColor
+        ospMat->createChild("baseColor", "rgb") = specular;
+
+        // glossinessFactor: The glossiness or smoothness of the material.
+        // default:1.0
+        float gloss = 1.f;
+        if (params.Has("glossinessFactor")) {
+          gloss = (float)params.Get("glossinessFactor").Get<double>();
+        }
+        ospMat->createChild("roughness", "float") = 1.f - gloss;
+
+        // specularGlossinessTexture: The specular-glossiness texture.
+#if 0
+      // XXX texture isn't simply RGBA!!!
+      // texture containing the sRGB encoded specular color and the linear
+      // glossiness value (A).
+      if (params.Has("specularGlossinessTexture")) {
+        // XXX this can't simply overwrite baseColor
+        setOSPTexture(ospMat,
+            "baseColor",
+            params.Get("specularGlossinessTexture").Get("index").Get<int>());
+      }
+#endif
+      }
+
+      if (exts.find("KHR_materials_clearcoat") != exts.end()) {
+        // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_clearcoat
+        auto params = exts.find("KHR_materials_clearcoat")->second;
+
+        // clearcoatFactor: The clearcoat layer intensity. default:0.0
+        float coat = 0.f;
+        if (params.Has("clearcoatFactor"))
+          coat = (float)params.Get("clearcoatFactor").Get<double>();
+        ospMat->createChild("coat", "float") = coat;
+        ospMat->createChild("coatThickness", "float") = 1.f; // (not in spec)
+
+        // clearcoatRoughnessFactor: The clearcoat layer roughness.
+        // default:0.0
+        float coatRoughness = 0.f;
+        if (params.Has("clearcoatRoughnessFactor"))
+          coatRoughness =
+              (float)params.Get("clearcoatRoughnessFactor").Get<double>();
+        ospMat->createChild("coatRoughness", "float") = coatRoughness;
+
+        // clearcoatTexture: The clearcoat layer intensity texture.
+        // clearcoatRoughnessTexture: The clearcoat layer roughness texture.
+#if 1
+        // XXX textures aren't simply RGB!!!
+        // clearcoat = clearcoatFactor * clearcoatTexture.r
+        // clearcoatRoughness = clearcoatRoughnessFactor *
+        // clearcoatRoughnessTexture.g
+        if (params.Has("clearcoatTexture")) {
+          setOSPTexture(ospMat,
+              "coat",
+              params.Get("clearcoatTexture").Get("index").Get<int>());
+        }
+        if (params.Has("clearcoatRoughnessTexture")) {
+          setOSPTexture(ospMat,
+              "coatRoughness",
+              params.Get("clearcoatRoughnessTexture").Get("index").Get<int>());
+        }
+#endif
+        // clearcoatNormalTexture: The clearcoat normal map texture.
+        if (params.Has("clearcoatNormalTexture")) {
+          setOSPTexture(ospMat,
+              "coatNormal",
+              params.Get("clearcoatNormalTexture").Get("index").Get<int>());
+        }
+      }
+
+      if (exts.find("KHR_materials_transmission") != exts.end()) {
+        // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_transmission
+        auto params = exts.find("KHR_materials_transmission")->second;
+
+        // (this extension deals exclusively with infinitely thin surfaces)
+        ospMat->createChild("thin", "bool") = true;
+
+        // transmissionFactor: The base percentage of light that is transmitted
+        // through the surface. Default:0.0
+        float transmission = 0.f;
+        if (params.Has("transmissionFactor"))
+          transmission = (float)params.Get("transmissionFactor").Get<double>();
+        ospMat->createChild("transmission", "float") = transmission;
+
+        vec3f tinting = vec3f(pbr.baseColorFactor[0],
+            pbr.baseColorFactor[1],
+            pbr.baseColorFactor[2]);
+        ospMat->createChild("transmissionColor", "rgb") = tinting;
+
+        // transmissionTexture: A texture that defines the transmission
+        // percentage of the surface, stored in the R channel. This will be
+        // multiplied by transmissionFactor.
+        if (params.Has("transmissionTexture")) {
+          setOSPTexture(ospMat,
+              "transmission",
+              params.Get("transmissionTexture").Get("index").Get<int>());
+        }
+      }
+
+      if (exts.find("KHR_materials_sheen") != exts.end()) {
+        // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_sheen/
+        auto params = exts.find("KHR_materials_sheen")->second;
+
+        ospMat->createChild("sheen", "float") =
+            1.f; // sheen weight (not in spec)
+
+        // sheenColorFactor: The sheen color in linear space
+        // default:[0.0, 0.0, 0.0]
+        vec3f sheen = vec3f(1.f);
+        if (params.Has("sheenColorFactor")) {
+          std::vector<tinygltf::Value> sv =
+              params.Get("sheenColorFactor").Get<tinygltf::Value::Array>();
+          sheen = vec3f(
+              sv[0].Get<double>(), sv[1].Get<double>(), sv[2].Get<double>());
+        }
+        ospMat->createChild("sheenColor", "rgb") = sheen;
+
+        // sheenColorTexture: The sheen color (sRGB).
+        if (params.Has("sheenColorTexture")) {
+          setOSPTexture(ospMat,
+              "sheen",
+              params.Get("sheenColorTexture").Get("index").Get<int>());
+        }
+
+        // sheenRoughnessFactor: The sheen roughness. default:0.0
+        float sheenRoughness = 0.f;
+        if (params.Has("sheenRoughnessFactor")) {
+          sheenRoughness =
+              (float)params.Get("sheenRoughnessFactor").Get<double>();
+        }
+        ospMat->createChild("sheenRoughness", "float") = sheenRoughness;
+
+        // sheenRoughnessTexture: The sheen roughness (Alpha) texture.
+        if (params.Has("sheenRoughnessTexture")) {
+          setOSPTexture(ospMat,
+              "sheenRoughness",
+              params.Get("sheenRoughnessTexture").Get("index").Get<int>());
+        }
+      }
+
+      if (exts.find("KHR_materials_ior") != exts.end()) {
+        // Experimental https://github.com/KhronosGroup/glTF/pull/1718
+        auto params = exts.find("KHR_materials_ior")->second;
+
+        // ior: The index of refraction. default:1.5
+        float ior = 1.5f;
+        if (params.Has("ior")) {
+          ior = (float)params.Get("ior").Get<double>();
+        }
+        ospMat->createChild("ior", "float") = ior;
+
+        // iorTexture: A greyscale texture that defines the index of refraction
+        // as 1/ior.
+        // XXX the experimental spec says that texture holds 1/ior values!!!
+        // Nothing to test this with, thus far
+      }
+#endif
+
       return ospMat;
 
     } else {
@@ -786,7 +984,7 @@ namespace ospray {
       if (emissiveColor != vec3f(0.f)) {
         ospMat->createChild("color", "vec3f") = emissiveColor;
         ospMat->createChild("intensity", "float") =
-            20.f;  // XXX what's good default intensity?
+            20.f; // XXX what's good default intensity?
 
         // Already checked for constant color above.
         if (mat.emissiveTexture.index != -1) {
@@ -918,6 +1116,9 @@ namespace ospray {
 
       ospMat->add(ospTexNode);
     }
+#if 0 // XXX Add KHR_texture_transform extension
+    // Need to add...
+#endif
   }
 
   // GLTFmporter definitions //////////////////////////////////////////////////
