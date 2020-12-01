@@ -748,8 +748,8 @@ namespace ospray {
         if (pbr.baseColorTexture.texCoord != 0
             || pbr.metallicRoughnessTexture.texCoord != 0
             || mat.normalTexture.texCoord != 0) {
-          WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n"
-            << std::endl;
+          WARN << "gltf found TEXCOOR_1 attribute.  Not supported...\n";
+          WARN << std::endl;
         }
 
         if (pbr.baseColorTexture.index != -1
@@ -759,6 +759,7 @@ namespace ospray {
         }
 
       // XXX Not sure exactly how to map these yet.  Are they single component?
+      // XXX These should use OSP_TEXTURE_R32F, but different channels
       if (pbr.metallicRoughnessTexture.index != -1 &&
           pbr.metallicRoughnessTexture.texCoord == 0) {
         setOSPTexture(ospMat, "metallic", pbr.metallicRoughnessTexture.index);
@@ -771,13 +772,13 @@ namespace ospray {
         ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
       }
 
-#if 0  // No reason to use occlusion in OSPRay
-        if (mat.occlusionTexture.index != -1 &&
-                mat.occlusionTexture.texCoord == 0) {
-            // OcclusionTextureInfo() : index(-1), texCoord(0), strength(1.0) {}
-            setOSPTexture(ospMat, "occlusion", mat.occlusionTexture.index);
-            ospMat->createChild("occlusion", "float", mat.occlusionTexture.scale);
-        }
+#if 0 // No reason to use occlusion in OSPRay
+      if (mat.occlusionTexture.index != -1
+          && mat.occlusionTexture.texCoord == 0) {
+        // OcclusionTextureInfo() : index(-1), texCoord(0), strength(1.0) {}
+        setOSPTexture(ospMat, "occlusion", mat.occlusionTexture.index);
+        ospMat->createChild("occlusion", "float", mat.occlusionTexture.scale);
+      }
 #endif
 
 #if 1 // Material Extensions
@@ -804,7 +805,7 @@ namespace ospray {
         if (params.Has("diffuseTexture")) {
           setOSPTexture(ospMat,
               "baseColor",
-              params.Get("diffuseTexture").Get("index").Get<int>());
+              params.Get("diffuseTexture").Get("index").Get<int>(), false);
         }
 
         // specularFactor: The specular RGB color of the material.
@@ -829,15 +830,16 @@ namespace ospray {
 
         // specularGlossinessTexture: The specular-glossiness texture.
 #if 0
-      // XXX texture isn't simply RGBA!!!
-      // texture containing the sRGB encoded specular color and the linear
-      // glossiness value (A).
-      if (params.Has("specularGlossinessTexture")) {
-        // XXX this can't simply overwrite baseColor
-        setOSPTexture(ospMat,
-            "baseColor",
-            params.Get("specularGlossinessTexture").Get("index").Get<int>());
-      }
+        // XXX texture isn't simply RGBA!!!
+        // texture containing the sRGB encoded specular color and the linear
+        // glossiness value (A).
+        if (params.Has("specularGlossinessTexture")) {
+          // XXX this can't simply overwrite baseColor
+          setOSPTexture(ospMat,
+              "baseColor",
+              params.Get("specularGlossinessTexture").Get("index").Get<int>(),
+              false);
+        }
 #endif
       }
 
@@ -866,7 +868,7 @@ namespace ospray {
         // XXX textures aren't simply RGB!!!
         // clearcoat = clearcoatFactor * clearcoatTexture.r
         // clearcoatRoughness = clearcoatRoughnessFactor *
-        // clearcoatRoughnessTexture.g
+        //                      clearcoatRoughnessTexture.g
         if (params.Has("clearcoatTexture")) {
           setOSPTexture(ospMat,
               "coat",
@@ -919,8 +921,8 @@ namespace ospray {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_sheen/
         auto params = exts.find("KHR_materials_sheen")->second;
 
-        ospMat->createChild("sheen", "float") =
-            1.f; // sheen weight (not in spec)
+        // sheen weight (not in spec)
+        ospMat->createChild("sheen", "float") = 1.f;
 
         // sheenColorFactor: The sheen color in linear space
         // default:[0.0, 0.0, 0.0]
@@ -1114,11 +1116,49 @@ namespace ospray {
       //     << "depth: " << ospTex.depth << " channels: " << ospTex.channels
       //     << " preferLinear: " << preferLinear << "\n";
 
+#if 1 // Texture extensions
+      const auto &exts = model.textures[texIndex].extensions;
+      if (exts.find("KHR_texture_transform") != exts.end()) {
+        // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_transform
+        auto params = exts.find("KHR_texture_transform")->second;
+
+        // offset: The offset of the UV coordinate origin as a factor of the
+        // texture dimensions. default:[0.0, 0.0]
+        vec2f offset = vec2f(0.f);
+        if (params.Has("offset")) {
+          std::vector<tinygltf::Value> ov =
+              params.Get("offset").Get<tinygltf::Value::Array>();
+          offset = vec2f(ov[0].Get<double>(), ov[1].Get<double>());
+        }
+        ospTexNode->createChild("translation", "vec2f") = offset;
+
+        // rotation: Rotate the UVs by this many radians counter-clockwise
+        // around the origin. This is equivalent to a similar rotation of the
+        // image clockwise. default:0.0
+        float rotation = 0.0f;
+        if (params.Has("rotation")) {
+          rotation = (float)params.Get("rotation").Get<double>();
+        }
+        ospMat->createChild("rotation", "float") = rotation;
+
+        // scale: The scale factor applied to the components of the UV
+        // coordinates. default:[1.0, 1.0]
+        vec2f scale = vec2f(1.f);
+        if (params.Has("scale")) {
+          std::vector<tinygltf::Value> sv =
+              params.Get("scale").Get<tinygltf::Value::Array>();
+          offset = vec2f(sv[0].Get<double>(), sv[1].Get<double>());
+        }
+        ospTexNode->createChild("scale", "vec2f") = scale;
+
+        // texCoord: Overrides the textureInfo texCoord value if supplied, and
+        // if this extension is supported.
+        // XXX not sure what, if anything, to do about this one.
+      }
+#endif
+
       ospMat->add(ospTexNode);
     }
-#if 0 // XXX Add KHR_texture_transform extension
-    // Need to add...
-#endif
   }
 
   // GLTFmporter definitions //////////////////////////////////////////////////
