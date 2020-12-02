@@ -695,10 +695,37 @@ namespace ospray {
 
     auto emissiveColor = vec3f(
         mat.emissiveFactor[0], mat.emissiveFactor[1], mat.emissiveFactor[2]);
-    if (emissiveColor == vec3f(0.f)) {
+
+    // We can emulate a constant colored emissive texture
+    // XXX this is a workaround
+    auto constColor = true;
+    if (emissiveColor != vec3f(0.f) && mat.emissiveTexture.index != -1) {
+      const auto &tex = model.textures[mat.emissiveTexture.index];
+      const auto &img = model.images[tex.source];
+      const auto *data = img.image.data();
+
+      const vec3f color0 = vec3f(data[0], data[1], data[2]);
+      auto i = 1;
+      WARN << "Material emissiveTexture #" << mat.emissiveTexture.index;
+      WARN << std::endl;
+      WARN << "   color0 : " << color0 << std::endl;
+      while (constColor && (i < img.width * img.height)) {
+        const vec3f color =
+            vec3f(data[4 * i + 0], data[4 * i + 1], data[4 * i + 2]);
+        if (color0 != color) {
+          WARN << "   color @ " << i << " : " << color << std::endl;
+          WARN << "   !!! non constant color, skipping emissive" << std::endl;
+          constColor = false;
+        }
+        i++;
+      }
+    }
+
+    if ((emissiveColor == vec3f(0.f)) || (constColor == false)) {
         auto ospMat = createNode(matName, "principled");
-        ospMat->createChild("baseColor", "rgb") = vec3f(
-                pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
+        ospMat->createChild("baseColor", "rgb") = vec3f(pbr.baseColorFactor[0],
+            pbr.baseColorFactor[1],
+            pbr.baseColorFactor[2]);
         ospMat->createChild("metallic", "float")  = (float)pbr.metallicFactor;
         ospMat->createChild("roughness", "float") = (float)pbr.roughnessFactor;
 
@@ -721,10 +748,10 @@ namespace ospray {
             << std::endl;
         }
 
-        if (pbr.baseColorTexture.index != -1 &&
-                pbr.baseColorTexture.texCoord == 0) {
-            // Used as a color texture, must be sRGB space, not linear
-            setOSPTexture(ospMat, "baseColor", pbr.baseColorTexture.index, false);
+        if (pbr.baseColorTexture.index != -1
+            && pbr.baseColorTexture.texCoord == 0) {
+          // Used as a color texture, must be sRGB space, not linear
+          setOSPTexture(ospMat, "baseColor", pbr.baseColorTexture.index, false);
         }
 
       // XXX Not sure exactly how to map these yet.  Are they single component?
@@ -757,36 +784,21 @@ namespace ospray {
       auto ospMat = createNode(matName, "luminous");
 
       if (emissiveColor != vec3f(0.f)) {
-        WARN << "Material has emissiveFactor = " << emissiveColor << "\n";
         ospMat->createChild("color", "vec3f") = emissiveColor;
         ospMat->createChild("intensity", "float") =
             20.f;  // XXX what's good default intensity?
 
-        // Emulate a constant colored texture by setting the overall color
+        // Already checked for constant color above.
         if (mat.emissiveTexture.index != -1) {
           const auto &tex = model.textures[mat.emissiveTexture.index];
           const auto &img = model.images[tex.source];
           const auto *data = img.image.data();
-
           const vec3f color0 = vec3f(data[0], data[1], data[2]);
-          auto i = 4;
-          WARN << "   color0 : " << color0 << std::endl;
-          auto constColor = true;
-          while (constColor && (i < img.width * img.height - 4)) {
-            const vec3f color = vec3f(data[i+0], data[i+1], data[i+2]);
-            if (color0 != color) {
-              WARN << "   color @ " << i << " : " << color << std::endl;
-              constColor = false;
-            }
-            i += 4;
-          }
-          if (constColor) {
-            WARN << "Material has emissiveTexture #" << mat.emissiveTexture.index << std::endl;
-            WARN << "   name: " << img.name << std::endl;
-            WARN << "   img: (" << img.width << ", " << img.height << ")" << std::endl;
-            WARN << "   emulating with solid color : " << color0 << std::endl;
-            ospMat->child("color") = emissiveColor * (color0 / 255.f);
-          }
+          WARN << "   name: " << img.name << std::endl;
+          WARN << "   img: (" << img.width << ", " << img.height << ")";
+          WARN << std::endl;
+          WARN << "   emulating with solid color : " << color0 << std::endl;
+          ospMat->child("color") = emissiveColor * (color0 / 255.f);
         }
       }
 
