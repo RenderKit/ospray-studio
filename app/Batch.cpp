@@ -134,10 +134,10 @@ bool BatchContext::parseCommandLine()
         optPF = max(0, atoi(argv[argIndex++]));
 
     } else if (switchArg == "-oidn" || switchArg == "--denoiser") {
-      if (studioCommon.denoiserAvailable)
+      if (studioCommon.denoiserAvailable) {
         if (argAvailability(switchArg, 1))
           optDenoiser = min(2, max(0, atoi(argv[argIndex++])));
-      else{
+      } else {
         std::cout << " Denoiser not enabled. Check OSPRay module.\n";
         argIndex++;
       }
@@ -271,10 +271,10 @@ void BatchContext::render()
   frame->startNewFrame();
 
   int filenum = 0;
-  char filenumber[7];
+  char filenumber[13];
   std::string filename;
   do {
-    std::snprintf(filenumber, 7, ".%04d.", filenum++);
+    std::snprintf(filenumber, sizeof(filenumber), ".%04d.", filenum++);
     filename = optImageName + filenumber + optImageFormat;
   } while (std::ifstream(filename.c_str()).good());
 

@@ -18,7 +18,7 @@ namespace ospray {
     return NodeType::VOLUME;
   }
 
-  void Volume::load(const FileName &fileName){}
+  void Volume::load(const FileName &){}
 
   }  // namespace sg
 } // namespace ospray

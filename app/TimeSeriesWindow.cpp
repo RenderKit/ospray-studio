@@ -58,11 +58,11 @@ void TimeSeriesWindow::start()
   mainLoop();
 }
 
-bool TimeSeriesWindow::isTimestepVolumeLoaded(int variableNum, int timestep)
+bool TimeSeriesWindow::isTimestepVolumeLoaded(int variableNum, size_t timestep)
 {
   bool loaded = true;
 
-  for (int v = 0; v < allVariablesData[variableNum].size(); v++) {
+  for (size_t v = 0; v < allVariablesData[variableNum].size(); v++) {
     if (timestep >= allVariablesData[variableNum].size()) {
       throw std::runtime_error("out of bounds timestep selected");
     }
@@ -98,10 +98,10 @@ void TimeSeriesWindow::mainLoop()
     throw std::runtime_error("wrong renderer and light type combination");
   }
 
-  int numTimesteps = allVariablesData[0].size();
+  size_t numTimesteps = allVariablesData[0].size();
 
   if (!importAsSeparateTimeseries)
-    for (int i = 0; i < allVariablesData.size(); i++) {
+    for (size_t i = 0; i < allVariablesData.size(); i++) {
       if (numTimesteps != allVariablesData[i].size()) {
         throw std::runtime_error(
             "inconsistent number of timesteps per variable");
@@ -124,19 +124,19 @@ void TimeSeriesWindow::mainLoop()
 
   if (!importAsSeparateTimeseries) {
     // generate one world per timestep
-    for (int i = 0; i < allVariablesData[0].size(); i++) {
+    for (size_t i = 0; i < allVariablesData[0].size(); i++) {
       auto world = std::static_pointer_cast<ospray::sg::World>(
           createNode("world", "world"));
       g_allWorlds.push_back(world);
     }
 
     // pre generate volumes/data for every timestep/world
-    for (int i = 0; i < allVariablesData.size(); i++) {
+    for (size_t i = 0; i < allVariablesData.size(); i++) {
       rkcommon::FileName fileName(allVariablesData[i][0]);
       size_t lastindex = fileName.base().find_first_of(".");
       variablesLoaded.push_back(fileName.base().substr(0, lastindex));
 
-      for (int f = 0; f < allVariablesData[i].size(); f++) {
+      for (size_t f = 0; f < allVariablesData[i].size(); f++) {
         std::shared_ptr<sg::Volume> vol;
 
         if (allVariablesData[i][f].length() > 4
@@ -198,7 +198,7 @@ void TimeSeriesWindow::mainLoop()
     }
   } else {
     // pre generate volumes/data for every timestep/world
-    for (int i = 0; i < allVariablesData.size(); i++) {
+    for (size_t i = 0; i < allVariablesData.size(); i++) {
       rkcommon::FileName fileName(allVariablesData[i][0]);
       size_t lastindex = fileName.base().find_first_of(".");
       variablesLoaded.push_back(fileName.base().substr(0, lastindex));
@@ -206,7 +206,7 @@ void TimeSeriesWindow::mainLoop()
       // single variable world vector
       std::vector<std::shared_ptr<sg::World>> singleVariableWorlds;
 
-      for (int f = 0; f < allVariablesData[i].size(); f++) {
+      for (size_t f = 0; f < allVariablesData[i].size(); f++) {
         auto world = std::static_pointer_cast<ospray::sg::World>(
             createNode("world", "world"));
         singleVariableWorlds.push_back(world);

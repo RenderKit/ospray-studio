@@ -31,7 +31,7 @@ namespace ospray {
     // Inlined definitions ////////////////////////////////////////////////////
 
     inline bool SetParamByNode::operator()(Node &node,
-                                           TraversalContext &ctx)
+                                           TraversalContext &)
     {
       if (node.type() == type) {
         node.child(param).setValue(value);

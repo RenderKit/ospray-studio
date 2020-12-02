@@ -46,12 +46,17 @@ NodeType Renderer::type() const
 
 void Renderer::setNavMode(bool navMode)
 {
-  // XXX TODO renderer separate navigation and still settings.
-  // But, this is going to require more plumbing and UI to work correctly
-  // and be usable.
+  static auto oldNavMode = false;
+  if (navMode != oldNavMode) {
+    oldNavMode = navMode;
 
-  // Create 2 configurable sets of renderer options, to switch between.
-  // Should work with any renderer type.
+    // XXX TODO renderer separate navigation and still settings.
+    // But, this is going to require more plumbing and UI to work correctly
+    // and be usable.
+
+    // Create 2 configurable sets of renderer options, to switch between.
+    // Should work with any renderer type.
+  }
 }
 
 // Register OSPRay's debug renderers //

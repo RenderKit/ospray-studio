@@ -92,7 +92,7 @@ class TimeSeriesWindow : public MainWindow
 
   TimeseriesParameters g_timeseriesParameters;
 
-  bool isTimestepVolumeLoaded(int variableNum, int timestep);
+  bool isTimestepVolumeLoaded(int variableNum, size_t timestep);
 
  protected:
   float framebufferScale = 1.f;

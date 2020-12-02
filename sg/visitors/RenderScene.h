@@ -72,7 +72,7 @@ namespace ospray {
     in = &instanceIdMap;
   }
 
-  inline bool RenderScene::operator()(Node &node, TraversalContext &ctx)
+  inline bool RenderScene::operator()(Node &node, TraversalContext &)
   {
     bool traverseChildren = true;
 

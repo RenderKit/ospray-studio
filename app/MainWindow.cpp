@@ -643,7 +643,7 @@ void MainWindow::display()
     updateCamera();
 
     // pause at the end of the path
-    if (g_camCurrentPathIndex == g_camPath.size() - 1) {
+    if (g_camCurrentPathIndex == (int) g_camPath.size() - 1) {
       framesPaused++;
       int framesToWait = g_camPathPause * ImGui::GetIO().Framerate;
       if (framesPaused > framesToWait) {
@@ -830,7 +830,7 @@ void MainWindow::startNewOSPRayFrame()
   // 10 is a good imperical number.  If necessary, make UI adjustable
   static auto skipCount = 0;
   if (interacting)
-    skipCount = skipCount > 0 ? --skipCount : 10;
+    skipCount = skipCount > 0 ? skipCount - 1 : 10;
 
   frame->startNewFrame(interacting && !!skipCount);
 }
@@ -1087,7 +1087,7 @@ void MainWindow::importFiles(sg::NodePtr world)
         new AnimationWidget(getFrame(), animations, "Animation Control")));
 
     registerImGuiCallback([&]() {
-      for (auto i = 0; i < allAnimationWidgets.size(); ++i)
+      for (size_t i = 0; i < allAnimationWidgets.size(); ++i)
         allAnimationWidgets[i]->addAnimationUI();
     });
   }
@@ -1162,7 +1162,7 @@ void MainWindow::buildMainMenuFile()
       animate = true;
     }
     if (ImGui::BeginMenu("Demo Scene")) {
-      for (int i = 0; i < g_scenes.size(); ++i) {
+      for (size_t i = 0; i < g_scenes.size(); ++i) {
         if (ImGui::MenuItem(g_scenes[i].c_str(), nullptr)) {
           scene = g_scenes[i];
           refreshScene(true);
@@ -1665,10 +1665,10 @@ void MainWindow::buildWindowKeyframes()
             "Slow speeds may cause jitter for small objects");
       }
     }
-    for (int i = 0; i < cameraStack.size(); i++) {
+    for (size_t i = 0; i < cameraStack.size(); i++) {
       if (ImGui::Selectable(
               (std::to_string(i) + ": " + to_string(cameraStack[i])).c_str(),
-              (g_camSelectedStackIndex == i))) {
+              (g_camSelectedStackIndex == (int) i))) {
         g_camSelectedStackIndex = i;
         arcballCamera->setState(cameraStack[i]);
         updateCamera();
@@ -1695,7 +1695,7 @@ void MainWindow::buildWindowSnapshots()
     return;
   }
   ImGui::Text("+ key to add new snapshots");
-  for (int s = 0; s < cameraStack.size(); s++) {
+  for (size_t s = 0; s < cameraStack.size(); s++) {
     if (ImGui::Button(std::to_string(s).c_str())) {
       setCameraSnapshot(s);
     }
@@ -1762,7 +1762,7 @@ void MainWindow::buildWindowLightEditor()
           lightTypeUI_callback,
           nullptr,
           g_lightTypes.size())) {
-    if (whichLightType > -1 && whichLightType < g_lightTypes.size())
+    if (whichLightType > -1 && whichLightType < (int) g_lightTypes.size())
       lightType = g_lightTypes[whichLightType];
   }
 
@@ -1835,7 +1835,7 @@ void MainWindow::buildWindowCameraEditor()
           cameraUI_callback,
           nullptr,
           g_sceneCameras.size())) {
-    if (whichCamera > -1 && whichCamera < g_sceneCameras.size()) {
+    if (whichCamera > -1 && whichCamera < (int) g_sceneCameras.size()) {
       auto &currentCamera = g_sceneCameras.at_index(whichCamera);
       auto &cameraNode = currentCamera.second->children();
       auto &camera = frame->childAs<sg::Camera>("camera");
@@ -1930,12 +1930,12 @@ void MainWindow::buildWindowTransferFunctionEditor()
     if (ImGui::ListBoxHeader("", transferFunctions.size())) {
       int i = 0;
       for (auto t : transferFunctions) {
-        auto &tfn = *(t.second->nodeAs<sg::TransferFunction>());
         if (ImGui::Selectable(t.first.c_str(), (whichTFn == i))) {
           whichTFn = i;
           selected = t.first;
 
 #if 0 // XXX Needs to be fixed.  This overwrites the default transferfunction
+          auto &tfn = *(t.second->nodeAs<sg::TransferFunction>());
           const auto numSamples = tfn.colors.size();
 
           if (numSamples > 1) {
@@ -1976,7 +1976,7 @@ void MainWindow::buildWindowIsosurfaceEditor()
   static auto ListBox = [](const char *label, int *selected, vNodePtr &nodes) {
     static auto getter = [](void *vec, int index, const char **name) {
       auto nodes = static_cast<vNodePtr *>(vec);
-      if (0 > index || index >= nodes->size())
+      if (0 > index || index >= (int) nodes->size())
         return false;
       // Need longer lifetime than this lambda?
       static std::string copy = "";
@@ -2157,6 +2157,7 @@ void MainWindow::buildWindowTransformEditor()
           sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
       if (userUpdated) {
+        result->commit();
         break;
       }
     }
@@ -2169,6 +2170,7 @@ void MainWindow::buildWindowTransformEditor()
             sg::TreeState::ROOTOPEN, userUpdated);
         // Don't continue traversing
         if (userUpdated) {
+          node.second->commit();
           break;
         }
       }

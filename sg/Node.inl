@@ -310,7 +310,7 @@ namespace ospray {
     }
 
     return found;
-  };
+  }
 
   }  // namespace sg
 } // namespace ospray

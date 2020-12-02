@@ -137,7 +137,7 @@ void TransferFunctionWidget::setColorsAndOpacities(
   tfnColorPoints->resize(numSamples);
   tfnOpacityPoints->resize(numSamples);
 
-  for (int i = 0; i < numSamples; i++) {
+  for (int i = 0; i < (int) numSamples; i++) {
     vec4f c4 = colors.at(i);
     tfnColorPoints->at(i) = ColorPoint(i * dx, c4.x, c4.y, c4.z);
     tfnOpacityPoints->at(i) = OpacityPoint(i * dx, c4.w);
@@ -490,7 +490,7 @@ void TransferFunctionWidget::loadDefaultMaps()
 
   tfnsEditable.push_back(true);
   tfnsNames.push_back("Er");
-};
+}
 
 void TransferFunctionWidget::setMap(int selection)
 {
@@ -622,7 +622,7 @@ void TransferFunctionWidget::drawEditor()
     ImGui::SetTooltip("Double left click to add new control point");
 
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-  for (int i = 0; i < tfnOpacityPoints->size() - 1; ++i) {
+  for (size_t i = 0; i < tfnOpacityPoints->size() - 1; ++i) {
     std::vector<ImVec2> polyline;
     polyline.emplace_back(canvas_x + margin + (*tfnOpacityPoints)[i].x * width,
                           canvas_y + height);
@@ -718,7 +718,7 @@ void TransferFunctionWidget::drawEditor()
         ImGui::EndTooltip();
       }
     }
-    for (int i = 0; i < tfnColorPoints->size(); ++i) {
+    for (size_t i = 0; i < tfnColorPoints->size(); ++i) {
       const ImVec2 pos(canvas_x + width * (*tfnColorPoints)[i].x + margin,
                        canvas_y);
 
@@ -762,7 +762,7 @@ void TransferFunctionWidget::drawEditor()
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
   {
     // draw circles
-    for (int i = 0; i < tfnOpacityPoints->size(); ++i) {
+    for (size_t i = 0; i < tfnOpacityPoints->size(); ++i) {
       const ImVec2 pos(canvas_x + width * (*tfnOpacityPoints)[i].x + margin,
                        canvas_y - height * (*tfnOpacityPoints)[i].y - margin);
       ImGui::SetCursorScreenPos(

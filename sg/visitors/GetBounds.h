@@ -19,7 +19,7 @@ namespace ospray {
 
   // Inlined definitions //////////////////////////////////////////////////////
 
-  inline bool GetBounds::operator()(Node &node, TraversalContext &ctx)
+  inline bool GetBounds::operator()(Node &node, TraversalContext &)
   {
     switch (node.type()) {
     case NodeType::WORLD: {

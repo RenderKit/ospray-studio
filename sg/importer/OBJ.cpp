@@ -80,7 +80,6 @@ namespace ospray {
     const std::string containingPath = fileName.path();
     // Try to load scene without auto-triangulation.  If point, lines,
     // or polygons are found; reload the scene as a triangle mesh.
-    bool ret         = false;
     bool needsReload = false;
 
     do {
@@ -88,14 +87,14 @@ namespace ospray {
       std::string warn;
       std::string err;
 
-      ret = tinyobj::LoadObj(&retval.attrib,
-                             &retval.shapes,
-                             &retval.materials,
-                             &warn,
-                             &err,
-                             fileName.c_str(),
-                             containingPath.c_str(),
-                             needsReload);  // triangulate meshes if true
+      tinyobj::LoadObj(&retval.attrib,
+          &retval.shapes,
+          &retval.materials,
+          &warn,
+          &err,
+          fileName.c_str(),
+          containingPath.c_str(),
+          needsReload); // triangulate meshes if true
 
       auto numQuads     = 0;
       auto numTriangles = 0;

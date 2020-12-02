@@ -31,7 +31,7 @@ void AnimationTrackBase::updateIndex(const float time)
 {
   // check if index still valid wrt. time
   if ((index < 0 || times[index] <= time)
-      && (index + 1 >= times.size() || time < times[index + 1]))
+      && (index + 1 >= (ssize_t) times.size() || time < times[index + 1]))
     return;
   const auto &start = begin(times);
   index = distance(start, upper_bound(start, end(times), time)) - 1;

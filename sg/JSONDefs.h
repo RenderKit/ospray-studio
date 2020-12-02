@@ -72,7 +72,7 @@ inline void to_json(JSON &j, const Node &n)
     j["children"] = n.children();
 }
 
-inline void from_json(const JSON &j, Node &n) {}
+inline void from_json(const JSON &, Node &) {}
 
 inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
   NodePtr n = nullptr;
@@ -138,7 +138,7 @@ inline void to_json(
 }
 
 inline void from_json(
-    const JSON &j, FlatMap<std::string, ospray::sg::NodePtr> &fm)
+    const JSON &, FlatMap<std::string, ospray::sg::NodePtr> &)
 {}
 
 } // namespace containers

@@ -44,7 +44,7 @@ struct PANEL_INTERFACE Panel
  protected:
   // Constructor to be used by child classes
   Panel(const std::string &_name, std::shared_ptr<StudioContext> _context)
-      : currentName(_name), context(_context)
+      : context(_context), currentName(_name)
   {}
   std::shared_ptr<StudioContext> context;
 

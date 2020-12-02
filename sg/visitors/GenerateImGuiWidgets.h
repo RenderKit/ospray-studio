@@ -293,7 +293,7 @@ namespace ospray {
       return false;
     }
 
-   inline bool generateWidget_affine3f(const std::string &title, Node &node)
+   inline bool generateWidget_affine3f(const std::string &, Node &node)
     {
       affine3f a = node.valueAs<affine3f>();
 
@@ -323,7 +323,7 @@ namespace ospray {
       return false;
     }
 
-   inline bool generateWidget_string(const std::string &title, Node &node)
+   inline bool generateWidget_string(const std::string &, Node &node)
     {
       std::string s = node.valueAs<std::string>();
 

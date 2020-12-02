@@ -26,8 +26,8 @@ namespace ospray {
       ImGui::Separator();
 
       ImGui::Text("%s", "Current application state");
-      ImGui::Text("Frame: %p", context->frame.get());
-      ImGui::Text("Arcball Camera: %p", context->arcballCamera.get());
+      ImGui::Text("Frame: %p", (void *) context->frame.get());
+      ImGui::Text("Arcball Camera: %p", (void *) context->arcballCamera.get());
       ImGui::Text("Current scenegraph:");
       context->frame->traverse<sg::GenerateImGuiWidgets>(
           sg::TreeState::ROOTOPEN);

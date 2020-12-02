@@ -35,11 +35,11 @@ namespace ospray {
         0.9746f);
     createChild("midIn",
         "float",
-        "mid-level anchor input; default is 18\% gray",
+        "mid-level anchor input; default is 18%% gray",
         0.18f);
     createChild("midOut",
         "float",
-        "mid-level anchor output; default is 18\% gray",
+        "mid-level anchor output; default is 18%% gray",
         0.18f);
     createChild(
         "hdrMax", "float", "maximum HDR input that is not clipped", 6.3704f);

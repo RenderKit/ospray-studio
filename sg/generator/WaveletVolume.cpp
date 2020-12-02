@@ -79,9 +79,9 @@ namespace ospray {
     };
 
     tasking::parallel_for(dimensions.z, [&](int z) {
-      for (size_t y = 0; y < dimensions.y; y++) {
-        for (size_t x = 0; x < dimensions.x; x++) {
-          size_t index = z * dimensions.y * dimensions.x + y * dimensions.x + x;
+      for (size_t y = 0; y < (size_t)dimensions.y; y++) {
+        for (size_t x = 0; x < (size_t)dimensions.x; x++) {
+          size_t index = z * (size_t)dimensions.y * dimensions.x + y * dimensions.x + x;
           vec3f objectCoordinates = transformLocalToObject(vec3f(x, y, z));
           voxels[index]           = getWaveletValue(objectCoordinates);
         }

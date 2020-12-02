@@ -59,13 +59,13 @@ namespace ospray {
     void createAnimations(std::vector<Animation> &);
 
    private:
+    NodePtr rootNode;
+
     std::vector<NodePtr> ospMeshes;
     std::shared_ptr<sg::MaterialRegistry> materialRegistry;
     std::vector<NodePtr> sceneNodes; // lookup table glTF:nodeID -> NodePtr
 
     tinygltf::Model model;
-
-    NodePtr rootNode;
 
     std::vector<NodePtr> ospMaterials;
 
@@ -185,7 +185,7 @@ namespace ospray {
 
     auto assetObj = n.extensions.find("BIT_asset_info")->second;
     auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
-    auto &assetId = asset.Get("id").Get<std::string>();
+    // auto &assetId = asset.Get("id").Get<std::string>();
     auto assetTitle = asset.Get("title").Get<std::string>();
 
     auto refLink = n.extensions.find("BIT_reference_link")->second;
@@ -312,8 +312,6 @@ namespace ospray {
   // link nodes with the channels that animate them in animatedNodes map
   void GLTFData::createAnimations(std::vector<Animation> &animations)
   {
-    auto numAnimations = model.animations.size();
-
     for (auto &a : model.animations) {
       animations.emplace_back(a.name);
       auto &animation = animations.back();
