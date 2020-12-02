@@ -2003,16 +2003,15 @@ void MainWindow::buildWindowIsosurfaceEditor()
         volumes.push_back(volume);
     }
 
+  ImGui::Text("Volumes");
+  ImGui::Text("(select to create an isosurface)");
   if (volumes.empty()) {
     ImGui::Text("== empty == ");
 
   } else {
-    static int current = 0;
-    if (ListBox("Volumes", &current, volumes)) {
-      auto selected = volumes.at(current);
-
-      // Create an Isosurface gemoetry and add it to the world
-      // XXX temporary
+    static int currentVolume = 0;
+    if (ListBox("##Volumes", &currentVolume, volumes)) {
+      auto selected = volumes.at(currentVolume);
 
       auto &world = frame->childAs<sg::World>("world");
 
@@ -2052,6 +2051,27 @@ void MainWindow::buildWindowIsosurfaceEditor()
 
       world.add(isoXfm);
     }
+  }
+
+  // Gather all isosurfaces in the scene
+  vNodePtr surfaces = {};
+  for (auto &node : frame->child("world").children())
+    if (node.second->type() == sg::NodeType::GENERATOR
+        || node.second->type() == sg::NodeType::IMPORTER
+        || node.second->type() == sg::NodeType::TRANSFORM) {
+      auto surface =
+          findFirstNodeOfType(node.second, sg::NodeType::GEOMETRY);
+      if (surface && (surface->subType() == "geometry_isosurfaces"))
+        surfaces.push_back(surface);
+    }
+
+  ImGui::Separator();
+  ImGui::Text("Isosurfaces");
+  if (surfaces.empty()) {
+    ImGui::Text("== empty == ");
+  } else {
+    for (auto &surface : surfaces)
+      surface->traverse<sg::GenerateImGuiWidgets>();
   }
 
   ImGui::End();
