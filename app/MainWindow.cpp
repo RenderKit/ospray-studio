@@ -2415,11 +2415,16 @@ void MainWindow::buildWindowTransformEditor()
   static char searchTerm[1024] = "";
   static bool searched = false;
   static std::vector<sg::Node *> results;
+  static const int numItemsPerPage = 100;
+  static int numPages = 0;
+  static int currentPage = 1;
+  static std::string paginateLabel = "";
 
   auto doClear = [&]() {
     searched = false;
     results.clear();
     searchTerm[0] = '\0';
+    numPages = 0;
   };
   auto doSearch = [&]() {
     if (std::string(searchTerm).size() > 0) {
@@ -2427,6 +2432,10 @@ void MainWindow::buildWindowTransformEditor()
       results.clear();
       frame->traverse<sg::Search>(
           std::string(searchTerm), sg::NodeType::GEOMETRY, results);
+      numPages = results.size() / numItemsPerPage;
+      numPages += results.size() % numItemsPerPage == 0 ? 0 : 1;
+      paginateLabel = "of " + std::to_string(numPages) + "##currentPage";
+      currentPage = 1;
     } else {
       doClear();
     }
@@ -2474,17 +2483,32 @@ void MainWindow::buildWindowTransformEditor()
     ImGui::SameLine();
     ImGui::Text(
         "%lu %s", results.size(), (results.size() == 1 ? "result" : "results"));
+
+    // paginate results
+    if (ImGui::ArrowButton("##prevPage", ImGuiDir_Left))
+      currentPage = std::max(1, currentPage - 1);
+    ImGui::SameLine();
+    ImGui::Text("page");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(20.f);
+    ImGui::InputInt(paginateLabel.c_str(), &currentPage, 0);
+    ImGui::SameLine();
+    if (ImGui::ArrowButton("##nextPage", ImGuiDir_Right))
+      currentPage = std::min(numPages, currentPage + 1);
   }
 
   ImGui::BeginChild(
       "geometry", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
   bool userUpdated = false;
   if (searched) {
-    for (auto result : results) {
-      result->traverse<sg::GenerateImGuiWidgets>(
+    for (int i = (currentPage - 1) * numItemsPerPage;
+         i < std::min((int)results.size(), currentPage * numItemsPerPage);
+         i++) {
+      results[i]->traverse<sg::GenerateImGuiWidgets>(
           sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
       if (userUpdated) {
+        results[i]->commit();
         break;
       }
     }
