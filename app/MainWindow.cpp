@@ -2205,6 +2205,7 @@ void MainWindow::buildWindowRenderingStats()
 
   ImGui::Text("renderer: %s", rendererTypeStr.c_str());
   ImGui::Text("framerate: %-5.1f fps", latestFPS);
+  ImGui::Text("ui framerate: %-5.1f fps", ImGui::GetIO().Framerate);
   ImGui::Text("variance : %-5.2f    ", variance);
   if (frame->accumLimit > 0) {
     ImGui::Text("accumulation:");
