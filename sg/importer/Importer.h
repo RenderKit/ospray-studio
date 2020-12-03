@@ -100,7 +100,8 @@ extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 
 // Providing a unique transform instance as root to add existing imported model to, 
 // should probably be the responsibility of the calling routine
-inline NodePtr getImporter(NodePtr root, rkcommon::FileName fileName)
+inline std::shared_ptr<Importer> getImporter(
+    NodePtr root, rkcommon::FileName fileName)
 {
   std::string baseName = fileName.name();
   auto fnd = importerMap.find(fileName.ext());
@@ -140,7 +141,7 @@ inline NodePtr getImporter(NodePtr root, rkcommon::FileName fileName)
     return nullptr;
 
   } else {
-    auto importNode = createNodeAs<sg::Importer>(nodeName, importer);
+    auto importNode = createNodeAs<Importer>(nodeName, importer);
     if(importer == "importer_raw" && !importNode->hasVolumeParams) {
       std::cout
         << "Loading volumes with default volume parameters ..."
