@@ -1280,6 +1280,7 @@ void MainWindow::buildMainMenuEdit()
         - g_renderers.begin();
 
     static int whichDebuggerType = 0;
+    ImGui::PushItemWidth(10.f * ImGui::GetFontSize());
     if (ImGui::Combo("renderer##whichRenderer",
             &whichRenderer,
             rendererUI_callback,
@@ -1566,13 +1567,15 @@ void MainWindow::buildMainMenuView()
     ImGui::SameLine();
     ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
 
-    ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     ImGui::DragInt(
         "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
 
     ImGui::Checkbox("auto rotate", &autorotate);
     if (autorotate) {
-      ImGui::SliderInt("auto rotate speed", &autorotateSpeed, 1, 100);
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+      ImGui::SliderInt(" speed", &autorotateSpeed, 1, 100);
     }
 
     ImGui::Separator();
@@ -2204,8 +2207,8 @@ void MainWindow::buildWindowRenderingStats()
   auto variance = fb.variance();
 
   ImGui::Text("renderer: %s", rendererTypeStr.c_str());
-  ImGui::Text("framerate: %-5.1f fps", latestFPS);
-  ImGui::Text("ui framerate: %-5.1f fps", ImGui::GetIO().Framerate);
+  ImGui::Text("framerate: %-7.1f fps", latestFPS);
+  ImGui::Text("ui framerate: %-7.1f fps", ImGui::GetIO().Framerate);
   ImGui::Text("variance : %-5.2f    ", variance);
   if (frame->accumLimit > 0) {
     ImGui::Text("accumulation:");
