@@ -149,6 +149,11 @@ namespace ospray {
 
   void Node::add(NodePtr node, const std::string &name)
   {
+    if (hasChild(name)) {
+      if (properties.children[name] == node)
+        return;
+      properties.children[name]->removeFromParentList(*this);
+    }
     properties.children[name] = node;
     node->properties.parents.push_back(this);
     markAsModified();
