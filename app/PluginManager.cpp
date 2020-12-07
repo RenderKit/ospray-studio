@@ -13,11 +13,11 @@ void PluginManager::loadPlugin(const std::string &name)
   std::string libName = "ospray_studio_plugin_" + name;
   try {
     rkcommon::loadLibrary(libName, false);
-  } catch (...) {
+  } catch (std::runtime_error &e) {
     std::cout << "...failed to load plugin '" << name << "'!"
               << " (plugin was not found). Please verify the name of the plugin"
               << " is correct and that it is on your LD_LIBRARY_PATH."
-              << std::endl;
+              << e.what() << std::endl;
     return;
   }
 
