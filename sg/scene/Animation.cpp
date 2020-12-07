@@ -117,12 +117,21 @@ void AnimationTrack<VALUE_T>::update(const float time)
   target->setValue(val);
 }
 
+template <>
+void AnimationTrack<NodePtr>::update(const float time)
+{
+  updateIndex(time);
+  target->add(values[std::max(index, ssize_t(0))], "timeseries");
+}
+
 template void AnimationTrack<float>::update(const float);
 template bool AnimationTrack<float>::valid();
 template void AnimationTrack<vec3f>::update(const float);
 template bool AnimationTrack<vec3f>::valid();
 template void AnimationTrack<quaternionf>::update(const float);
 template bool AnimationTrack<quaternionf>::valid();
+template void AnimationTrack<NodePtr>::update(const float);
+template bool AnimationTrack<NodePtr>::valid();
 
 } // namespace sg
 } // namespace ospray
