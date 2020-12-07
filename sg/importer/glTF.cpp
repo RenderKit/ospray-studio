@@ -334,13 +334,11 @@ namespace ospray {
           t->values.reserve(value.size());
           for (size_t i = 0; i < value.size(); ++i)
             t->values.push_back(value[i]);
-        }
-        if (c.target_path == "rotation") {
+        } else if (c.target_path == "rotation") {
           if (valueAcc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
             WARN
                 << "animation rotation is not in 'float' format; conversion not implemented yet"
                 << std::endl;
-            delete track; // temporary, until code is implemented
             continue;
           }
           Accessor<vec4f> value(valueAcc, model);
@@ -351,11 +349,9 @@ namespace ospray {
             const auto &v = value[i];
             t->values.push_back(quaternionf(v.w, v.x, v.y, v.z));
           }
-        }
-        if (c.target_path == "weights") {
+        } else if (c.target_path == "weights") {
           WARN << "animating weights of morph targets not implemented yet"
                << std::endl;
-          delete track; // temporary, until code is implemented
           continue;
         }
         if (!track)
