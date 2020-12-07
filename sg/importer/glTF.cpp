@@ -340,6 +340,7 @@ namespace ospray {
             WARN
                 << "animation rotation is not in 'float' format; conversion not implemented yet"
                 << std::endl;
+            delete track; // temporary, until code is implemented
             continue;
           }
           Accessor<vec4f> value(valueAcc, model);
@@ -354,6 +355,7 @@ namespace ospray {
         if (c.target_path == "weights") {
           WARN << "animating weights of morph targets not implemented yet"
                << std::endl;
+          delete track; // temporary, until code is implemented
           continue;
         }
         if (!track)
