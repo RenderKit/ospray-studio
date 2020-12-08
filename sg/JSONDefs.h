@@ -40,10 +40,15 @@ namespace sg {
 
 inline void to_json(JSON &j, const Node &n)
 {
+  // Don't export these nodes, they must be regenerated and can't be imported.
+  if ((n.type() == NodeType::GENERIC && n.name() == "handles")
+      || (n.type() == NodeType::PARAMETER && n.subType() == "Data"))
+    return;
+
   j = JSON{{"name", n.name()},
-      {"type", n.type()},
+      {"type", NodeTypeToString[n.type()]},
       {"subType", n.subType()}};
-  
+
   if (n.description() != "<no description>")
     j["description"] = n.description();
 
@@ -78,7 +83,6 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
   NodePtr n = nullptr;
 
   // This is a generated value and can't be imported
-  // XXX shouldn't be *exported* to begin with.  Fix that side, too.
   if (j["name"] == "handles")
     return nullptr;
 
@@ -96,24 +100,26 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
     n = createNode(j["name"], j["subType"]);
   }
 
-  // the default ambient light might not exist in this scene
-  // the loop below will add it if it does exist
-  if (j["type"] == NodeType::LIGHTS)
-    n->nodeAs<Lights>()->removeLight("ambient");
+  if (n != nullptr) {
+    // the default ambient light might not exist in this scene
+    // the loop below will add it if it does exist
+    if (n && n->type() == NodeType::LIGHTS)
+      n->nodeAs<Lights>()->removeLight("ambient");
 
-  if (j.contains("children")) {
-    for (auto &jChild : j["children"]) {
-      auto child = createNodeFromJSON(jChild);
-      if (!child)
-        continue;
-      if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
-        child->setSGOnly();
-      if (j["type"] == NodeType::LIGHTS)
-        n->nodeAs<Lights>()->addLight(child);
-      else if (j["type"] == NodeType::MATERIAL)
-        n->nodeAs<Material>()->add(child);
-      else
-        n->add(child);
+    if (j.contains("children")) {
+      for (auto &jChild : j["children"]) {
+        auto child = createNodeFromJSON(jChild);
+        if (!child)
+          continue;
+        if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
+          child->setSGOnly();
+        if (n->type() == NodeType::LIGHTS)
+          n->nodeAs<Lights>()->addLight(child);
+        else if (n->type() == NodeType::MATERIAL)
+          n->nodeAs<Material>()->add(child);
+        else
+          n->add(child);
+      }
     }
   }
 
@@ -133,8 +139,11 @@ namespace containers {
 inline void to_json(
     JSON &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm)
 {
-  for (const auto e : fm)
-    j.push_back(*(e.second));
+  for (const auto e : fm) {
+    JSON jnew = *(e.second);
+    if (!jnew.is_null())
+      j.push_back(jnew);
+  }
 }
 
 inline void from_json(
@@ -244,12 +253,14 @@ inline void from_json(const JSON &j, Any &a)
     else
       std::cout << "unhandled primitive type in json" << std::endl;
   } else if (j.is_structured()) { // array or object
-    if (j.is_array() && j.size() == 3)
+    if (j.is_array() && j.size() == 2)
+      a = j.get<math::vec2f>();
+    else if (j.is_array() && j.size() == 3)
       a = j.get<math::vec3f>();
     else if (j.is_object())
       std::cout << "cannot load object types from json" << std::endl;
     else
-      std::cout << "unhandled structured type in json" << std::endl;
+      std::cout << "unhandled structured type in json " << std::endl;
   } else { // something is wrong
     std::cout << "unidentified type in json" << std::endl;
   }

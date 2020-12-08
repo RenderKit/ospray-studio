@@ -51,7 +51,13 @@ OSPSG_INTERFACE void importScene(
   if (j.contains("world")) {
     auto &jWorld = j["world"];
     for (auto &jChild : jWorld["children"]) {
-      switch (jChild["type"].get<NodeType>()) {
+
+      // Import either the old-type enum directly, or the new-type enum STRING
+      NodeType nodeType = jChild["type"].is_string()
+          ? NodeTypeFromString[jChild["type"]]
+          : jChild["type"].get<NodeType>();
+
+      switch (nodeType) {
       case NodeType::IMPORTER: {
         FileName fileName = std::string(jChild["filename"]);
 
@@ -85,17 +91,9 @@ OSPSG_INTERFACE void importScene(
     }
   }
 
-  // If the sceneFile contains materials, parse it here
-  // (must happen before refreshScene)
-  if (j.contains("materialRegistry")) {
-    sg::NodePtr materials = createNodeFromJSON(j["materialRegistry"]);
-    for (auto &mat : materials->children()) {
-      context->baseMaterialRegistry->add(mat.second);
-    }
-  }
-
-  // refreshScene imports all filesToImport and updates materials
-  context->refreshScene(true);
+  // refreshScene imports all filesToImport
+  if (!context->filesToImport.empty())
+    context->refreshScene(true);
 
   // If the sceneFile contains lightsManager light definitions, parse it here
   if (j.contains("lightsManager"))
@@ -107,6 +105,24 @@ OSPSG_INTERFACE void importScene(
     context->lightsManager->removeLight("ambient");
     for (auto &light : lights->children())
       context->lightsManager->addLight(light.second);
+  }
+
+  // If the sceneFile contains materials, parse them here, after the model has
+  // loaded and correct created the materials.  These parameters will overwrite
+  if (j.contains("materialRegistry")) {
+    sg::NodePtr materials = createNodeFromJSON(j["materialRegistry"]);
+    for (auto &mat : materials->children()) {
+      // XXX temporary workaround.  Just set params on existing materials.
+      // Prevents loss of texture data.  Will be fixed when textures can reload.
+      if (context->baseMaterialRegistry->hasChild(mat.first))
+        for (auto &param : mat.second->children()) {
+          context->baseMaterialRegistry->child(mat.first) = param.second;
+        }
+      else
+        context->baseMaterialRegistry->add(mat.second);
+    }
+    // refreshScene imports all filesToImport and updates materials
+    context->refreshScene(true);
   }
 
   // If the sceneFile contains a camera location
