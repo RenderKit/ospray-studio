@@ -11,6 +11,7 @@
 #include "glTF/buffer_view.h"
 #include "glTF/gltf_types.h"
 
+#include "../scene/geometry/Geometry.h"
 #include "../visitors/PrintNodes.h"
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
@@ -51,6 +52,8 @@ namespace ospray {
 
     bool parseAsset();
     void createMaterials();
+    void createSkins();
+    void finalizeSkins();
     void createGeometries();
     void createCameras(std::vector<NodePtr> &cameras);
     void buildScene();
@@ -61,6 +64,7 @@ namespace ospray {
    private:
     NodePtr rootNode;
 
+    std::vector<SkinPtr> skins;
     std::vector<NodePtr> ospMeshes;
     std::shared_ptr<sg::MaterialRegistry> materialRegistry;
     std::vector<NodePtr> sceneNodes; // lookup table glTF:nodeID -> NodePtr
@@ -284,6 +288,41 @@ namespace ospray {
     }
   }
 
+  void GLTFData::createSkins()
+  {
+    skins.reserve(model.skins.size());
+    for (auto &skin : model.skins) {
+      auto &ibm = model.accessors[skin.inverseBindMatrices];
+      if (ibm.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT
+          && ibm.type == TINYGLTF_TYPE_MAT4) {
+        skins.emplace_back(new Skin);
+        Accessor<float[16]> m(ibm, model);
+        auto &xfm = skins.back()->inverseBindMatrices;
+        xfm.reserve(m.size());
+        for (size_t i = 0; i < m.size(); i++)
+          xfm.emplace_back(vec3f(m[i][0 * 4], m[i][0 * 4 + 1], m[i][0 * 4 + 2]),
+              vec3f(m[i][1 * 4], m[i][1 * 4 + 1], m[i][1 * 4 + 2]),
+              vec3f(m[i][2 * 4], m[i][2 * 4 + 1], m[i][2 * 4 + 2]),
+              vec3f(m[i][3 * 4], m[i][3 * 4 + 1], m[i][3 * 4 + 2]));
+      } else {
+        skins.push_back(nullptr);
+        WARN << "unsupported inverseBindMatrices\n";
+      }
+    }
+  }
+
+  void GLTFData::finalizeSkins()
+  {
+    for (size_t i = 0; i < model.skins.size(); i++)
+      if (skins[i]) {
+        auto &joints = skins[i]->joints;
+        auto &inJoints = model.skins[i].joints;
+        joints.reserve(inJoints.size());
+        for (auto i : inJoints)
+          joints.push_back(sceneNodes[i]);
+      }
+  }
+
   void GLTFData::createGeometries()
   {
     // DEBUG << "Create Geometries\n";
@@ -396,6 +435,27 @@ namespace ospray {
       // recursively process node hierarchy
       visitNode(rootNode, nid, 1);
     }
+
+    // attach (skinned) meshes to correct transform node
+    size_t nIdx = 0;
+    for (auto n : model.nodes) {
+      if (n.mesh != -1) {
+        auto &ospMesh = ospMeshes[n.mesh];
+        auto &targetNode = sceneNodes[nIdx];
+        if (n.skin != -1) {
+          if (model.skins[n.skin].skeleton != -1)
+            targetNode = sceneNodes[model.skins[n.skin].skeleton];
+          for (auto &prim : ospMesh->children())
+            if (prim.second->type() == NodeType::GEOMETRY) {
+              const auto &geom = prim.second->nodeAs<Geometry>();
+              geom->skin = skins[n.skin];
+              geom->skeletonRoot = targetNode;
+            }
+        }
+        targetNode->add(ospMesh);
+      }
+      nIdx++;
+    }
   }
 
   void GLTFData::visitNode(NodePtr sgNode,
@@ -419,23 +479,14 @@ namespace ospray {
 
     sgNode->createChild("instanceId", "string", sgNode->name());
 
-    // while parsing assets from BIT-TS look for BIT_asset_info to add to assetCatalogue
-    // followed by  BIT_node_info for adding that particular instance
+    // while parsing assets from BIT-TS look for BIT_asset_info to add to
+    // assetCatalogue
+    // followed by BIT_node_info for adding that particular instance
     // followed by BIT_reference_link to load that reference
     if (n.extensions.find("BIT_asset_info") != n.extensions.end() &&
         n.extensions.find("BIT_node_info") != n.extensions.end() &&
         n.extensions.find("BIT_reference_link") != n.extensions.end())
       loadNodeInfo(nid, sgNode);
-
-    if (n.mesh != -1) {
-      // DEBUG << pad("", '.', 3 * level) << "....mesh\n";
-      auto &ospMesh = ospMeshes[n.mesh];
-      sgNode->add(ospMesh);
-    }
-
-    if (n.skin != -1) {
-      WARN << "unsupported node-type: skin\n";
-    }
 
     // recursively process children nodes
     for (const auto &cid : n.children) {
@@ -483,22 +534,13 @@ namespace ospray {
     }
 
     // XXX: Create node types based on actual accessor types
-    std::vector<vec3f> v;
     std::vector<vec3ui> vi;  // XXX support both 3i and 4i OSPRay 2?
     std::vector<vec4f> vc;
-    std::vector<vec3f> vn;
     std::vector<vec2f> vt;
 
 #if 1  // XXX: Generalize these with full component support!!!
        // In : 1,2,3,4 ubyte, ubyte(N), ushort, ushort(N), uint, float
        // Out:   2,3,4 int, float
-
-    // Positions: vec3f
-    Accessor<vec3f> pos_accessor(model.accessors[prim.attributes["POSITION"]],
-                                 model);
-    v.reserve(pos_accessor.size());
-    for (size_t i = 0; i < pos_accessor.size(); ++i)
-      v.emplace_back(pos_accessor[i]);
 
     if (prim.indices >  -1) {
       // Indices: scalar ubyte/ushort/uint
@@ -579,15 +621,6 @@ namespace ospray {
       }
     }
 
-    // Normals: vec3f
-    fnd = prim.attributes.find("NORMAL");
-    if (fnd != prim.attributes.end()) {
-      Accessor<vec3f> normal_accessor(model.accessors[fnd->second], model);
-      vn.reserve(normal_accessor.size());
-      for (size_t i = 0; i < normal_accessor.size(); ++i)
-        vn.emplace_back(normal_accessor[i]);
-    }
-
     // TexCoords: vec2 float/ubyte(N)/ushort(N)
     // accessor->normalized
     // Note: GLTF can have texture coordinates [0,1] used by different
@@ -615,36 +648,100 @@ namespace ospray {
     // LINES LINE_LOOP LINE_STRIP
     // TRIANGLES TRIANGLE_STRIP TRIANGLE_FAN
     // XXX There's code in gltf-loader.cc for convertedToTriangleList
-    NodePtr ospGeom = nullptr;
+    std::shared_ptr<Geometry> ospGeom = nullptr;
 
     // Add attribute arrays to mesh
     if (prim.mode == TINYGLTF_MODE_TRIANGLES) {
-      ospGeom = createNode(primName + "_object", "geometry_triangles");
-      ospGeom->createChildData("vertex.position", v);
+      ospGeom =
+          createNodeAs<Geometry>(primName + "_object", "geometry_triangles");
+
+      // Positions: vec3f
+      Accessor<vec3f> pos_accessor(
+          model.accessors[prim.attributes["POSITION"]], model);
+      ospGeom->skinnedPositions.reserve(pos_accessor.size());
+      for (size_t i = 0; i < pos_accessor.size(); ++i)
+        ospGeom->skinnedPositions.emplace_back(pos_accessor[i]);
+      ospGeom->createChildData(
+          "vertex.position", ospGeom->skinnedPositions, true);
+
+      // Normals: vec3f
+      fnd = prim.attributes.find("NORMAL");
+      if (fnd != prim.attributes.end()) {
+        Accessor<vec3f> normal_accessor(model.accessors[fnd->second], model);
+        ospGeom->skinnedNormals.reserve(normal_accessor.size());
+        for (size_t i = 0; i < normal_accessor.size(); ++i)
+          ospGeom->skinnedNormals.emplace_back(normal_accessor[i]);
+        ospGeom->createChildData(
+            "vertex.normal", ospGeom->skinnedNormals, true);
+      }
+
       ospGeom->createChildData("index", vi);
       if (!vc.empty())
         ospGeom->createChildData("vertex.color", vc);
-      if (!vn.empty())
-        ospGeom->createChildData("vertex.normal", vn);
       if (!vt.empty())
         ospGeom->createChildData("vertex.texcoord", vt);
 
+      // skinning, XXX for now only for triangles
+      const auto fndj = prim.attributes.find("JOINTS_0");
+      const auto fndw = prim.attributes.find("WEIGHTS_0");
+      if (fndj != prim.attributes.end() && fndw != prim.attributes.end()) {
+        ospGeom->positions = ospGeom->skinnedPositions;
+        ospGeom->normals = ospGeom->skinnedNormals;
+        auto &joints = model.accessors[fndj->second];
+        bool isVec4 = joints.type == TINYGLTF_TYPE_VEC4;
+        if (isVec4
+            && joints.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+          Accessor<vec4uc> joint(joints, model);
+          for (size_t i = 0; i < joint.size(); ++i)
+            ospGeom->joints.emplace_back(joint[i]);
+        } else if (isVec4
+            && joints.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+          Accessor<vec4us> joint(joints, model);
+          for (size_t i = 0; i < joint.size(); ++i)
+            ospGeom->joints.emplace_back(joint[i]);
+        } else {
+          WARN << "invalid JOINTS_0\n";
+          ospGeom->joints.resize(joints.count);
+        }
+
+        auto &weights = model.accessors[fndw->second];
+        isVec4 = weights.type == TINYGLTF_TYPE_VEC4;
+        if (isVec4
+            && weights.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+          Accessor<vec4uc> joint(weights, model);
+          for (size_t i = 0; i < joint.size(); ++i)
+            ospGeom->weights.emplace_back(joint[i]);
+        } else if (isVec4
+            && weights.componentType
+                == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+          Accessor<vec4us> joint(weights, model);
+          for (size_t i = 0; i < joint.size(); ++i)
+            ospGeom->weights.emplace_back(joint[i]);
+        } else if (isVec4
+            && weights.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+          Accessor<vec4f> joint(weights, model);
+          for (size_t i = 0; i < joint.size(); ++i)
+            ospGeom->weights.emplace_back(joint[i]);
+        } else {
+          WARN << "invalid WEIGHTS_0\n";
+          ospGeom->weights.resize(weights.count);
+        }
+      }
     } else if (prim.mode == TINYGLTF_MODE_POINTS) {
-#if 1 // points as spheres
-      ospGeom = createNode(primName + "_object", "geometry_spheres");
-      ospGeom->createChildData("sphere.position", v);
+      // points as spheres
+      ospGeom =
+          createNodeAs<Geometry>(primName + "_object", "geometry_spheres");
+
+      // Positions: vec3f
+      Accessor<vec3f> pos_accessor(
+          model.accessors[prim.attributes["POSITION"]], model);
+      ospGeom->positions.reserve(pos_accessor.size());
+      for (size_t i = 0; i < pos_accessor.size(); ++i)
+        ospGeom->positions.emplace_back(pos_accessor[i]);
+      ospGeom->createChildData("sphere.position", ospGeom->positions, true);
 
       // glTF doesn't specify point radius.
       ospGeom->createChild("radius", "float", 0.005f);
-
-#else // points as boxes
-      ospGeom = createNode(primName + "_object", "geometry_boxes");
-      std::vector<box3f> boxes(v.size());
-      std::transform(v.begin(), v.end(),boxes.begin(),
-          [&](vec3f p) { return box3f({p,p+vec3f(0.1f)});});
-
-      ospGeom->createChildData("box", boxes);
-#endif
 
       if (!vc.empty()) {
         ospGeom->createChildData("color", vc);
@@ -653,7 +750,7 @@ namespace ospray {
         ospGeom->child("color").setSGOnly();
       }
       if (!vt.empty())
-        ospGeom->createChildData("spere.texcoord", vt);
+        ospGeom->createChildData("sphere.texcoord", vt);
     } else {
       ERROR << "Unsupported primitive mode! File must contain only "
         "triangles or points\n";
@@ -665,7 +762,7 @@ namespace ospray {
     if (ospGeom) {
       // add one for default, "no material" material
       auto materialID = prim.material + 1 + baseMaterialOffset;
-      std::vector<uint32_t> mIDs(v.size(), materialID);
+      std::vector<uint32_t> mIDs(ospGeom->skinnedPositions.size(), materialID);
       ospGeom->createChildData("material", mIDs);
       ospGeom->child("material").setSGOnly();
     }
@@ -1171,9 +1268,11 @@ namespace ospray {
     if (!gltf.parseAsset())
       return;
 
-    gltf.createMaterials();   
-    gltf.createGeometries();
+    gltf.createMaterials();
+    gltf.createSkins();
+    gltf.createGeometries(); // needs skins
     gltf.buildScene();
+    gltf.finalizeSkins(); // needs nodes / buildScene
     if (animations)
       gltf.createAnimations(*animations);
     if (importCameras)

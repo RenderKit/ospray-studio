@@ -14,6 +14,8 @@ struct OSPSG_INTERFACE Transform : public Node_T<affine3f>
   ~Transform() override = default;
 
   NodeType type() const override;
+
+  affine3f accumulatedXfm{one};
 };
 
 } // namespace sg

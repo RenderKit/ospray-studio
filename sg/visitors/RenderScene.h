@@ -5,6 +5,8 @@
 
 #include "../Node.h"
 #include "../renderer/MaterialRegistry.h"
+#include "../scene/Transform.h"
+#include "../scene/geometry/Geometry.h"
 // std
 #include <stack>
 
@@ -85,10 +87,6 @@ namespace ospray {
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
       break;
-    case NodeType::GEOMETRY:
-      createGeometry(node);
-      traverseChildren = false;
-      break;
     case NodeType::TEXTUREVOLUME:
       setTextureVolume = true;
       current.textures.push_back(node.valueAs<cpp::Texture>());
@@ -105,7 +103,9 @@ namespace ospray {
           affine3f::rotate(node.child("rotation").valueAs<quaternionf>())
           * affine3f::scale(node.child("scale").valueAs<vec3f>());
       xfm.p = node.child("translation").valueAs<vec3f>();
-      xfms.push(xfms.top() * xfm * node.valueAs<affine3f>());
+      auto xfmNode = node.nodeAs<Transform>();
+      xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
+      xfms.push(xfmNode->accumulatedXfm);
       // special Ids overwrite all id writing implementations
       if (node.hasChild("instanceID") && !useCustomIds){
         instanceId = node.child("instanceId").valueAs<std::string>();
@@ -133,6 +133,9 @@ namespace ospray {
       createInstanceFromGroup();
       placeInstancesInWorld();
       world.commit();
+      break;
+    case NodeType::GEOMETRY:
+      createGeometry(node);
       break;
     case NodeType::TRANSFER_FUNCTION:
       tfns.pop();
@@ -167,6 +170,28 @@ namespace ospray {
   {
     if (!node.child("visible").valueAs<bool>())
       return;
+
+    // skinning
+    auto geomNode = node.nodeAs<Geometry>();
+    if (geomNode->skin) {
+      auto &joints = geomNode->skin->joints;
+      auto &inverseBindMatrices = geomNode->skin->inverseBindMatrices;
+      for (size_t i = 0; i < geomNode->positions.size(); ++i) { // XXX parallel
+        affine3f xfm{zero};
+        for (size_t j = 0; j < 4; ++j) {
+          const int idx = geomNode->joints[i][j];
+          xfm = xfm
+              + geomNode->weights[i][j]
+                  * joints[idx]->nodeAs<Transform>()->accumulatedXfm
+                  * inverseBindMatrices[idx];
+        }
+        xfm = rcp(geomNode->skeletonRoot->nodeAs<Transform>()->accumulatedXfm)
+            * xfm;
+        geomNode->skinnedPositions[i] = xfmPoint(xfm, geomNode->positions[i]);
+        if (geomNode->skinnedNormals.size())
+          geomNode->skinnedNormals[i] = xfmNormal(xfm, geomNode->normals[i]);
+      }
+    }
 
     auto geom = node.valueAs<cpp::Geometry>();
     cpp::GeometricModel model(geom);
