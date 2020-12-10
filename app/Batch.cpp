@@ -18,6 +18,7 @@ BatchContext::BatchContext(StudioCommon &_common)
     : StudioContext(_common), optImageSize(_common.defaultSize)
 {
   frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
+  frame->child("scaleNav").setValue(1.f);
 
   baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
       "baseMaterialRegistry", "materialRegistry");
@@ -35,8 +36,13 @@ void BatchContext::start()
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
     refreshScene(true);
-    std::cout << "...rendering!" << std::endl;
-    render();
+    if (animate) {
+      std::cout << "..rendering animation!" << std::endl;
+      renderAnimation();
+    } else {
+      std::cout << "...rendering!" << std::endl;
+      render();
+    }
     std::cout << "...finished!" << std::endl;
   }
 }
@@ -159,6 +165,26 @@ bool BatchContext::parseCommandLine()
       saveLayers = true;
     } else if (switchArg == "-m" || switchArg == "--metadata") {
       saveMetaData = true;
+    } else if (switchArg == "-fps" || switchArg == "--speed") {
+      if (argAvailability(switchArg, 1))
+        fps = atoi(argv[argIndex++]);
+      animate = true;
+    } else if (switchArg == "-fr" || switchArg == "--force") {
+      forceRewrite = true;
+    } else if (switchArg == "-cam" || switchArg == "--camera") {
+      if (argAvailability(switchArg, 1))
+        cameraDef = atoi(argv[argIndex++]);
+      if (!cameraDef)
+        std::cout
+            << "using default ospray camera, to use imported definition camera indices begins from 1"
+            << std::endl;
+    } else if (switchArg == "-rn" || switchArg == "--range") {
+      if (argAvailability(switchArg, 2)) {
+        auto x = atoi(argv[argIndex++]);
+        auto y = atoi(argv[argIndex++]);
+        framesRange.lower = x;
+        framesRange.upper = y;
+      }
     } else if (switchArg.front() == '-') {
       std::cout << " Unknown option: " << switchArg << std::endl;
       break;
@@ -177,7 +203,10 @@ bool BatchContext::parseCommandLine()
 void BatchContext::render()
 {
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
-  frame->createChild("camera", "camera_" + optCameraTypeStr);
+  if (!cameraDef)
+    frame->createChild("camera", "camera_" + optCameraTypeStr);
+  else
+    frame->add(cameras[cameraDef - 1]);
 
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
 
@@ -270,18 +299,42 @@ void BatchContext::render()
   frame->immediatelyWait = true;
   frame->startNewFrame();
 
-  int filenum = 0;
-  char filenumber[13];
+  static int filenum = framesRange.lower;
+  char filenumber[8];
   std::string filename;
-  do {
-    std::snprintf(filenumber, sizeof(filenumber), ".%04d.", filenum++);
+  if (!forceRewrite)
+    do {
+      std::snprintf(filenumber, 8, ".%05d.", filenum++);
+      filename = optImageName + filenumber + optImageFormat;
+    } while (std::ifstream(filename.c_str()).good());
+  else {
+    std::snprintf(filenumber, 8, ".%05d.", filenum++);
     filename = optImageName + filenumber + optImageFormat;
-  } while (std::ifstream(filename.c_str()).good());
+  }
 
   int screenshotFlags = saveMetaData << 4 | saveLayers << 3
       | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
 
   frame->saveFrame(filename, screenshotFlags);
+}
+
+void BatchContext::renderAnimation()
+{
+  float animationTime = animationManager->getTimeRange().upper;
+  float step = 1.f / fps;
+  float time = animationManager->getTimeRange().lower;
+
+  if (!framesRange.empty() && framesRange.upper) {
+    time += step * framesRange.lower;
+    animationTime = step * framesRange.upper;
+  }
+  animationTime += 1e-6;
+
+  while (time <= animationTime) {
+    animationManager->update(time);
+    render();
+    time += step;
+  }
 }
 
 void BatchContext::refreshScene(bool resetCam)
@@ -328,6 +381,8 @@ void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform");
   frame->child("world").add(importedModels);
+  if (animate)
+    animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
     try {
@@ -343,6 +398,9 @@ void BatchContext::importFiles(sg::NodePtr world)
           // Could be any type of importer.  Need to pass the MaterialRegistry,
           // importer will use what it needs.
           importer->setMaterialRegistry(baseMaterialRegistry);
+          importer->setCameraList(cameras);
+          if (animationManager)
+            importer->setAnimationList(animationManager->getAnimations());
           importer->importScene();
           world->add(importer);
         }
@@ -354,6 +412,9 @@ void BatchContext::importFiles(sg::NodePtr world)
   }
 
   filesToImport.clear();
+  sg::clearImporter();
+  if (animationManager)
+    animationManager->init();
 }
 
 void BatchContext::printHelp()
@@ -363,6 +424,15 @@ void BatchContext::printHelp()
 ./ospStudio batch [parameters] [scene_files]
 
 ospStudio batch specific parameters:
+   -fps  --speed
+   -fr   --forceRewrite
+         force rewrite on existing saved files
+   -rn   --range [start end] for eg : [10 20]
+         range of frames to be rendered
+         This should be determined by the user based on specified `fps` and total animation time.
+   -cam  --camera 
+         In case of mulitple imported cameras specify which camera definition to use, counting starts from 1
+         0 here would use default camera implementation
    -a    --albedo
    -d    --depth
    -n    --normal

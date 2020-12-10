@@ -11,7 +11,10 @@
 #include "sg/Node.h"
 #include "sg/renderer/MaterialRegistry.h"
 // Plugin
+#include <chrono>
+#include "AnimationManager.h"
 #include "PluginManager.h"
+#include "sg/scene/Animation.h"
 
 using namespace rkcommon::math;
 using namespace ospray;
@@ -31,6 +34,7 @@ class BatchContext : public StudioContext
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void render();
+  void renderAnimation();
 
  protected:
   PluginManager pluginManager;
@@ -56,6 +60,15 @@ class BatchContext : public StudioContext
   bool saveLayers{false};
   bool saveMetaData{false};
   std::string optImageFormat{"png"};
-
+  bool animate{false};
+  int fps{24};
+  bool forceRewrite{false};
+  range1i framesRange{0, 0};
   void printHelp() override;
+  int cameraDef{0};
+
+  std::shared_ptr<AnimationManager> animationManager{nullptr};
+
+  // list of cameras imported with the scene definition
+  std::vector<sg::NodePtr> cameras;
 };

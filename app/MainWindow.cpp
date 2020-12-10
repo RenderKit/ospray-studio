@@ -1033,7 +1033,8 @@ bool MainWindow::parseCommandLine()
 void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<sg::NodePtr> cameras;
-  static std::vector<sg::Animation> animations; // XXX
+  if (animate)
+    animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
     try {
@@ -1052,10 +1053,11 @@ void MainWindow::importFiles(sg::NodePtr world)
           // importer will use what it needs.
           if(useVolumeParams)
             importer->setVolumeParams(&vp);
-       
+
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
-          importer->setAnimationList(animations);
+          if (animationManager)
+            importer->setAnimationList(animationManager->getAnimations());
           importer->importScene();
         }
       }
@@ -1065,6 +1067,13 @@ void MainWindow::importFiles(sg::NodePtr world)
   }
   filesToImport.clear();
   sg::clearImporter();
+
+  if (animationManager) {
+    animationManager->init();
+    animationWidget = std::shared_ptr<AnimationWidget>(
+        new AnimationWidget("Animation Controls", animationManager));
+    registerImGuiCallback([&]() { animationWidget->addAnimationUI(); });
+  }
 
   if (cameras.size() > 0) {
     auto &mainCamera = frame->child("camera");
@@ -1080,16 +1089,6 @@ void MainWindow::importFiles(sg::NodePtr world)
     // populate cameras in camera editor in View menu
     for (auto &c : cameras)
       g_sceneCameras[c->name()] = c;
-  }
-
-  if (animate && animations.size()) {
-    allAnimationWidgets.push_back(std::shared_ptr<AnimationWidget>(
-        new AnimationWidget(getFrame(), animations, "Animation Control")));
-
-    registerImGuiCallback([&]() {
-      for (size_t i = 0; i < allAnimationWidgets.size(); ++i)
-        allAnimationWidgets[i]->addAnimationUI();
-    });
   }
 }
 

@@ -16,7 +16,7 @@ namespace ospray {
     createChild("allowDenoising",
         "bool",
         "framebuffer needs to contain format and channels compatible with denoising",
-        true);
+        false);
     createChild("size", "vec2i", vec2i(1024, 768));
     child("size").setReadOnly();
     createChild("colorFormat",

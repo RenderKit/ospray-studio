@@ -4,20 +4,40 @@
 #include "AnimationWidget.h"
 #include <imgui.h>
 
-AnimationWidget::AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
-    std::vector<ospray::sg::Animation> &animations,
-    const std::string &name)
-    : name(name), activeFrame(activeFrame), animations(animations)
+AnimationWidget::AnimationWidget(
+    std::string name, std::shared_ptr<AnimationManager> animationManager)
+    : name(name), animationManager(animationManager)
 {
-  for (auto &a : animations)
-    timeRange.extend(a.timeRange);
-  time = timeRange.lower;
   lastUpdated = std::chrono::system_clock::now();
+  time = animationManager->getTimeRange().lower;
+  animationManager->update(time);
+}
+
+void AnimationWidget::update()
+{
+  auto &timeRange = animationManager->getTimeRange();
+  auto now = std::chrono::system_clock::now();
+  if (play) {
+    time += std::chrono::duration<float>(now - lastUpdated).count() * speedup;
+    if (time > timeRange.upper)
+      if (loop) {
+        const float d = timeRange.size();
+        time =
+            d == 0.f ? timeRange.lower : timeRange.lower + std::fmod(time, d);
+      } else {
+        time = timeRange.lower;
+        play = false;
+      }
+  }
+  animationManager->update(time);
+  lastUpdated = now;
 }
 
 // update UI and process any UI events
 void AnimationWidget::addAnimationUI()
 {
+  auto &timeRange = animationManager->getTimeRange();
+  auto &animations = animationManager->getAnimations();
   ImGui::Begin(name.c_str());
 
   if (ImGui::Button(play ? "Pause" : "Play ")) {
@@ -41,7 +61,6 @@ void AnimationWidget::addAnimationUI()
     ImGui::SameLine();
     ImGui::Text("%.*f", std::max(0, int(1.99f - exp)), speedup);
   }
-
   for (auto &a : animations)
     ImGui::Checkbox(a.name.c_str(), &a.active);
 
@@ -51,27 +70,3 @@ void AnimationWidget::addAnimationUI()
   if (modified)
     update();
 }
-
-void AnimationWidget::update()
-{
-  auto now = std::chrono::system_clock::now();
-  if (play) {
-    time += std::chrono::duration<float>(now - lastUpdated).count() * speedup;
-    if (time > timeRange.upper) {
-      if (loop) {
-        const float d = timeRange.size();
-        time =
-            d == 0.f ? timeRange.lower : timeRange.lower + std::fmod(time, d);
-      } else {
-        time = timeRange.lower;
-        play = false;
-      }
-    }
-  }
-  lastUpdated = now;
-
-  for (auto &a : animations)
-    a.update(time);
-}
-
-// stack implementation of keyframes
