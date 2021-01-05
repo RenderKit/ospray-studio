@@ -742,16 +742,17 @@ void MainWindow::display()
           showDepth ? pDepthCopy : mappedFB);
 
       frame->unmapFrame(mappedFB);
+
+      // save frame to a file, if requested
+      if (g_saveNextFrame) {
+        saveCurrentFrame();
+        g_saveNextFrame = false;
+      }
     }
 
     // Start new frame and reset frame timing interval start
     displayStart = std::chrono::high_resolution_clock::now();
     startNewOSPRayFrame();
-  }
-
-  if (g_saveNextFrame) {
-    saveCurrentFrame();
-    g_saveNextFrame = false;
   }
 
   // clear current OpenGL color buffer
