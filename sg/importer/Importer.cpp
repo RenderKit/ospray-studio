@@ -108,17 +108,31 @@ OSPSG_INTERFACE void importScene(
   }
 
   // If the sceneFile contains materials, parse them here, after the model has
-  // loaded and correct created the materials.  These parameters will overwrite
+  // loaded. These parameters will overwrite materials in the model file.
   if (j.contains("materialRegistry")) {
     sg::NodePtr materials = createNodeFromJSON(j["materialRegistry"]);
+
     for (auto &mat : materials->children()) {
+
       // XXX temporary workaround.  Just set params on existing materials.
       // Prevents loss of texture data.  Will be fixed when textures can reload.
-      if (context->baseMaterialRegistry->hasChild(mat.first))
+
+      // Modify existing or create new material
+      if (context->baseMaterialRegistry->hasChild(mat.first)) {
+        auto &bMat = context->baseMaterialRegistry->child(mat.first);
+
         for (auto &param : mat.second->children()) {
-          context->baseMaterialRegistry->child(mat.first) = param.second;
+          // This is a generated node value and can't be imported
+          if (param.first == "handles")
+            continue;
+
+          // Modify existing or create material param
+          if (bMat.hasChild(param.first))
+            bMat[param.first] = param.second->value();
+          else
+            bMat.createChild(param.first) = param.second->value();
         }
-      else
+      } else
         context->baseMaterialRegistry->add(mat.second);
     }
     // refreshScene imports all filesToImport and updates materials
