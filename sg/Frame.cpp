@@ -44,9 +44,8 @@ namespace ospray {
 
     // If working on a frame, cancel it, something has changed
     if (isModified()) {
-        cancelFrame();
-        currentAccum = 0;
-        fb.resetAccumulation();
+      cancelFrame();
+      fb.resetAccumulation();
       // Enable navMode
       if (!navMode)
         child("navMode") = true;
@@ -64,6 +63,7 @@ namespace ospray {
       auto future = fb.handle().renderFrame(
           renderer.handle(), camera.handle(), world.handle());
       setHandle(future);
+      commit(); // XXX setHandle modifies node, but nothing else has changed yet
       canceled = false;
 
       if (immediatelyWait)
@@ -149,6 +149,7 @@ namespace ospray {
 
     if (navMode != currentNavMode) {
       currentNavMode = navMode;
+      currentAccum = 0; // Changing navMode resets currentAccum
 
       // Allow the renderer to use navigation settings
       auto &renderer = childAs<Renderer>("renderer");

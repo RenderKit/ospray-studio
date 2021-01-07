@@ -815,7 +815,7 @@ void MainWindow::startNewOSPRayFrame()
     frame->child("navMode") = true; // navMode is perfect for this
   }
 
-  if (lightsManager->isModified() || lightsManager->isStubborn) {
+  if (lightsManager->isModified()) {
     lightsManager->updateWorld(frame->childAs<sg::World>("world"));
     frame->child("navMode") = true; // navMode is perfect for this
   }

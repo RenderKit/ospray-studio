@@ -34,8 +34,6 @@ namespace ospray {
       std::vector<std::string> lightNames;
       std::vector<cpp::Light> cppLightObjects = {};
 
-      bool isStubborn{false}; // XXX HACK, until markAsModified is reliable
-
       virtual void preCommit() override;
       virtual void postCommit() override;
 

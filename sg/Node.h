@@ -166,10 +166,12 @@ namespace sg {
     template <typename... Args>
     void createChildData(std::string name, Args &&... args);
 
-    // Public method, where anyChildModified is protected
+    // Public method for self or any children modified
     inline bool isModified()
     {
-      return anyChildModified();
+      // True for self or any children, whereas anyChildModified doesn't
+      // include self
+      return subtreeModifiedButNotCommitted();
     }
 
     // Traversal interface ////////////////////////////////////////////////////
@@ -224,7 +226,7 @@ namespace sg {
     TimeStamp childrenLastModified() const;
 
     void markAsModified();
-    void markChildrenModified();
+    void updateChildrenModifiedTime();
 
     bool subtreeModifiedButNotCommitted() const;
     bool anyChildModified() const;

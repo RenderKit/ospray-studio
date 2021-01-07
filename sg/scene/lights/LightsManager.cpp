@@ -66,15 +66,11 @@ namespace ospray {
       auto found = std::find(lightNames.begin(), lightNames.end(), name);
       lightNames.erase(found);
 
-      // XXX FIX: this markAsModified is not doing anything ?!?!
-      markAsModified();
-      isStubborn = true; // XXX HACK, until we get markAsModified working here
       return true;
     }
 
     void LightsManager::preCommit()
     {
-      isStubborn = false;
       cppLightObjects.clear();
 
       for (auto &name : lightNames) {

@@ -306,6 +306,7 @@ namespace ospray {
 
   void Node::removeFromParentList(Node &node)
   {
+    node.markAsModified(); // Removal requires notifying parents
     auto &p          = properties.parents;
     auto remove_node = [&](auto np) { return np == &node; };
     p.erase(std::remove_if(p.begin(), p.end(), remove_node), p.end());
@@ -313,16 +314,18 @@ namespace ospray {
 
   void Node::markAsModified()
   {
+    // Mark all parents, up to root, as modified
     properties.lastModified.renew();
     for (auto &p : properties.parents)
-      p->markChildrenModified();
+      p->updateChildrenModifiedTime();
   }
 
-  void Node::markChildrenModified()
+  void Node::updateChildrenModifiedTime()
   {
+    // Notify all parent of latest child modified time
     properties.childrenMTime.renew();
     for (auto &p : properties.parents)
-      p->markChildrenModified();
+      p->updateChildrenModifiedTime();
   }
 
   void Node::setOSPRayParam(std::string, OSPObject) {}
