@@ -117,20 +117,26 @@ OSPSG_INTERFACE void importScene(
       // XXX temporary workaround.  Just set params on existing materials.
       // Prevents loss of texture data.  Will be fixed when textures can reload.
 
-      // Modify existing or create new material
-      if (context->baseMaterialRegistry->hasChild(mat.first)) {
+      // Modify existing material or create new material
+      // (account for change of material type)
+      if (context->baseMaterialRegistry->hasChild(mat.first)
+          && context->baseMaterialRegistry->child(mat.first).subType()
+              == mat.second->subType()) {
         auto &bMat = context->baseMaterialRegistry->child(mat.first);
 
         for (auto &param : mat.second->children()) {
+          auto &p = *param.second;
+
           // This is a generated node value and can't be imported
           if (param.first == "handles")
             continue;
 
-          // Modify existing or create material param
+          // Modify existing param or create new params
           if (bMat.hasChild(param.first))
-            bMat[param.first] = param.second->value();
+            bMat[param.first] = p.value();
           else
-            bMat.createChild(param.first) = param.second->value();
+            bMat.createChild(
+                param.first, p.subType(), p.description(), p.value());
         }
       } else
         context->baseMaterialRegistry->add(mat.second);
