@@ -1057,6 +1057,7 @@ void MainWindow::importFiles(sg::NodePtr world)
 
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
+          importer->setLightsManager(lightsManager);
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
           importer->importScene();

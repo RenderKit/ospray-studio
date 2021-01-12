@@ -69,6 +69,11 @@ struct OSPSG_INTERFACE Importer : public Node
     hasVolumeParams = true;
   }
 
+  inline void setLightsManager(NodePtr _lightsManager)
+  {
+    lightsManager = _lightsManager;
+  }
+
   inline VolumeParams* setDefaultParams(bool structured) {
     if (structured) {
       defaultParams.voxelType = int(OSP_FLOAT);
@@ -94,6 +99,7 @@ struct OSPSG_INTERFACE Importer : public Node
   std::vector<sg::Animation> *animations = nullptr;
   bool importCameras{false};
   VolumeParams *p{nullptr};
+  NodePtr lightsManager;
 };
 
 extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;

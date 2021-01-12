@@ -56,6 +56,7 @@ namespace ospray {
     void finalizeSkins();
     void createGeometries();
     void createCameras(std::vector<NodePtr> &cameras);
+    void createLights(NodePtr lightsManager);
     void buildScene();
     void loadNodeInfo(const int nid, NodePtr sgNode);
     // load animations AFTER loading scene nodes and their transforms
@@ -223,6 +224,32 @@ namespace ospray {
       importer->importScene();
     }
     sg::clearImporter();
+  }
+
+  void GLTFData::createLights(NodePtr lightsManager)
+  {
+    for (auto &l : model.lights) {
+      static auto nLight = 0;
+      auto lightName = l.name != "" ? l.name : "light_" + std::to_string(nLight++);
+      auto lightType = l.type;
+      NodePtr newLight;
+
+      if (l.type == "directional")
+        newLight = createNode(lightName, "distant");
+      else if (l.type == "point")
+        newLight = createNode(lightName, "sphere");
+      else
+        newLight = createNode(lightName, l.type);
+
+      auto lightColor = vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
+      newLight->createChild("color", "vec3f", lightColor);
+      if(l.intensity)
+        newLight->createChild("intensity", "float", (float)l.intensity);
+      if(l.range)
+        std::cout << "Range value for light is not supported yet" << std::endl;
+      auto lightsMan = std::static_pointer_cast<sg::Lights>(lightsManager);
+      lightsMan->addLight(newLight);
+    }
   }
 
   void GLTFData::createMaterials()
@@ -1269,6 +1296,7 @@ namespace ospray {
       return;
 
     gltf.createMaterials();
+    gltf.createLights(lightsManager);
     gltf.createSkins();
     gltf.createGeometries(); // needs skins
     gltf.buildScene();
