@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -96,11 +96,24 @@ namespace ospray {
 
     NodePtr createOSPTexture(const std::string &texParam,
         const tinygltf::Texture &texture,
+        const int colorChannel,
         const bool preferLinear);
 
     void setOSPTexture(NodePtr ospMaterial,
         const std::string &texParam,
         int texIndex,
+        bool preferLinear = true)
+    {
+      setOSPTexture(ospMaterial,
+          texParam,
+          texIndex,
+          4, // default, texture uses all channels
+          preferLinear);
+    }
+    void setOSPTexture(NodePtr ospMaterial,
+        const std::string &texParam,
+        int texIndex,
+        int colorChannel, // sampled channel R(0), G(1), B(2), A(3)
         bool preferLinear = true);
   };
 
@@ -941,12 +954,13 @@ namespace ospray {
           setOSPTexture(ospMat, "baseColor", pbr.baseColorTexture.index, false);
         }
 
-      // XXX Not sure exactly how to map these yet.  Are they single component?
-      // XXX These should use OSP_TEXTURE_R32F, but different channels
       if (pbr.metallicRoughnessTexture.index != -1 &&
           pbr.metallicRoughnessTexture.texCoord == 0) {
-        setOSPTexture(ospMat, "metallic", pbr.metallicRoughnessTexture.index);
-        setOSPTexture(ospMat, "roughness", pbr.metallicRoughnessTexture.index);
+        // metallic in Blue(2) channel, roughness in Green(1)
+        setOSPTexture(
+            ospMat, "metallic", pbr.metallicRoughnessTexture.index, 2);
+        setOSPTexture(
+            ospMat, "roughness", pbr.metallicRoughnessTexture.index, 1);
       }
 
       if (mat.normalTexture.index != -1 && mat.normalTexture.texCoord == 0) {
@@ -955,16 +969,7 @@ namespace ospray {
         ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
       }
 
-#if 0 // No reason to use occlusion in OSPRay
-      if (mat.occlusionTexture.index != -1
-          && mat.occlusionTexture.texCoord == 0) {
-        // OcclusionTextureInfo() : index(-1), texCoord(0), strength(1.0) {}
-        setOSPTexture(ospMat, "occlusion", mat.occlusionTexture.index);
-        ospMat->createChild("occlusion", "float", mat.occlusionTexture.scale);
-      }
-#endif
-
-#if 1 // Material Extensions
+      // Material Extensions
       const auto &exts = mat.extensions;
       if (exts.find("KHR_materials_pbrSpecularGlossiness") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_pbrSpecularGlossiness
@@ -986,6 +991,7 @@ namespace ospray {
 
         // diffuseTexture: The diffuse texture.
         if (params.Has("diffuseTexture")) {
+          // RGB or RGBA
           setOSPTexture(ospMat,
               "baseColor",
               params.Get("diffuseTexture").Get("index").Get<int>(), false);
@@ -1053,16 +1059,20 @@ namespace ospray {
         // clearcoatRoughness = clearcoatRoughnessFactor *
         //                      clearcoatRoughnessTexture.g
         if (params.Has("clearcoatTexture")) {
+          // Red channel
           setOSPTexture(ospMat,
               "coat",
-              params.Get("clearcoatTexture").Get("index").Get<int>());
+              params.Get("clearcoatTexture").Get("index").Get<int>(), 0);
         }
         if (params.Has("clearcoatRoughnessTexture")) {
+          // Green channel
           setOSPTexture(ospMat,
               "coatRoughness",
-              params.Get("clearcoatRoughnessTexture").Get("index").Get<int>());
+              params.Get("clearcoatRoughnessTexture").Get("index").Get<int>(),
+              1);
         }
 #endif
+
         // clearcoatNormalTexture: The clearcoat normal map texture.
         if (params.Has("clearcoatNormalTexture")) {
           setOSPTexture(ospMat,
@@ -1096,7 +1106,7 @@ namespace ospray {
         if (params.Has("transmissionTexture")) {
           setOSPTexture(ospMat,
               "transmission",
-              params.Get("transmissionTexture").Get("index").Get<int>());
+              params.Get("transmissionTexture").Get("index").Get<int>(), 0);
         }
       }
 
@@ -1137,7 +1147,7 @@ namespace ospray {
         if (params.Has("sheenRoughnessTexture")) {
           setOSPTexture(ospMat,
               "sheenRoughness",
-              params.Get("sheenRoughnessTexture").Get("index").Get<int>());
+              params.Get("sheenRoughnessTexture").Get("index").Get<int>(), 3);
         }
       }
 
@@ -1157,7 +1167,6 @@ namespace ospray {
         // XXX the experimental spec says that texture holds 1/ior values!!!
         // Nothing to test this with, thus far
       }
-#endif
 
       return ospMat;
 
@@ -1206,6 +1215,7 @@ namespace ospray {
 
   NodePtr GLTFData::createOSPTexture(const std::string &texParam,
                                      const tinygltf::Texture &tex,
+                                     const int colorChannel,
                                      const bool preferLinear)
   {
     static auto nTex = 0;
@@ -1243,25 +1253,60 @@ namespace ospray {
 
     ospTex.size.x = img.width;
     ospTex.size.y = img.height;
-    ospTex.channels = img.component;
-    const bool hdr = img.bits > 8;
-    ospTex.depth = hdr ? 4 : 1;
+    ospTex.components = img.component;
+    ospTex.depth =
+        img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
 
-    // XXX handle different depths and channels!!!!
-    if (ospTex.depth != 1)
-      ERROR << "Not yet handled pixel depth: " << ospTex.depth << std::endl;
-    if (ospTex.channels != 4)
-      ERROR << "Not yet handled number of channels: " << ospTex.channels
+    // XXX handle different number of components!!!!
+    if (!ospTex.depth)
+      ERROR << "Not handled texel depth: " << img.bits << std::endl;
+    if (ospTex.components != 4)
+      ERROR << "Not yet handled number of components: " << ospTex.components
             << std::endl;
 
-    // XXX better way to do this?!
-    std::vector<vec4uc> data(ospTex.size.x * ospTex.size.y);
-    std::memcpy(data.data(), img.image.data(), img.image.size());
-
-    ospTex.createChildData("data", data, vec2ul(img.width, img.height));
-
     auto texFormat =
-        osprayTextureFormat(ospTex.depth, ospTex.channels, preferLinear);
+        osprayTextureFormat(ospTex.depth, ospTex.components, preferLinear);
+
+    // If texture doesn't use all channels(4), setup a strided-data access
+    if (colorChannel < 4) {
+      // Only 1 channel, colorChannel(0-3) determines which component is used
+      texFormat = osprayTextureFormat(ospTex.depth, 1, preferLinear);
+      if (ospTex.depth == 4) {
+        ospTex.createChildData("data",
+            vec2ul(img.width, img.height), // numItems
+            sizeof(vec4f) * vec2ul(1, img.width), // byteStride
+            (float *)img.image.data() + colorChannel);
+      } else if (ospTex.depth == 2) {
+        ospTex.createChildData("data",
+            vec2ul(img.width, img.height), // numItems
+            sizeof(vec4us) * vec2ul(1, img.width), // byteStride
+            (uint16_t *)img.image.data() + colorChannel);
+      } else {
+        ospTex.createChildData("data",
+            vec2ul(img.width, img.height), // numItems
+            sizeof(vec4uc) * vec2ul(1, img.width), // byteStride
+            (uint8_t *)img.image.data() + colorChannel);
+      }
+    } else {
+      // RGBA
+      if (ospTex.depth == 4) {
+        ospTex.createChildData("data",
+            vec2ul(img.width, img.height), // numItems
+            vec2ul(0, 0), // byteStride
+            (vec4f *)img.image.data());
+      } else if (ospTex.depth == 2) {
+        ospTex.createChildData("data",
+            vec2ul(img.width, img.height), // numItems
+            vec2ul(0, 0), // byteStride
+            (vec4us *)img.image.data());
+      } else {
+        ospTex.createChildData("data",
+            vec2ul(img.width, img.height), // numItems
+            vec2ul(0, 0), // byteStride
+            (vec4uc *)img.image.data());
+      }
+    }
+
     ospTex.createChild("format", "int", (int)texFormat);
     ospTex.child("format").setMinMax(
         (int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
@@ -1282,6 +1327,7 @@ namespace ospray {
   void GLTFData::setOSPTexture(NodePtr ospMat,
                                const std::string &texParamBase,
                                int texIndex,
+                               int colorChannel,
                                bool preferLinear)
   {
     // A disabled texture will have index = -1
@@ -1289,17 +1335,17 @@ namespace ospray {
       return;
 
     auto texParam = "map_" + texParamBase;
-    auto ospTexNode =
-        createOSPTexture(texParam, model.textures[texIndex], preferLinear);
+    auto ospTexNode = createOSPTexture(
+        texParam, model.textures[texIndex], colorChannel, preferLinear);
     if (ospTexNode) {
       //auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
       //DEBUG << pad("", '.', 3) << "        .setChild: " << texParam << "= "
       //     << ospTex.name() << "\n";
       // DEBUG << pad("", '.', 3) << "            "
-      //     << "depth: " << ospTex.depth << " channels: " << ospTex.channels
+      //     << "depth: " << ospTex.depth << " components: " << ospTex.components
       //     << " preferLinear: " << preferLinear << "\n";
 
-#if 1 // Texture extensions
+      // Texture extensions
       const auto &exts = model.textures[texIndex].extensions;
       if (exts.find("KHR_texture_transform") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_transform
@@ -1338,7 +1384,6 @@ namespace ospray {
         // if this extension is supported.
         // XXX not sure what, if anything, to do about this one.
       }
-#endif
 
       ospMat->add(ospTexNode);
     }
