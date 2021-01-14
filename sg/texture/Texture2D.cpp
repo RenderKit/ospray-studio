@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "stb_image.h"
@@ -468,10 +468,11 @@ namespace ospray {
           }
           float scaleFactor = std::abs(scaleEndian);
 
+          vec2i size;
           size.x        = width;
           size.y        = height;
-          channels      = numChannels;
-          depth         = sizeof(float);
+          int channels  = numChannels;
+          int depth     = sizeof(float);
 
           unsigned int dataSize = size.x * size.y * channels * depth;
 
@@ -517,10 +518,12 @@ namespace ospray {
         else
           pixels = stbi_load(fileName.c_str(), &width, &height, &n, 0);
 
+
+        vec2i size;
         size.x        = width;
         size.y        = height;
-        channels      = n;
-        depth         = hdr ? 4 : 1;
+        int channels  = n;
+        int depth     = hdr ? 4 : 1;
 
         if (!pixels) {
           std::cerr << "#osp:sg: failed to load texture '" + fileName + "'"

@@ -1087,6 +1087,7 @@ namespace ospray {
 
         // (this extension deals exclusively with infinitely thin surfaces)
         ospMat->createChild("thin", "bool") = true;
+        ospMat->createChild("transmissionDepth", "float") = 1.f; // OSPRay xtra
 
         // transmissionFactor: The base percentage of light that is transmitted
         // through the surface. Default:0.0
@@ -1099,6 +1100,16 @@ namespace ospray {
             pbr.baseColorFactor[1],
             pbr.baseColorFactor[2]);
         ospMat->createChild("transmissionColor", "rgb") = tinting;
+
+        // Use the baseColorTexture to also tint the transmissionColor
+        // otherwise, any texture is just a surface color.
+        // (allows for experiments with thickness (thin = false).
+        if (pbr.baseColorTexture.index != -1
+            && pbr.baseColorTexture.texCoord == 0) {
+          // Used as a color texture, must be sRGB space, not linear
+          setOSPTexture(ospMat,
+              "transmissionColor", pbr.baseColorTexture.index, false);
+        }
 
         // transmissionTexture: A texture that defines the transmission
         // percentage of the surface, stored in the R channel. This will be
@@ -1176,7 +1187,7 @@ namespace ospray {
       auto ospMat = createNode(matName, "luminous");
 
       if (emissiveColor != vec3f(0.f)) {
-        ospMat->createChild("color", "vec3f") = emissiveColor;
+        ospMat->createChild("color", "rgb") = emissiveColor;
         ospMat->createChild("intensity", "float") =
             20.f; // XXX what's good default intensity?
 
@@ -1276,11 +1287,13 @@ namespace ospray {
             vec2ul(img.width, img.height), // numItems
             sizeof(vec4f) * vec2ul(1, img.width), // byteStride
             (float *)img.image.data() + colorChannel);
+#if 0 // XXX add once OSPRay 2.5 is released
       } else if (ospTex.depth == 2) {
         ospTex.createChildData("data",
             vec2ul(img.width, img.height), // numItems
             sizeof(vec4us) * vec2ul(1, img.width), // byteStride
             (uint16_t *)img.image.data() + colorChannel);
+#endif
       } else {
         ospTex.createChildData("data",
             vec2ul(img.width, img.height), // numItems
@@ -1294,11 +1307,13 @@ namespace ospray {
             vec2ul(img.width, img.height), // numItems
             vec2ul(0, 0), // byteStride
             (vec4f *)img.image.data());
+#if 0 // XXX add once OSPRay 2.5 is released
       } else if (ospTex.depth == 2) {
         ospTex.createChildData("data",
             vec2ul(img.width, img.height), // numItems
             vec2ul(0, 0), // byteStride
             (vec4us *)img.image.data());
+#endif
       } else {
         ospTex.createChildData("data",
             vec2ul(img.width, img.height), // numItems
