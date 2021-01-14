@@ -28,7 +28,7 @@ namespace ospray {
     void addGeometriesToGroup();
     void createInstanceFromGroup();
     void placeInstancesInWorld();
-    void addLightToWorld(Node &node);
+    void setLightParams(Node &node);
 
     // Data //
 
@@ -117,7 +117,7 @@ namespace ospray {
       break;
     }
     case NodeType::LIGHT:
-      addLightToWorld(node);
+      setLightParams(node);
       break;
     default:
       break;
@@ -158,7 +158,7 @@ namespace ospray {
     case NodeType::MATERIAL_REFERENCE:
       break;
     case NodeType::LIGHT:
-      world.commit();
+      // world.commit();
       break;
     default:
       // Nothing
@@ -324,13 +324,20 @@ namespace ospray {
     #endif
   }
 
-  inline void RenderScene::addLightToWorld(Node &node)
+  inline void RenderScene::setLightParams(Node &node)
   {
-    // XXX remove.
-    std::cout << "!!!!! RenderScene::addLightToWorld: " << node.name() << std::endl;
-    std::cout << "!!!!! deprecated.  Add lights to the lightsManager" << std::endl;
-  //  auto &light = node.valueAs<cpp::Light>();
-  //  world.setParam("light", (cpp::CopiedData)light);
+    // position is defined for following light types : point, spot, quad
+    // direction is defined for following light types : distant, spot
+    auto type = node.subType();
+    if (type == "sphere" || type == "spot" || type == "quad") {
+      auto lightPos = xfmPoint(xfms.top(), vec3f(0));
+      node.createChild("position", "vec3f", lightPos);
+    } 
+    if(type == "distant" || type == "spot") {
+      auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
+      node.createChild(
+            "direction", "vec3f", lightDir);
+    }
   }
 
   inline void RenderScene::placeInstancesInWorld()

@@ -45,6 +45,17 @@ namespace ospray {
       return true;
     }
 
+    void Lights::addLights(std::vector<NodePtr> &lights)
+    {
+      for (auto &l : lights) {
+        if (lightExists(l->name()))
+          continue;
+
+        lightNames.push_back(l->name());
+        add(l);
+      }
+    }
+
     bool Lights::removeLight(std::string name)
     {
       if (name == "" || !lightExists(name))

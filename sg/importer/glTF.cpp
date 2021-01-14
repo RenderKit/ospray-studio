@@ -64,7 +64,7 @@ namespace ospray {
 
    private:
     NodePtr rootNode;
-
+    std::vector<NodePtr> lights;
     std::vector<SkinPtr> skins;
     std::vector<NodePtr> ospMeshes;
     std::shared_ptr<sg::MaterialRegistry> materialRegistry;
@@ -238,17 +238,34 @@ namespace ospray {
         newLight = createNode(lightName, "distant");
       else if (l.type == "point")
         newLight = createNode(lightName, "sphere");
-      else
+      else if(l.type == "spot") {
+        newLight = createNode(lightName, "spot");
+        auto outerConeAngle = (float)l.spot.outerConeAngle;
+        auto innerConeAngle = (float)l.spot.innerConeAngle;
+        newLight->createChild("openingAngle", "float", outerConeAngle);
+        newLight->createChild(
+            "penumbraAngle", "float", outerConeAngle - innerConeAngle);
+      } else {
         newLight = createNode(lightName, l.type);
+        std::cout << l.type << std::endl;
+      }
 
-      auto lightColor = vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
-      newLight->createChild("color", "vec3f", lightColor);
-      if(l.intensity)
-        newLight->createChild("intensity", "float", (float)l.intensity);
-      if(l.range)
-        std::cout << "Range value for light is not supported yet" << std::endl;
-      auto lightsMan = std::static_pointer_cast<sg::Lights>(lightsManager);
-      lightsMan->addLight(newLight);
+        auto lightColor =
+            vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
+        newLight->createChild("color", "vec3f", lightColor);
+
+        if (l.intensity)
+          newLight->createChild("intensity", "float", (float)l.intensity);
+        if (l.range)
+          std::cout << "Range value for light is not supported yet"
+                    << std::endl;
+
+        // TODO:: Address extras property on lights
+
+        lights.push_back(newLight);
+
+        auto lightsMan = std::static_pointer_cast<sg::Lights>(lightsManager);
+        lightsMan->addLights(lights);
     }
   }
 
@@ -515,9 +532,18 @@ namespace ospray {
         n.extensions.find("BIT_reference_link") != n.extensions.end())
       loadNodeInfo(nid, sgNode);
 
+    // KHR_lights_punctual extension info on nodes
+    if(n.extensions.find("KHR_lights_punctual") != n.extensions.end()) {
+      // defines light orientation
+      auto lightIndex = n.extensions.find("KHR_lights_punctual")->second.Get("light").GetNumberAsInt();
+      auto lightNode = lights[lightIndex];
+      sgNode->add(lightNode);
+    }
+
     // recursively process children nodes
     for (const auto &cid : n.children) {
-      visitNode(sgNode, cid, level + 1);
+      if (sgNode->type() != NodeType::LIGHT)
+        visitNode(sgNode, cid, level + 1);
     }
   }
 
