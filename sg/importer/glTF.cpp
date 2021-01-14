@@ -14,6 +14,7 @@
 #include "../scene/geometry/Geometry.h"
 #include "../visitors/PrintNodes.h"
 #include "../texture/Texture2D.h"
+#include "../scene/Transform.h"
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
@@ -62,6 +63,7 @@ namespace ospray {
     void loadNodeInfo(const int nid, NodePtr sgNode);
     // load animations AFTER loading scene nodes and their transforms
     void createAnimations(std::vector<Animation> &);
+    void applySceneBackground(NodePtr bgXfm);
     std::vector<NodePtr> lights;
 
    private:
@@ -186,6 +188,35 @@ namespace ospray {
     return ret;
   }
 
+  void GLTFData::applySceneBackground(NodePtr bgXfm)
+  {
+    auto background = model.extensions.find("BIT_scene_background")->second;
+    auto &bgFileName = background.Get("background-uri").Get<std::string>();
+    rkcommon::FileName bgTexture = fileName.path() + bgFileName;
+    auto bgNode = createNode("background", "hdri");
+    auto &map = bgNode->createChild("map", "texture_2d");
+    map.nodeAs<sg::Texture2D>()->load(bgTexture, false, false);
+
+    if (background.Has("rotation")) {
+      const auto &r = background.Get("rotation").Get<tinygltf::Value::Array>();
+      auto &rot = bgXfm->nodeAs<sg::Transform>()->child("rotation");
+      rot = quaternionf(r[3].Get<double>(),
+          r[0].Get<double>(),
+          r[1].Get<double>(),
+          r[2].Get<double>());
+    }
+
+    if (background.Has("translation")) {
+      const auto &t =
+          background.Get("translation").Get<tinygltf::Value::Array>();
+      auto &trans = bgXfm->nodeAs<sg::Transform>()->child("translation");
+      trans = vec3f(t[0].Get<double>(), t[1].Get<double>(), t[2].Get<double>());
+    }
+
+    lights.push_back(bgNode);
+    bgXfm->add(bgNode);
+  }
+
   void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode) {
     const tinygltf::Node &n = model.nodes[nid];
 
@@ -256,17 +287,17 @@ namespace ospray {
 
         auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
         ast2d->load(texFileName, false, false);
-      }
-        auto lightColor =
-            vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
-        newLight->createChild("color", "vec3f", lightColor);
+      } else
+        newLight = createNode(lightName, l.type);
 
-        if (l.intensity)
-          newLight->createChild("intensity", "float", (float)l.intensity);
-        if (l.range)
-          std::cout << "Range value for light is not supported yet"
-                    << std::endl;
+      auto lightColor =
+          vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
+      newLight->createChild("color", "vec3f", lightColor);
 
+      if (l.intensity)
+        newLight->createChild("intensity", "float", (float)l.intensity);
+      if (l.range)
+        std::cout << "Range value for light is not supported yet" << std::endl;
 
       // TODO:: Address extras property on lights
 
@@ -468,6 +499,14 @@ namespace ospray {
   {
     if (model.scenes.empty())
       return;
+
+    // background with custom BIT_scene_background extension is applied on scene-level
+    if(model.extensions.find("BIT_scene_background") != model.extensions.end()) {
+      auto bgXfm =
+        createNode("bgXfm", "transform");
+      applySceneBackground(bgXfm);
+      rootNode->add(bgXfm);
+    }
 
     const auto defaultScene = std::max(0, model.defaultScene);
 
@@ -1337,8 +1376,8 @@ namespace ospray {
     if (importCameras)
       gltf.createCameras(*cameras);
 
-      auto lightsMan = std::static_pointer_cast<sg::Lights>(lightsManager);
-        lightsMan->addLights(gltf.lights);
+    auto lightsMan = std::static_pointer_cast<sg::Lights>(lightsManager);
+    lightsMan->addLights(gltf.lights);
 
     // Finally, add node hierarchy to importer parent
     add(rootNode);
