@@ -326,17 +326,22 @@ namespace ospray {
 
   inline void RenderScene::setLightParams(Node &node)
   {
-    // position is defined for following light types : point, spot, quad
-    // direction is defined for following light types : distant, spot
+    // position is defined for light types : point, spot, quad
+    // direction is defined for light types : distant, spot, hdri
+    //  up vector is defined for light types : hdri and sun-sky
     auto type = node.subType();
     if (type == "sphere" || type == "spot" || type == "quad") {
       auto lightPos = xfmPoint(xfms.top(), vec3f(0));
       node.createChild("position", "vec3f", lightPos);
     } 
-    if(type == "distant" || type == "spot") {
+    if(type == "distant" || type == "spot" || type == "hdri") {
       auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
       node.createChild(
             "direction", "vec3f", lightDir);
+    }
+    if(type == "hdri"){
+      auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
+      node.createChild("up", "vec3f", upDir);
     }
   }
 

@@ -13,6 +13,7 @@
 
 #include "../scene/geometry/Geometry.h"
 #include "../visitors/PrintNodes.h"
+#include "../texture/Texture2D.h"
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
@@ -56,15 +57,15 @@ namespace ospray {
     void finalizeSkins();
     void createGeometries();
     void createCameras(std::vector<NodePtr> &cameras);
-    void createLights(NodePtr lightsManager);
+    void createLights();
     void buildScene();
     void loadNodeInfo(const int nid, NodePtr sgNode);
     // load animations AFTER loading scene nodes and their transforms
     void createAnimations(std::vector<Animation> &);
+    std::vector<NodePtr> lights;
 
    private:
     NodePtr rootNode;
-    std::vector<NodePtr> lights;
     std::vector<SkinPtr> skins;
     std::vector<NodePtr> ospMeshes;
     std::shared_ptr<sg::MaterialRegistry> materialRegistry;
@@ -226,11 +227,12 @@ namespace ospray {
     sg::clearImporter();
   }
 
-  void GLTFData::createLights(NodePtr lightsManager)
+  void GLTFData::createLights()
   {
     for (auto &l : model.lights) {
       static auto nLight = 0;
-      auto lightName = l.name != "" ? l.name : "light_" + std::to_string(nLight++);
+      auto lightName =
+          l.name != "" ? l.name : "light_" + std::to_string(nLight++);
       auto lightType = l.type;
       NodePtr newLight;
 
@@ -238,18 +240,23 @@ namespace ospray {
         newLight = createNode(lightName, "distant");
       else if (l.type == "point")
         newLight = createNode(lightName, "sphere");
-      else if(l.type == "spot") {
+      else if (l.type == "spot") {
         newLight = createNode(lightName, "spot");
         auto outerConeAngle = (float)l.spot.outerConeAngle;
         auto innerConeAngle = (float)l.spot.innerConeAngle;
         newLight->createChild("openingAngle", "float", outerConeAngle);
         newLight->createChild(
             "penumbraAngle", "float", outerConeAngle - innerConeAngle);
-      } else {
+      } else if (l.type == "hdri") {
         newLight = createNode(lightName, l.type);
-        std::cout << l.type << std::endl;
-      }
+        auto &hdriTex = newLight->createChild("map", "texture_2d");
+        static rkcommon::FileName texFileName("");
+        auto hdrFileName = l.extras.Get("map").Get<std::string>();
+        texFileName = fileName.path() + hdrFileName;
 
+        auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
+        ast2d->load(texFileName, false, false);
+      }
         auto lightColor =
             vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
         newLight->createChild("color", "vec3f", lightColor);
@@ -260,12 +267,10 @@ namespace ospray {
           std::cout << "Range value for light is not supported yet"
                     << std::endl;
 
-        // TODO:: Address extras property on lights
 
-        lights.push_back(newLight);
+      // TODO:: Address extras property on lights
 
-        auto lightsMan = std::static_pointer_cast<sg::Lights>(lightsManager);
-        lightsMan->addLights(lights);
+      lights.push_back(newLight);
     }
   }
 
@@ -1322,7 +1327,7 @@ namespace ospray {
       return;
 
     gltf.createMaterials();
-    gltf.createLights(lightsManager);
+    gltf.createLights();
     gltf.createSkins();
     gltf.createGeometries(); // needs skins
     gltf.buildScene();
@@ -1331,6 +1336,9 @@ namespace ospray {
       gltf.createAnimations(*animations);
     if (importCameras)
       gltf.createCameras(*cameras);
+
+      auto lightsMan = std::static_pointer_cast<sg::Lights>(lightsManager);
+        lightsMan->addLights(gltf.lights);
 
     // Finally, add node hierarchy to importer parent
     add(rootNode);
