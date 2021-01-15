@@ -38,6 +38,9 @@ namespace ospray {
 
       virtual void preCommit() override;
       virtual void postCommit() override;
+
+      private:
+       World* currentWorld;
     };
 
   }  // namespace sg

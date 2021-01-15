@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Lights.h"
+#include "../../sg/renderer/Renderer.h"
 
 namespace ospray {
   namespace sg {
@@ -77,8 +78,14 @@ namespace ospray {
       cppLightObjects.clear();
 
       for (auto &name : lightNames) {
-        auto &l = child(name).valueAs<cpp::Light>();
-        cppLightObjects.emplace_back(l);
+        auto &l = child(name);
+        if (l.subType() == "hdri") {
+          auto &frame = currentWorld->parents().front();
+          auto &renderer = frame->childAs<sg::Renderer>("renderer");
+          renderer["backgroundColor"] = vec4f(0.f);
+        }
+
+        cppLightObjects.emplace_back(l.valueAs<cpp::Light>());
       }
     }
 
@@ -88,6 +95,7 @@ namespace ospray {
 
     void Lights::updateWorld(World &world)
     {
+      currentWorld = &world;
       // Commit lightsManager changes then apply lightObjects on the world.
       commit();
 
