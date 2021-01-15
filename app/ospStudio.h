@@ -13,7 +13,7 @@
 // ospray sg
 #include "sg/Frame.h"
 #include "sg/renderer/MaterialRegistry.h"
-#include "sg/scene/lights/Lights.h"
+#include "sg/scene/lights/LightsManager.h"
 // studio app
 #include "ArcballCamera.h"
 // ospcommon

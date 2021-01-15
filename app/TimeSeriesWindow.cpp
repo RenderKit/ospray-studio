@@ -3,7 +3,7 @@
 
 #include "TimeSeriesWindow.h"
 #include "../sg/scene/transfer_function/TransferFunction.h"
-#include "sg/scene/lights/Lights.h"
+#include "sg/scene/lights/LightsManager.h"
 // imgui
 #include "imgui.h"
 // rkcommon

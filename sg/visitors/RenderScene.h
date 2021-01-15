@@ -7,6 +7,7 @@
 #include "../renderer/MaterialRegistry.h"
 #include "../scene/Transform.h"
 #include "../scene/geometry/Geometry.h"
+#include "../scene/lights/Light.h"
 // std
 #include <stack>
 
@@ -326,23 +327,30 @@ namespace ospray {
 
   inline void RenderScene::setLightParams(Node &node)
   {
-    // position is defined for light types : point, spot, quad
-    // direction is defined for light types : distant, spot, hdri
-    //  up vector is defined for light types : hdri and sun-sky
     auto type = node.subType();
+    std::map<std::string, vec3f> propMap;
+
     if (type == "sphere" || type == "spot" || type == "quad") {
-      auto lightPos = xfmPoint(xfms.top(), vec3f(0));
-      node.createChild("position", "vec3f", lightPos);
-    } 
-    if(type == "distant" || type == "spot" || type == "hdri") {
+            auto lightPos = xfmPoint(xfms.top(), vec3f(0));
+      propMap.insert(std::make_pair("position", lightPos));
+
+      if (type == "spot") {
+        auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
+        propMap.insert(std::make_pair("direction", lightDir));
+      }
+    }
+
+    if (type == "distant" || type == "hdri") {
       auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
-      node.createChild(
-            "direction", "vec3f", lightDir);
+      propMap.insert(std::make_pair("direction", lightDir));
+
+      if (type == "hdri") {
+        auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
+        propMap.insert(std::make_pair("up", upDir));
+      }
     }
-    if(type == "hdri"){
-      auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
-      node.createChild("up", "vec3f", upDir);
-    }
+    auto lightNode = node.nodeAs<sg::Light>();
+    lightNode->initOrientation(propMap);
   }
 
   inline void RenderScene::placeInstancesInWorld()

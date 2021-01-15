@@ -7,7 +7,7 @@
 
 #include "Node.h"
 #include "importer/Importer.h"
-#include "scene/lights/Lights.h"
+#include "scene/lights/LightsManager.h"
 
 // This file contains definitions of `to_json` and `from_json` for custom types
 // used within Studio. These methods allow us to easily serialize and
