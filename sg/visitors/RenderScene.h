@@ -331,23 +331,18 @@ namespace ospray {
     std::map<std::string, vec3f> propMap;
 
     if (type == "sphere" || type == "spot" || type == "quad") {
-            auto lightPos = xfmPoint(xfms.top(), vec3f(0));
+      auto lightPos = xfmPoint(xfms.top(), vec3f(0));
       propMap.insert(std::make_pair("position", lightPos));
-
-      if (type == "spot") {
-        auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
-        propMap.insert(std::make_pair("direction", lightDir));
-      }
     }
 
-    if (type == "distant" || type == "hdri") {
+    if (type == "distant" || type == "hdri" || type == "spot") {
       auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
       propMap.insert(std::make_pair("direction", lightDir));
+    }
 
-      if (type == "hdri") {
-        auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
-        propMap.insert(std::make_pair("up", upDir));
-      }
+    if (type == "hdri") {
+      auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
+      propMap.insert(std::make_pair("up", upDir));
     }
     auto lightNode = node.nodeAs<sg::Light>();
     lightNode->initOrientation(propMap);

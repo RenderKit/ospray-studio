@@ -206,13 +206,6 @@ namespace ospray {
           r[2].Get<double>());
     }
 
-    if (background.Has("translation")) {
-      const auto &t =
-          background.Get("translation").Get<tinygltf::Value::Array>();
-      auto &trans = bgXfm->nodeAs<sg::Transform>()->child("translation");
-      trans = vec3f(t[0].Get<double>(), t[1].Get<double>(), t[2].Get<double>());
-    }
-
     lights.push_back(bgNode);
     bgXfm->add(bgNode);
   }
