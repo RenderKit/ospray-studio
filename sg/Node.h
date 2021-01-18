@@ -63,7 +63,7 @@ namespace sg {
   struct Data;
 
   typedef std::unordered_map<OSPGeometricModel, std::string> GeomIdMap;
-  typedef std::unordered_map<OSPInstance, std::string> InstanceIdMap;
+  typedef std::unordered_map<OSPInstance, std::pair<std::string, affine3f>> InstanceIdMap;
 
   struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
   {

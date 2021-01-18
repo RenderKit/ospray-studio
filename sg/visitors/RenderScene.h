@@ -319,8 +319,9 @@ namespace ospray {
 
     if (in != nullptr && !instanceId.empty()) {
       auto ospInstance = inst.handle();
-      in->insert(InstanceIdMap::value_type(ospInstance, instanceId));
+      in->insert(InstanceIdMap::value_type(ospInstance, std::make_pair(instanceId, xfms.top())));
     }
+    
     #if defined(DEBUG)
     std::cout << "number of instances : " << instances.size() << std::endl;
     #endif
