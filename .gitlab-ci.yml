@@ -9,26 +9,25 @@ variables:
 stages:
   - build
   - test
+  - scan
 
 .build-linux:
   stage: build
   needs: []
-  tags:
-    - docker
+  tags: [docker]
 
 source-protex-scan:
-  stage: build
+  stage: scan
   image: amd64/openjdk:8
   script:
     - gitlab/source-scan-protex.sh
-  tags:
-    - docker
-  dependencies: []
+  tags: [docker]
+  needs: []
   allow_failure: true
 
-########        
+########
 # These build phases will no longer work on current branches, due to non-release branch dependencies
-########        
+########
 build-ubuntu18.04:
   extends: .build-linux
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
@@ -44,9 +43,7 @@ build-ubuntu18.04:
 
 build-osx-clang:
   stage: build
-  tags:
-    - osx
-    - clang
+  tags: [osx, clang]
   script:
     - gitlab/macos.sh
   artifacts:
@@ -59,9 +56,7 @@ build-osx-clang:
 
 build-windows-msvc15:
   stage: build
-  tags:
-    - win
-    - msvc15
+  tags: [win, msvc15]
   script:
     - gitlab\win.ps1 "Visual Studio 15 2017 Win64" "v141" "Release"
   artifacts:
@@ -79,7 +74,7 @@ build-kw:
     - gitlab/build-kw.sh
   artifacts:
     paths:
-      - kw_build_number
+      - klockwork/*
   only:
     refs:
       - master, release-0.5.x
@@ -88,8 +83,7 @@ test-run-ubuntu18.04:
   stage: test
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
   needs: [build-ubuntu18.04]
-  tags:
-    - docker
+  tags: [docker]
   script:
     - gitlab/run.sh
   only:
@@ -98,8 +92,7 @@ test-run-ubuntu18.04:
 
 test-kw:
   stage: test
-  tags:
-    - docker
+  tags: [docker]
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
   needs: [build-kw]
   script:
@@ -109,9 +102,9 @@ test-kw:
     refs:
       - master, release-0.5.x
 
-########        
+########
 # Transitional phases, only works against devel branch dependencies
-########        
+########
 build-ubuntu18.04-dev:
   extends: .build-linux
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
@@ -124,9 +117,7 @@ build-ubuntu18.04-dev:
 
 build-osx-clang-dev:
   stage: build
-  tags:
-    - osx
-    - clang
+  tags: [osx, clang]
   script:
     - gitlab/macos-dev.sh
   artifacts:
@@ -136,9 +127,7 @@ build-osx-clang-dev:
 
 build-windows-msvc15-dev:
   stage: build
-  tags:
-    - win
-    - msvc15
+  tags: [win, msvc15]
   script:
     - gitlab\win-dev.ps1 "Visual Studio 15 2017 Win64" "v141" "Release"
   artifacts:
@@ -153,23 +142,33 @@ build-kw-dev:
     - gitlab/build-kw-dev.sh
   artifacts:
     paths:
-      - kw_build_number
+      - klocwork/*
 
 test-kw-dev:
-  stage: test
-  tags:
-    - docker
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  stage: scan
+  tags: [docker]
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
   needs: [build-kw-dev]
   script:
-    - gitlab/test-kw.sh
+    - gitlab/kw-check-issues.sh
   allow_failure: true
+
+kw-gen-report:
+  stage: scan
+  tags: [docker]
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
+  needs: [build-kw-dev]
+  script:
+    - gitlab/kw-gen-report.sh
+  artifacts:
+    paths:
+      - klocwork/report.log
+
 
 test-run-ubuntu18.04-dev:
   stage: test
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
   needs: [build-ubuntu18.04-dev]
-  tags:
-    - docker
+  tags: [docker]
   script:
     - gitlab/run-dev.sh
