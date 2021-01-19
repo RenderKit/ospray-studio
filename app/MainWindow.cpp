@@ -1738,7 +1738,6 @@ void MainWindow::buildWindowKeyframes()
 
         auto caps = sg::createNode("cameraPathCaps", "geometry_spheres");
 
-        unsigned long f = 1, b = vertexes.size() - 3;
         std::vector<vec3f> capVertexes;
         std::vector<vec4f> capColors;
         for (int i = 0; i < cameraStack.size(); i++) {

@@ -113,6 +113,7 @@ inline std::shared_ptr<Importer> getImporter(
   auto fnd = importerMap.find(fileName.ext());
   if (fnd == importerMap.end()) {
     std::cout << "No importer for " << fileName << std::endl;
+    return nullptr;
   }
   std::string importer = fnd->second;
   std::string nodeName = baseName + "_importer";

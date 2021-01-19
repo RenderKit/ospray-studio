@@ -75,7 +75,7 @@ namespace ospray {
 
       for (auto &name : lightNames) {
         auto &l = child(name);
-        if (l.subType() == "hdri") {
+        if (l.subType() == "hdri" && currentWorld) {
           auto &frame = currentWorld->parents().front();
           auto &renderer = frame->childAs<sg::Renderer>("renderer");
           renderer["backgroundColor"] = vec4f(0.f);

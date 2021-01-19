@@ -38,7 +38,7 @@ namespace ospray {
       virtual void postCommit() override;
 
       private:
-       World* currentWorld;
+       World* currentWorld = nullptr;
     };
 
   }  // namespace sg
