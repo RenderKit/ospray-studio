@@ -475,7 +475,8 @@ void MainWindow::reshape(const vec2i &newWindowSize)
       fSize.x *= aspectCorrection;
     }
   }
-  frame->child("camera")["aspect"] = static_cast<float>(fSize.x) / fSize.y;
+  if (frame->child("camera").hasChild("aspect"))
+    frame->child("camera")["aspect"] = static_cast<float>(fSize.x) / fSize.y;
 
   frame->child("windowSize") = fSize;
   frame->currentAccum = 0;
@@ -1544,6 +1545,11 @@ void MainWindow::buildMainMenuEdit()
       refreshRenderer();
     }
 
+    if (ImGui::Button("cancel Frame")) {
+      frame->cancelFrame();
+      frame->waitOnFrame();
+    }
+
     ImGui::EndMenu();
   }
 }
@@ -1936,6 +1942,9 @@ void MainWindow::buildWindowCameraEditor()
       // Change the camera type, if the new camera is different.
       if (frame->childAs<sg::Camera>("camera").subType()
           != currentCamera.second->subType()) {
+        // Cancel any in-progress frame since we're changing the camera node.
+        frame->cancelFrame();
+        frame->waitOnFrame();
         frame->createChildAs<sg::Camera>("camera",
             currentCamera.second->subType());
       }
@@ -1947,15 +1956,37 @@ void MainWindow::buildWindowCameraEditor()
       }
 
       camera.commit();
+      reshape(windowSize); // resets aspect
       updateCamera();
     }
   }
 
+  // Change camera type
+  ImGui::Text("Type:");
+  static const std::vector<std::string> cameraTypes = {
+      "perspective", "orthographic", "panoramic"};
+  auto currentType = frame->childAs<sg::Camera>("camera").subType();
+  for (auto &type : cameraTypes) {
+    auto newType = "camera_" + type;
+    ImGui::SameLine();
+    if (ImGui::RadioButton(type.c_str(), currentType == newType)) {
+      // Cancel any in-progress frame since we're changing the camera node.
+      frame->cancelFrame();
+      frame->waitOnFrame();
+      // Create new camera of new type
+      frame->createChildAs<sg::Camera>("camera", newType);
+      frame->childAs<sg::Camera>("camera").commit();
+      reshape(windowSize); // resets aspect
+      updateCamera(); // resets position, direction, etc
+      break;
+    }
+  }
+
+  // UI Widget
   auto &camera = frame->childAs<sg::Camera>("camera");
-  bool userUpdated = false;
-  camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN,
-      userUpdated);
-  if (userUpdated)
+  bool updated = false;
+  camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN, updated);
+  if (updated)
     camera.commit();
 
   ImGui::End();
