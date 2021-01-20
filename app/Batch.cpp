@@ -291,6 +291,13 @@ bool BatchContext::parseCommandLine()
     }
   }
 
+  // LIDAR overrides
+  optImageSize = vec2i(LIDAR_FRAMEBUFFER_WIDTH, LIDAR_FRAMEBUFFER_HEIGHT);
+  optCameraTypeStr = "panoramic";
+  optPF = 0; // point
+  optSPP = 1;
+  optDenoiser = 0;
+
   if (filesToImport.size() == 0) {
     std::cout << "No files to import " << std::endl;
     return 0;
@@ -366,12 +373,8 @@ void BatchContext::render()
   frame->child("windowSize") = optImageSize;
 
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
-
-  // If using the denoiser, set the framebuffer to allow it.
-  if (studioCommon.denoiserAvailable && optDenoiser) {
-    frameBuffer["floatFormat"] = true;
-    frameBuffer.commit();
-  }
+  frameBuffer["floatFormat"] = true;
+  frameBuffer.commit();
 
   frame->child("world").createChild("materialref", "reference_to_material", 0);
 

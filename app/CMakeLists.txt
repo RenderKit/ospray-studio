@@ -51,6 +51,17 @@ target_link_libraries(ospray_ui
   glfw
 )
 
+find_PATH(VALEO_LIDAR_INCLUDE valeo_lidar.h HINTS ${VALEO_LIDAR_ROOT})
+add_library(lidar_wrapper STATIC
+  LidarWrapper.cpp
+)
+target_include_directories(lidar_wrapper PRIVATE ${VALEO_LIDAR_INCLUDE})
+
+find_library(VALEO_LIDAR_LIBRARY valeo_lidar HINTS ${VALEO_LIDAR_ROOT})
+target_link_libraries(lidar_wrapper
+  ${VALEO_LIDAR_LIBRARY}
+)
+
 target_link_libraries(ospStudio
   ospray_ui # Not all run modes should link against UI (ie batch).
   ospray_sg
