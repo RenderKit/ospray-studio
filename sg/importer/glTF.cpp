@@ -1369,8 +1369,12 @@ namespace ospray {
     if (importCameras)
       gltf.createCameras(*cameras);
 
-    auto lightsMan = std::static_pointer_cast<sg::Lights>(lightsManager);
-    lightsMan->addLights(gltf.lights);
+    if (gltf.lights.size() != 0) {
+      auto lightsMan = std::static_pointer_cast<sg::LightsManager>(lightsManager);
+      if (lightsMan->lightExists("ambient"))
+        lightsMan->removeLight("ambient");
+      lightsMan->addLights(gltf.lights);
+    }
 
     // Finally, add node hierarchy to importer parent
     add(rootNode);

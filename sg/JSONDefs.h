@@ -104,7 +104,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
     // the default ambient light might not exist in this scene
     // the loop below will add it if it does exist
     if (n && n->type() == NodeType::LIGHTS)
-      n->nodeAs<Lights>()->removeLight("ambient");
+      n->nodeAs<LightsManager>()->removeLight("ambient");
 
     if (j.contains("children")) {
       for (auto &jChild : j["children"]) {
@@ -114,7 +114,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
         if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
           child->setSGOnly();
         if (n->type() == NodeType::LIGHTS)
-          n->nodeAs<Lights>()->addLight(child);
+          n->nodeAs<LightsManager>()->addLight(child);
         else if (n->type() == NodeType::MATERIAL)
           n->nodeAs<Material>()->add(child);
         else

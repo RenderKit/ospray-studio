@@ -10,17 +10,17 @@ namespace ospray {
   namespace sg {
 
     /**
-     * Lights node - manages lights in the world
+     * LightsManager node - manages lights in the world
      *
      * This node maintains a list of all lights in the world. It holds a list of
      * Light nodes which is passed to the world on commit. This list lets us
      * add/remove lights without adding unrelated functionality to the World
      * node
      */
-    struct OSPSG_INTERFACE Lights : public OSPNode<cpp::Light, NodeType::LIGHTS>
+    struct OSPSG_INTERFACE LightsManager : public OSPNode<cpp::Light, NodeType::LIGHTS>
     {
-      Lights();
-      ~Lights() override = default;
+      LightsManager();
+      ~LightsManager() override = default;
       NodeType type() const override;
       bool lightExists(std::string name);
       bool addLight(std::string name, std::string lightType);

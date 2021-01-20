@@ -7,26 +7,26 @@
 namespace ospray {
   namespace sg {
 
-    OSP_REGISTER_SG_NODE_NAME(Lights, lights);
+    OSP_REGISTER_SG_NODE_NAME(LightsManager, lights);
 
-    Lights::Lights()
+    LightsManager::LightsManager()
     {
       lightNames.push_back("ambient");
       createChild("ambient", "ambient");
     }
 
-    NodeType Lights::type() const
+    NodeType LightsManager::type() const
     {
       return NodeType::LIGHTS;
     }
 
-    bool Lights::lightExists(std::string name)
+    bool LightsManager::lightExists(std::string name)
     {
       auto found = std::find(lightNames.begin(), lightNames.end(), name);
       return (found != lightNames.end());
     }
 
-    bool Lights::addLight(std::string name, std::string lightType)
+    bool LightsManager::addLight(std::string name, std::string lightType)
     {
       if (name == "" || lightExists(name))
         return false;
@@ -36,7 +36,7 @@ namespace ospray {
       return true;
     }
 
-    bool Lights::addLight(NodePtr light)
+    bool LightsManager::addLight(NodePtr light)
     {
       if (lightExists(light->name()))
         return false;
@@ -46,7 +46,7 @@ namespace ospray {
       return true;
     }
 
-    void Lights::addLights(std::vector<NodePtr> &lights)
+    void LightsManager::addLights(std::vector<NodePtr> &lights)
     {
       for (auto &l : lights) {
         if (lightExists(l->name()))
@@ -57,7 +57,7 @@ namespace ospray {
       }
     }
 
-    bool Lights::removeLight(std::string name)
+    bool LightsManager::removeLight(std::string name)
     {
       if (name == "" || !lightExists(name))
         return false;
@@ -72,7 +72,7 @@ namespace ospray {
       return true;
     }
 
-    void Lights::preCommit()
+    void LightsManager::preCommit()
     {
       isStubborn = false;
       cppLightObjects.clear();
@@ -89,11 +89,11 @@ namespace ospray {
       }
     }
 
-    void Lights::postCommit()
+    void LightsManager::postCommit()
     {
     }
 
-    void Lights::updateWorld(World &world)
+    void LightsManager::updateWorld(World &world)
     {
       currentWorld = &world;
       // Commit lightsManager changes then apply lightObjects on the world.

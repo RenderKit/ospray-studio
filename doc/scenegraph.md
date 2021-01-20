@@ -181,7 +181,7 @@ node class that you will then need to manipulate (you avoid having to manually
 cast the node). For example:
 
 ```cpp
-auto &lightManager = myNode->createChildAs<sg::Lights>("lights", "lights");
+auto &lightManager = myNode->createChildAs<sg::LightsManager>("lights", "lights");
 // now call a derived-class method on our lightManager node
 lightManager.addLight("ambientLight", "ambient");
 ```
