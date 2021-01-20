@@ -348,6 +348,9 @@ void BatchContext::refreshScene(bool resetCam)
   if (saveMetaData)
     world->child("saveMetaData").setValue(true);
 
+  lightsManager->commit();
+  lightsManager->updateWorld(frame->childAs<sg::World>("world"));
+
   if (!filesToImport.empty())
     importFiles(world);
 
@@ -399,6 +402,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           // importer will use what it needs.
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
+          importer->setLightsManager(lightsManager);
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
           importer->importScene();
