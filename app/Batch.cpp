@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Batch.h"
@@ -54,12 +54,8 @@ bool BatchContext::parseCommandLine()
   int argIndex = 1;
 
   auto argAvailability = [&](std::string switchArg, int nComp) {
-    if (argc >= argIndex + nComp) {
-      std::string arg = argv[argIndex];
-      if (arg.front() != '-') {
-        return true;
-      } 
-    }
+    if (argc >= argIndex + nComp)
+      return true;
     std::cout << "Missing argument value for : " << switchArg << std::endl;
     return false;
   };
