@@ -43,7 +43,8 @@ namespace ospray {
   {
     auto in = ImageInput::open(fileName.c_str());
     if (!in) {
-      std::cerr << "#osp:sg: failed to load texture ' " << fileName << "'" << std::endl;
+      std::cerr << "#osp:sg: OpenImageIO failed to load texture ' " << fileName
+                << "'" << std::endl;
       // reset();
     } else {
       const ImageSpec &spec = in->spec();
@@ -526,8 +527,11 @@ namespace ospray {
         int depth     = hdr ? 4 : 1;
 
         if (!pixels) {
-          std::cerr << "#osp:sg: failed to load texture '" + fileName + "'"
-            << std::endl;
+          std::cerr << "#osp:sg: STB_image failed to load texture '" + fileName
+                  + "'" << std::endl;
+
+          std::cerr << "#osp:sg: Rebuilding OSPRay Studio with OpenImageIO "
+                    << "support may fix this error." << std::endl;
           // reset();
         } else {
           unsigned int dataSize = size.x * size.y * channels * depth;
