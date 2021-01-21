@@ -1286,13 +1286,11 @@ namespace ospray {
             vec2ul(img.width, img.height), // numItems
             sizeof(vec4f) * vec2ul(1, img.width), // byteStride
             (float *)img.image.data() + colorChannel);
-#if 0 // XXX add once OSPRay 2.5 is released
       } else if (ospTex.depth == 2) {
         ospTex.createChildData("data",
             vec2ul(img.width, img.height), // numItems
             sizeof(vec4us) * vec2ul(1, img.width), // byteStride
             (uint16_t *)img.image.data() + colorChannel);
-#endif
       } else {
         ospTex.createChildData("data",
             vec2ul(img.width, img.height), // numItems
@@ -1306,13 +1304,11 @@ namespace ospray {
             vec2ul(img.width, img.height), // numItems
             vec2ul(0, 0), // byteStride
             (vec4f *)img.image.data());
-#if 0 // XXX add once OSPRay 2.5 is released
       } else if (ospTex.depth == 2) {
         ospTex.createChildData("data",
             vec2ul(img.width, img.height), // numItems
             vec2ul(0, 0), // byteStride
             (vec4us *)img.image.data());
-#endif
       } else {
         ospTex.createChildData("data",
             vec2ul(img.width, img.height), // numItems
