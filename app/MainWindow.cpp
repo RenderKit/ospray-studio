@@ -1106,6 +1106,10 @@ void MainWindow::saveCurrentFrame()
   int screenshotFlags = screenshotMetaData << 4 | screenshotLayers << 3
       | screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
 
+  if (screenshotFlags > 0 && !fbFloatFormat)
+    std::cout
+        << " *** Cannot save additional information wihtout changing FB format to float ***"
+        << std::endl;
   frame->saveFrame(std::string(filename), screenshotFlags);
 }
 
@@ -1239,7 +1243,10 @@ void MainWindow::buildMainMenuFile()
         ImGui::SetTooltip("%s", "Image filetype for saving screenshots");
 
       if (screenshotFiletype == "exr") {
-        ImGui::Text("additional layers");
+        // the following options should be available only when FB format is
+        // float a.k.a allowDenoising
+        ImGui::Checkbox("FB float format ", &fbFloatFormat);
+        ImGui::Text("(following layers available with FB float format only)");
         ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
         ImGui::SameLine();
         ImGui::Checkbox("layers as separate files", &screenshotLayers);
@@ -1267,8 +1274,14 @@ void MainWindow::buildMainMenuFile()
     }
   }
 
-  if(screenshotMetaData)
+  if (screenshotMetaData)
     frame->child("world").child("saveMetaData").setValue(true);
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  if (fbFloatFormat)
+    fb["allowDenoising"] = true;
+  else {
+    fb["allowDenoising"] = false;
+  }
 }
 
 void MainWindow::buildMainMenuEdit()
