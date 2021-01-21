@@ -1,5 +1,8 @@
 # OSPRay Studio
 
+This is release v0.6.0 of Intel® OSPRay Studio. It is released under the
+Apache 2.0 license.
+
 ## Overview
 
 Intel OSPRay Studio is an open source and interactive visualization and

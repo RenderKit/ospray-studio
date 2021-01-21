@@ -26,7 +26,7 @@ api.md: components/scenegraph.markdown
 gallery.md: $(HEAD)
 
 .PHONY: readme
-readme: components/title.markdown components/overview.markdown components/build.markdown
+readme: components/title.markdown components/release.markdown components/overview.markdown components/build.markdown
 	pandoc $(PANDOCFLAGS) -o ../README.md $^
 
 .PHONY: clean
