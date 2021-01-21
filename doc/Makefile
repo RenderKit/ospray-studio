@@ -1,11 +1,35 @@
-%.html: %.md
-	pandoc --highlight-style pygments --standalone -t html --toc -c docs.css --metadata title="OSPRay Studio Scene Graph" -o $@ $<
+PANDOCFLAGS = --highlight-style pygments -f gfm -t gfm
+HEAD = components/title.markdown components/toc.markdown
 
-.PHONY: all html clean
+.PHONY: all
+all: website readme
 
-html: scenegraph.html
+.PHONY: website
+website: index.md quickstart.md api.md gallery.md
 
-all: html
+%.md:
+	pandoc $(PANDOCFLAGS) -o $@ $^
 
+index.md: $(HEAD)
+index.md: components/overview.markdown
+
+quickstart.md: $(HEAD)
+quickstart.md: components/download.markdown
+quickstart.md: components/build.markdown
+quickstart.md: components/quickstart.markdown
+
+api.md: $(HEAD)
+api.md: components/developer.markdown
+api.md: components/extension.markdown
+api.md: components/scenegraph.markdown
+
+gallery.md: $(HEAD)
+
+.PHONY: readme
+readme: components/title.markdown components/overview.markdown components/build.markdown
+	pandoc $(PANDOCFLAGS) -o ../README.md $^
+
+.PHONY: clean
 clean:
-	rm *.html
+	-@rm -f *.md
+	-@rm -f ../README.md

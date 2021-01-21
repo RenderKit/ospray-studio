@@ -1,29 +1,35 @@
-% OSPRay Studio Scene Graph
+### OSPRay Studio Scene Graph
 
-OSPRay Studio's scene graph (SG) is a `directed acyclical graph(DAG)` structure that is an abstraction of `OSPRay` scene hierarchy into a graph comprised of `sg::Nodes`. In contrast to the old OSPRay SG, the
-new OSPRay Studio SG does _not_ have a 1:1 correspondence with OSPRay scene objects.
-Instead, the OSPRay Studio SG presents a higher level interface comprising of a subset of OSPRay scene object types along with scene graph specific node types, together comprising the `sg::Nodes` types.
+OSPRay Studio's scene graph (SG) is a *directed acyclical graph* (DAG)
+structure that provides an abstraction of OSPRay's rendering hierarchy via a
+graph comprised of `sg::Nodes`. In contrast to the old OSPRay SG, the new
+OSPRay Studio SG does *not* have a 1:1 correspondence with OSPRay scene
+objects.  Instead, the OSPRay Studio SG presents a higher level interface
+comprising of a subset of OSPRay scene object types along with scene graph
+specific node types, together comprising the `sg::Nodes` types.
 
-## SG Design Overview
+#### SG Design Overview
 
 The OSPRay Studio SG provides a high-level representation of OSPRay objects
-which are flexible for organization within the DAG.  The SG is comprised of _nodes_, which can
-represent OSPRay objects, custom data importers/exporters, and even individual
-parameters for other nodes.  Nodes are connected with parent-child
-relationships. Every node has an array of parents node hence forming a directed acyclical graph structure.
-This graph structure is easy to traverse using parent-child links either via get methods like `node.child(child-name-string)`or via access specifiers like `node[child-name-string]`.
+which are flexible for organization within the DAG.  The SG is comprised of
+_nodes_, which can represent OSPRay objects, custom data importers/exporters,
+and even individual parameters for other nodes.  Nodes are connected with
+parent-child relationships. Every node has an array of parents node hence
+forming a directed acyclical graph structure.  This graph structure is easy to
+traverse using parent-child links either via get methods, such as
+`node.child("childName")`or via access specifiers like `node["childName"]`.
 
-All nodes classes manage node-data and node-state using the standard `sg:Nodes` API, while certain node classes provide routines which are specific to that node-type like a lights-manager node type would provide API to add/remove lights.
-Complex functionality, such as updating, committing, and
-rendering is handled by _visitors_, which traverse the graph, performing various
-actions based on nodes visited.
+All nodes classes manage node-data and node-state using the standard `sg:Nodes`
+API, while certain node classes provide routines which are specific to that
+node-type like a lights-manager node type would provide API to add/remove
+lights.  Complex functionality, such as updating, committing, and rendering is
+handled by _visitors_, which traverse the graph, performing various actions
+based on nodes visited.
 
 The general SG design is to build the scene heirarchy with nodes, then traverse
 the SG with visitors.
 
----
-
-## Nodes
+#### Nodes
 
 The `Node` class, declared in `sg/Node.h`, is the backbone of the SG. `Node`
 itself is an abstract base class. All node types inherit from it. This class
@@ -42,7 +48,7 @@ The code for the base `Node` class is organized as follows:
 * All other definitions for the base class, specialty classes, factory
   functions, and node registrations are in `sg/Node.cpp`
 
-### Creating Nodes
+##### Creating Nodes
 
 Four convenience factory functions are provided for creating nodes:
 
@@ -83,7 +89,7 @@ Your Own Node Type](#creating-your-own-node-type).
 
 A node's `value` is an `Any` type[^1].
 
-### Node Properties
+##### Node Properties
 
 Nodes contain a private internal `properties` struct that holds the primary
 data comprising the node. Most of the members of the `properties` struct have a
@@ -138,7 +144,7 @@ In either case, the node will mark itself as modified if the new value is
 different from the current value. More detail on the modified status is
 provided in [Graph Traversal Interface](#graph-traversal-interface).
 
-### Parent-child Interface
+##### Parent-child Interface
 
 Nodes are connected together with a parent-child relationship. A node should
 have at most one parent, but can have any number of children. Nodes can be
@@ -227,7 +233,7 @@ std::shared_ptr<NODE_T> childNodeAs(const std::string &name)
 Similar to the factory functions, these are useful if you need to access
 derived class methods of the node.
 
-### Graph Traversal Interface
+##### Graph Traversal Interface
 
 Once nodes are connected into a graph, the graph needs to be traversed in order
 to translate it into an OSPRay render graph.  A node's `traverse` method
@@ -243,7 +249,7 @@ return `true` whenever any of a node's children are marked as modified (i.e. a
 node is considered "modified" if and only if one or more of its children are
 modified)
 
-### Special Considerations
+##### Special Considerations
 
 `Node`s cannot be copied or moved; this includes forbidding the use of copy
 constructors as well as `operator=` for other `Node`s. This design avoids some
@@ -253,7 +259,7 @@ including the same name. When accessing that name, it is ambiguous which node
 is accessed. Nor is it clear that `b` should replace `a`. We avoid these cases
 altogether.
 
-### Special Node Types
+##### Special Node Types
 
 There are two main special `Node` types: `Node_T` and `OSPNode`.
 
@@ -271,7 +277,7 @@ automatically provided to this internal object as an OSPRay parameter[^3].
 Child nodes use their name to select the OSPRay parameter name, and their value
 as the parameter's value.
 
-### OSPRay Studio SG Structure
+##### OSPRay Studio SG Structure
 
 A basic example of a scenegraph contains a `Frame` node at the root.  By
 default, this node will have a `FrameBuffer`, `Camera`, `Renderer`, and `World`
@@ -281,7 +287,7 @@ provides it a single ambient light `Light` node.
 From here, importer nodes may be added to the world. `Transform`, `Geometry`,
 and `Volume` nodes are children of the importer node that loaded the file.
 
-## Visitors
+#### Visitors
 
 The `Visitor` class defines objects used to traverse the SG and perform complex
 functions based on the nodes encountered. A `Visitor` can be called from the
@@ -303,7 +309,7 @@ the children.
 When a `Node` is "revisited" during traversal (i.e. after a `Node`'s children
 have been traversed), the `postChildren()` method is called.
 
-### RenderScene Visitor
+##### RenderScene Visitor
 
 This visitor is responsible for creating the underlying OSPRay render graph
 hierarchy, which includes `Instance`s. This visitor is called every time the
@@ -313,7 +319,7 @@ matches geometries with their materials and bundles them into a
 Collections of these models are placed in a `Group` and then an `Instance`.
 `Instance`s are ultimately provided to the `World`'s internal handle.
 
-### Commit Visitor
+##### Commit Visitor
 
 This visitor is responsible for executing `preCommit()` and `postCommit()`
 methods of every `Node` in the subgraph on which it is called based on their
@@ -321,7 +327,7 @@ last modified time. These methods finalize parameter values for the internal
 OSPRay objects. This visitor should be called before the `RenderScene` visitor
 to finalize nodes.
 
-### GenerateImGuiWidgets Visitor
+##### GenerateImGuiWidgets Visitor
 
 This visitor generate UI components for any node in the scenegraph.  It uses
 the parameter node children of a parent node to generate the appropriate
