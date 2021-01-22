@@ -24,6 +24,7 @@ api.md: components/extension.markdown
 api.md: components/scenegraph.markdown
 
 gallery.md: $(HEAD)
+gallery.md: components/gallery.markdown
 
 .PHONY: readme
 readme: components/title.markdown components/release.markdown components/overview.markdown components/build.markdown
