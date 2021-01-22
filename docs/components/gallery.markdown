@@ -1,20 +1,20 @@
 ## Gallery
 
-![Bentley Bacalar](./images/Bacalar.jpg "Bentley Bacalar")
+![Bentley Bacalar](https://ospray.org/gallery/ospray_studio/Bacalar.jpg "Bentley Bacalar")
 
-![Bentley CW1 Showroom](./images/CW1.jpg "Bentley CW1 Showroom")
+![Bentley CW1 Showroom](https://ospray.org/gallery/ospray_studio/CW1.jpg "Bentley CW1 Showroom")
 
 <video style="display:block; width:50%; height:auto;" autoplay controls loop="loop">
-  <source src="./images/BusterDrone.mp4" type="video/mp4">
-  <source src="./images/BusterDrone.webm" type="video/webm">
+  <source src="https://ospray.org/gallery/ospray_studio/BusterDrone.mp4" type="video/mp4">
+  <source src="https://ospray.org/gallery/ospray_studio/BusterDrone.webm" type="video/webm">
 </video>
 
-![Amazon Lumberyard Bistro](./images/Bistro.jpg "Amazon Lumberyard Bistro")
+![Amazon Lumberyard Bistro](https://ospray.org/gallery/ospray_studio/Bistro.jpg "Amazon Lumberyard Bistro")
 
-![VDB Clouds](./images/Clouds.jpg "VDB Clouds")
+![VDB Clouds](https://ospray.org/gallery/ospray_studio/Clouds.jpg "VDB Clouds")
 
-![VDB Clouds Sunset](./images/Clouds2.png "VDB Clouds at Sunset")
+![VDB Clouds Sunset](https://ospray.org/gallery/ospray_studio/Clouds2.png "VDB Clouds at Sunset")
 
-![Bentley Blower in San Miguel](./images/SanMiguel-Blower.jpg "Bentley Blower in San Miguel")
+![Bentley Blower in San Miguel](https://ospray.org/gallery/ospray_studio/SanMiguel-Blower.jpg "Bentley Blower in San Miguel")
 
-![Stained Glass Tiffany Lamp](./images/StainedGlass-3pts.jpeg "Stained Glass Tiffany Lamp")
+![Stained Glass Tiffany Lamp](https://ospray.org/gallery/ospray_studio/StainedGlass-3pts.jpeg "Stained Glass Tiffany Lamp")
