@@ -163,7 +163,6 @@ class MainWindow : public StudioContext
   bool screenshotNormal{false};
   bool screenshotLayers{false};
   bool screenshotMetaData{false};
-  bool fbFloatFormat{false};
 
   static MainWindow *activeWindow;
 
