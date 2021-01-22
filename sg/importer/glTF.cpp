@@ -342,7 +342,7 @@ namespace ospray {
         auto sgCamera = createNode(cameraName, "camera_perspective");
 
         // convert radians to degrees for vertical FOV
-        auto fovy = (float)m.perspective.yfov * (180.f / (float)pi);
+        float fovy = (float)m.perspective.yfov * (180.f / (float)pi);
 
         sgCamera->createChild("fovy", "float", fovy);
         sgCamera->createChild("nearClip", "float", (float)m.perspective.znear);
@@ -362,12 +362,12 @@ namespace ospray {
         cameras.push_back(sgCamera);
       } else {
         auto sgCamera = createNode(cameraName, "camera_orthographic");
-        sgCamera->createChild("height", "float", m.orthographic.ymag);
+        sgCamera->createChild("height", "float", (float)m.orthographic.ymag);
 
         // calculate orthographic aspect with horizontal and vertical maginifications
-        auto aspect = m.orthographic.xmag / m.orthographic.ymag;
+        float aspect = (float)m.orthographic.xmag / m.orthographic.ymag;
         sgCamera->createChild("aspect", "float", aspect);
-        sgCamera->createChild("nearClip", "float", m.orthographic.znear);
+        sgCamera->createChild("nearClip", "float", (float)m.orthographic.znear);
 
         cameras.push_back(sgCamera);
       }
