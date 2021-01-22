@@ -1927,7 +1927,9 @@ void MainWindow::buildWindowCameraEditor()
     return;
   }
 
-  if (ImGui::Combo("sceneCameras##whichCamera",
+  // Only present selector UI if more than one camera
+  if (!g_sceneCameras.empty() &&
+      ImGui::Combo("sceneCameras##whichCamera",
           &whichCamera,
           cameraUI_callback,
           nullptr,
@@ -1935,16 +1937,32 @@ void MainWindow::buildWindowCameraEditor()
     if (whichCamera > -1 && whichCamera < (int) g_sceneCameras.size()) {
       auto &currentCamera = g_sceneCameras.at_index(whichCamera);
       auto &cameraNode = currentCamera.second->children();
+
+      // Change the camera type, if the new camera is different.
+      if (frame->childAs<sg::Camera>("camera").subType()
+          != currentCamera.second->subType()) {
+        frame->createChildAs<sg::Camera>("camera",
+            currentCamera.second->subType());
+      }
+
+      // Add new camera params
       auto &camera = frame->childAs<sg::Camera>("camera");
       for (auto &c : cameraNode) {
         camera.add(c.second);
       }
+
+      camera.commit();
       updateCamera();
     }
   }
 
   auto &camera = frame->childAs<sg::Camera>("camera");
-  camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+  bool userUpdated = false;
+  camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN,
+      userUpdated);
+  if (userUpdated)
+    camera.commit();
+
   ImGui::End();
 }
 

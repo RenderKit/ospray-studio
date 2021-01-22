@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Intel Corporation
+// Copyright 2018-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -91,7 +91,7 @@ class MainWindow : public StudioContext
   void setCameraState(CameraState &cs) override;
   void refreshScene(bool resetCamera) override;
   int whichLightType{-1};
-  int whichCamera{-1};
+  int whichCamera{0};
   std::string lightTypeStr{"ambient"};
 
  protected:
