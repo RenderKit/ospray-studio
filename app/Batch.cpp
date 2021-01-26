@@ -280,11 +280,7 @@ void BatchContext::render()
 
   frame->child("navMode") = false;
 
-  // Accumulate several frames
-  for (auto i = 0; i < optSPP - 1; i++) {
-    frame->immediatelyWait = true;
-    frame->startNewFrame();
-  }
+  frame->child("renderer").child("pixelSamples").setValue(optSPP);
 
   // Only denoise the final frame
   // XXX TODO if optDenoiser == 2, save both the noisy and denoised color
