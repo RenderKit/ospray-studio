@@ -207,7 +207,6 @@ void BatchContext::render()
 
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
 
-  lightsManager->commit();
   lightsManager->updateWorld(frame->childAs<sg::World>("world"));
 
   frame->child("renderer")
@@ -344,9 +343,6 @@ void BatchContext::refreshScene(bool resetCam)
       "materialref", "reference_to_material", defaultMaterialIdx);
   if (saveMetaData)
     world->child("saveMetaData").setValue(true);
-
-  lightsManager->commit();
-  lightsManager->updateWorld(frame->childAs<sg::World>("world"));
 
   if (!filesToImport.empty())
     importFiles(world);
