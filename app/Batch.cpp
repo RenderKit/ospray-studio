@@ -36,12 +36,10 @@ void BatchContext::start()
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
     refreshScene(true);
+    render();
     if (animate) {
       std::cout << "..rendering animation!" << std::endl;
       renderAnimation();
-    } else {
-      std::cout << "...rendering!" << std::endl;
-      render();
     }
     std::cout << "...finished!" << std::endl;
     sg::clearAssets();
@@ -282,6 +280,11 @@ void BatchContext::render()
 
   frame->child("renderer").child("pixelSamples").setValue(optSPP);
 
+  renderFrame();
+}
+
+void BatchContext::renderFrame()
+{
   // Only denoise the final frame
   // XXX TODO if optDenoiser == 2, save both the noisy and denoised color
   // buffers.  How best to do that since the frame op will alter the final
@@ -324,7 +327,7 @@ void BatchContext::renderAnimation()
 
   while (time <= animationTime) {
     animationManager->update(time);
-    render();
+    renderFrame();
     time += step;
   }
 }

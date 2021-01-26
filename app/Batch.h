@@ -34,6 +34,7 @@ class BatchContext : public StudioContext
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void render();
+  void renderFrame();
   void renderAnimation();
 
  protected:
