@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -33,7 +33,7 @@ namespace ospray {
     void saveFrame(std::string filename, int flags);
     void pickFrame(std::string filename);
 
-    inline bool hasFloatFormat()
+    inline bool isFloatFormat()
     {
       return (child("colorFormat").valueAs<std::string>() == "float");
     }

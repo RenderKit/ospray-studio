@@ -176,9 +176,6 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   glfwMakeContextCurrent(glfwWindow);
 
-  // Turn on SRGB conversion for OSPRay frame
-  glEnable(GL_FRAMEBUFFER_SRGB);
-
   // Determine whether GL framebuffer has float format
   // and set format used by glTexImage2D correctly.
   if (glfwGetWindowAttrib(glfwWindow, GLFW_CONTEXT_VERSION_MAJOR) < 3) {
@@ -691,7 +688,7 @@ void MainWindow::display()
 
       // This needs to query the actual framebuffer format
       const GLenum glType =
-          frameBuffer.hasFloatFormat() ? GL_FLOAT : GL_UNSIGNED_BYTE;
+          frameBuffer.isFloatFormat() ? GL_FLOAT : GL_UNSIGNED_BYTE;
 
       // Only create the copy if it's needed
       float *pDepthCopy = nullptr;
@@ -755,6 +752,10 @@ void MainWindow::display()
     startNewOSPRayFrame();
   }
 
+  // Turn on SRGB conversion for OSPRay frame
+  if (frameBuffer.isFloatFormat())
+    glEnable(GL_FRAMEBUFFER_SRGB);
+
   // clear current OpenGL color buffer
   glClear(GL_COLOR_BUFFER_BIT);
 
@@ -790,6 +791,8 @@ void MainWindow::display()
   glVertex2f(windowSize.x, 0);
 
   glEnd();
+
+  glDisable(GL_FRAMEBUFFER_SRGB);
 
   if (showUi) {
     ImGui::Render();
@@ -1107,7 +1110,7 @@ void MainWindow::saveCurrentFrame()
       | screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-  auto fbFloatFormat = fb["allowDenoising"].valueAs<bool>();
+  auto fbFloatFormat = fb["floatFormat"].valueAs<bool>();
   if (screenshotFlags > 0 && !fbFloatFormat)
     std::cout
         << " *** Cannot save additional information wihtout changing FB format to float ***"
@@ -1246,11 +1249,11 @@ void MainWindow::buildMainMenuFile()
 
       if (screenshotFiletype == "exr") {
         // the following options should be available only when FB format is
-        // float a.k.a allowDenoising
+        // float.
         auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-        auto fbFloatFormat = fb["allowDenoising"].valueAs<bool>();
+        auto fbFloatFormat = fb["floatFormat"].valueAs<bool>();
         if (ImGui::Checkbox("FB float format ", &fbFloatFormat))
-          fb["allowDenoising"] = fbFloatFormat;
+          fb["floatFormat"] = fbFloatFormat;
         ImGui::Text("(following layers available with FB float format only)");
         ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
         ImGui::SameLine();
@@ -1343,7 +1346,7 @@ void MainWindow::buildMainMenuEdit()
 
     if (!fb.hasAlbedoChannel() && !fb.hasDepthChannel()) {
       ImGui::Text("- No other channels available");
-      ImGui::Text("- Check that FrameBuffer allowDenoising is enabled");
+      ImGui::Text("- Check that FrameBuffer floatFormat is enabled");
     }
 
     if (fb.hasAlbedoChannel()) {
@@ -1378,18 +1381,19 @@ void MainWindow::buildMainMenuEdit()
     }
 
     ImGui::Separator();
-    ImGui::Checkbox("toneMap", &frame->toneMapFB);
-    ImGui::SameLine();
-    ImGui::Checkbox("toneMapNav", &frame->toneMapNavFB);
 
-    if (studioCommon.denoiserAvailable) {
-      if (fb["allowDenoising"].valueAs<bool>()) {
+    if (fb.isFloatFormat()) {
+      ImGui::Checkbox("toneMap", &frame->toneMapFB);
+      ImGui::SameLine();
+      ImGui::Checkbox("toneMapNav", &frame->toneMapNavFB);
+
+      if (studioCommon.denoiserAvailable) {
         ImGui::Checkbox("denoise", &frame->denoiseFB);
         ImGui::SameLine();
         ImGui::Checkbox("denoiseNav", &frame->denoiseNavFB);
-      } else
-        ImGui::Text("- Check that frameBuffer's allowDenoising is enabled");
-    }
+      }
+    } else
+      ImGui::Text("- Check that frameBuffer's floatFormat is enabled");
 
     ImGui::Separator();
     fb.traverse<sg::GenerateImGuiWidgets>();

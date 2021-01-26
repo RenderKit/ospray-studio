@@ -221,7 +221,7 @@ void BatchContext::render()
 
   // If using the denoiser, set the framebuffer to allow it.
   if (studioCommon.denoiserAvailable && optDenoiser)
-    frameBuffer["allowDenoising"] = true;
+    frameBuffer["floatFormat"] = true;
 
   frame->child("world").createChild("materialref", "reference_to_material", 0);
   if(saveMetaData)
