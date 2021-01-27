@@ -958,6 +958,8 @@ void MainWindow::refreshScene(bool resetCam)
 
   frame->add(world);
 
+  lightsManager->updateWorld(frame->childAs<sg::World>("world"));
+
   if (resetCam && !sgScene) {
     const auto &worldBounds = frame->child("world").bounds();
     arcballCamera.reset(new ArcballCamera(worldBounds, windowSize));
@@ -1188,6 +1190,7 @@ void MainWindow::buildMainMenuFile()
       frame->cancelFrame();
       frame->waitOnFrame();
       frame->remove("world");
+      lightsManager->clear();
 
       // Recreate MaterialRegistry, clearing old registry and all materials
       baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(

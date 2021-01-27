@@ -1430,8 +1430,6 @@ namespace ospray {
 
     if (gltf.lights.size() != 0) {
       auto lightsMan = std::static_pointer_cast<sg::LightsManager>(lightsManager);
-      if (lightsMan->lightExists("ambient"))
-        lightsMan->removeLight("ambient");
       lightsMan->addLights(gltf.lights);
     }
 

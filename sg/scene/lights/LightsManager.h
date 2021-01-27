@@ -27,6 +27,7 @@ namespace ospray {
       bool addLight(NodePtr light);
       void addLights(std::vector<NodePtr> &lights);
       bool removeLight(std::string name);
+      void clear();
 
       void updateWorld(World &world);
 

@@ -10,10 +10,7 @@ namespace ospray {
     OSP_REGISTER_SG_NODE_NAME(LightsManager, lights);
 
     LightsManager::LightsManager()
-    {
-      lightNames.push_back("ambient");
-      createChild("ambient", "ambient");
-    }
+    {}
 
     NodeType LightsManager::type() const
     {
@@ -69,10 +66,18 @@ namespace ospray {
       return true;
     }
 
+    void LightsManager::clear()
+    {
+      for (auto &name : lightNames) {
+        remove(name);
+        auto found = std::find(lightNames.begin(), lightNames.end(), name);
+        lightNames.erase(found);
+      }
+    }
+
     void LightsManager::preCommit()
     {
       cppLightObjects.clear();
-
       for (auto &name : lightNames) {
         auto &l = child(name);
         if (l.subType() == "hdri" && currentWorld) {
@@ -80,7 +85,6 @@ namespace ospray {
           auto &renderer = frame->childAs<sg::Renderer>("renderer");
           renderer["backgroundColor"] = vec4f(0.f);
         }
-
         cppLightObjects.emplace_back(l.valueAs<cpp::Light>());
       }
     }
@@ -91,6 +95,11 @@ namespace ospray {
 
     void LightsManager::updateWorld(World &world)
     {
+      if (lightNames.empty()) {
+        lightNames.push_back("ambient");
+        auto &l = createChild("ambient", "ambient");
+        cppLightObjects.emplace_back(l.valueAs<cpp::Light>());
+      }
       currentWorld = &world;
       // Commit lightsManager changes then apply lightObjects on the world.
       commit();
