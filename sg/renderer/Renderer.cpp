@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Renderer.h"
@@ -25,7 +25,7 @@ Renderer::Renderer(std::string type)
   createChild("backgroundColor",
       "rgba",
       "transparent background color and alpha (RGBA), if no map_backplate set",
-      rgba(0.1f));
+      rgba(vec3f(0.1f),1.f)); // Near black, with opaque alpha
   createChild("pixelFilter",
       "int",
       "pixel filter used by the renderer for antialiasing\n"\

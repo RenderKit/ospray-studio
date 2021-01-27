@@ -38,6 +38,11 @@ namespace ospray {
       return (child("colorFormat").valueAs<std::string>() == "float");
     }
 
+    inline bool isSRGB()
+    {
+      return (hasChild("sRGB") && child("sRGB").valueAs<bool>());
+    }
+
     inline bool hasDepthChannel()
     {
       return (channels & OSP_FB_DEPTH);

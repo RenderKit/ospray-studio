@@ -164,6 +164,10 @@ class MainWindow : public StudioContext
   bool screenshotLayers{false};
   bool screenshotMetaData{false};
 
+  // Option to always show a gamma corrected display to user.  Native sRGB
+  // buffer is untouched, linear buffers are displayed as sRGB.
+  bool uiDisplays_sRGB{true}; 
+
   static MainWindow *activeWindow;
 
   vec2i windowSize;

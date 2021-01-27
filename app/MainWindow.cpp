@@ -752,8 +752,8 @@ void MainWindow::display()
     startNewOSPRayFrame();
   }
 
-  // Turn on SRGB conversion for OSPRay frame
-  if (frameBuffer.isFloatFormat())
+  // Allow OpenGL to show linear buffers as sRGB.
+  if (uiDisplays_sRGB && !frameBuffer.isSRGB())
     glEnable(GL_FRAMEBUFFER_SRGB);
 
   // clear current OpenGL color buffer
@@ -1242,10 +1242,7 @@ void MainWindow::buildMainMenuFile()
               screenshotFiletypes.size())) {
         screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
       }
-      if (g_ShowTooltips && ImGui::IsItemHovered()
-          && ImGui::GetCurrentContext()->HoveredIdTimer
-              > g_TooltipDelay * 0.001)
-        ImGui::SetTooltip("%s", "Image filetype for saving screenshots");
+      sg::showTooltip("Image filetype for saving screenshots");
 
       if (screenshotFiletype == "exr") {
         // the following options should be available only when FB format is
@@ -1596,6 +1593,11 @@ void MainWindow::buildMainMenuView()
     }
 
     ImGui::Separator();
+    ImGui::Checkbox("Display as sRGB...", &uiDisplays_sRGB);
+    sg::showTooltip("Display linear framebuffers as sRGB,\n"
+                    "maintains consistent display across all formats.");
+
+    ImGui::Separator();
     ImGui::Checkbox("Show Tooltips...", &g_ShowTooltips);
     if (g_ShowTooltips) {
       ImGui::SameLine();
@@ -1662,22 +1664,16 @@ void MainWindow::buildWindowKeyframes()
       g_camSelectedStackIndex++;
     }
   }
-  if (g_ShowTooltips && ImGui::IsItemHovered()
-      && ImGui::GetCurrentContext()->HoveredIdTimer > g_TooltipDelay * 0.001) {
-    ImGui::SetTooltip(
-        "insert a new keyframe after the selected keyframe based "
-        "on the current camera state");
-  }
+
+  sg::showTooltip("insert a new keyframe after the selected keyframe, based\n"
+                  "on the current camera state");
 
   ImGui::SameLine();
   if (ImGui::Button("remove")) { // remove the selected camera state
     cameraStack.erase(cameraStack.begin() + g_camSelectedStackIndex);
     g_camSelectedStackIndex = std::max(0, g_camSelectedStackIndex - 1);
   }
-  if (g_ShowTooltips && ImGui::IsItemHovered()
-      && ImGui::GetCurrentContext()->HoveredIdTimer > g_TooltipDelay * 0.001) {
-    ImGui::SetTooltip("remove the currently selected keyframe");
-  }
+  sg::showTooltip("remove the currently selected keyframe");
 
   if (cameraStack.size() >= 2) {
     ImGui::SameLine();
@@ -1690,13 +1686,8 @@ void MainWindow::buildWindowKeyframes()
     ImGui::SameLine();
     ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
     ImGui::SliderFloat("speed##path", &g_camPathSpeed, 0.f, 10.0);
-    if (g_ShowTooltips && ImGui::IsItemHovered()
-        && ImGui::GetCurrentContext()->HoveredIdTimer
-            > g_TooltipDelay * 0.001) {
-      ImGui::SetTooltip(
-          "Animation speed for computed path. \n"
-          "Slow speeds may cause jitter for small objects");
-    }
+    sg::showTooltip("Animation speed for computed path.\n"
+                    "Slow speeds may cause jitter for small objects");
 
     static bool showCameraPath = false;
     if (ImGui::Checkbox("show camera path", &showCameraPath)) {
@@ -1908,7 +1899,7 @@ void MainWindow::buildWindowLightEditor()
         // When using an HDRI, set background color to black.  It's otherwise
         // confusing.  The user can still adjust it afterward.
         auto &r = frame->childAs<sg::Renderer>("renderer");
-        r["backgroundColor"] = vec4f(0.f);
+        r["backgroundColor"] = vec4f(vec3f(0.f),1.f); // black, opaque alpha
       }
     } else {
       lightNameWarning = true;

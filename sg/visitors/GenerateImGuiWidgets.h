@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -38,12 +38,18 @@ namespace ospray {
       bool &updated;
     };
 
-    inline void nodeTooltip(Node &node)
+    inline void showTooltip(std::string message)
     {
       if (g_ShowTooltips && ImGui::IsItemHovered()
           && ImGui::GetCurrentContext()->HoveredIdTimer > g_TooltipDelay * 0.001
-          && node.description() != "<no description>")
-        ImGui::SetTooltip("%s", node.description().c_str());
+          && message != "")
+        ImGui::SetTooltip("%s", message.c_str());
+    }
+
+    inline void nodeTooltip(Node &node)
+    {
+      if (node.description() != "<no description>")
+        showTooltip(node.description());
     }
 
     // Specialized widget generators //////////////////////////////////////////
