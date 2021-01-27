@@ -15,13 +15,12 @@ support, and generators for creating new data.
 
 #### Widgets
 
-A widget is a GUI component. It is not necessarily a part of the
-MainWindow by default, but can be included for providing controls for
-special scenes/datasets. For example, the `AnimationWidget` can be used
-to provide animation controls for an animated scene. Widgets are
-implemented as separate classes, which can be instanced in the
-MainWindow class for loading the special controls (eg: Animation
-controls are provided as a new widget upon loading an animation scene).
+A widget is a GUI component. It is not necessarily a part of the MainWindow by
+default, but can be included for providing controls for special
+scenes/datasets. Widgets are implemented as separate classes, which can be
+instanced in the MainWindow class for loading the special controls. For
+example, an `AnimationWidget` provides animation playback controls once an
+animated scene is loaded.
 
 
 #### Plugins
