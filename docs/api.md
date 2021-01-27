@@ -20,7 +20,9 @@ MainWindow by default, but can be included for providing controls for
 special scenes/datasets. For example, the `AnimationWidget` can be used
 to provide animation controls for an animated scene. Widgets are
 implemented as separate classes, which can be instanced in the
-MainWindow class for loading the special controls.
+MainWindow class for loading the special controls (eg: Animation
+controls are provided as a new widget upon loading an animation scene).
+
 
 #### Plugins
 
