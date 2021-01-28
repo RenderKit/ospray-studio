@@ -1916,6 +1916,10 @@ void MainWindow::buildWindowLightEditor()
     }
   }
 
+  auto &rmDefaultLight = lightsManager->rmDefaultLight;
+  ImGui::SameLine();
+  ImGui::Checkbox("Remove default Light", &rmDefaultLight);
+
   if (lightNameWarning)
     ImGui::TextColored(
         ImVec4(1.f, 0.f, 0.f, 1.f), "Light must have unique non-empty name");

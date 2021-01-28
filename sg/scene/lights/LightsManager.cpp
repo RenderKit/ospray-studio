@@ -69,15 +69,14 @@ namespace ospray {
     void LightsManager::clear()
     {
       for (auto &name : lightNames) {
-        remove(name);
-        auto found = std::find(lightNames.begin(), lightNames.end(), name);
-        lightNames.erase(found);
+        removeLight(name);
       }
     }
 
     void LightsManager::preCommit()
     {
       cppLightObjects.clear();
+
       for (auto &name : lightNames) {
         auto &l = child(name);
         if (l.subType() == "hdri" && currentWorld) {
@@ -85,6 +84,7 @@ namespace ospray {
           auto &renderer = frame->childAs<sg::Renderer>("renderer");
           renderer["backgroundColor"] = vec4f(0.f);
         }
+
         cppLightObjects.emplace_back(l.valueAs<cpp::Light>());
       }
     }
@@ -96,9 +96,12 @@ namespace ospray {
     void LightsManager::updateWorld(World &world)
     {
       if (lightNames.empty()) {
-        lightNames.push_back("ambient");
-        auto &l = createChild("ambient", "ambient");
-        cppLightObjects.emplace_back(l.valueAs<cpp::Light>());
+        lightNames.push_back("default-ambient");
+        auto &l = createChild("default-ambient", "ambient");
+      } else if (children().size() > 1 && hasChild("default-ambient")
+          && rmDefaultLight) {
+        // remove default light
+        removeLight("default-ambient");
       }
       currentWorld = &world;
       // Commit lightsManager changes then apply lightObjects on the world.
@@ -112,5 +115,5 @@ namespace ospray {
       world.handle().commit();
     }
 
-  }  // namespace sg
+  } // namespace sg
 }  // namespace ospray

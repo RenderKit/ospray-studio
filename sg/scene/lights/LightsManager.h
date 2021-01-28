@@ -30,8 +30,9 @@ namespace ospray {
       void clear();
 
       void updateWorld(World &world);
+      bool rmDefaultLight{true};
 
-     // protected:
+      // protected:
       std::vector<std::string> lightNames;
       std::vector<cpp::Light> cppLightObjects = {};
 
