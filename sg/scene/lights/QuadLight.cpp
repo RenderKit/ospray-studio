@@ -1,27 +1,29 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE QuadLight : public Light
-  {
-    QuadLight();
-    virtual ~QuadLight() override = default;
-  };
+struct OSPSG_INTERFACE QuadLight : public Light
+{
+  QuadLight();
+  virtual ~QuadLight() override = default;
+};
 
-  OSP_REGISTER_SG_NODE_NAME(QuadLight, quad);
+OSP_REGISTER_SG_NODE_NAME(QuadLight, quad);
 
-  // QuadLight definitions /////////////////////////////////////////////
+// QuadLight definitions /////////////////////////////////////////////
 
-  QuadLight::QuadLight() : Light("quad")
-  {
-    createChild("position", "vec3f", vec3f(0.f));
-    createChild("edge1", "vec3f", vec3f(1.f, 0.f, 0.f));
-    createChild("edge2", "vec3f", vec3f(0.f, 1.f, 0.f));
-  }
+QuadLight::QuadLight() : Light("quad")
+{
+  createChild("position", "vec3f", vec3f(0.f));
+  createChild("edge1", "vec3f", vec3f(1.f, 0.f, 0.f));
+  createChild("edge2", "vec3f", vec3f(0.f, 1.f, 0.f));
 
-  }  // namespace sg
+  child("intensityQuantity").setValue(uint8_t(OSP_INTENSITY_QUANTITY_RADIANCE));
+}
+
+} // namespace sg
 } // namespace ospray

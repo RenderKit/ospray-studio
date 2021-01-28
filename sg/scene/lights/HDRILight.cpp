@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
@@ -27,6 +27,8 @@ HDRILight::HDRILight() : Light("hdri")
       "vec3f",
       "direction to which the center of the texture will be mapped",
       vec3f(0.f, 0.f, 1.f));
+
+  child("intensityQuantity").setValue(uint8_t(OSP_INTENSITY_QUANTITY_RADIANCE));
 
   child("up").setMinMax(-1.f, 1.f); // per component min/max
   child("direction").setMinMax(-1.f, 1.f); // per component min/max

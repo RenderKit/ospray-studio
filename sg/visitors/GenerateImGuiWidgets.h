@@ -74,6 +74,35 @@ namespace ospray {
       return false;
     }
 
+   inline bool generateWidget_uchar(const std::string &title, Node &node)
+    {
+      // ImGui has no native char types
+      int i = node.valueAs<uint8_t>();
+
+      if (node.readOnly()) {
+        ImGui::Text("%s", (node.name() + ": " + std::to_string(i)).c_str());
+        nodeTooltip(node);
+        return false;
+      }
+
+      if (node.hasMinMax()) {
+        const int min = node.minAs<uint8_t>();
+        const int max = node.maxAs<uint8_t>();
+        if (ImGui::SliderInt(title.c_str(), &i, min, max)) {
+          node.setValue(uint8_t(i));
+          return true;
+        }
+      } else {
+        if (ImGui::DragInt(title.c_str(), &i, 1)) {
+          node.setValue(uint8_t(i));
+          return true;
+        }
+      }
+
+      nodeTooltip(node);
+      return false;
+    }
+
    inline bool generateWidget_int(const std::string &title, Node &node)
     {
       int i = node.valueAs<int>();
@@ -341,6 +370,7 @@ namespace ospray {
     using WidgetGenerator = bool (*)(const std::string &, Node &);
     static std::map<std::string, WidgetGenerator> widgetGenerators = {
         {"bool", generateWidget_bool},
+        {"uchar", generateWidget_uchar},
         {"int", generateWidget_int},
         {"float", generateWidget_float},
         {"vec2i", generateWidget_vec2i},

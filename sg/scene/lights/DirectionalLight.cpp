@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
@@ -24,6 +24,9 @@ DirectionalLight::DirectionalLight() : Light("distant")
       "float",
       "apparent size (in degrees) [default 0.53° ~sun]",
       0.53f);
+
+  child("intensityQuantity")
+      .setValue(uint8_t(OSP_INTENSITY_QUANTITY_IRRADIANCE));
 
   child("direction").setMinMax(-1.f, 1.f); // per component min/max
   child("angularDiameter").setMinMax(0.f, 10.f);

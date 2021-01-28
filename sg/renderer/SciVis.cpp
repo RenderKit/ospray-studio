@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Renderer.h"
@@ -29,6 +29,10 @@ SciVis::SciVis() : Renderer("scivis")
       1e20f);
   createChild("volumeSamplingRate", "float", "sampling rate for volumes", 1.f);
   createChild("shadows", "bool", "whether to compute (hard) shadows", false);
+  createChild("visibleLights",
+      "bool",
+      "whether light sources are potentially visible",
+      false);
 
   child("aoSamples").setMinMax(0, 1000);
   child("aoDistance").setMinMax(0.f, 1e20f);
