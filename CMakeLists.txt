@@ -43,8 +43,8 @@ endif()
 set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL 2 REQUIRED)
 find_package(glfw3 REQUIRED)
-find_package(rkcommon 1.4.0 REQUIRED)
-find_package(ospray 2.2.0 REQUIRED)
+find_package(rkcommon 1.6.0 REQUIRED)
+find_package(ospray 2.5.0 REQUIRED)
 
 ## Build application ##
 
