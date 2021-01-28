@@ -382,6 +382,7 @@ MainWindow::~MainWindow()
   ImGui::DestroyContext();
   glfwTerminate();
   pluginManager.removeAllPlugins();
+  g_sceneCameras.clear();
 }
 
 void MainWindow::start()
