@@ -184,5 +184,8 @@ OSPSG_INTERFACE void importScene(
   }
 }
 
+// global assets catalogue
+AssetsCatalogue cat;
+
 } // namespace sg
 } // namespace ospray

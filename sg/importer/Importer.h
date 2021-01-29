@@ -18,7 +18,7 @@ namespace sg {
 typedef std::map<std::string, NodePtr> AssetsCatalogue;
 
 // global assets catalogue
-static AssetsCatalogue cat;
+extern AssetsCatalogue cat;
 
 typedef struct {
   vec3i dimensions;
@@ -165,10 +165,9 @@ inline std::shared_ptr<Importer> getImporter(
   }
 }
 
-inline void clearImporter()
+inline void clearAssets()
 {
-  if(cat.size() != 0)
-    cat.clear();
+  cat.clear();
 }
 
 // for loading scene (.sg) files

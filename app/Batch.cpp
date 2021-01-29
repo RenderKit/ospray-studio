@@ -44,6 +44,7 @@ void BatchContext::start()
       render();
     }
     std::cout << "...finished!" << std::endl;
+    sg::clearAssets();
   }
 }
 
@@ -404,7 +405,6 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->importScene();
           world->add(importer);
         }
-        sg::clearImporter();
       }
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
@@ -412,7 +412,6 @@ void BatchContext::importFiles(sg::NodePtr world)
   }
 
   filesToImport.clear();
-  sg::clearImporter();
   if (animationManager)
     animationManager->init();
 }

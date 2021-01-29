@@ -383,6 +383,7 @@ MainWindow::~MainWindow()
   glfwTerminate();
   pluginManager.removeAllPlugins();
   g_sceneCameras.clear();
+  sg::clearAssets();
 }
 
 void MainWindow::start()
@@ -1073,7 +1074,6 @@ void MainWindow::importFiles(sg::NodePtr world)
     }
   }
   filesToImport.clear();
-  sg::clearImporter();
 
   if (animationManager) {
     animationManager->init();
