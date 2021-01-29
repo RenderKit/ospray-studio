@@ -141,6 +141,8 @@ class MainWindow : public StudioContext
   sg::VolumeParams vp;
   bool useVolumeParams{false};
 
+  float pointSize{0.005f};
+
   // Plugins //
   std::vector<std::unique_ptr<Panel>> pluginPanels;
   PluginManager pluginManager;

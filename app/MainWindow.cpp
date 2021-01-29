@@ -1036,6 +1036,8 @@ bool MainWindow::parseCommandLine()
       glfwSetWindowSize(glfwWindow, 960, 540);
     else if (arg == "--270p")
       glfwSetWindowSize(glfwWindow, 480, 270);
+    else if (arg == "--pointSize" || arg == "-p")
+      pointSize = std::stof(av[++i]);
   }
 
   if (!filesToImport.empty()) {
@@ -1070,6 +1072,9 @@ void MainWindow::importFiles(sg::NodePtr world)
           // importer will use what it needs.
           if(useVolumeParams)
             importer->setVolumeParams(&vp);
+
+          if(importer->subType() == "importer_pcd")
+            importer->pointSize = pointSize;
 
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);

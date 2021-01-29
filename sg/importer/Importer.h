@@ -89,6 +89,8 @@ struct OSPSG_INTERFACE Importer : public Node
   VolumeParams defaultParams;
   bool hasVolumeParams{false};
 
+  float pointSize{0.0f};
+
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
