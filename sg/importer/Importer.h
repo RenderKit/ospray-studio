@@ -17,9 +17,6 @@ namespace sg {
 // map of asset Titles and corresponding original importer nodes
 typedef std::map<std::string, NodePtr> AssetsCatalogue;
 
-// global assets catalogue
-extern AssetsCatalogue cat;
-
 typedef struct {
   vec3i dimensions;
   vec3f gridSpacing{0.02f};
@@ -102,6 +99,8 @@ struct OSPSG_INTERFACE Importer : public Node
   NodePtr lightsManager;
 };
 
+// global assets catalogue
+extern OSPSG_INTERFACE AssetsCatalogue cat;
 extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 
 // Providing a unique transform instance as root to add existing imported model to, 
