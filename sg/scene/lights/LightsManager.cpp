@@ -68,7 +68,9 @@ namespace ospray {
 
     void LightsManager::clear()
     {
-      for (auto &name : lightNames) {
+      // removeLight modifies the lightNames vector, make a copy.
+      auto tempNames = lightNames;
+      for (auto &name : tempNames) {
         removeLight(name);
       }
     }
@@ -82,7 +84,7 @@ namespace ospray {
         if (l.subType() == "hdri" && currentWorld) {
           auto &frame = currentWorld->parents().front();
           auto &renderer = frame->childAs<sg::Renderer>("renderer");
-          renderer["backgroundColor"] = vec4f(0.f);
+          renderer["backgroundColor"] = vec4f(vec3f(0.f), 1.f); // black, opaque
         }
 
         cppLightObjects.emplace_back(l.valueAs<cpp::Light>());
@@ -96,8 +98,7 @@ namespace ospray {
     void LightsManager::updateWorld(World &world)
     {
       if (lightNames.empty()) {
-        lightNames.push_back("default-ambient");
-        auto &l = createChild("default-ambient", "ambient");
+        addLight("default-ambient", "ambient");
       } else if (children().size() > 1 && hasChild("default-ambient")
           && rmDefaultLight) {
         // remove default light

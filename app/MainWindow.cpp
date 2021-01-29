@@ -948,6 +948,8 @@ void MainWindow::refreshScene(bool resetCam)
           "generator", "generator_" + scene);
       gen.setMaterialRegistry(baseMaterialRegistry);
       gen.generateData();
+      // The generators should reset the camera
+      resetCam = true;
     }
   }
 
@@ -958,6 +960,7 @@ void MainWindow::refreshScene(bool resetCam)
 
   frame->add(world);
 
+  // lightsManager must update the world *after* it's been added to the frame.
   lightsManager->updateWorld(frame->childAs<sg::World>("world"));
 
   if (resetCam && !sgScene) {
@@ -1823,7 +1826,11 @@ void MainWindow::buildWindowLightEditor()
 
   auto &lights = lightsManager->children();
   static int whichLight = -1;
-  static std::string selectedLight;
+
+  // Validate that selected light is still a valid light.  Clear scene will
+  // change the lights list, elsewhere.
+  if (whichLight > lights.size())
+    whichLight = -1;
 
   ImGui::Text("lights");
   if (ImGui::ListBoxHeader("", 3)) {
@@ -1831,7 +1838,6 @@ void MainWindow::buildWindowLightEditor()
     for (auto &light : lights) {
       if (ImGui::Selectable(light.first.c_str(), (whichLight == i))) {
         whichLight = i;
-        selectedLight = light.first;
       }
       i++;
     }
@@ -1839,7 +1845,7 @@ void MainWindow::buildWindowLightEditor()
 
     if (whichLight != -1) {
       ImGui::Text("edit");
-      lightsManager->child(selectedLight)
+      lightsManager->child(lights.at_index(whichLight).first)
           .traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
     }
   }
@@ -1847,9 +1853,8 @@ void MainWindow::buildWindowLightEditor()
   if (lights.size() > 1) {
     if (ImGui::Button("remove")) {
       if (whichLight != -1) {
-        lightsManager->removeLight(selectedLight);
+        lightsManager->removeLight(lights.at_index(whichLight).first);
         whichLight = std::max(0, whichLight - 1);
-        selectedLight = (*(lights.begin() + whichLight)).first;
       }
     }
   }
@@ -1884,7 +1889,8 @@ void MainWindow::buildWindowLightEditor()
         "texture", "select...", (char *)texFileName.base().c_str(), 0);
     if (ImGui::IsItemClicked())
       showHDRIFileBrowser = true;
-  }
+  } else
+    lightTexWarning = false;
 
   // Leave the fileBrowser open until file is selected
   if (showHDRIFileBrowser) {
@@ -1899,26 +1905,31 @@ void MainWindow::buildWindowLightEditor()
     }
   }
 
-  if ((!lightNameWarning && !lightTexWarning) && ImGui::Button("add")) {
-    if (lightsManager->addLight(lightName, lightType)) {
-      if (lightType == "hdri") {
-        auto &hdri = lightsManager->child(lightName);
-        auto &hdriTex = hdri.createChild("map", "texture_2d");
-        auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
-        ast2d->load(texFileName, false, false);
-        // When using an HDRI, set background color to black.  It's otherwise
-        // confusing.  The user can still adjust it afterward.
-        auto &r = frame->childAs<sg::Renderer>("renderer");
-        r["backgroundColor"] = vec4f(vec3f(0.f),1.f); // black, opaque alpha
+  if ((!lightNameWarning && !lightTexWarning)) {
+    if (ImGui::Button("add")) {
+      if (lightsManager->addLight(lightName, lightType)) {
+        if (lightType == "hdri") {
+          auto &hdri = lightsManager->child(lightName);
+          auto &hdriTex = hdri.createChild("map", "texture_2d");
+          auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
+          ast2d->load(texFileName, false, false);
+        }
+        // When adding HDRI or sunSky, set background color to black.
+        // It's otherwise confusing.  The user can still adjust it afterward.
+        if (lightType == "hdri" || lightType == "sunSky") {
+          auto &r = frame->childAs<sg::Renderer>("renderer");
+          r["backgroundColor"] = vec4f(vec3f(0.f), 1.f); // black, opaque alpha
+        }
+      } else {
+        lightNameWarning = true;
       }
-    } else {
-      lightNameWarning = true;
+    }
+    if (lightsManager->hasDefaultLight()) {
+      auto &rmDefaultLight = lightsManager->rmDefaultLight;
+      ImGui::SameLine();
+      ImGui::Checkbox("remove default", &rmDefaultLight);
     }
   }
-
-  auto &rmDefaultLight = lightsManager->rmDefaultLight;
-  ImGui::SameLine();
-  ImGui::Checkbox("Remove default Light", &rmDefaultLight);
 
   if (lightNameWarning)
     ImGui::TextColored(

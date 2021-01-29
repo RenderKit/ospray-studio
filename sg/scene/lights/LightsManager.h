@@ -29,6 +29,11 @@ namespace ospray {
       bool removeLight(std::string name);
       void clear();
 
+      inline bool hasDefaultLight()
+      {
+        return hasChild("default-ambient");
+      }
+
       void updateWorld(World &world);
       bool rmDefaultLight{true};
 
