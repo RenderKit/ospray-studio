@@ -17,11 +17,7 @@
 BatchContext::BatchContext(StudioCommon &_common)
     : StudioContext(_common), optImageSize(_common.defaultSize)
 {
-  frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
   frame->child("scaleNav").setValue(1.f);
-
-  baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
-      "baseMaterialRegistry", "materialRegistry");
 }
 
 void BatchContext::start()
@@ -218,8 +214,10 @@ void BatchContext::render()
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
 
   // If using the denoiser, set the framebuffer to allow it.
-  if (studioCommon.denoiserAvailable && optDenoiser)
+  if (studioCommon.denoiserAvailable && optDenoiser) {
     frameBuffer["floatFormat"] = true;
+    frameBuffer.commit();
+  }
 
   frame->child("world").createChild("materialref", "reference_to_material", 0);
   if(saveMetaData)
