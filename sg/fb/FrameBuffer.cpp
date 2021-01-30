@@ -123,6 +123,12 @@ void FrameBuffer::updateHandle()
       cpp::FrameBuffer(size.x, size.y, colorFormats[colorFormatStr], channels);
 
   setHandle(fb);
+
+  // Recreating the framebuffer will change the imageOps.  Refresh them.
+  if (hasDenoiser || hasToneMapper) {
+    updateImageOps = true;
+    updateImageOperations();
+  }
 }
 
 void FrameBuffer::updateDenoiser(bool enabled)
@@ -175,7 +181,8 @@ void FrameBuffer::updateImageOperations()
   }
   if (hasDenoiser)
     ops.push_back(cpp::ImageOperation("denoiser"));
-  if (hasDenoiser || hasToneMapper)
+
+  if (isFloatFormat() && (hasDenoiser || hasToneMapper))
     handle().setParam("imageOperation", cpp::CopiedData(ops));
   else
     handle().removeParam("imageOperation");
