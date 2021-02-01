@@ -43,7 +43,7 @@ OSPSG_INTERFACE void importScene(
   JSON j;
   sgFile >> j;
 
-  std::map<std::string, AffineSpace3f> importer_xfms = {};
+  std::map<std::string, JSON> jImporters;
   sg::NodePtr lights;
 
   // If the sceneFile contains a world (importers and lights), parse it here
@@ -73,8 +73,7 @@ OSPSG_INTERFACE void importScene(
             if (f.good()) {
               context->filesToImport.push_back(tryFile);
 
-              auto &jXfm = jChild["children"][0];
-              importer_xfms[jXfm["name"]] = jXfm["value"].get<AffineSpace3f>();
+              jImporters[jChild["name"]] = jChild;
               break;
             }
           } else
@@ -156,31 +155,38 @@ OSPSG_INTERFACE void importScene(
   // after import, correctly apply transform import nodes
   // (must happen after refreshScene)
   auto world = context->frame->childNodeAs<sg::Node>("world");
-  for (auto &xfm : importer_xfms) {
+
+  for (auto &jImport : jImporters) {
     // lamdba, find node by name
     std::function<sg::NodePtr(const sg::NodePtr, const std::string &)>
-        findFirstChild = [&findFirstChild](const sg::NodePtr root,
-                             const std::string &name) -> sg::NodePtr {
-      sg::NodePtr found = nullptr;
+      findFirstChild = [&findFirstChild](const sg::NodePtr root,
+          const std::string &name) -> sg::NodePtr {
+        sg::NodePtr found = nullptr;
 
-      // Quick shallow top-level search first
-      for (auto child : root->children())
-        if (child.first == name)
-          return child.second;
+        // Quick shallow top-level search first
+        for (auto child : root->children())
+          if (child.first == name)
+            return child.second;
 
-      // Next level, deeper search if not found
-      for (auto child : root->children()) {
-        found = findFirstChild(child.second, name);
-        if (found)
-          return found;
-      }
+        // Next level, deeper search if not found
+        for (auto child : root->children()) {
+          found = findFirstChild(child.second, name);
+          if (found)
+            return found;
+        }
 
-      return found;
-    };
+        return found;
+      };
 
-    auto importNode = findFirstChild(world, xfm.first);
-    if (importNode)
-      importNode->setValue(xfm.second);
+    auto importNode = findFirstChild(world, jImport.first);
+    std::cout << "!!! importNode: " << importNode->name() << std::endl;
+    if (importNode) {
+      std::cout << "!!!   children: " << jImport.second["children"] << std::endl;
+
+      auto child = createNodeFromJSON(jImport.second["children"][0]);
+      if (child)
+        importNode->add(child);
+    }
   }
 }
 

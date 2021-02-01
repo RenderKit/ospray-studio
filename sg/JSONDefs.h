@@ -42,8 +42,11 @@ inline void to_json(JSON &j, const Node &n)
 {
   // Don't export these nodes, they must be regenerated and can't be imported.
   if ((n.type() == NodeType::GENERIC && n.name() == "handles")
-      || (n.type() == NodeType::PARAMETER && n.subType() == "Data"))
+      || (n.type() == NodeType::PARAMETER && n.subType() == "Data")
+      || (n.type() == NodeType::GEOMETRY))
     return;
+
+  // XXX would be nice to have GEOMETRY node for isVisible and isClippingGeometry properties
 
   j = JSON{{"name", n.name()},
       {"type", NodeTypeToString[n.type()]},
@@ -72,8 +75,7 @@ inline void to_json(JSON &j, const Node &n)
       || n.type() == NodeType::TRANSFORM))
     j["value"] = n.value();
 
-  // XXX here, don't export the generic Node subType
-  if (n.hasChildren() && n.type() != NodeType::TRANSFORM)
+  if (n.hasChildren())
     j["children"] = n.children();
 }
 
@@ -111,6 +113,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
         auto child = createNodeFromJSON(jChild);
         if (!child)
           continue;
+        std::cout << "!!! createNodeFromJSON: " << child->name() << std::endl;
         if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
           child->setSGOnly();
         if (n->type() == NodeType::LIGHTS)
@@ -233,6 +236,8 @@ inline void to_json(JSON &j, const Any &a)
     j = a.get<math::vec3f>();
   else if (a.is<math::AffineSpace3f>())
     j = a.get<math::AffineSpace3f>();
+  else if (a.is<math::quaternionf>())
+    j = a.get<math::quaternionf>();
   else
     j = ":^)";
 }
