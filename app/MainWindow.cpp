@@ -1195,6 +1195,9 @@ void MainWindow::buildMainMenuFile()
       frame->remove("world");
       lightsManager->clear();
 
+      // TODO: lights caching to avoid complete re-importing after clearing
+      sg::clearAssets();
+
       // Recreate MaterialRegistry, clearing old registry and all materials
       baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
           "baseMaterialRegistry", "materialRegistry");
