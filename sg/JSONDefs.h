@@ -16,6 +16,10 @@
 // default nlohmann::json will sort map alphabetically. this leaves it as-is
 using JSON = nlohmann::ordered_json;
 
+///////////////////////////////////////////////////////////////////////
+// Forward declarations ///////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
 inline void to_json(JSON &j, const CameraState &cs);
 inline void from_json(const JSON &j, CameraState &cs);
 
@@ -28,6 +32,12 @@ void to_json(
 void from_json(
     const JSON &j, FlatMap<std::string, ospray::sg::NodePtr> &fm);
 } // namespace containers
+namespace math {
+inline void to_json(JSON &j, const AffineSpace3f &as);
+inline void from_json(const JSON &j, AffineSpace3f &as);
+inline void to_json(JSON &j, const quaternionf &q);
+inline void from_json(const JSON &j, quaternionf &q);
+} // namespace math
 namespace utility {
 void to_json(JSON &j, const Any &a);
 void from_json(const JSON &j, Any &a);
@@ -99,8 +109,22 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
     if (j.contains("description")) {
       n = createNode(
           j["name"], j["subType"], j["description"], j["value"].get<Any>());
-    } else
+    }
+    // ALOK: these two checks are a temporary fix for saving the RST xform
+    // children. Without these, they will be loaded as a JSON object, which
+    // we do not support. Ideally these RST nodes should be loaded as basic
+    // child nodes with a special type
+    else if (j["subType"] == "transform") {
+      n = createNode(j["name"],
+          j["subType"],
+          j["value"].get<rkcommon::math::AffineSpace3f>());
+    } else if (j["subType"] == "quaternionf") {
+      n = createNode(j["name"],
+          j["subType"],
+          j["value"].get<rkcommon::math::quaternionf>());
+    } else {
       n = createNode(j["name"], j["subType"], j["value"].get<Any>());
+    }
   } else {
     n = createNode(j["name"], j["subType"]);
   }
@@ -116,7 +140,6 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
         auto child = createNodeFromJSON(jChild);
         if (!child)
           continue;
-        std::cout << "!!! createNodeFromJSON: " << child->name() << std::endl;
         if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
           child->setSGOnly();
         if (n->type() == NodeType::LIGHTS)
