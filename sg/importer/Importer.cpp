@@ -179,13 +179,21 @@ OSPSG_INTERFACE void importScene(
       };
 
     auto importNode = findFirstChild(world, jImport.first);
-    std::cout << "!!! importNode: " << importNode->name() << std::endl;
     if (importNode) {
-      std::cout << "!!!   children: " << jImport.second["children"] << std::endl;
+      // should be associated xfm node
+      auto childName = jImport.second["children"][0]["name"];
+      Node &xfmNode = importNode->child(childName);
 
+      // XXX parse JSON to get RST transforms saved to sg file. This is
+      // temporary. We will want RST to be a first-class citizen node that gets
+      // handled correctly without this kind of hardcoded workaround
       auto child = createNodeFromJSON(jImport.second["children"][0]);
-      if (child)
-        importNode->add(child);
+      if (child) {
+        xfmNode = child->value(); // assigns base affine3f value
+        xfmNode.add(child->child("rotation"));
+        xfmNode.add(child->child("translation"));
+        xfmNode.add(child->child("scale"));
+      }
     }
   }
 }

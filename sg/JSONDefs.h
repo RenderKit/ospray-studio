@@ -110,7 +110,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
       n = createNode(
           j["name"], j["subType"], j["description"], j["value"].get<Any>());
     }
-    // ALOK: these two checks are a temporary fix for saving the RST xform
+    // XXX these two checks are a temporary fix for saving the RST xform
     // children. Without these, they will be loaded as a JSON object, which
     // we do not support. Ideally these RST nodes should be loaded as basic
     // child nodes with a special type
