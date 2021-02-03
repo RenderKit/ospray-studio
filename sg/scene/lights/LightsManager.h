@@ -37,7 +37,7 @@ namespace ospray {
       void updateWorld(World &world);
       bool rmDefaultLight{true};
 
-      // protected:
+      protected:
       std::vector<std::string> lightNames;
       std::vector<cpp::Light> cppLightObjects = {};
 
@@ -45,7 +45,7 @@ namespace ospray {
       virtual void postCommit() override;
 
       private:
-       World* currentWorld = nullptr;
+      World* currentWorld = nullptr;
     };
 
   }  // namespace sg

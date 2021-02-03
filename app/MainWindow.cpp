@@ -1832,7 +1832,7 @@ void MainWindow::buildWindowLightEditor()
 
   // Validate that selected light is still a valid light.  Clear scene will
   // change the lights list, elsewhere.
-  if (whichLight > lights.size())
+  if (whichLight >= lights.size())
     whichLight = -1;
 
   ImGui::Text("lights");

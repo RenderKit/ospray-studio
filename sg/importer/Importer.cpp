@@ -94,16 +94,17 @@ OSPSG_INTERFACE void importScene(
   if (!context->filesToImport.empty())
     context->refreshScene(true);
 
-  // If the sceneFile contains lightsManager light definitions, parse it here
-  if (j.contains("lightsManager"))
-    lights = createNodeFromJSON(j["lightsManager"]);
-
-  // Add lights to lightsManager (either from world or lightsManager defn's)
+  // Any lights in the scenefile World are added here
   if (lights) {
-    // If the scene contains lights, remove the default ambient.
-    context->lightsManager->removeLight("ambient");
     for (auto &light : lights->children())
       context->lightsManager->addLight(light.second);
+  }
+
+  // If the sceneFile contains a lightsManager, add those lights here
+  if (j.contains("lightsManager")) {
+    auto &jLights = j["lightsManager"];
+    for (auto &jLight : jLights["children"])
+      context->lightsManager->addLight(createNodeFromJSON(jLight));
   }
 
   // If the sceneFile contains materials, parse them here, after the model has
