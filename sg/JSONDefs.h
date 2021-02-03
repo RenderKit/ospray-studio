@@ -85,8 +85,11 @@ inline void to_json(JSON &j, const Node &n)
     j["sgOnly"] = n.sgOnly();
 
   if (n.value().valid() && (n.type() == NodeType::PARAMETER
-      || n.type() == NodeType::TRANSFORM))
+      || n.type() == NodeType::TRANSFORM)) {
     j["value"] = n.value();
+    if (n.hasMinMax())
+      j["minMax"] = JSON{n.min(), n.max()};
+  }
 
   if (n.hasChildren())
     j["children"] = n.children();
@@ -142,6 +145,10 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
           continue;
         if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
           child->setSGOnly();
+        if (jChild.contains("minMax")) {
+          auto minMax = jChild["minMax"].get<std::vector<Any>>();
+          child->setMinMax(minMax[0], minMax[1]);
+        }
         if (n->type() == NodeType::LIGHTS)
           n->nodeAs<LightsManager>()->addLight(child);
         else if (n->type() == NodeType::MATERIAL)
