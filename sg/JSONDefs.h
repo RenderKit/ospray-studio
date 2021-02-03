@@ -128,6 +128,12 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
     } else {
       n = createNode(j["name"], j["subType"], j["value"].get<Any>());
     }
+
+    // JSON doesn't distinguish between uint8_t and integer.  Convert it, if
+    // the subType calls for an uchar.
+    if (j["subType"] == "uchar")
+      n->setValue(uint8_t(n->valueAs<int>()));
+
   } else {
     n = createNode(j["name"], j["subType"]);
   }
@@ -259,6 +265,8 @@ inline void to_json(JSON &j, const Any &a)
     j = a.get<int>();
   else if (a.is<bool>())
     j = a.get<bool>();
+  else if (a.is<uint8_t>())
+    j = a.get<uint8_t>();
   else if (a.is<float>())
     j = a.get<float>();
   else if (a.is<std::string>())
