@@ -9,6 +9,7 @@
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/visitors/Commit.h"
 #include "sg/visitors/PrintNodes.h"
+#include "sg/camera/Camera.h"
 // rkcommon
 #include "rkcommon/utility/SaveImage.h"
 // json
@@ -196,8 +197,14 @@ void BatchContext::render()
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
   if (!cameraDef)
     frame->createChild("camera", "camera_" + optCameraTypeStr);
-  else
-    frame->add(cameras[cameraDef - 1]);
+  else {
+    // simply adding a new camera to frame does not work
+    auto newCamera = cameras[cameraDef - 1]->nodeAs<sg::Camera>();
+    auto &camera =
+        frame->createChildAs<sg::Camera>("camera", newCamera->subType());
+    for (auto &c : newCamera->children())
+      camera.add(c.second);
+  }
 
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
 
@@ -271,7 +278,10 @@ void BatchContext::render()
     camera["up"] = up;
   }
 
+  if(camera.hasChild("stereoMode"))
   camera["stereoMode"] = optStereoMode;
+
+  if(camera.hasChild("interpupillaryDistance"))
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
 
   frame->child("navMode") = false;
