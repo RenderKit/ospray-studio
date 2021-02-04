@@ -164,8 +164,13 @@ bool BatchContext::parseCommandLine()
     } else if (switchArg == "-fr" || switchArg == "--force") {
       forceRewrite = true;
     } else if (switchArg == "-cam" || switchArg == "--camera") {
-      if (argAvailability(switchArg, 1))
-        cameraDef = atoi(argv[argIndex++]);
+      if (argAvailability(switchArg, 1)) {
+        cameraDef = std::stoi(argv[argIndex++]);
+        if (cameraDef < 0) {
+          std::cout << "unsupported camera index specified " << std::endl;
+          return false;
+        }
+      }
       if (!cameraDef)
         std::cout
             << "using default ospray camera, to use imported definition camera indices begins from 1"
@@ -195,17 +200,18 @@ bool BatchContext::parseCommandLine()
 void BatchContext::render()
 {
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
-  if (!cameraDef)
-    frame->createChild("camera", "camera_" + optCameraTypeStr);
-  else {
+  if (cameraDef <= cameras.size() && cameraDef > 0) {
     // simply adding a new camera to frame does not work
     auto newCamera = cameras[cameraDef - 1]->nodeAs<sg::Camera>();
     auto &camera =
         frame->createChildAs<sg::Camera>("camera", newCamera->subType());
     for (auto &c : newCamera->children())
       camera.add(c.second);
+  } else  {
+    std::cout << "No cameras imported or invalid camera index specified" << std::endl;
+    frame->createChild("camera", "camera_" + optCameraTypeStr);
   }
-
+  
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
 
   lightsManager->updateWorld(frame->childAs<sg::World>("world"));
