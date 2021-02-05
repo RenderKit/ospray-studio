@@ -9,6 +9,7 @@ variables:
 stages:
   - build
   - test
+  - release
   - scan
 
 .build-linux:
@@ -172,3 +173,78 @@ test-run-ubuntu18.04-dev:
   tags: [docker]
   script:
     - gitlab/run-dev.sh
+
+release-linux:
+  stage: release
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-ubuntu18.04-dev]
+  tags: [docker]
+  script:
+    - apt-get install zip -y
+    - export RELEASE_DIRECTORY=ospray_studio_release_lin
+    - mkdir $RELEASE_DIRECTORY
+    - cp build/ospStudio $RELEASE_DIRECTORY/
+    - cp build/libospray_sg.so $RELEASE_DIRECTORY/
+    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+  artifacts:
+    paths:
+      - ospray_studio_release_lin.zip
+
+
+release-windows:
+  stage: release
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-ubuntu18.04-dev]
+  tags: [docker]
+  script:
+    - apt-get install zip -y
+    - export RELEASE_DIRECTORY=ospray_studio_release_win
+    - mkdir $RELEASE_DIRECTORY
+    - cp build/ospStudio $RELEASE_DIRECTORY/
+    - cp build/libospray_sg.so $RELEASE_DIRECTORY/
+    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+  artifacts:
+    paths:
+      - ospray_studio_release_win.zip
+
+release-macos:
+  stage: release
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-ubuntu18.04-dev]
+  tags: [docker]
+  script:
+    - apt-get install zip -y
+    - export RELEASE_DIRECTORY=ospray_studio_release_macos
+    - mkdir $RELEASE_DIRECTORY
+    - cp build/ospStudio $RELEASE_DIRECTORY/
+    - cp build/libospray_sg.so $RELEASE_DIRECTORY/
+    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+  artifacts:
+    paths:
+      - ospray_studio_release_macos.zip
+
+
+scan-bdba-bin:
+  stage: scan
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
+  tags: [docker]
+  needs: [release-linux, release-windows, release-macos]
+  script:
+    - gitlab/bdba.sh "ospray_studio_release_*"
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio_release_*.pdf"
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio_release_*.csv"
+  artifacts:
+    paths:
+      - ospray_studio_release_*.pdf
+      - ospray_studio_release_*.csv
+
+av:
+  stage: scan
+  tags: [docker]
+  image: $DOCKER_REGISTRY/clamav:ubuntu20.04
+  needs: [release-linux, release-windows, release-macos]
+  script:
+    - freshclam | tee -a /tmp/av_scan.log
+    - clamscan -va --max-filesize=512M --max-scansize=2048M --alert-broken --alert-exceeds-max ospray_studio_release_* | tee -a /tmp/av_scan.log
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID av /tmp/av_scan.log
+
