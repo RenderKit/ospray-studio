@@ -194,14 +194,14 @@ release-linux:
 release-windows:
   stage: release
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
-  needs: [build-ubuntu18.04-dev]
+  needs: [build-windows-msvc15-dev]
   tags: [docker]
   script:
     - apt-get install zip -y
     - export RELEASE_DIRECTORY=ospray_studio_release_win
     - mkdir $RELEASE_DIRECTORY
-    - cp build/ospStudio $RELEASE_DIRECTORY/
-    - cp build/libospray_sg.so $RELEASE_DIRECTORY/
+    - cp build-win/Release/ospStudio.exe $RELEASE_DIRECTORY/
+    - cp build-win/Release/ospray_sg.dll $RELEASE_DIRECTORY/
     - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
   artifacts:
     paths:
@@ -210,14 +210,14 @@ release-windows:
 release-macos:
   stage: release
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
-  needs: [build-ubuntu18.04-dev]
+  needs: [build-osx-clang-dev]
   tags: [docker]
   script:
     - apt-get install zip -y
     - export RELEASE_DIRECTORY=ospray_studio_release_macos
     - mkdir $RELEASE_DIRECTORY
-    - cp build/ospStudio $RELEASE_DIRECTORY/
-    - cp build/libospray_sg.so $RELEASE_DIRECTORY/
+    - cp build-macos/ospStudio $RELEASE_DIRECTORY/
+    - cp build-macos/libospray_sg.dylib $RELEASE_DIRECTORY/
     - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
   artifacts:
     paths:
