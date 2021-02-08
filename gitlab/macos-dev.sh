@@ -1,5 +1,5 @@
 #!/bin/bash
-## Copyright 2015-2020 Intel Corporation
+## Copyright 2015-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 # XXX This script is transitional
@@ -11,8 +11,8 @@ RKCOMMON_VER="devel"
 set -e
 
 # Versions if not set by CI (standalone run)
-OSPRAY_VER=${OSPRAY_VER:-"2.4.0"}
-RKCOMMON_VER=${RKCOMMON_VER:-"1.5.1"}
+OSPRAY_VER=${OSPRAY_VER:-"2.5.0"}
+RKCOMMON_VER=${RKCOMMON_VER:-"1.6.0"}
 GLFW_VER=${GLFW_VER:-"3.3.2"}
 
 # Pull OSPRay and RKCommon releases from github

@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-## Copyright 2009-2020 Intel Corporation
+## Copyright 2009-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 # XXX This script is transitional
@@ -14,8 +14,8 @@ set RKCOMMON_VER "devel"
 $ErrorActionPreference = "Stop"
 
 # Versions if not set by CI (standalone run)
-if (! $OSPRAY_VER )   { set OSPRAY_VER "2.4.0"   }
-if (! $RKCOMMON_VER ) { set RKCOMMON_VER "1.5.1" }
+if (! $OSPRAY_VER )   { set OSPRAY_VER "2.5.0"   }
+if (! $RKCOMMON_VER ) { set RKCOMMON_VER "1.6.0" }
 if (! $GLFW_VER )     { set GLFW_VER "3.3.2"     }
 
 # Pull OSPRay and RKCommon releases from OSPRay github
@@ -29,7 +29,7 @@ set OSPRAY_ZIP "${OSPRAY_DIR}.zip"
 set OSPRAY_LINK "${GITHUB_HOME}/ospray/releases/download/v${OSPRAY_VER}/${OSPRAY_ZIP}"
 
 # RKCommon
-#ex: https://github.com/ospray/rkcommon/archive/v1.5.0.zip
+#ex: https://github.com/ospray/rkcommon/archive/v1.6.0.zip
 set RKCOMMON_DIR "rkcommon-${RKCOMMON_VER}"
 set RKCOMMON_ZIP "${RKCOMMON_VER}.zip"
 set RKCOMMON_LINK "${GITHUB_HOME}/rkcommon/archive/${RKCOMMON_ZIP}"
