@@ -40,7 +40,7 @@ build-ubuntu18.04:
       - build/
   only:
     refs:
-      - master, release-0.5.x
+      - master, release-0.6.x
 
 build-osx-clang:
   stage: build
@@ -53,7 +53,7 @@ build-osx-clang:
       - build-macos/
   only:
     refs:
-      - master, release-0.5.x
+      - master, release-0.6.x
 
 build-windows-msvc15:
   stage: build
@@ -66,7 +66,7 @@ build-windows-msvc15:
       - build-win/
   only:
     refs:
-      - master, release-0.5.x
+      - master, release-0.6.x
 
 build-kw:
   extends: .build-linux
@@ -78,7 +78,7 @@ build-kw:
       - klockwork/*
   only:
     refs:
-      - master, release-0.5.x
+      - master, release-0.6.x
 
 test-run-ubuntu18.04:
   stage: test
@@ -89,7 +89,7 @@ test-run-ubuntu18.04:
     - gitlab/run.sh
   only:
     refs:
-      - master, release-0.5.x
+      - master, release-0.6.x
 
 test-kw:
   stage: test
@@ -101,7 +101,7 @@ test-kw:
   allow_failure: true
   only:
     refs:
-      - master, release-0.5.x
+      - master, release-0.6.x
 
 ########
 # Transitional phases, only works against devel branch dependencies
