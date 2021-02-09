@@ -657,9 +657,6 @@ void MainWindow::display()
 
   keyboardMotion();
 
-  if (showUi)
-    buildUI();
-
   if (displayCallback)
     displayCallback(this);
 
@@ -798,8 +795,16 @@ void MainWindow::display()
   glDisable(GL_FRAMEBUFFER_SRGB);
 
   if (showUi) {
+    // Notifiy ImGui of the colorspace for color picker widgets
+    // (to match the colorspace of the framebuffer)
+    if (uiDisplays_sRGB || frameBuffer.isSRGB())
+      ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_IsSRGB;
+
+    buildUI();
     ImGui::Render();
     ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+
+    ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_IsSRGB;
   } else {
     ImGui::EndFrame();
   }
@@ -1555,6 +1560,10 @@ void MainWindow::buildMainMenuEdit()
       refreshRenderer();
     }
 
+    // Allows the user to cancel long frame renders, such as too-many spp or
+    // very large resolution.  Don't wait on the frame-cancel completion as
+    // this locks up the UI.  Note: Next frame-start following frame
+    // cancelation isn't immediate.
     if (ImGui::Button("cancel Frame"))
       frame->cancelFrame();
 
