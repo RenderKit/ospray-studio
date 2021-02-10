@@ -1555,10 +1555,8 @@ void MainWindow::buildMainMenuEdit()
       refreshRenderer();
     }
 
-    if (ImGui::Button("cancel Frame")) {
+    if (ImGui::Button("cancel Frame"))
       frame->cancelFrame();
-      frame->waitOnFrame();
-    }
 
     ImGui::EndMenu();
   }
