@@ -2,7 +2,7 @@
 ## SPDX-License-Identifier: Apache-2.0
 
 cmake_policy(SET CMP0048 NEW) # required for project version after 3.18.3
-project(ospray_studio VERSION 0.6.0 LANGUAGES CXX)
+project(ospray_studio VERSION 0.7.0 LANGUAGES CXX)
 cmake_minimum_required(VERSION 3.1)
 
 if(POLICY CMP0074)
