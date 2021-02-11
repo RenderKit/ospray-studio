@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "World.h"
-#include "lights/Lights.h"
+#include "../visitors/RenderScene.h"
+#include "../fb/FrameBuffer.h"
 
 namespace ospray {
 namespace sg {
@@ -10,26 +11,24 @@ namespace sg {
 World::World()
 {
   setHandle(cpp::World());
-  createChild("lights", "lights");
+  createChild("saveMetaData", "bool", false);
 }
 
 void World::preCommit()
 {
-  auto &lights = childAs<sg::Lights>("lights");
-  if (lights.isModified()) {
-    lightObjects.clear();
-
-    for (auto &name : lights.lightNames) {
-      auto &l = lights.child(name).valueAs<cpp::Light>();
-      lightObjects.emplace_back(l);
-    }
-  }
 }
 
 void World::postCommit()
 {
-  handle().setParam("light", cpp::CopiedData(lightObjects));
-  handle().commit();
+  if (child("saveMetaData").valueAs<bool>()){
+    auto &frame = parents().front();
+    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+    auto &geomIdmap = fb.ge;
+    auto &instanceIdmap = fb.in;
+    traverse<RenderScene>(geomIdmap, instanceIdmap);
+  }
+  else
+    traverse<RenderScene>();
 }
 
 OSP_REGISTER_SG_NODE_NAME(World, world);

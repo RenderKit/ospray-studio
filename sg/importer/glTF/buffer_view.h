@@ -6,6 +6,8 @@
 
 #include "gltf_types.h"
 
+// TODO extend and use rkcommon::ArrayView instead
+
 // GLTF Buffer view/accessor utilities
 
 struct BufferView {
@@ -34,7 +36,24 @@ public:
     const T &operator[](const size_t i) const;
 
     size_t size() const;
+    const T *data() const;
+    size_t byteStride() const;
 };
+
+// implementation
+
+BufferView::BufferView(const tinygltf::BufferView &view,
+    const tinygltf::Model &model,
+    size_t base_stride)
+    : buf(model.buffers[view.buffer].data.data() + view.byteOffset),
+      length(view.byteLength),
+      stride(std::max(view.byteStride, base_stride))
+{}
+
+inline const uint8_t *BufferView::operator[](const size_t i) const
+{
+  return buf + i * stride;
+}
 
 template <typename T>
 Accessor<T>::Accessor(const tinygltf::Accessor &accessor, const tinygltf::Model &model)
@@ -57,4 +76,16 @@ template <typename T>
 size_t Accessor<T>::size() const
 {
     return count;
+}
+
+template <typename T>
+const T *Accessor<T>::data() const
+{
+  return reinterpret_cast<const T *>(view.buf);
+}
+
+template <typename T>
+size_t Accessor<T>::byteStride() const
+{
+  return view.stride;
 }

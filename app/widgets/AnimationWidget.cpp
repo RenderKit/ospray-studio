@@ -3,167 +3,70 @@
 
 #include "AnimationWidget.h"
 #include <imgui.h>
-// std
-#include <chrono>
 
-AnimationWidget::AnimationWidget(std::shared_ptr<ospray::sg::Frame> activeFrame,
-    ospray::sg::NodePtr firstWorld,
-    std::vector<float> &timesteps,
-    const std::string &_widgetName)
-    : activeFrame(activeFrame),
-      firstWorld(firstWorld),
-      timesteps(timesteps),
-      widgetName(_widgetName)
+AnimationWidget::AnimationWidget(
+    std::string name, std::shared_ptr<AnimationManager> animationManager)
+    : name(name), animationManager(animationManager)
 {
-  numKeyframes = timesteps.size();
-  firstWorld->render();
-  activeFrame->add(firstWorld);
-
-  // traverse and collect the animation worlds
-  for (auto iter = timesteps.begin(); iter != timesteps.end(); ++iter) {
-    auto newWorld = ospray::sg::createNode("world", "world");
-    newWorld->createChild("time", "float", *iter);
-    firstWorld->traverseAnimation<ospray::sg::GenerateAnimationWorld>(
-        newWorld);
-    g_allWorlds.push_back(
-        std::static_pointer_cast<ospray::sg::World>(newWorld));
-
-    newWorld->render();
-  }
+  lastUpdated = std::chrono::system_clock::now();
+  time = animationManager->getTimeRange().lower;
+  animationManager->update(time);
 }
 
-AnimationWidget::~AnimationWidget() {}
+void AnimationWidget::update()
+{
+  auto &timeRange = animationManager->getTimeRange();
+  auto now = std::chrono::system_clock::now();
+  if (play) {
+    time += std::chrono::duration<float>(now - lastUpdated).count() * speedup;
+    if (time > timeRange.upper)
+      if (loop) {
+        const float d = timeRange.size();
+        time =
+            d == 0.f ? timeRange.lower : timeRange.lower + std::fmod(time, d);
+      } else {
+        time = timeRange.lower;
+        play = false;
+      }
+  }
+  animationManager->update(time);
+  lastUpdated = now;
+}
 
 // update UI and process any UI events
 void AnimationWidget::addAnimationUI()
 {
-  ImGui::Begin(widgetName.c_str());
+  auto &timeRange = animationManager->getTimeRange();
+  auto &animations = animationManager->getAnimations();
+  ImGui::Begin(name.c_str());
 
-  animateKeyframes();
-
-  insertKeyframeMenu();
-
-  ImGui::End();
-}
-
-void AnimationWidget::insertKeyframeMenu()
-{
-  int numTimesteps = numKeyframes;
-
-  if (animationParameters.playKeyframes) {
-    if (ImGui::Button("Pause")) {
-      animationParameters.playKeyframes = false;
-    }
-  } else {
-    if (ImGui::Button("Play")) {
-      animationParameters.playKeyframes = true;
-    }
+  if (ImGui::Button(play ? "Pause" : "Play ")) {
+    play = !play;
+    lastUpdated = std::chrono::system_clock::now();
   }
+
+  bool modified = play;
 
   ImGui::SameLine();
+  if (ImGui::SliderFloat("time", &time, timeRange.lower, timeRange.upper))
+    modified = true;
 
-  if (ImGui::SliderInt("Keyframe",
-          &animationParameters.currentKeyframe,
-          0,
-          numTimesteps - 1)) {
-    setKeyframe(animationParameters.currentKeyframe);
+  ImGui::SameLine();
+  ImGui::Checkbox("Loop", &loop);
+
+  { // simulate log slider
+    static float exp = 0.f;
+    ImGui::SliderFloat("speedup: ", &exp, -3.f, 3.f);
+    speedup = std::pow(10.0f, exp);
+    ImGui::SameLine();
+    ImGui::Text("%.*f", std::max(0, int(1.99f - exp)), speedup);
   }
-
-  // set numTimesteps in animation params equal to numTimesteps of widget
-  // constructor
-  if (animationParameters.numTimesteps == 0) {
-    animationParameters.numTimesteps = numTimesteps;
-  }
-
-  ImGui::SliderInt("Number of Keyframes",
-      &animationParameters.numTimesteps,
-      1,
-      numTimesteps - 1);
-
-  ImGui::SliderInt(
-      "Animation increment", &animationParameters.animationIncrement, 1, 16);
-
-  ImGui::SliderInt("Animation center",
-      &animationParameters.animationCenter,
-      0,
-      numTimesteps - 1);
-
-  // compute actual animation bounds
-  animationParameters.computedAnimationMin =
-      animationParameters.animationCenter
-      - 0.5 * animationParameters.numTimesteps
-          * animationParameters.animationIncrement;
-
-  animationParameters.computedAnimationMax =
-      animationParameters.animationCenter
-      + 0.5 * animationParameters.numTimesteps
-          * animationParameters.animationIncrement;
-
-  if (animationParameters.computedAnimationMin < 0) {
-    int delta = -animationParameters.computedAnimationMin;
-    animationParameters.computedAnimationMin = 0;
-    animationParameters.computedAnimationMax += delta;
-  }
-
-  if (animationParameters.computedAnimationMax > numTimesteps - 1) {
-    int delta = animationParameters.computedAnimationMax - (numTimesteps - 1);
-    animationParameters.computedAnimationMax = numTimesteps - 1;
-    animationParameters.computedAnimationMin -= delta;
-  }
-
-  animationParameters.computedAnimationMin =
-      std::max(0, animationParameters.computedAnimationMin);
-  animationParameters.computedAnimationMax =
-      std::min(numTimesteps - 1, animationParameters.computedAnimationMax);
-
-  ImGui::Text("animation range: %d -> %d",
-      animationParameters.computedAnimationMin,
-      animationParameters.computedAnimationMax);
+  for (auto &a : animations)
+    ImGui::Checkbox(a.name.c_str(), &a.active);
 
   ImGui::Spacing();
+  ImGui::End();
+
+  if (modified)
+    update();
 }
-
-void AnimationWidget::animateKeyframes()
-{
-  int numTimesteps = numKeyframes;
-
-  if (numTimesteps != 1 && animationParameters.playKeyframes) {
-    static auto keyframeLastChanged = std::chrono::system_clock::now();
-    double minChangeInterval =
-        1. / double(animationParameters.desiredKeyframesPerSecond);
-    auto now = std::chrono::system_clock::now();
-
-    std::chrono::duration<double> elapsedSeconds = now - keyframeLastChanged;
-
-    if (elapsedSeconds.count() > minChangeInterval) {
-      animationParameters.currentKeyframe +=
-          animationParameters.animationIncrement;
-
-      if (animationParameters.currentKeyframe
-          < animationParameters.computedAnimationMin) {
-        animationParameters.currentKeyframe =
-            animationParameters.computedAnimationMin;
-      }
-
-      if (animationParameters.currentKeyframe
-          > animationParameters.computedAnimationMax) {
-        animationParameters.currentKeyframe =
-            animationParameters.computedAnimationMin;
-      }
-
-      setKeyframe(animationParameters.currentKeyframe);
-      keyframeLastChanged = now;
-    }
-  }
-}
-
-void AnimationWidget::setKeyframe(int keyframe)
-{
-  auto &world = g_allWorlds[keyframe];
-  activeFrame->add(world);
-
-  activeFrame->childAs<ospray::sg::FrameBuffer>("framebuffer")
-      .resetAccumulation();
-}
-
-// stack implementation of keyframes

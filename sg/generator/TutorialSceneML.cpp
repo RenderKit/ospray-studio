@@ -41,7 +41,7 @@ void makeScene(NodePtr nodeTop, NodePtr geometryX, bool useMultilevel)
       absScale *= scaleFactor;
     }
 
-    auto newX = createNode(nodeName, "Transform", xfm);
+    auto newX = createNode(nodeName, "transform", xfm);
     newX->add(geometryX);
     node->add(newX);
     if (useMultilevel)
@@ -56,8 +56,8 @@ void TutorialSceneML::generateData()
 
   const std::vector<uint32_t> mID = {0};
 
-  auto sphereX = createNode("sphereXfm", "Transform", affine3f{one});
-  auto boxX = createNode("boxXfm", "Transform", affine3f{one});
+  auto sphereX = createNode("sphereXfm", "transform");
+  auto boxX = createNode("boxXfm", "transform");
 
   // create a single sphere geometry, then instance it
   auto sphereG = createNode("spheres", "geometry_spheres");
@@ -78,9 +78,9 @@ void TutorialSceneML::generateData()
   boxX->add(boxG);
 
   auto singleLevel = createNode(
-      "single-level", "Transform", affine3f::translate(vec3f(0.f, 1.f, 0.f)));
+      "single-level", "transform", affine3f::translate(vec3f(0.f, 1.f, 0.f)));
   auto multiLevel = createNode(
-      "multi-level", "Transform", affine3f::translate(vec3f(0.f, -1.f, 0.f)));
+      "multi-level", "transform", affine3f::translate(vec3f(0.f, -1.f, 0.f)));
 
   // Create 2 hierarchies, instancing the geometry multiple times in each
   // In singleLevel, all transforms hang off the passed-in node.

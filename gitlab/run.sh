@@ -1,17 +1,17 @@
 #!/bin/bash -x
-## Copyright 2009-2020 Intel Corporation
+## Copyright 2015-2020 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 set -e
 apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev -y
-if [[ ! -d "$CACHE_DIR/ospray-2.2.0" ]]
+if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
 then
-    cd tmp
-    wget https://github.com/ospray/OSPRay/archive/v2.2.0.tar.gz
-    tar -xvf v2.2.0.tar.gz --no-same-owner
-    rm v2.2.0.tar.gz
-    cd ospray-2.2.0/ && mkdir build && cd build && cmake ../scripts/superbuild -DBUILD_OIDN=ON && cmake --build .
-    cp -r ospray-2.2.0 $CACHE_DIR/
+    cd /tmp
+    git clone http://gitlab-ci-token:${CI_JOB_TOKEN}@$CI_SERVER_HOST/renderkit/ospray.git ospray-$OSPRAY_VER
+    cd ospray-$OSPRAY_VER/
+    git checkout tags/"v${OSPRAY_VER}"
+    mkdir build && cd build && cmake ../scripts/superbuild -DBUILD_OIDN=ON && cmake --build .
+    cp -r /tmp/ospray-$OSPRAY_VER $CACHE_DIR/
 fi
 export DEBIAN_FRONTEND=noninteractive
 apt update
@@ -24,7 +24,7 @@ mkdir -p $HOME/.vnc; echo testtest | vncpasswd -f > $HOME/.vnc/passwd; chmod 060
 vncserver $DISPLAY -geometry 1900x1000
 glxinfo
 
-export LD_LIBRARY_PATH=$CACHE_DIR/ospray-2.2.0/build/install/ospray/lib/:$CACHE_DIR/ospray-2.2.0/build/install/oidn/lib/:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray/lib/:$CACHE_DIR/ospray-$OSPRAY_VER/build/install/oidn/lib/:$LD_LIBRARY_PATH
 cd $CI_PROJECT_DIR/build
 set +e
 timeout --preserve-status 10s ./ospStudio

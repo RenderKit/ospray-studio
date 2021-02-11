@@ -1,37 +1,53 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  enum class NodeType
-  {
-    GENERIC,
-    PARAMETER,
-    FRAME,
-    FRAME_BUFFER,
-    RENDERER,
-    CAMERA,
-    WORLD,
-    INSTANCE,
-    ANIMATION,
-    TRANSFORM,
-    TRANSFER_FUNCTION,
-    MATERIAL,
-    MATERIAL_REFERENCE,
-    TEXTURE,
-    TEXTUREVOLUME,
-    LIGHT,
-    LIGHTS,
-    GEOMETRY,
-    VOLUME,
-    GENERATOR,
-    IMPORTER,
-    EXPORTER,
-    UNKNOWN = 9999
-  };
+// Wrap NodeList in preprocessor foo so that we can create to/fromString maps
+#define NODELIST                                                               \
+  X(GENERIC)                                                                   \
+  X(PARAMETER)                                                                 \
+  X(FRAME)                                                                     \
+  X(FRAME_BUFFER)                                                              \
+  X(RENDERER)                                                                  \
+  X(CAMERA)                                                                    \
+  X(WORLD)                                                                     \
+  X(TRANSFORM)                                                                 \
+  X(TRANSFER_FUNCTION)                                                         \
+  X(MATERIAL)                                                                  \
+  X(MATERIAL_REFERENCE)                                                        \
+  X(TEXTURE)                                                                   \
+  X(TEXTUREVOLUME)                                                             \
+  X(LIGHT)                                                                     \
+  X(LIGHTS)                                                                    \
+  X(GEOMETRY)                                                                  \
+  X(VOLUME)                                                                    \
+  X(GENERATOR)                                                                 \
+  X(IMPORTER)                                                                  \
+  X(EXPORTER)                                                                  \
+  X(UNKNOWN)
 
-  }  // namespace sg
+enum class NodeType
+{
+#define X(node) node,
+  NODELIST
+#undef X
+};
+
+static std::map<NodeType, std::string> NodeTypeToString = {
+#define X(node) {ospray::sg::NodeType::node, #node},
+    NODELIST
+#undef X
+};
+
+static std::map<std::string, NodeType> NodeTypeFromString = {
+#define X(node) {#node, ospray::sg::NodeType::node},
+    NODELIST
+#undef X
+};
+
+} // namespace sg
 } // namespace ospray

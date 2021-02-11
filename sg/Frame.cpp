@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Frame.h"
@@ -7,7 +7,6 @@
 #include "sg/fb/FrameBuffer.h"
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/World.h"
-#include "sg/scene/lights/Lights.h"
 
 namespace ospray {
   namespace sg {
@@ -34,7 +33,7 @@ namespace ospray {
     return NodeType::FRAME;
   }
 
-  void Frame::startNewFrame()
+  void Frame::startNewFrame(bool interacting)
   {
     auto &fb = childAs<FrameBuffer>("frameBuffer");
     auto &camera = childAs<Camera>("camera");
@@ -44,10 +43,9 @@ namespace ospray {
     refreshFrameOperations();
 
     // If working on a frame, cancel it, something has changed
-    if (isModified() && value().valid()) {
-        cancelFrame();
-        currentAccum = 0;
-        fb.resetAccumulation();
+    if (isModified()) {
+      cancelFrame();
+      fb.resetAccumulation();
       // Enable navMode
       if (!navMode)
         child("navMode") = true;
@@ -57,12 +55,15 @@ namespace ospray {
         child("navMode") = false;
     }
 
-    commit();
+    // Commit only when modified and not while interacting.
+    if (isModified() && !interacting)
+      commit();
 
-    if (!pauseRendering && !accumLimitReached()) {
+    if (!(interacting || pauseRendering || accumLimitReached())) {
       auto future = fb.handle().renderFrame(
           renderer.handle(), camera.handle(), world.handle());
       setHandle(future);
+      commit(); // XXX setHandle modifies node, but nothing else has changed yet
       canceled = false;
 
       if (immediatelyWait)
@@ -72,7 +73,7 @@ namespace ospray {
 
   bool Frame::frameIsReady()
   {
-    auto future = handle();
+    auto future = value().valid() ? handle() : nullptr;
     if (future)
       return future.isReady();
     else
@@ -81,7 +82,7 @@ namespace ospray {
 
   float Frame::frameProgress()
   {
-    auto future = handle();
+    auto future = value().valid() ? handle() : nullptr;
     if (future)
       return future.progress();
     else
@@ -90,7 +91,7 @@ namespace ospray {
 
   void Frame::waitOnFrame()
   {
-    auto future = handle();
+    auto future = value().valid() ? handle() : nullptr;
     if (future)
       future.wait();
     if (!accumLimitReached())
@@ -99,7 +100,7 @@ namespace ospray {
 
   void Frame::cancelFrame()
   {
-    auto future = handle();
+    auto future = value().valid() ? handle() : nullptr;
     if (future) {
       future.cancel();
       canceled = true;
@@ -148,6 +149,7 @@ namespace ospray {
 
     if (navMode != currentNavMode) {
       currentNavMode = navMode;
+      currentAccum = 0; // Changing navMode resets currentAccum
 
       // Allow the renderer to use navigation settings
       auto &renderer = childAs<Renderer>("renderer");

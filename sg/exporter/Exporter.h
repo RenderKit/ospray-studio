@@ -17,6 +17,10 @@ namespace ospray {
     NodeType type() const override;
 
     virtual void doExport() {}
+
+    uint32_t *_instData{nullptr};
+    uint32_t *_geomData{nullptr};
+    float *_worldPosition{nullptr};
   };
 
   static const std::map<std::string, std::string> exporterMap = {

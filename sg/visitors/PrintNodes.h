@@ -32,8 +32,9 @@ namespace ospray {
     PRINT_AS(node, bool);      
     PRINT_AS(node, float);     
     PRINT_AS(node, vec2f);     
-    PRINT_AS(node, vec3f);     
-    PRINT_AS(node, vec4f);     
+    PRINT_AS(node, vec3f);
+    PRINT_AS(node, vec4f);
+    PRINT_AS(node, quaternionf);
     PRINT_AS(node, int);       
     PRINT_AS(node, vec2i);     
     PRINT_AS(node, vec3i);     

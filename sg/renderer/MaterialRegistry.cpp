@@ -10,25 +10,18 @@ namespace ospray {
   {
     // ensure there's one OBJ material in the Registry as the default material
     // use obj since it works with both SciVis and Pathtrace renderers
-    addNewSGMaterial("obj");
-  }
+    auto node = createNode("sgDefault", "obj");
+    auto &mat = *node;
+    // Give it some editable parameters
+    mat.createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
+    mat.createChild("ks", "rgb", "specular color", vec3f(0.f));
+    mat.createChild("ns", "float", "shininess [2-10e4]", 10.f);
+    mat.createChild("d", "float", "opacity [0-1]", 1.f);
+    mat.createChild("tf", "rgb", "transparency filter color", vec3f(0.f));
+    add(node);
 
-  void MaterialRegistry::addNewSGMaterial(std::string matType)
-  {
-    if (!hasChild(matType)) {
-      auto node = createNode("sgDefault", matType);
-      auto &mat = *node;
-      // Give it some editable parameters
-      mat.createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
-      mat.createChild("ks", "rgb", "specular color", vec3f(0.f));
-      mat.createChild("ns", "float", "shininess [2-10e4]", 10.f);
-      mat.createChild("d", "float", "opacity [0-1]", 1.f);
-      mat.createChild("tf", "rgb", "transparency filter color", vec3f(0.f));
-      add(node);
-
-      mat.child("ns").setMinMax(2.f,10000.f);
-      mat.child("d").setMinMax(0.f,1.f);
-    }
+    mat.child("ns").setMinMax(2.f,10000.f);
+    mat.child("d").setMinMax(0.f,1.f);
   }
 
   void MaterialRegistry::createCPPMaterials(const std::string &rType) 
@@ -37,18 +30,9 @@ namespace ospray {
     commit();
   }
 
-  void MaterialRegistry::rmMatImports()
-  {
-    if (matImportsList.size() != 0) {
-      for (auto &m : matImportsList) {
-        remove(m);
-      }
-    }
-    matImportsList.clear();
-  }
-
   void MaterialRegistry::updateMaterialList(const std::string &rType) 
   {
+    commit();
     createCPPMaterials(rType);
     sgMaterialList.clear();
     cppMaterialList.clear();

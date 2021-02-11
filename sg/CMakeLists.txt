@@ -1,4 +1,4 @@
-## Copyright 2009-2020 Intel Corporation
+## Copyright 2009-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -13,7 +13,7 @@ if(ENABLE_OPENIMAGEIO)
     message(STATUS "OpenImageIO not found. Using stb_image instead.")
   endif()
 else()
-  message(STATUS "Building without OpenVDB support. Using stb_image instead.")
+  message(STATUS "Building without OpenImageIO support. Using stb_image instead.")
 endif()
 
 ## OpenVDB support ##
@@ -54,6 +54,7 @@ add_library(ospray_sg SHARED
   camera/Camera.cpp
   camera/Perspective.cpp
   camera/Panoramic.cpp
+  camera/Orthographic.cpp
 
   exporter/Exporter.cpp
   exporter/PNG.cpp
@@ -78,7 +79,6 @@ add_library(ospray_sg SHARED
   importer/OBJ/tiny_obj_loader_impl.cpp
   importer/glTF.cpp
   importer/glTF/tiny_gltf_impl.cpp
-  importer/glTF/buffer_view.cpp
   importer/glTF/gltf_types.cpp
   importer/raw.cpp
   importer/vdb.cpp
@@ -105,13 +105,16 @@ add_library(ospray_sg SHARED
   renderer/materials/Velvet.cpp
 
   scene/World.cpp
+  scene/Transform.cpp
   scene/Animation.cpp
 
   scene/geometry/Geometry.cpp
   scene/geometry/Boxes.cpp
+  scene/geometry/Isosurfaces.cpp
   scene/geometry/Planes.cpp
   scene/geometry/Spheres.cpp
   scene/geometry/Triangles.cpp
+  scene/geometry/Curves.cpp
 
   scene/transfer_function/Cloud.cpp
   scene/transfer_function/Jet.cpp
@@ -125,7 +128,7 @@ add_library(ospray_sg SHARED
   scene/volume/RawFileStructuredVolume.cpp
 
   scene/lights/Light.cpp
-  scene/lights/Lights.cpp
+  scene/lights/LightsManager.cpp
   scene/lights/DirectionalLight.cpp
   scene/lights/AmbientLight.cpp
   scene/lights/SpotLight.cpp

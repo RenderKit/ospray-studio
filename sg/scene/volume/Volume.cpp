@@ -10,12 +10,15 @@ namespace ospray {
   {
     setValue(cpp::Volume(osp_type));
     createChild("visible", "bool", true);
+    createChild("filter", "int", "0 = nearest, 100 = trilinear", 0);
   }
 
   NodeType Volume::type() const
   {
     return NodeType::VOLUME;
   }
+
+  void Volume::load(const FileName &){}
 
   }  // namespace sg
 } // namespace ospray

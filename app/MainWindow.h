@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Intel Corporation
+// Copyright 2018-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -17,6 +17,7 @@
 #include "PluginManager.h"
 
 #include "widgets/AnimationWidget.h"
+#include "sg/importer/Importer.h"
 
 using namespace rkcommon::math;
 using namespace ospray;
@@ -90,8 +91,8 @@ class MainWindow : public StudioContext
   void setCameraState(CameraState &cs) override;
   void refreshScene(bool resetCamera) override;
   int whichLightType{-1};
+  int whichCamera{0};
   std::string lightTypeStr{"ambient"};
-
 
  protected:
   void buildPanel();
@@ -103,7 +104,6 @@ class MainWindow : public StudioContext
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
   void buildUI();
-  void refreshMaterialRegistry();
   void addLight();
   void removeLight();
   void addPTMaterials();
@@ -127,13 +127,19 @@ class MainWindow : public StudioContext
   void buildWindowLightEditor();
   void buildWindowCameraEditor();
   void buildWindowMaterialEditor();
-  void buildWindowGeometryViewer();
+  void buildWindowTransferFunctionEditor();
+  void buildWindowIsosurfaceEditor();
+  void buildWindowTransformEditor();
   void buildWindowRenderingStats();
 
   void setCameraSnapshot(size_t snapshot);
   void printHelp() override;
 
   std::vector<CameraState> cameraStack;
+
+  //Volume parameters
+  sg::VolumeParams vp;
+  bool useVolumeParams{false};
 
   // Plugins //
   std::vector<std::unique_ptr<Panel>> pluginPanels;
@@ -145,7 +151,9 @@ class MainWindow : public StudioContext
   bool showLightEditor{false};
   bool showCameraEditor{false};
   bool showMaterialEditor{false};
-  bool showGeometryViewer{false};
+  bool showTransferFunctionEditor{false};
+  bool showIsosurfaceEditor{false};
+  bool showTransformEditor{false};
   bool showRenderingStats{false};
 
   // imgui-controlled options
@@ -154,6 +162,11 @@ class MainWindow : public StudioContext
   bool screenshotDepth{false};
   bool screenshotNormal{false};
   bool screenshotLayers{false};
+  bool screenshotMetaData{false};
+
+  // Option to always show a gamma corrected display to user.  Native sRGB
+  // buffer is untouched, linear buffers are displayed as sRGB.
+  bool uiDisplays_sRGB{true}; 
 
   static MainWindow *activeWindow;
 
@@ -206,5 +219,6 @@ class MainWindow : public StudioContext
   GLenum gl_rgb_format;
   GLenum gl_rgba_format;
 
-  std::vector<std::shared_ptr<AnimationWidget>> allAnimationWidgets;
+  std::shared_ptr<AnimationWidget> animationWidget{nullptr};
+  std::shared_ptr<AnimationManager> animationManager{nullptr};
 };

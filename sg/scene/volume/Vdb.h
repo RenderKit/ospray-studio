@@ -6,8 +6,6 @@
 // sg
 #include "../../Data.h"
 #include "Volume.h"
-// rkcommon
-#include "rkcommon/os/FileName.h"
 
 #if USE_OPENVDB
 #include <openvdb/openvdb.h>
@@ -27,7 +25,7 @@ namespace ospray {
   {
     VdbVolume();
     virtual ~VdbVolume() override = default;
-    void load(const FileName &fileName);
+    void load(const FileName &fileName) override;
     VDBData generateVDBData(const FileName &fileNameAbs);
 
    private:

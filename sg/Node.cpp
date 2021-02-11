@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Node.h"
@@ -149,6 +149,11 @@ namespace ospray {
 
   void Node::add(NodePtr node, const std::string &name)
   {
+    if (hasChild(name)) {
+      if (properties.children[name] == node)
+        return;
+      properties.children[name]->removeFromParentList(*this);
+    }
     properties.children[name] = node;
     node->properties.parents.push_back(this);
     markAsModified();
@@ -210,6 +215,12 @@ namespace ospray {
   {
     commit();
     traverse<RenderScene>();
+  }
+
+  void Node::render(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap)
+  {
+    commit();
+    traverse<RenderScene>(geomIdMap, instanceIdMap);
   }
 
   box3f Node::bounds()
@@ -295,6 +306,7 @@ namespace ospray {
 
   void Node::removeFromParentList(Node &node)
   {
+    node.markAsModified(); // Removal requires notifying parents
     auto &p          = properties.parents;
     auto remove_node = [&](auto np) { return np == &node; };
     p.erase(std::remove_if(p.begin(), p.end(), remove_node), p.end());
@@ -302,16 +314,18 @@ namespace ospray {
 
   void Node::markAsModified()
   {
+    // Mark all parents, up to root, as modified
     properties.lastModified.renew();
     for (auto &p : properties.parents)
-      p->markChildrenModified();
+      p->updateChildrenModifiedTime();
   }
 
-  void Node::markChildrenModified()
+  void Node::updateChildrenModifiedTime()
   {
+    // Notify all parent of latest child modified time
     properties.childrenMTime.renew();
     for (auto &p : properties.parents)
-      p->markChildrenModified();
+      p->updateChildrenModifiedTime();
   }
 
   void Node::setOSPRayParam(std::string, OSPObject) {}
@@ -394,21 +408,22 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(Vec2fNode, vec2f);
   OSP_REGISTER_SG_NODE_NAME(Vec3fNode, vec3f);
   OSP_REGISTER_SG_NODE_NAME(Vec4fNode, vec4f);
+  OSP_REGISTER_SG_NODE_NAME(CharNode, char);
+  OSP_REGISTER_SG_NODE_NAME(UcharNode, uchar);
   OSP_REGISTER_SG_NODE_NAME(IntNode, int);
+  OSP_REGISTER_SG_NODE_NAME(UIntNode, uint32_t);
   OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
   OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
   OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec4i);
   OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
-
   OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
   OSP_REGISTER_SG_NODE_NAME(Box3iNode, box3i);
   OSP_REGISTER_SG_NODE_NAME(Range1fNode, range1f);
+  OSP_REGISTER_SG_NODE_NAME(Affine3fNode, affine3f);
+  OSP_REGISTER_SG_NODE_NAME(QuaternionfNode, quaternionf);
 
   OSP_REGISTER_SG_NODE_NAME(RGBNode, rgb);
   OSP_REGISTER_SG_NODE_NAME(RGBANode, rgba);
-
-  OSP_REGISTER_SG_NODE(Transform);
-  OSP_REGISTER_SG_NODE_NAME(Transform, transform);
 
   }  // namespace sg
 } // namespace ospray

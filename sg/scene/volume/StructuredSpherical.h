@@ -6,8 +6,6 @@
 // sg
 #include "../../Data.h"
 #include "Volume.h"
-// ospcommon
-#include "rkcommon/os/FileName.h"
 
 namespace ospray {
   namespace sg {
@@ -16,7 +14,7 @@ namespace ospray {
   {
     StructuredSpherical();
     virtual ~StructuredSpherical() override = default;
-    void load(const FileName &fileName);
+    void load(const FileName &fileName) override;
 
    private:
     bool fileLoaded{false};

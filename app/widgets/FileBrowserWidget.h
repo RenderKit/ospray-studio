@@ -10,6 +10,7 @@ using FilterList = std::vector<std::string>;
 
 // XXX tie this into the Importer extensions list
 static const FilterList defaultFilterList = {".*",
+    "Scene (.sg){.sg}",
     "Geometry (.obj .gltf .glb){.obj,.gltf,.glb}",
     "Volume (.raw .vdb){.raw,.vdb}",
     "Image (.jpg .hdr .exr){.jpg,.jpeg,.hdr,.exr}"};

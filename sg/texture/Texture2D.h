@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -15,7 +15,7 @@ namespace ospray {
   struct OSPSG_INTERFACE Texture2D : public Texture
   {
     Texture2D();
-    virtual ~Texture2D() override = default;
+    ~Texture2D() override;
 
     //! \brief load texture from given file.
     /*! \detailed if file does not exist, or cannot be loaded for
@@ -25,11 +25,12 @@ namespace ospray {
     void load(const FileName &fileName,
               const bool preferLinear  = false,
               const bool nearestFilter = false);
-    static void clearTextureCache();
+
+    std::string fileName;
 
     //! texture size, in pixels
     vec2i size{-1};
-    int channels{0};
+    int components{0};
     int depth{0};
     bool preferLinear{false};
     bool nearestFilter{false};
@@ -41,28 +42,37 @@ namespace ospray {
   };
 
   inline OSPTextureFormat osprayTextureFormat(int depth,
-                                              int channels,
+                                              int components,
                                               bool preferLinear)
   {
     if (depth == 1) {
-      if (channels == 1)
+      if (components == 1)
         return preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
-      if (channels == 2)
+      if (components == 2)
         return preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
-      if (channels == 3)
+      if (components == 3)
         return preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
-      if (channels == 4)
+      if (components == 4)
         return preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
+    } else if (depth == 2) {
+      if (components == 1)
+        return OSP_TEXTURE_R16;
+      if (components == 2)
+        return OSP_TEXTURE_RA16;
+      if (components == 3)
+        return OSP_TEXTURE_RGB16;
+      if (components == 4)
+        return OSP_TEXTURE_RGBA16;
     } else if (depth == 4) {
-      if (channels == 1)
+      if (components == 1)
         return OSP_TEXTURE_R32F;
-      if (channels == 3)
+      if (components == 3)
         return OSP_TEXTURE_RGB32F;
-      if (channels == 4)
+      if (components == 4)
         return OSP_TEXTURE_RGBA32F;
     }
 
-    std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << channels
+    std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << components
               << std::endl;
     return OSP_TEXTURE_FORMAT_INVALID;
   }

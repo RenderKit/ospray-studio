@@ -1,14 +1,16 @@
-## Copyright 2009-2020 Intel Corporation
+## Copyright 2009-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  OSPRAY_VER: "2.4.0"
-  RKCOMMON_VER: "1.5.1"
+  OSPRAY_VER: "2.5.0"
+  RKCOMMON_VER: "1.6.0"
 
 stages:
   - build
   - test
+  - release
+  - scan
 
 .build-linux:
   stage: build
@@ -16,14 +18,17 @@ stages:
   tags: [docker]
 
 source-protex-scan:
-  stage: build
+  stage: scan
   image: amd64/openjdk:8
   script:
     - gitlab/source-scan-protex.sh
   tags: [docker]
-  dependencies: []
+  needs: []
   allow_failure: true
 
+########
+# These build phases will no longer work on current branches, due to non-release branch dependencies
+########
 build-ubuntu18.04:
   extends: .build-linux
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
@@ -33,6 +38,9 @@ build-ubuntu18.04:
     name: ospray-studio
     paths:
       - build/
+  only:
+    refs:
+      - master, release-0.6.x
 
 build-osx-clang:
   stage: build
@@ -43,6 +51,9 @@ build-osx-clang:
     name: ospray-studio
     paths:
       - build-macos/
+  only:
+    refs:
+      - master, release-0.6.x
 
 build-windows-msvc15:
   stage: build
@@ -53,6 +64,9 @@ build-windows-msvc15:
     name: ospray-studio
     paths:
       - build-win/
+  only:
+    refs:
+      - master, release-0.6.x
 
 build-kw:
   extends: .build-linux
@@ -61,7 +75,10 @@ build-kw:
     - gitlab/build-kw.sh
   artifacts:
     paths:
-      - kw_build_number
+      - klockwork/*
+  only:
+    refs:
+      - master, release-0.6.x
 
 test-run-ubuntu18.04:
   stage: test
@@ -70,6 +87,9 @@ test-run-ubuntu18.04:
   tags: [docker]
   script:
     - gitlab/run.sh
+  only:
+    refs:
+      - master, release-0.6.x
 
 test-kw:
   stage: test
@@ -79,3 +99,152 @@ test-kw:
   script:
     - gitlab/test-kw.sh
   allow_failure: true
+  only:
+    refs:
+      - master, release-0.6.x
+
+########
+# Transitional phases, only works against devel branch dependencies
+########
+build-ubuntu18.04-dev:
+  extends: .build-linux
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  script:
+    - gitlab/build-dev.sh
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build/
+
+build-osx-clang-dev:
+  stage: build
+  tags: [osx, clang]
+  script:
+    - gitlab/macos-dev.sh
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build-macos/
+
+build-windows-msvc15-dev:
+  stage: build
+  tags: [win, msvc15]
+  script:
+    - gitlab\win-dev.ps1 "Visual Studio 15 2017 Win64" "v141" "Release"
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build-win/
+
+build-kw-dev:
+  extends: .build-linux
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  script:
+    - gitlab/build-kw-dev.sh
+  artifacts:
+    paths:
+      - klocwork/*
+
+test-kw-dev:
+  stage: scan
+  tags: [docker]
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
+  needs: [build-kw-dev]
+  script:
+    - gitlab/kw-check-issues.sh
+  allow_failure: true
+
+kw-gen-report:
+  stage: scan
+  tags: [docker]
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
+  needs: [build-kw-dev]
+  script:
+    - gitlab/kw-gen-report.sh
+  artifacts:
+    paths:
+      - klocwork/report.log
+
+
+test-run-ubuntu18.04-dev:
+  stage: test
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-ubuntu18.04-dev]
+  tags: [docker]
+  script:
+    - gitlab/run-dev.sh
+
+release-linux:
+  stage: release
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-ubuntu18.04-dev]
+  tags: [docker]
+  script:
+    - apt-get install zip -y
+    - export RELEASE_DIRECTORY=ospray_studio_release_lin
+    - mkdir $RELEASE_DIRECTORY
+    - cp build/ospStudio $RELEASE_DIRECTORY/
+    - cp build/libospray_sg.so $RELEASE_DIRECTORY/
+    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+  artifacts:
+    paths:
+      - ospray_studio_release_lin.zip
+
+
+release-windows:
+  stage: release
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-windows-msvc15-dev]
+  tags: [docker]
+  script:
+    - apt-get install zip -y
+    - export RELEASE_DIRECTORY=ospray_studio_release_win
+    - mkdir $RELEASE_DIRECTORY
+    - cp build-win/Release/ospStudio.exe $RELEASE_DIRECTORY/
+    - cp build-win/Release/ospray_sg.dll $RELEASE_DIRECTORY/
+    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+  artifacts:
+    paths:
+      - ospray_studio_release_win.zip
+
+release-macos:
+  stage: release
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  needs: [build-osx-clang-dev]
+  tags: [docker]
+  script:
+    - apt-get install zip -y
+    - export RELEASE_DIRECTORY=ospray_studio_release_macos
+    - mkdir $RELEASE_DIRECTORY
+    - cp build-macos/ospStudio $RELEASE_DIRECTORY/
+    - cp build-macos/libospray_sg.dylib $RELEASE_DIRECTORY/
+    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+  artifacts:
+    paths:
+      - ospray_studio_release_macos.zip
+
+
+scan-bdba-bin:
+  stage: scan
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
+  tags: [docker]
+  needs: [release-linux, release-windows, release-macos]
+  script:
+    - gitlab/bdba.sh "ospray_studio_release_*"
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio_release_*.pdf"
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio_release_*.csv"
+  artifacts:
+    paths:
+      - ospray_studio_release_*.pdf
+      - ospray_studio_release_*.csv
+
+av:
+  stage: scan
+  tags: [docker]
+  image: $DOCKER_REGISTRY/clamav:ubuntu20.04
+  needs: [release-linux, release-windows, release-macos]
+  script:
+    - freshclam | tee -a /tmp/av_scan.log
+    - clamscan -va --max-filesize=512M --max-scansize=2048M --alert-broken --alert-exceeds-max ospray_studio_release_* | tee -a /tmp/av_scan.log
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID av /tmp/av_scan.log
+

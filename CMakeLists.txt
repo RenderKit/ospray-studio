@@ -1,8 +1,8 @@
-## Copyright 2009-2020 Intel Corporation
+## Copyright 2009-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 cmake_policy(SET CMP0048 NEW) # required for project version after 3.18.3
-project(ospray_studio VERSION 0.5.0 LANGUAGES CXX)
+project(ospray_studio VERSION 0.6.0 LANGUAGES CXX)
 cmake_minimum_required(VERSION 3.1)
 
 if(POLICY CMP0074)
@@ -43,8 +43,8 @@ endif()
 set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL 2 REQUIRED)
 find_package(glfw3 REQUIRED)
-find_package(rkcommon 1.4.0 REQUIRED)
-find_package(ospray 2.2.0 REQUIRED)
+find_package(rkcommon 1.6.0 REQUIRED)
+find_package(ospray 2.5.0 REQUIRED)
 
 ## Build application ##
 

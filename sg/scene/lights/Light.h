@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -13,6 +13,11 @@ namespace ospray {
     Light(std::string type);
     ~Light() override = default;
     NodeType type() const override;
+
+    void initOrientation(std::map<std::string, vec3f> &propMap);
+
+   private:
+    bool setOrientation{true};
   };
 
   }  // namespace sg

@@ -1,10 +1,13 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
 #include "../Node.h"
 #include "../renderer/MaterialRegistry.h"
+#include "../scene/Transform.h"
+#include "../scene/geometry/Geometry.h"
+#include "../scene/lights/Light.h"
 // std
 #include <stack>
 
@@ -14,6 +17,7 @@ namespace ospray {
   struct RenderScene : public Visitor
   {
     RenderScene();
+    RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
     void postChildren(Node &node, TraversalContext &) override;
@@ -25,7 +29,7 @@ namespace ospray {
     void addGeometriesToGroup();
     void createInstanceFromGroup();
     void placeInstancesInWorld();
-    void addLightToWorld(Node &node);
+    void setLightParams(Node &node);
 
     // Data //
 
@@ -33,6 +37,7 @@ namespace ospray {
     {
       std::vector<cpp::GeometricModel> geometries;
       std::vector<cpp::VolumetricModel> volumes;
+      std::vector<cpp::GeometricModel> clippingGeometries;
       // make this a shared pointer instead of vector
       std::vector<cpp::Texture> textures;
       // make this a shared pointer instead of vector
@@ -45,12 +50,15 @@ namespace ospray {
     } current;
     bool setTextureVolume{false};
     cpp::World world;
-    int unusedGeoms = 0;
     std::vector<cpp::Instance> instances;
     std::stack<affine3f> xfms;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
-    float currentTimestep;
+    std::string instanceId{""};
+    std::string geomId{""};
+    bool useCustomIds{false};
+    GeomIdMap *g{nullptr};
+    InstanceIdMap *in{nullptr};
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -60,22 +68,25 @@ namespace ospray {
     xfms.emplace(math::one);
   }
 
-  inline bool RenderScene::operator()(Node &node, TraversalContext &ctx)
+  inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap)
+  {
+    xfms.emplace(math::one);
+    g = &geomIdMap;
+    in = &instanceIdMap;
+  }
+
+  inline bool RenderScene::operator()(Node &node, TraversalContext &)
   {
     bool traverseChildren = true;
 
     switch (node.type()) {
     case NodeType::WORLD:
       world = node.valueAs<cpp::World>();
-      if(node.hasChild("time"))
-        currentTimestep = node.child("time").valueAs<float>();
+      // XXX Can this be set only when in navMode?
+      world.setParam("dynamicScene", true);
       break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
-      break;
-    case NodeType::GEOMETRY:
-      createGeometry(node);
-      traverseChildren = false;
       break;
     case NodeType::TEXTUREVOLUME:
       setTextureVolume = true;
@@ -88,27 +99,26 @@ namespace ospray {
     case NodeType::TRANSFER_FUNCTION:
       tfns.push(node.valueAs<cpp::TransferFunction>());
       break;
-    case NodeType::ANIMATION:
-    {
-      auto &nc = node.children();
-      for (auto &c : nc) {
-        auto timestep = c.second->child("timestep").valueAs<float>();
-          if (timestep == currentTimestep) {
-            xfms.push(xfms.top() * c.second->valueAs<affine3f>());
-          }
+    case NodeType::TRANSFORM: {
+      affine3f xfm =
+          affine3f::rotate(node.child("rotation").valueAs<quaternionf>())
+          * affine3f::scale(node.child("scale").valueAs<vec3f>());
+      xfm.p = node.child("translation").valueAs<vec3f>();
+      auto xfmNode = node.nodeAs<Transform>();
+      xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
+      xfms.push(xfmNode->accumulatedXfm);
+      // special Ids overwrite all id writing implementations
+      if (node.hasChild("instanceID") && !useCustomIds){
+        instanceId = node.child("instanceId").valueAs<std::string>();
+        if (node.hasChild("useCustomIds"))
+          useCustomIds = true;
       }
-      traverseChildren = false;
-    } break;
-    case NodeType::TRANSFORM:
-      if (unusedGeoms == current.geometries.size())
-        xfms.push(xfms.top() * node.valueAs<affine3f>());
-        else if (!node.hasChild("timestep")) {
-        createInstanceFromGroup();
-        xfms.push(xfms.top() * node.valueAs<affine3f>());
-      }
+      if (node.hasChild("geomId"))
+        geomId = node.child("geomId").valueAs<std::string>();
       break;
+    }
     case NodeType::LIGHT:
-      addLightToWorld(node);
+      setLightParams(node);
       break;
     default:
       break;
@@ -125,17 +135,31 @@ namespace ospray {
       placeInstancesInWorld();
       world.commit();
       break;
+    case NodeType::GEOMETRY:
+      createGeometry(node);
+      break;
     case NodeType::TRANSFER_FUNCTION:
       tfns.pop();
       break;
     case NodeType::TRANSFORM:
       createInstanceFromGroup();
       xfms.pop();
+      if (node.hasChild("instanceID")) {
+        if (useCustomIds) {
+          if (node.hasChild("useCustomIds")){
+            instanceId = "";
+            useCustomIds = false;
+          }
+        } else
+          instanceId = "";
+      }
+      if (node.hasChild("geomId"))
+        geomId = "";
       break;
     case NodeType::MATERIAL_REFERENCE:
       break;
     case NodeType::LIGHT:
-      world.commit();
+      // world.commit();
       break;
     default:
       // Nothing
@@ -148,10 +172,48 @@ namespace ospray {
     if (!node.child("visible").valueAs<bool>())
       return;
 
+    // skinning
+    auto geomNode = node.nodeAs<Geometry>();
+    if (geomNode->skin) {
+      auto &joints = geomNode->skin->joints;
+      auto &inverseBindMatrices = geomNode->skin->inverseBindMatrices;
+      for (size_t i = 0; i < geomNode->positions.size(); ++i) { // XXX parallel
+        affine3f xfm{zero};
+        for (size_t j = 0; j < 4; ++j) {
+          const int idx = geomNode->joints[i][j];
+          xfm = xfm
+              + geomNode->weights[i][j]
+                  * joints[idx]->nodeAs<Transform>()->accumulatedXfm
+                  * inverseBindMatrices[idx];
+        }
+        xfm = rcp(geomNode->skeletonRoot->nodeAs<Transform>()->accumulatedXfm)
+            * xfm;
+        geomNode->skinnedPositions[i] = xfmPoint(xfm, geomNode->positions[i]);
+        if (geomNode->skinnedNormals.size())
+          geomNode->skinnedNormals[i] = xfmNormal(xfm, geomNode->normals[i]);
+      }
+    }
+
     auto geom = node.valueAs<cpp::Geometry>();
     cpp::GeometricModel model(geom);
+    auto ospGeometricModel = model.handle();
+
+    if (g != nullptr) {
+      // if geometric Id was set by a parent transform node
+      // this happens in very specific cases like BIT reference extensions
+      if (!geomId.empty())
+        g->insert(GeomIdMap::value_type(ospGeometricModel, geomId));
+      else {
+        // add geometry SG node name as unique geometry ID 
+        g->insert(GeomIdMap::value_type(ospGeometricModel, node.name()));
+      }
+    }
+
     if (node.hasChild("material")) {
-      model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
+      if (node["material"].valueIsType<cpp::CopiedData>())
+        model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
+      else
+        model.setParam("material", node["material"].valueAs<unsigned int>());
     } else {
       if (current.materials.size() != 0) {
         model.setParam("material", *current.materials.begin());
@@ -159,8 +221,16 @@ namespace ospray {
       } else
         model.setParam("material", materialIDs.top());
     }
+
+    if (node.hasChild("color")) {
+      model.setParam("color", node["color"].valueAs<cpp::CopiedData>());
+    }
+
     model.commit();
-    current.geometries.push_back(model);
+    if (!node.child("isClipping").valueAs<bool>())
+      current.geometries.push_back(model);
+    else
+      current.clippingGeometries.push_back(model);
   }
 
   inline void RenderScene::createVolume(Node &node)
@@ -216,7 +286,8 @@ namespace ospray {
               << std::endl;
     #endif
 
-    if (current.geometries.empty() && current.volumes.empty())
+    if (current.geometries.empty() && current.volumes.empty()
+        && current.clippingGeometries.empty())
       return;
 
     cpp::Group group;
@@ -227,8 +298,16 @@ namespace ospray {
     if (!current.volumes.empty())
       group.setParam("volume", cpp::CopiedData(current.volumes));
 
+    if (!current.clippingGeometries.empty())
+      group.setParam(
+          "clippingGeometry", cpp::CopiedData(current.clippingGeometries));
+
     current.geometries.clear();
     current.volumes.clear();
+    current.clippingGeometries.clear();
+
+    // XXX Can this be set only when in navMode?
+    group.setParam("dynamicScene", true);
 
     group.commit();
 
@@ -236,15 +315,37 @@ namespace ospray {
     inst.setParam("xfm", xfms.top());
     inst.commit();
     instances.push_back(inst);
+
+    if (in != nullptr && !instanceId.empty()) {
+      auto ospInstance = inst.handle();
+      in->insert(InstanceIdMap::value_type(ospInstance, instanceId));
+    }
     #if defined(DEBUG)
     std::cout << "number of instances : " << instances.size() << std::endl;
     #endif
   }
 
-  inline void RenderScene::addLightToWorld(Node &node)
+  inline void RenderScene::setLightParams(Node &node)
   {
-    auto &light = node.valueAs<cpp::Light>();
-    world.setParam("light", (cpp::CopiedData)light);
+    auto type = node.subType();
+    std::map<std::string, vec3f> propMap;
+
+    if (type == "sphere" || type == "spot" || type == "quad") {
+      auto lightPos = xfmPoint(xfms.top(), vec3f(0));
+      propMap.insert(std::make_pair("position", lightPos));
+    }
+
+    if (type == "distant" || type == "hdri" || type == "spot") {
+      auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
+      propMap.insert(std::make_pair("direction", lightDir));
+    }
+
+    if (type == "hdri") {
+      auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
+      propMap.insert(std::make_pair("up", upDir));
+    }
+    auto lightNode = node.nodeAs<sg::Light>();
+    lightNode->initOrientation(propMap);
   }
 
   inline void RenderScene::placeInstancesInWorld()

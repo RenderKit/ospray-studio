@@ -70,9 +70,6 @@ namespace ospray {
         std::static_pointer_cast<sg::Texture2D>(
             sg::createNode(map_name, "texture_2d"));
 
-    auto &tex2D = *sgTex;
-    tex2D["name"].setValue(texName.str());
-
     sgTex->load(containingPath + texName, preferLinear, nearestFilter);
 
     return sgTex;
@@ -83,7 +80,6 @@ namespace ospray {
     const std::string containingPath = fileName.path();
     // Try to load scene without auto-triangulation.  If point, lines,
     // or polygons are found; reload the scene as a triangle mesh.
-    bool ret         = false;
     bool needsReload = false;
 
     do {
@@ -91,14 +87,14 @@ namespace ospray {
       std::string warn;
       std::string err;
 
-      ret = tinyobj::LoadObj(&retval.attrib,
-                             &retval.shapes,
-                             &retval.materials,
-                             &warn,
-                             &err,
-                             fileName.c_str(),
-                             containingPath.c_str(),
-                             needsReload);  // triangulate meshes if true
+      tinyobj::LoadObj(&retval.attrib,
+          &retval.shapes,
+          &retval.materials,
+          &warn,
+          &err,
+          fileName.c_str(),
+          containingPath.c_str(),
+          needsReload); // triangulate meshes if true
 
       auto numQuads     = 0;
       auto numTriangles = 0;
@@ -217,7 +213,8 @@ namespace ospray {
             if (paramName == "thin") {
               paramType = "bool";
               paramValue = paramValue == 0 ? false : true;
-            } else if (paramName.find("Color") != std::string::npos
+            } else if ((paramName.find("Color") != std::string::npos
+                           || paramName.find("color") != std::string::npos)
                 && paramType == "vec3f") {
               // rgb type allows for ImGui color editor
               paramType = "rgb";
@@ -298,7 +295,7 @@ namespace ospray {
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
     std::string baseName = fileName.name() + "_rootXfm";
-    auto rootNode = createNode(baseName, "Transform", affine3f{one});
+    auto rootNode = createNode(baseName, "transform");
 
     auto objData = loadFromFile(fileName);
 
@@ -309,10 +306,8 @@ namespace ospray {
 
     size_t baseMaterialOffset = materialRegistry->children().size();
 
-    for (auto m : materialNodes) {
+    for (auto m : materialNodes)
       materialRegistry->add(m);
-      materialRegistry->matImportsList.push_back(m->name());
-    }
 
     auto &attrib = objData.attrib;
 

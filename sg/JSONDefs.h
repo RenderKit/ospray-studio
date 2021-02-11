@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -7,24 +7,40 @@
 
 #include "Node.h"
 #include "importer/Importer.h"
-#include "scene/lights/Lights.h"
+#include "scene/lights/LightsManager.h"
 
 // This file contains definitions of `to_json` and `from_json` for custom types
 // used within Studio. These methods allow us to easily serialize and
 // deserialize SG nodes to JSON.
+
+// default nlohmann::json will sort map alphabetically. this leaves it as-is
+using JSON = nlohmann::ordered_json;
+
+///////////////////////////////////////////////////////////////////////
+// Forward declarations ///////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+inline void to_json(JSON &j, const CameraState &cs);
+inline void from_json(const JSON &j, CameraState &cs);
 
 // rkcommon type declarations /////////////////////////////////////////
 
 namespace rkcommon {
 namespace containers {
 void to_json(
-    nlohmann::json &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm);
+    JSON &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm);
 void from_json(
-    const nlohmann::json &j, FlatMap<std::string, ospray::sg::NodePtr> &fm);
+    const JSON &j, FlatMap<std::string, ospray::sg::NodePtr> &fm);
 } // namespace containers
+namespace math {
+inline void to_json(JSON &j, const AffineSpace3f &as);
+inline void from_json(const JSON &j, AffineSpace3f &as);
+inline void to_json(JSON &j, const quaternionf &q);
+inline void from_json(const JSON &j, quaternionf &q);
+} // namespace math
 namespace utility {
-void to_json(nlohmann::json &j, const Any &a);
-void from_json(const nlohmann::json &j, Any &a);
+void to_json(JSON &j, const Any &a);
+void from_json(const JSON &j, Any &a);
 } // namespace utility
 } // namespace rkcommon
 
@@ -35,12 +51,22 @@ void from_json(const nlohmann::json &j, Any &a);
 namespace ospray {
 namespace sg {
 
-inline void to_json(nlohmann::json &j, const Node &n)
+inline void to_json(JSON &j, const Node &n)
 {
-  j = nlohmann::json{{"name", n.name()},
-      {"type", n.type()},
-      {"subType", n.subType()},
-      {"description", n.description()}};
+  // Don't export these nodes, they must be regenerated and can't be imported.
+  if ((n.type() == NodeType::GENERIC && n.name() == "handles")
+      || (n.type() == NodeType::PARAMETER && n.subType() == "Data")
+      || (n.type() == NodeType::GEOMETRY))
+    return;
+
+  // XXX would be nice to have GEOMETRY node for isVisible and isClippingGeometry properties
+
+  j = JSON{{"name", n.name()},
+      {"type", NodeTypeToString[n.type()]},
+      {"subType", n.subType()}};
+
+  if (n.description() != "<no description>")
+    j["description"] = n.description();
 
   // we only want the importer and its root transform, not the hierarchy of
   // geometry under it
@@ -59,38 +85,83 @@ inline void to_json(nlohmann::json &j, const Node &n)
     j["sgOnly"] = n.sgOnly();
 
   if (n.value().valid() && (n.type() == NodeType::PARAMETER
-      || n.type() == NodeType::TRANSFORM))
+      || n.type() == NodeType::TRANSFORM)) {
     j["value"] = n.value();
+    if (n.hasMinMax())
+      j["minMax"] = JSON{n.min(), n.max()};
+  }
 
-  if (n.hasChildren() && n.type() != NodeType::TRANSFORM)
+  if (n.hasChildren())
     j["children"] = n.children();
 }
 
-inline void from_json(const nlohmann::json &j, Node &n) {}
+inline void from_json(const JSON &, Node &) {}
 
-inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const nlohmann::json &j) {
+inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
   NodePtr n = nullptr;
+
+  // This is a generated value and can't be imported
+  if (j["name"] == "handles")
+    return nullptr;
+
+  // XXX Textures import needs to be handled correctly.  Skip for now.
+  if (j["subType"] == "texture_2d")
+    return nullptr;
+
   if (j.contains("value")) {
-    n = createNode(
-        j["name"], j["subType"], j["description"], j["value"].get<Any>());
+    if (j.contains("description")) {
+      n = createNode(
+          j["name"], j["subType"], j["description"], j["value"].get<Any>());
+    }
+    // XXX these two checks are a temporary fix for saving the RST xform
+    // children. Without these, they will be loaded as a JSON object, which
+    // we do not support. Ideally these RST nodes should be loaded as basic
+    // child nodes with a special type
+    else if (j["subType"] == "transform") {
+      n = createNode(j["name"],
+          j["subType"],
+          j["value"].get<rkcommon::math::AffineSpace3f>());
+    } else if (j["subType"] == "quaternionf") {
+      n = createNode(j["name"],
+          j["subType"],
+          j["value"].get<rkcommon::math::quaternionf>());
+    } else {
+      n = createNode(j["name"], j["subType"], j["value"].get<Any>());
+    }
+
+    // JSON doesn't distinguish between uint8_t and integer.  Convert it, if
+    // the subType calls for an uchar.
+    if (j["subType"] == "uchar")
+      n->setValue(uint8_t(n->valueAs<int>()));
+
   } else {
     n = createNode(j["name"], j["subType"]);
   }
 
-  // the default ambient light might not exist in this scene
-  // the loop below will add it if it does exist
-  if (j["type"] == NodeType::LIGHTS)
-    n->nodeAs<Lights>()->removeLight("ambient");
+  if (n != nullptr) {
+    // the default ambient light might not exist in this scene
+    // the loop below will add it if it does exist
+    if (n && n->type() == NodeType::LIGHTS)
+      n->nodeAs<LightsManager>()->removeLight("ambient");
 
-  if (j.contains("children")) {
-    for (auto &jChild : j["children"]) {
-      auto child = createNodeFromJSON(jChild);
-      if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
-        child->setSGOnly();
-      if (j["type"] == NodeType::LIGHTS)
-        n->nodeAs<Lights>()->addLight(child);
-      else
-        n->add(child);
+    if (j.contains("children")) {
+      for (auto &jChild : j["children"]) {
+        auto child = createNodeFromJSON(jChild);
+        if (!child)
+          continue;
+        if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
+          child->setSGOnly();
+        if (jChild.contains("minMax")) {
+          auto minMax = jChild["minMax"].get<std::vector<Any>>();
+          child->setMinMax(minMax[0], minMax[1]);
+        }
+        if (n->type() == NodeType::LIGHTS)
+          n->nodeAs<LightsManager>()->addLight(child);
+        else if (n->type() == NodeType::MATERIAL)
+          n->nodeAs<Material>()->add(child);
+        else
+          n->add(child);
+      }
     }
   }
 
@@ -108,72 +179,75 @@ namespace rkcommon {
 namespace containers {
 
 inline void to_json(
-    nlohmann::json &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm)
+    JSON &j, const FlatMap<std::string, ospray::sg::NodePtr> &fm)
 {
-  for (const auto e : fm)
-    j.push_back(*(e.second));
+  for (const auto e : fm) {
+    JSON jnew = *(e.second);
+    if (!jnew.is_null())
+      j.push_back(jnew);
+  }
 }
 
 inline void from_json(
-    const nlohmann::json &j, FlatMap<std::string, ospray::sg::NodePtr> &fm)
+    const JSON &, FlatMap<std::string, ospray::sg::NodePtr> &)
 {}
 
 } // namespace containers
 
 namespace math {
 
-inline void to_json(nlohmann::json &j, const vec2f &v)
+inline void to_json(JSON &j, const vec2f &v)
 {
   j = {v.x, v.y};
 }
 
-inline void from_json(const nlohmann::json &j, vec2f &v)
+inline void from_json(const JSON &j, vec2f &v)
 {
   j.at(0).get_to(v.x);
   j.at(1).get_to(v.y);
 }
 
-inline void to_json(nlohmann::json &j, const vec3f &v)
+inline void to_json(JSON &j, const vec3f &v)
 {
   j = {v.x, v.y, v.z};
 }
 
-inline void from_json(const nlohmann::json &j, vec3f &v)
+inline void from_json(const JSON &j, vec3f &v)
 {
   j.at(0).get_to(v.x);
   j.at(1).get_to(v.y);
   j.at(2).get_to(v.z);
 }
 
-inline void to_json(nlohmann::json &j, const LinearSpace3f &ls)
+inline void to_json(JSON &j, const LinearSpace3f &ls)
 {
-  j = nlohmann::json{{"x", ls.vx}, {"y", ls.vy}, {"z", ls.vz}};
+  j = JSON{{"x", ls.vx}, {"y", ls.vy}, {"z", ls.vz}};
 }
 
-inline void from_json(const nlohmann::json &j, LinearSpace3f &ls)
+inline void from_json(const JSON &j, LinearSpace3f &ls)
 {
   j.at("x").get_to(ls.vx);
   j.at("y").get_to(ls.vy);
   j.at("z").get_to(ls.vz);
 }
 
-inline void to_json(nlohmann::json &j, const AffineSpace3f &as)
+inline void to_json(JSON &j, const AffineSpace3f &as)
 {
-  j = nlohmann::json{{"linear", as.l}, {"affine", as.p}};
+  j = JSON{{"linear", as.l}, {"affine", as.p}};
 }
 
-inline void from_json(const nlohmann::json &j, AffineSpace3f &as)
+inline void from_json(const JSON &j, AffineSpace3f &as)
 {
   j.at("linear").get_to(as.l);
   j.at("affine").get_to(as.p);
 }
 
-inline void to_json(nlohmann::json &j, const quaternionf &q)
+inline void to_json(JSON &j, const quaternionf &q)
 {
-  j = nlohmann::json{{"r", q.r}, {"i", q.i}, {"j", q.j}, {"k", q.k}};
+  j = JSON{{"r", q.r}, {"i", q.i}, {"j", q.j}, {"k", q.k}};
 }
 
-inline void from_json(const nlohmann::json &j, quaternionf &q)
+inline void from_json(const JSON &j, quaternionf &q)
 {
   j.at("r").get_to(q.r);
   j.at("i").get_to(q.i);
@@ -185,12 +259,14 @@ inline void from_json(const nlohmann::json &j, quaternionf &q)
 
 namespace utility {
 
-inline void to_json(nlohmann::json &j, const Any &a)
+inline void to_json(JSON &j, const Any &a)
 {
   if (a.is<int>())
     j = a.get<int>();
   else if (a.is<bool>())
     j = a.get<bool>();
+  else if (a.is<uint8_t>())
+    j = a.get<uint8_t>();
   else if (a.is<float>())
     j = a.get<float>();
   else if (a.is<std::string>())
@@ -201,11 +277,13 @@ inline void to_json(nlohmann::json &j, const Any &a)
     j = a.get<math::vec3f>();
   else if (a.is<math::AffineSpace3f>())
     j = a.get<math::AffineSpace3f>();
+  else if (a.is<math::quaternionf>())
+    j = a.get<math::quaternionf>();
   else
     j = ":^)";
 }
 
-inline void from_json(const nlohmann::json &j, Any &a)
+inline void from_json(const JSON &j, Any &a)
 {
   if (j.is_primitive()) { // string, number , bool, null, or binary
     if (j.is_null())
@@ -221,12 +299,14 @@ inline void from_json(const nlohmann::json &j, Any &a)
     else
       std::cout << "unhandled primitive type in json" << std::endl;
   } else if (j.is_structured()) { // array or object
-    if (j.is_array() && j.size() == 3)
+    if (j.is_array() && j.size() == 2)
+      a = j.get<math::vec2f>();
+    else if (j.is_array() && j.size() == 3)
       a = j.get<math::vec3f>();
     else if (j.is_object())
       std::cout << "cannot load object types from json" << std::endl;
     else
-      std::cout << "unhandled structured type in json" << std::endl;
+      std::cout << "unhandled structured type in json " << std::endl;
   } else { // something is wrong
     std::cout << "unidentified type in json" << std::endl;
   }
@@ -240,14 +320,14 @@ inline void from_json(const nlohmann::json &j, Any &a)
 // Global namespace type definitions //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-inline void to_json(nlohmann::json &j, const CameraState &cs)
+inline void to_json(JSON &j, const CameraState &cs)
 {
-  j = nlohmann::json{{"centerTranslation", cs.centerTranslation},
+  j = JSON{{"centerTranslation", cs.centerTranslation},
       {"translation", cs.translation},
       {"rotation", cs.rotation}};
 }
 
-inline void from_json(const nlohmann::json &j, CameraState &cs)
+inline void from_json(const JSON &j, CameraState &cs)
 {
   j.at("centerTranslation").get_to(cs.centerTranslation);
   j.at("translation").get_to(cs.translation);

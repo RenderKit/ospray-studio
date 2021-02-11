@@ -15,7 +15,7 @@ namespace ospray {
 
     NodeType type() const override;
 
-    void startNewFrame();
+    void startNewFrame(bool interacting = false);
 
     bool frameIsReady();
     float frameProgress();

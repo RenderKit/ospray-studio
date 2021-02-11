@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -12,23 +12,35 @@ namespace ospray {
       : public OSPNode<cpp::FrameBuffer, NodeType::FRAME_BUFFER>
   {
     FrameBuffer();
-    ~FrameBuffer() override = default;
+    ~FrameBuffer() override;
 
     NodeType type() const override;
 
     const void *map(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmap(const void *mem);
     float variance();
+    uint32_t *instData{nullptr};
+    uint32_t *geomData{nullptr};
+    float *worldPosData{nullptr};
+
+    GeomIdMap ge;
+    InstanceIdMap in;
 
     void resetAccumulation();
     void updateDenoiser(bool enabled);
     void updateToneMapper(bool enabled);
     void updateImageOperations();
     void saveFrame(std::string filename, int flags);
+    void pickFrame(std::string filename);
 
-    inline bool hasFloatFormat()
+    inline bool isFloatFormat()
     {
       return (child("colorFormat").valueAs<std::string>() == "float");
+    }
+
+    inline bool isSRGB()
+    {
+      return (hasChild("sRGB") && child("sRGB").valueAs<bool>());
     }
 
     inline bool hasDepthChannel()

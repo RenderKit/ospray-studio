@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -6,6 +6,7 @@
 #include "Visitor.h"
 // stl
 #include <map>
+#include <unordered_map>
 #include <memory>
 #include <vector>
 // rkcommon
@@ -59,6 +60,9 @@ namespace sg {
   using NodePtr = std::shared_ptr<Node>;
 
   struct Data;
+
+  typedef std::unordered_map<OSPGeometricModel, std::string> GeomIdMap;
+  typedef std::unordered_map<OSPInstance, std::string> InstanceIdMap;
 
   struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
   {
@@ -162,10 +166,12 @@ namespace sg {
     template <typename... Args>
     void createChildData(std::string name, Args &&... args);
 
-    // Public method, where anyChildModified is protected
+    // Public method for self or any children modified
     inline bool isModified()
     {
-      return anyChildModified();
+      // True for self or any children, whereas anyChildModified doesn't
+      // include self
+      return subtreeModifiedButNotCommitted();
     }
 
     // Traversal interface ////////////////////////////////////////////////////
@@ -177,16 +183,10 @@ namespace sg {
     template <typename VISITOR_T, typename... Args>
     void traverse(Args &&... args);
 
-    // //! Helper overload to traverse with a default constructed TravesalContext
-    template <typename VISITOR_T>
-    void traverseAnimation(TraversalContext &ctx, VISITOR_T &&visitor);
-
-    template <typename VISITOR_T, typename... Args>
-    void traverseAnimation(
-        NodePtr animationWorld, Args &&... args);
-
     void commit();
     void render();
+    void render(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap);
+
     box3f bounds();
 
     virtual void setOSPRayParam(std::string param, OSPObject handle);
@@ -226,7 +226,7 @@ namespace sg {
     TimeStamp childrenLastModified() const;
 
     void markAsModified();
-    void markChildrenModified();
+    void updateChildrenModifiedTime();
 
     bool subtreeModifiedButNotCommitted() const;
     bool anyChildModified() const;
@@ -305,22 +305,24 @@ namespace sg {
   using Vec2fNode   = Node_T<vec2f>;
   using Vec3fNode   = Node_T<vec3f>;
   using Vec4fNode   = Node_T<vec4f>;
+  using CharNode    = Node_T<char>;
+  using UcharNode   = Node_T<unsigned char>;
   using IntNode     = Node_T<int>;
+  using UIntNode    = Node_T<uint32_t>;
   using Vec2iNode   = Node_T<vec2i>;
   using Vec3iNode   = Node_T<vec3i>;
   using Vec4iNode   = Node_T<vec4i>;
   using VoidPtrNode = Node_T<void *>;
-
-  // Extra aliases //
-
   using Box3fNode   = Node_T<box3f>;
   using Box3iNode   = Node_T<box3i>;
   using Range1fNode = Node_T<range1f>;
+  using Affine3fNode = Node_T<affine3f>;
+  using QuaternionfNode = Node_T<quaternionf>;
+
+  // Extra aliases //
 
   using RGBNode  = Node_T<rgb>;
   using RGBANode = Node_T<rgba>;
-
-  using Transform = Node_T<affine3f>;
 
   /////////////////////////////////////////////////////////////////////////////
   // OSPRay Object Nodes //////////////////////////////////////////////////////

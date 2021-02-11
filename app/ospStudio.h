@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -13,6 +13,7 @@
 // ospray sg
 #include "sg/Frame.h"
 #include "sg/renderer/MaterialRegistry.h"
+#include "sg/scene/lights/LightsManager.h"
 // studio app
 #include "ArcballCamera.h"
 // ospcommon
@@ -70,6 +71,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
     frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
     baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
         "baseMaterialRegistry", "materialRegistry");
+    lightsManager = sg::createNodeAs<sg::LightsManager>("lights", "lights");
   }
 
   virtual ~StudioContext() {}
@@ -86,6 +88,8 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
+  std::shared_ptr<sg::LightsManager> lightsManager;
+
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
 

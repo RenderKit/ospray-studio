@@ -52,31 +52,19 @@ namespace ospray {
     return child(name).nodeAs<NODE_T>();
   }
 
-  template <typename T>
-  inline void Node::setValue(T _val)
-  {
-    Any val(_val);
-    bool modified = false;
-    if (val != properties.value) {
-      properties.value = val;
-      modified         = true;
-    }
-
-    if (modified)
-      markAsModified();
-  }
-
   template <>
   inline void Node::setValue(Any val)
   {
-    bool modified = false;
     if (val != properties.value) {
       properties.value = val;
-      modified         = true;
-    }
-
-    if (modified)
       markAsModified();
+    }
+  }
+
+  template <typename T>
+  inline void Node::setValue(T val)
+  {
+    setValue(Any(val));
   }
 
   template <typename T>
@@ -163,46 +151,6 @@ namespace ospray {
     visitor.postChildren(*this, ctx);
   }
 
-  template <typename VISITOR_T>
-  inline void Node::traverseAnimation(TraversalContext &ctx, VISITOR_T &&visitor)
-  {
-    traverseAnimation(std::forward<VISITOR_T>(visitor), ctx);
-  }
-
-
-  template <typename VISITOR_T, typename... Args>
-  inline void Node::traverseAnimation(NodePtr animationWorld, Args &&... args)
-  {
-    TraversalContext ctx;
-
-    ctx.animationWorld = animationWorld;
-
-    traverseAnimation(ctx, VISITOR_T(std::forward<Args>(args)...));
-
-  }
-
-  template <typename VISITOR_T>
-  inline void Node::traverseAnimation(VISITOR_T &&visitor, TraversalContext &ctx)
-  {
-    static_assert(is_valid_visitor<VISITOR_T>::value,
-                  "VISITOR_T must be a child class of sg::Visitor or"
-                  " implement 'bool visit(Node &node, TraversalContext &ctx)'"
-                  "!");
-
-    bool traverseChildren = visitor(*this, ctx);
-
-    ctx.level++;
-
-    if (traverseChildren) {
-      for (auto &child : properties.children)
-        child.second->traverseAnimation(visitor, ctx);
-    }
-
-    ctx.level--;
-
-    visitor.postChildren(*this, ctx);
-  }
-
   template <typename T>
   inline const T &Node::minAs() const
   {
@@ -241,12 +189,6 @@ namespace ospray {
     return NodeType::PARAMETER;
   }
 
-  template <>
-  inline NodeType Transform::type() const
-  {
-    return NodeType::TRANSFORM;
-  }
-
   template <typename VALUE_T>
   inline const VALUE_T &Node_T<VALUE_T>::value() const
   {
@@ -280,6 +222,13 @@ namespace ospray {
   {
     auto *c_str = value().c_str();
     ospSetParam(obj, param.c_str(), OSP_STRING, c_str);
+  }
+
+  template <>
+  inline void Node_T<quaternionf>::setOSPRayParam(std::string param,
+                                                  OSPObject obj)
+  {
+    ospSetParam(obj, param.c_str(), OSP_VEC4F, &value());
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -334,6 +283,33 @@ namespace ospray {
       "setOSPRayParam: unknown node type");
     auto h = handle().handle();
     ospSetParam(obj, param.c_str(), OSPTypeFor<HANDLE_T>::value, &h);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Find Node Utilities //////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  inline NodePtr findFirstNodeOfType(
+      const sg::NodePtr root, sg::NodeType nodeType)
+  {
+    sg::NodePtr found = nullptr;
+
+    if (root->type() == nodeType)
+      return root;
+
+    // Quick shallow top-level search first
+    for (auto child : root->children())
+      if (child.second->type() == nodeType)
+        return child.second;
+
+    // Next level, deeper search if not found
+    for (auto child : root->children()) {
+      found = findFirstNodeOfType(child.second, nodeType);
+      if (found)
+        return found;
+    }
+
+    return found;
   }
 
   }  // namespace sg

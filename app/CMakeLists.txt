@@ -14,6 +14,7 @@ add_executable(ospStudio
   MainWindow.cpp
   Batch.cpp
   TimeSeriesWindow.cpp
+  AnimationManager.cpp
 )
 
 target_compile_definitions(ospStudio PRIVATE OSPRAY_CPP_RKCOMMON_TYPES)

@@ -6,14 +6,17 @@
 #include "../../Node.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE TransferFunction
-      : public OSPNode<cpp::TransferFunction, NodeType::TRANSFER_FUNCTION>
-  {
-    TransferFunction(const std::string &osp_type);
-    ~TransferFunction() override = default;
-  };
+struct OSPSG_INTERFACE TransferFunction
+    : public OSPNode<cpp::TransferFunction, NodeType::TRANSFER_FUNCTION>
+{
+  TransferFunction(const std::string &osp_type);
+  ~TransferFunction() override = default;
 
-  }  // namespace sg
+  std::vector<vec3f> colors;
+  std::vector<float> opacities;
+};
+
+} // namespace sg
 } // namespace ospray

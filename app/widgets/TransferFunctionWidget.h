@@ -1,9 +1,8 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2019-2020 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include <array>
 #include <functional>
 #include <string>
 #include <vector>
@@ -16,9 +15,9 @@
 #include <GLFW/glfw3native.h>
 #endif
 
-#include <ospray/ospray.h>
+#include "rkcommon/math/range.h"
 #include "rkcommon/math/vec.h"
-#include "../../sg/scene/transfer_function/TransferFunction.h"
+#include "sg/scene/transfer_function/TransferFunction.h"
 
 using namespace rkcommon::math;
 
@@ -28,44 +27,38 @@ using OpacityPoint = vec2f;
 class TransferFunctionWidget
 {
  public:
-  TransferFunctionWidget(std::shared_ptr<ospray::sg::TransferFunction> transferFunction,
-                         std::function<void()> transferFunctionUpdatedCallback,
-                         const vec2f &valueRange       = vec2f(-1.f, 1.f),
-                         const std::string &widgetName = "Transfer Function");
+  TransferFunctionWidget(
+      std::function<void(const range1f &, const std::vector<vec4f> &)>
+          transferFunctionUpdatedCallback,
+      const range1f &valueRange     = range1f(-1.f, 1.f),
+      const std::string &widgetName = "Transfer Function");
   ~TransferFunctionWidget();
 
   // update UI and process any UI events
   void updateUI();
 
+  // setters/getters for current transfer function data
+  void setValueRange(const range1f &);
+  void setColorsAndOpacities(const std::vector<vec4f> &);
+  range1f getValueRange();
+  std::vector<vec4f> getSampledColorsAndOpacities(int numSamples = 256);
+
+ private:
   void loadDefaultMaps();
   void setMap(int);
-  void drawEditor();
 
   vec3f interpolateColor(const std::vector<ColorPoint> &controlPoints, float x);
+
   float interpolateOpacity(const std::vector<OpacityPoint> &controlPoints,
                            float x);
 
-  // transfer function being modified and associated callback whenver it's
-  // updated
-  std::shared_ptr<ospray::sg::TransferFunction> transferFunction{nullptr};
-  std::function<void()> transferFunctionUpdatedCallback{nullptr};
-
-    // domain (value range) of transfer function
-  vec2f valueRange{-1.f, 1.f};
-
-  // widget name (use different names to support multiple concurrent widgets)
-  std::string widgetName;
-
-  // called to perform actual transfer function updates when control points
-  // change in UI
-  std::function<void(const std::vector<ColorPoint> &,
-                     const std::vector<OpacityPoint> &)>
-      updateTransferFunction{nullptr};
-
   void updateTfnPaletteTexture();
 
-  // number of samples for interpolated transfer function passed to OSPRay
-  int numSamples{256};
+  void drawEditor();
+
+  // callback called whenever transfer function is updated
+  std::function<void(const range1f &, const std::vector<vec4f> &)>
+      transferFunctionUpdatedCallback{nullptr};
 
   // all available transfer functions
   std::vector<std::string> tfnsNames;
@@ -73,21 +66,24 @@ class TransferFunctionWidget
   std::vector<std::vector<OpacityPoint>> tfnsOpacityPoints;
   std::vector<bool> tfnsEditable;
 
-  // flag indicating transfer function has changed in UI
-  bool tfnChanged{true};
-
   // properties of currently selected transfer function
   int currentMap{0};
   std::vector<ColorPoint> *tfnColorPoints;
   std::vector<OpacityPoint> *tfnOpacityPoints;
   bool tfnEditable{true};
 
+  // flag indicating transfer function has changed in UI
+  bool tfnChanged{true};
+
+  // scaling factor for generated opacities
+  float globalOpacityScale{1.f};
+
+  // domain (value range) of transfer function
+  range1f valueRange{-1.f, 1.f};
+
   // texture for displaying transfer function color palette
   GLuint tfnPaletteTexture{0};
 
-  // scaling factor for generated opacities passed to OSPRay
-  float globalOpacityScale{1.f};
-
-  // input dialog for save / load filename
-  std::array<char, 512> filenameInput{{'\0'}};
+  // widget name (use different names to support multiple concurrent widgets)
+  std::string widgetName;
 };

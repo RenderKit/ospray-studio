@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
@@ -41,8 +41,11 @@ SunSky::SunSky() : Light("sunSky")
       vec3f(0.f, 1.f, 0.f));
   createChild("horizonExtension",
       "float",
-      "extend sky dome by stretching the horizon,\nfraction of the lower hemisphere to cover [0-1]",
+      "extend sky dome by stretching the horizon,\n"
+      "fraction of the lower hemisphere to cover [0-1]",
       0.01f);
+
+  child("intensityQuantity").setValue((uint8_t)OSP_INTENSITY_QUANTITY_RADIANCE);
 
   // Set reasonable limits, this will set slider range
   child("albedo").setMinMax(0.f, 1.f);

@@ -19,7 +19,8 @@ namespace ospray {
     ~EXRExporter() = default;
 
     void doExport() override;
-    float *flipBuffer(const void *buf, int ncomp=4);
+    template <typename T>
+    T* flipBuffer(const void *buf, int ncomp = 4);
 
    private:
     void doExportAsLayers();
@@ -81,7 +82,7 @@ namespace ospray {
     // This map will hold any channels we need until we write the image;
     // only then can we free the pointers. Not pretty, I know
     std::map<std::string, float *> flippedBuffers;
-    flippedBuffers["fb"] = flipBuffer(fb);
+    flippedBuffers["fb"] = flipBuffer<float>(fb);
 
     Imf::FrameBuffer exrFb;
     exrFb.insert("R", makeSlice(flippedBuffers["fb"], 0));
@@ -94,7 +95,7 @@ namespace ospray {
       exrHeader.channels().insert("albedo.G", Imf::Channel(IMF::FLOAT));
       exrHeader.channels().insert("albedo.B", Imf::Channel(IMF::FLOAT));
       const void *albedo = child("albedo").valueAs<const void *>();
-      flippedBuffers["albedo"] = flipBuffer(albedo, 3);
+      flippedBuffers["albedo"] = flipBuffer<float>(albedo, 3);
       exrFb.insert("albedo.R", makeSlice(flippedBuffers["albedo"], 0, 3));
       exrFb.insert("albedo.G", makeSlice(flippedBuffers["albedo"], 1, 3));
       exrFb.insert("albedo.B", makeSlice(flippedBuffers["albedo"], 2, 3));
@@ -103,7 +104,7 @@ namespace ospray {
     if (hasChild("Z")) {
       exrHeader.channels().insert("Z", Imf::Channel(IMF::FLOAT));
       const void *z = child("Z").valueAs<const void *>();
-      flippedBuffers["Z"] = flipBuffer(z, 1);
+      flippedBuffers["Z"] = flipBuffer<float>(z, 1);
       exrFb.insert("Z", makeSlice(flippedBuffers["Z"], 0, 1));
     }
 
@@ -112,10 +113,41 @@ namespace ospray {
       exrHeader.channels().insert("normal.Y", Imf::Channel(IMF::FLOAT));
       exrHeader.channels().insert("normal.Z", Imf::Channel(IMF::FLOAT));
       const void *normal = child("normal").valueAs<const void *>();
-      flippedBuffers["normal"] = flipBuffer(normal, 3);
+      flippedBuffers["normal"] = flipBuffer<float>(normal, 3);
       exrFb.insert("normal.X", makeSlice(flippedBuffers["normal"], 0, 3));
       exrFb.insert("normal.Y", makeSlice(flippedBuffers["normal"], 1, 3));
       exrFb.insert("normal.Z", makeSlice(flippedBuffers["normal"], 2, 3));
+    }
+
+    if (_geomData != nullptr && _instData != nullptr) {
+      exrHeader.channels().insert("objectId", Imf::Channel(IMF::UINT));
+      exrHeader.channels().insert("id", Imf::Channel(IMF::UINT));
+      const void *geomData = (const void *)_geomData;
+      const void *instData = (const void *)_instData;
+      auto flippedGeomData = flipBuffer<uint32_t>(geomData, 1);
+      auto flippedInstData = flipBuffer<uint32_t>(instData, 1);
+
+      exrFb.insert("objectId",
+          Imf::Slice(IMF::UINT,
+              (char *)((uint32_t *)flippedGeomData),
+              sizeof(uint32_t) * 1,
+              size.x * sizeof(uint32_t)));
+      exrFb.insert("id",
+          Imf::Slice(IMF::UINT,
+              (char *)((uint32_t *)flippedInstData),
+              sizeof(uint32_t) * 1,
+              size.x * sizeof(uint32_t)));
+    }
+
+    if(_worldPosition != nullptr) {
+      exrHeader.channels().insert("worldPosition.X", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("worldPosition.Y", Imf::Channel(IMF::FLOAT));
+      exrHeader.channels().insert("worldPosition.Z", Imf::Channel(IMF::FLOAT));
+      const void *worldPosition = (const void *)_worldPosition;
+      auto flippedWorldPosition = flipBuffer<float>(worldPosition, 3);
+      exrFb.insert("worldPosition.X", makeSlice(flippedWorldPosition, 0, 3));
+      exrFb.insert("worldPosition.Y", makeSlice(flippedWorldPosition, 1, 3));
+      exrFb.insert("worldPosition.Z", makeSlice(flippedWorldPosition, 2, 3));
     }
 
     Imf::OutputFile exrFile(file.c_str(), exrHeader);
@@ -160,7 +192,7 @@ namespace ospray {
     // This map will hold any channels we need until we write the image;
     // only then can we free the pointers. Not pretty, I know
     std::map<std::string, float *> flippedBuffers;
-    flippedBuffers["fb"] = flipBuffer(fb);
+    flippedBuffers["fb"] = flipBuffer<float>(fb);
 
     Imf::FrameBuffer beautyFb;
     beautyFb.insert("R", makeSlice(flippedBuffers["fb"], 0));
@@ -183,7 +215,7 @@ namespace ospray {
       albedoHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *albedo       = child("albedo").valueAs<const void *>();
-      flippedBuffers["albedo"] = flipBuffer(albedo, 3);
+      flippedBuffers["albedo"] = flipBuffer<float>(albedo, 3);
 
       Imf::FrameBuffer albedoFb;
       albedoFb.insert("R", makeSlice(flippedBuffers["albedo"], 0, 3));
@@ -204,7 +236,7 @@ namespace ospray {
       depthHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *z       = child("Z").valueAs<const void *>();
-      flippedBuffers["Z"] = flipBuffer(z, 1);
+      flippedBuffers["Z"] = flipBuffer<float>(z, 1);
 
       Imf::FrameBuffer depthFb;
       depthFb.insert("R", makeSlice(flippedBuffers["Z"], 0, 1));
@@ -225,7 +257,7 @@ namespace ospray {
       normalHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *normal       = child("normal").valueAs<const void *>();
-      flippedBuffers["normal"] = flipBuffer(normal, 3);
+      flippedBuffers["normal"] = flipBuffer<float>(normal, 3);
 
       Imf::FrameBuffer normalFb;
       normalFb.insert("R", makeSlice(flippedBuffers["normal"], 0, 3));
@@ -244,18 +276,19 @@ namespace ospray {
       free(ptr.second);
   }
 
-  float *EXRExporter::flipBuffer(const void *buf, int ncomp)
+  template <typename T>
+  T *EXRExporter::flipBuffer(const void *buf, int ncomp)
   {
     vec2i size = child("size").valueAs<vec2i>();
-    float *flipped =
-        (float *)std::malloc(size.x * size.y * ncomp * sizeof(float));
+    T *flipped =
+        (T *)std::malloc(size.x * size.y * ncomp * sizeof(T));
 
     for (int y = size.y - 1; y >= 0; y--) {
       size_t irow = y * size.x * ncomp;
       size_t orow = (size.y - 1 - y) * size.x * ncomp;
       std::memcpy(flipped + orow,
-                  ((float *)buf) + irow,
-                  size.x * ncomp * sizeof(float));
+                  ((T *)buf) + irow,
+                  size.x * ncomp * sizeof(T));
     }
 
     return flipped;
