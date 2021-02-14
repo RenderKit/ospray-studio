@@ -893,26 +893,30 @@ namespace ospray {
 
     // We can emulate a constant colored emissive texture
     // XXX this is a workaround
-    auto constColor = true;
+    auto constColor = false;
     if (emissiveColor != vec3f(0.f) && mat.emissiveTexture.index != -1) {
       const auto &tex = model.textures[mat.emissiveTexture.index];
       const auto &img = model.images[tex.source];
-      const auto *data = img.image.data();
+      if (img.image.size() > 0) {
+        constColor = true;
+        const auto *data = img.image.data();
 
-      const vec3f color0 = vec3f(data[0], data[1], data[2]);
-      auto i = 1;
-      WARN << "Material emissiveTexture #" << mat.emissiveTexture.index;
-      WARN << std::endl;
-      WARN << "   color0 : " << color0 << std::endl;
-      while (constColor && (i < img.width * img.height)) {
-        const vec3f color =
+        const vec3f color0 = vec3f(data[0], data[1], data[2]);
+        auto i = 1;
+        WARN << "Material emissiveTexture #" << mat.emissiveTexture.index;
+        WARN << std::endl;
+        WARN << "   color0 : " << color0 << std::endl;
+        while (constColor && (i < img.width * img.height)) {
+          const vec3f color =
             vec3f(data[4 * i + 0], data[4 * i + 1], data[4 * i + 2]);
-        if (color0 != color) {
-          WARN << "   color @ " << i << " : " << color << std::endl;
-          WARN << "   !!! non constant color, skipping emissive" << std::endl;
-          constColor = false;
+          if (color0 != color) {
+            WARN << "   color @ " << i << " : " << color << std::endl;
+            WARN << "   !!! non constant color, skipping emissive" << std::endl;
+            constColor = false;
+            break;
+          }
+          i++;
         }
-        i++;
       }
     }
 
