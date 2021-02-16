@@ -1476,6 +1476,30 @@ void MainWindow::buildMainMenuEdit()
       ImGui::EndMenu();
     }
 
+    ImGui::Separator();
+    if (ImGui::BeginMenu("Common Window Sizes")) {
+      const std::vector<vec2i> options = {{480, 270},
+          {960, 540},
+          {1280, 720},
+          {1920, 1080},
+          {2560, 1440},
+          {3840, 2160}};
+      for (auto &sizeChoice : options) {
+        char label[64];
+        snprintf(label,
+            sizeof(label),
+            "%s%d x %d",
+            windowSize == sizeChoice ? "*" : " ",
+            sizeChoice.x,
+            sizeChoice.y);
+        if (ImGui::MenuItem(label)) {
+          glfwSetWindowSize(glfwWindow, sizeChoice.x, sizeChoice.y);
+          reshape(sizeChoice);
+        }
+      }
+      ImGui::EndMenu();
+    }
+
     if (ImGui::BeginMenu("Aspect Control")) {
       const float origAspect = lockAspectRatio;
       if (ImGui::MenuItem("Lock")) {
