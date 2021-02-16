@@ -1420,10 +1420,8 @@ void MainWindow::buildMainMenuEdit()
     ImGui::SameLine();
     fb["size"].traverse<sg::GenerateImGuiWidgets>();
 
-    // XXX combine these two!  they're nearly identical
-    if (ImGui::BeginMenu("Scale Resolution")) {
-      auto scale = frame->child("scale").valueAs<float>();
-      auto oldScale = scale;
+    static auto selectFrameScale = [&](const float scale) {
+      auto newScale = scale;
       auto custom = true;
       auto values = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
       for (auto v : values) {
@@ -1432,82 +1430,49 @@ void MainWindow::buildMainMenuEdit()
         snprintf(label,
             sizeof(label),
             "%s%1.2fx (%d,%d)",
-            v == scale ? "*" : " ",
+            v == newScale ? "*" : " ",
             v,
-            newSize[0],
-            newSize[1]);
+            newSize.x,
+            newSize.y);
         if (v == 1.f)
           ImGui::Separator();
         if (ImGui::MenuItem(label))
-          scale = v;
+          newScale = v;
         if (v == 1.f)
           ImGui::Separator();
 
-        custom &= (v != scale);
+        custom &= (v != newScale);
       }
 
       ImGui::Separator();
-      vec2i newSize = scale * windowSize;
+      vec2i newSize = newScale * windowSize;
       char label[64];
       snprintf(label,
           sizeof(label),
           "%scustom (%d,%d)",
           custom ? "*" : " ",
-          newSize[0],
-          newSize[1]);
+          newSize.x,
+          newSize.y);
       if (ImGui::BeginMenu(label)) {
-        ImGui::InputFloat("x##fb_scaling", &scale);
+        ImGui::InputFloat("x##fb_scaling", &newScale);
         ImGui::EndMenu();
       }
+      return newScale;
+    };
 
-      if (oldScale != scale)
-        frame->child("scale") = scale;
-
+    if (ImGui::BeginMenu("Scale Resolution")) {
+      auto scale = frame->child("scale").valueAs<float>();
+      auto newScale = selectFrameScale(scale);
+      if (scale != newScale)
+        frame->child("scale") = newScale;
       ImGui::EndMenu();
     }
 
     if (ImGui::BeginMenu("Scale Nav Resolution")) {
       auto scale = frame->child("scaleNav").valueAs<float>();
-      auto oldScale = scale;
-      auto custom = true;
-      auto values = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
-      for (auto v : values) {
-        char label[64];
-        vec2i newSize = v * windowSize;
-        snprintf(label,
-            sizeof(label),
-            "%s%1.2fx (%d,%d)",
-            v == scale ? "*" : " ",
-            v,
-            newSize[0],
-            newSize[1]);
-        if (v == 1.f)
-          ImGui::Separator();
-        if (ImGui::MenuItem(label))
-          scale = v;
-        if (v == 1.f)
-          ImGui::Separator();
-
-        custom &= (v != scale);
-      }
-
-      ImGui::Separator();
-      vec2i newSize = scale * windowSize;
-      char label[64];
-      snprintf(label,
-          sizeof(label),
-          "%scustom (%d,%d)",
-          custom ? "*" : " ",
-          newSize[0],
-          newSize[1]);
-      if (ImGui::BeginMenu(label)) {
-        ImGui::InputFloat("x##fb_scaling", &scale);
-        ImGui::EndMenu();
-      }
-
-      if (oldScale != scale)
-        frame->child("scaleNav") = scale;
-
+      auto newScale = selectFrameScale(scale);
+      if (scale != newScale)
+        frame->child("scaleNav") = newScale;
       ImGui::EndMenu();
     }
 
@@ -2376,9 +2341,15 @@ void MainWindow::buildWindowRenderingStats()
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   auto variance = fb.variance();
 
+  std::string mode = frame->child("navMode").valueAs<bool>() ? "Nav" : "";
+  float scale = frame->child("scale" + mode).valueAs<float>();
+
   ImGui::Text("renderer: %s", rendererTypeStr.c_str());
-  ImGui::Text("framerate: %-7.1f fps", latestFPS);
-  ImGui::Text("ui framerate: %-7.1f fps", ImGui::GetIO().Framerate);
+  ImGui::Text("frame size: (%d,%d)", windowSize.x, windowSize.y);
+  ImGui::SameLine();
+  ImGui::Text("x%1.2f", scale);
+  ImGui::Text("framerate: %-4.1f fps", latestFPS);
+  ImGui::Text("ui framerate: %-4.1f fps", ImGui::GetIO().Framerate);
   ImGui::Text("variance : %-5.2f    ", variance);
   if (frame->accumLimit > 0) {
     ImGui::Text("accumulation:");
