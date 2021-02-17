@@ -65,8 +65,6 @@ int readPCDHeader(const FileName &fileName, HeaderData &hData)
 
   fs.seekg(0, std::ios::beg);
 
-  size_t nPoints{0};
-
   try {
     while (!fs.eof()) {
       std::string line;
@@ -497,7 +495,7 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
 
     if (numRead < 0) {
       file.close();
-      printf("[PCDImporter::readBinary] Reading compressed binary data..  %s\n");
+      printf("[PCDImporter::readBinary] Reading compressed binary data.. \n");
       printf("[PCDImporter::readBinary] Error during reading at data offset!\n");
       return (-1);
     }
@@ -526,14 +524,17 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
   file.close();
 
   // hard coding totalSize for data in numChannel-fields of size float
-  auto totalSize = pcdData.hData.numPoints * numChannels * 4;
+  unsigned int totalSize = pcdData.hData.numPoints * numChannels * 4;
 
   if (dataType == "binary_compressed")
   {
   // check compressed and uncompressed size 
   unsigned int compSize = 0, uncompSize = 0;
-  memcpy(&compSize, &map[dataId + 0], 4);
-  memcpy(&uncompSize, &map[dataId + 4], 4);
+
+  if (mapSize > dataId + 8) {   // parametrization check
+    memcpy(&compSize, &map[dataId + 0], 4);
+    memcpy(&uncompSize, &map[dataId + 4], 4);
+  }
 
   printf(
       "[PCDImporter::readBinary] Now reading binary compressed file with %u bytes compressed and %u original.\n",
@@ -578,14 +579,18 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
     // int k = 0;
     for (std::size_t j = 0; j < pters.size(); ++j) {
       auto index = i * 4 + pcdData.hData.fields[j].offset;
-      memcpy(&pcdData.fileData[index], pters[j], 4);
+      if(pters[j] && index < pcdData.fileData.size())
+        memcpy(&pcdData.fileData[index], pters[j], 4);
       // Increment the pointer
       pters[j] += 4;
       // k++;
     }
   }
-  } else
-    memcpy (&pcdData.fileData[0], &map[0] + dataId, totalSize);
+  } else {
+    if(totalSize <= mapSize)
+      memcpy(&pcdData.fileData[0], &map[0] + dataId, totalSize);
+
+  }
 
   delete[] map;
 
@@ -666,6 +671,9 @@ void PCDImporter::importScene()
       "material", mID); // This is a scenegraph parameter
   pcdData.spheres->child("material").setSGOnly();
   pcdData.spheres->child("radius").setValue(pointSize);
+
+  if (pcdData.spheres->hasChild("color"))
+    pcdData.spheres->child("color").setSGOnly();
 
   rootNode->add(pcdData.spheres);
 
