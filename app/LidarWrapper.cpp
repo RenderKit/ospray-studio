@@ -41,7 +41,7 @@ void LidarProcessFrame(
           rgba[y][x][0] + rgba[y][x][1] * 0.1f + rgba[y][x][2] * 0.01f;
   }
 
-  Valeo::LiDAR::processFrame(pDist,
+  processFrame(pDist,
       pInt,
       NUM_COLUMNS,
       NUM_APDS_PER_GROUP,
