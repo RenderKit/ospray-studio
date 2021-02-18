@@ -46,6 +46,7 @@ class BatchContext : public StudioContext
   std::string optImageName       = "ospBatch";
   vec2i optImageSize             = {1024, 768};
   int optSPP                     = 32;
+  float optVariance              = 0.f; // varianceThreshold
   int optPF                      = -1; // use default
   int optDenoiser                = 0;
   bool optGridEnable             = false;

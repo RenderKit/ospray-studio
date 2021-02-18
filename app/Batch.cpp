@@ -127,6 +127,10 @@ bool BatchContext::parseCommandLine()
       if (argAvailability(switchArg, 1))
         optSPP = max(1, atoi(argv[argIndex++]));
 
+    } else if (switchArg == "-vt" || switchArg == "--variance") {
+      if (argAvailability(switchArg, 1))
+        optVariance = max(0.0, atof(argv[argIndex++]));
+
     } else if (switchArg == "-pf" || switchArg == "--pixelfilter") {
       if (argAvailability(switchArg, 1))
         optPF = max(0, atoi(argv[argIndex++]));
@@ -293,6 +297,7 @@ void BatchContext::render()
   frame->child("navMode") = false;
 
   frame->child("renderer").child("pixelSamples").setValue(optSPP);
+  frame->child("renderer").child("varianceThreshold").setValue(optVariance);
 
   renderFrame();
 }

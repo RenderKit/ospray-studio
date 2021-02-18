@@ -857,10 +857,16 @@ void MainWindow::updateTitleBar()
   std::stringstream windowTitle;
   windowTitle << "OSPRay Studio: ";
 
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto &v = frame->childAs<sg::Renderer>("renderer")["varianceThreshold"];
+  auto varianceThreshold = v.valueAs<float>();
+
   if (frame->pauseRendering) {
     windowTitle << "rendering paused";
   } else if (frame->accumLimitReached()) {
     windowTitle << "accumulation limit reached";
+  } else if (fb.variance() < varianceThreshold) {
+    windowTitle << "varianceThreshold reached";
   } else {
     windowTitle << std::setprecision(3) << latestFPS << " fps";
     if (latestFPS < 2.f) {
@@ -1435,7 +1441,7 @@ void MainWindow::buildMainMenuEdit()
             newSize.x,
             newSize.y);
         if (v == 1.f)
-          ImGui::Separator();
+      ImGui::Separator();
         if (ImGui::MenuItem(label))
           newScale = v;
         if (v == 1.f)
@@ -1599,6 +1605,11 @@ void MainWindow::buildMainMenuView()
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     ImGui::DragInt(
         "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
+    // Although varianceThreshold is found under the renderer, add it here to
+    // make it easier to find, alongside accumulation limit
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    frame->childAs<sg::Renderer>("renderer")["varianceThreshold"].
+      traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
 
     ImGui::Checkbox("auto rotate", &autorotate);
     if (autorotate) {
@@ -2364,6 +2375,8 @@ void MainWindow::buildWindowRenderingStats()
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   auto variance = fb.variance();
+  auto &v = frame->childAs<sg::Renderer>("renderer")["varianceThreshold"];
+  auto varianceThreshold = v.valueAs<float>();
 
   std::string mode = frame->child("navMode").valueAs<bool>() ? "Nav" : "";
   float scale = frame->child("scale" + mode).valueAs<float>();
@@ -2374,14 +2387,34 @@ void MainWindow::buildWindowRenderingStats()
   ImGui::Text("x%1.2f", scale);
   ImGui::Text("framerate: %-4.1f fps", latestFPS);
   ImGui::Text("ui framerate: %-4.1f fps", ImGui::GetIO().Framerate);
-  ImGui::Text("variance : %-5.2f    ", variance);
-  if (frame->accumLimit > 0) {
+
+  if (varianceThreshold == 0) {
+    ImGui::Text("variance    : %-5.2f    ", variance);
+  } else {
+    ImGui::Text("variance    :");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(8 * ImGui::GetFontSize());
+    float progress = varianceThreshold / variance;
+    char message[64];
+    snprintf(
+        message, sizeof(message), "%.2f/%.2f", variance, varianceThreshold);
+    ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), message);
+  }
+
+  if (frame->accumLimit == 0) {
+    ImGui::Text("accumulation: %d", frame->currentAccum);
+  } else {
     ImGui::Text("accumulation:");
     ImGui::SameLine();
+    ImGui::SetNextItemWidth(8 * ImGui::GetFontSize());
     float progress = float(frame->currentAccum) / frame->accumLimit;
-    std::string progressStr = std::to_string(frame->currentAccum) + "/"
-        + std::to_string(frame->accumLimit);
-    ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), progressStr.c_str());
+    char message[64];
+    snprintf(message,
+        sizeof(message),
+        "%d/%d",
+        frame->currentAccum,
+        frame->accumLimit);
+    ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), message);
   }
 
   ImGui::End();
