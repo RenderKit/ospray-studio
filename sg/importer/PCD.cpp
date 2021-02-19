@@ -25,7 +25,7 @@ struct Field
   int size{0};
   char type = (char)0;
   int count{0}; // number of channels per field
-  int offset{0}; 
+  int offset{0};
 };
 
 struct HeaderData
@@ -38,6 +38,7 @@ struct HeaderData
   std::string dataType{"ascii"};
   unsigned int dataId = 0;
   int currentOffset = 0;
+  int startIndex = 0;
 };
 
 struct PCDData
@@ -58,7 +59,8 @@ int readPCDHeader(const FileName &fileName, HeaderData &hData)
 
   if (!fs.is_open() || fs.fail()) {
     throw std::runtime_error(
-        "[PCDImporter::readHeader] could not open PCD file '" + (std::string)fileName + "'.");
+        "[PCDImporter::readHeader] could not open PCD file '"
+        + (std::string)fileName + "'.");
     fs.close();
     return -1;
   }
@@ -116,6 +118,8 @@ int readPCDHeader(const FileName &fileName, HeaderData &hData)
 
         for (int i = 0; i < numEntries; ++i) {
           hData.fields[i].name = st.at(i + 1);
+          if (hData.fields[i].name == "x")
+            hData.startIndex = i;
           hData.fields[i].offset = i;
         }
         continue;
@@ -252,7 +256,8 @@ int readPCDBodyAscii(const FileName &fileName, PCDData &pcdData)
   fs.open(fileName.c_str());
   if (!fs.is_open() || fs.fail()) {
     throw std::runtime_error(
-        "[PCDImporter::readAscii] could not open PCD file '" + (std::string)fileName + "'.");
+        "[PCDImporter::readAscii] could not open PCD file '"
+        + (std::string)fileName + "'.");
     fs.close();
     return -1;
   }
@@ -296,7 +301,8 @@ int readPCDBodyAscii(const FileName &fileName, PCDData &pcdData)
       }
 
       if (current >= headerData.numPoints)
-      printf("[PCDImporter::readAscii] Reading more points than specified in the Header \n");
+        printf(
+            "[PCDImporter::readAscii] Reading more points than specified in the Header \n");
 
       std::size_t total = 0;
       std::vector<float> coordinates(3);
@@ -338,8 +344,8 @@ int readPCDBodyAscii(const FileName &fileName, PCDData &pcdData)
             colors.push_back(color);
           } else
             colors.push_back(vec4f(0.5f)); // default gray color
-        } 
-      
+        }
+
         total += headerData.fields[i].count;
       }
 
@@ -353,7 +359,7 @@ int readPCDBodyAscii(const FileName &fileName, PCDData &pcdData)
 
   pcdData.spheres->createChildData("sphere.position", centers);
 
-  if(!colors.empty())
+  if (!colors.empty())
     pcdData.spheres->createChildData("color", colors);
 
   fs.close();
@@ -459,7 +465,8 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
 
   if (!file.is_open() || file.fail()) {
     throw std::runtime_error(
-        "[PCDImporter::readBinary] could not open PCD file '" + (std::string)fileName + "'.");
+        "[PCDImporter::readBinary] could not open PCD file '"
+        + (std::string)fileName + "'.");
     file.close();
     return -1;
   }
@@ -475,7 +482,7 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
   // map size calculation starting at dataId
   std::size_t mapSize = offset + dataId;
 
-  auto numChannels = pcdData.hData.fields.size(); 
+  auto numChannels = pcdData.hData.fields.size();
 
   if (dataType == "binary_compressed") {
     // reset to end of header
@@ -484,7 +491,8 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
     if (result < 0) {
       file.close();
       printf("[PCDImporter::readBinary] Reading compressed binary data.. \n");
-      printf("[PCDImporter::readBinary] Error during seeking at data offset!\n");
+      printf(
+          "[PCDImporter::readBinary] Error during seeking at data offset!\n");
       return (-1);
     }
 
@@ -496,16 +504,16 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
     if (numRead < 0) {
       file.close();
       printf("[PCDImporter::readBinary] Reading compressed binary data.. \n");
-      printf("[PCDImporter::readBinary] Error during reading at data offset!\n");
+      printf(
+          "[PCDImporter::readBinary] Error during reading at data offset!\n");
       return (-1);
     }
     mapSize += compSize;
     mapSize += 8;
 
-// reset position to beginning of file
+    // reset position to beginning of file
     file.seekg(0, std::ios::beg);
-  } 
-  else {    
+  } else {
     mapSize += pcdData.hData.height * pcdData.hData.width * numChannels * 4;
   }
 
@@ -526,70 +534,71 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
   // hard coding totalSize for data in numChannel-fields of size float
   unsigned int totalSize = pcdData.hData.numPoints * numChannels * 4;
 
-  if (dataType == "binary_compressed")
-  {
-  // check compressed and uncompressed size 
-  unsigned int compSize = 0, uncompSize = 0;
+  if (dataType == "binary_compressed") {
+    // check compressed and uncompressed size
+    unsigned int compSize = 0, uncompSize = 0;
 
-  if (mapSize > dataId + 8) {   // parametrization check
-    memcpy(&compSize, &map[dataId + 0], 4);
-    memcpy(&uncompSize, &map[dataId + 4], 4);
-  }
-
-  printf(
-      "[PCDImporter::readBinary] Now reading binary compressed file with %u bytes compressed and %u original.\n",
-      compSize,
-      uncompSize);
-  
-  if (uncompSize != totalSize) {
-    printf(
-        "[PCDImporter::readBinary] The estimated total data size (%u) is different than the saved uncompressed value (%u)! Data corruption?\n",
-        totalSize,
-        uncompSize);
-  }
-
-  unsigned int dataSize = static_cast<unsigned int>(totalSize);
-  std::vector<char> buf(dataSize);
-  
-  unsigned int tmpSize =
-      lzfDecompress(&map[dataId + 8], compSize, &buf[0], dataSize);
-
-  std::cout << "Finished decompressing binary data .. " << std::endl;
-
-// The size of the uncompressed data should be same as provided in the header
-  if (tmpSize != uncompSize) {
-    printf(
-        "[PCDImporter::readBinary] Size of decompressed lzf data (%u) does not match value stored in PCD header (%u).\n",
-        tmpSize,
-        uncompSize);
-    return (-1);
-  }
-
-  // Unpack data from SOA to AOS format
-  std::vector<char *> pters(numChannels);
-  std::size_t toff = 0;
-  for (std::size_t i = 0; i < pters.size(); ++i) {
-    pters[i] = &buf[toff];
-    toff += 4 * pcdData.hData.width * pcdData.hData.height;
-  }
-
-  pcdData.fileData.resize(pcdData.hData.width * pcdData.hData.height * 4);
-
-  for (auto i = 0; i < pcdData.hData.width * pcdData.hData.height; ++i) {
-    // int k = 0;
-    for (std::size_t j = 0; j < pters.size(); ++j) {
-      auto index = i * 4 + pcdData.hData.fields[j].offset;
-      if(pters[j] && index < pcdData.fileData.size())
-        memcpy(&pcdData.fileData[index], pters[j], 4);
-      // Increment the pointer
-      pters[j] += 4;
-      // k++;
+    if (mapSize > dataId + 8) { // parametrization check
+      memcpy(&compSize, &map[dataId + 0], 4);
+      memcpy(&uncompSize, &map[dataId + 4], 4);
     }
-  }
-  } else {
-    if(totalSize <= mapSize)
-      memcpy(&pcdData.fileData[0], &map[0] + dataId, totalSize);
 
+    printf(
+        "[PCDImporter::readBinary] Now reading binary compressed file with %u bytes compressed and %u original.\n",
+        compSize,
+        uncompSize);
+
+    if (uncompSize != totalSize) {
+      printf(
+          "[PCDImporter::readBinary] The estimated total data size (%u) is different than the saved uncompressed value (%u)! Data corruption?\n",
+          totalSize,
+          uncompSize);
+    }
+
+    unsigned int dataSize = static_cast<unsigned int>(totalSize);
+    std::vector<char> buf(dataSize);
+
+    unsigned int tmpSize =
+        lzfDecompress(&map[dataId + 8], compSize, &buf[0], dataSize);
+
+    std::cout << "Finished decompressing binary data .. " << std::endl;
+
+    // The size of the uncompressed data should be same as provided in the
+    // header
+    if (tmpSize != uncompSize) {
+      printf(
+          "[PCDImporter::readBinary] Size of decompressed lzf data (%u) does not match value stored in PCD header (%u).\n",
+          tmpSize,
+          uncompSize);
+      return (-1);
+    }
+
+    // Unpack data from SOA to AOS format
+    std::vector<char *> pters(numChannels);
+    std::size_t toff = 0;
+    for (std::size_t i = 0; i < pters.size(); ++i) {
+      pters[i] = &buf[toff];
+      toff += 4 * pcdData.hData.width * pcdData.hData.height;
+    }
+
+    pcdData.fileData.resize(pcdData.hData.width * pcdData.hData.height * 4);
+
+    for (auto i = 0; i < pcdData.hData.width * pcdData.hData.height; ++i) {
+      // int k = 0;
+      for (std::size_t j = 0; j < pters.size(); ++j) {
+        auto index = i * 4 + pcdData.hData.fields[j].offset;
+        if (pters[j] && index < pcdData.fileData.size())
+          memcpy(&pcdData.fileData[index], pters[j], 4);
+        // Increment the pointer
+        pters[j] += 4;
+        // k++;
+      }
+    }
+  } else {
+    pcdData.fileData.resize(
+        pcdData.hData.width * pcdData.hData.height * numChannels);
+    if (totalSize <= mapSize)
+      memcpy(&pcdData.fileData[0], &map[0] + dataId, totalSize);
   }
 
   delete[] map;
@@ -599,14 +608,18 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
 
   pcdData.spheres = createNode("spheres", "geometry_spheres");
 
+  auto startIndex = pcdData.hData.startIndex;
+
   for (auto i = 0; i < pcdData.fileData.size(); i += numChannels) {
-    vec3f center{
-        pcdData.fileData[i], pcdData.fileData[i + 1], pcdData.fileData[i + 2]};
+    vec3f center{pcdData.fileData[i + startIndex],
+        pcdData.fileData[i + startIndex + 1],
+        pcdData.fileData[i + startIndex + 2]};
     centers.push_back(center);
 
-    // only first 4 channels are considered atm
+    // has color and additional channels, however only one channel interpreted
+    // as color atm
     if (numChannels > 3) {
-      auto value = pcdData.fileData[i + 3];
+      auto value = pcdData.fileData[i + startIndex + 3];
       if (!isnan(value)) {
         float H = value;
         float R = std::fabs(H * 6.0f - 3.0f) - 1.0f;
@@ -618,16 +631,19 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
             std::max(0.f, std::min(1.f, B)),
             0.5f};
         colors.push_back(color);
-      }
+      } else
+        colors.push_back(vec4f(0.f, 0.5f, 0.5f, 1.f));
     } else
       colors.push_back(vec4f(0.f, 0.5f, 0.5f, 1.f));
   }
 
-    pcdData.spheres->createChildData("sphere.position", centers);
-    pcdData.spheres->createChildData("color", colors);
+  pcdData.spheres->createChildData("sphere.position", centers);
+  pcdData.spheres->createChildData("color", colors);
 
-    return (0);
-  }
+  std::cout << "Number of rendered points : " << centers.size() << std::endl;
+
+  return (0);
+}
 
 int readPCD(const FileName &fileName, PCDData &pcdData)
 {
