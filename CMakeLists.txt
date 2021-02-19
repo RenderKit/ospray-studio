@@ -53,6 +53,19 @@ set(OSPRAY_DEFAULT_COMPONENT apps)
 add_subdirectory(external)
 add_subdirectory(sg)
 
+## make pysg module optional
+
+option(USE_PYSG "Enable PYSG module" OFF)
+
+if(USE_PYSG)
+  find_package(pybind11 REQUIRED)
+  if (NOT pybind11_FOUND)
+    message(STATUS "pybind11 not found. Please install pybind11.")
+  else()
+  add_subdirectory(pysg)
+  endif()
+endif()
+
 option(BUILD_APPS "Build OSPRay Studio Apps" ON)
 
 if (BUILD_APPS)

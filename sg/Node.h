@@ -171,6 +171,8 @@ namespace sg {
     template <typename... Args>
     void createChildData(std::string name, Args &&... args);
 
+    void createChildData(std::string name, std::shared_ptr<Data> data);
+
     // Public method for self or any children modified
     inline bool isModified()
     {

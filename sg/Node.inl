@@ -116,6 +116,16 @@ namespace ospray {
     }
   }
 
+  inline void Node::createChildData(std::string name, std::shared_ptr<Data> data)
+  {
+    if (data) {
+      auto node = std::static_pointer_cast<Node>(data);
+      node->properties.name = name;
+      node->properties.subType = "Data";
+      add(node);
+    }
+  }
+
   template <typename VISITOR_T>
   inline void Node::traverse(VISITOR_T &&visitor)
   {
