@@ -510,12 +510,12 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
     }
     mapSize += compSize;
     mapSize += 8;
-
-    // reset position to beginning of file
-    file.seekg(0, std::ios::beg);
   } else {
     mapSize += pcdData.hData.height * pcdData.hData.width * numChannels * 4;
   }
+
+  // reset position to beginning of file
+  file.seekg(0, std::ios::beg);
 
   if (mapSize > fileSize) {
     file.close();
