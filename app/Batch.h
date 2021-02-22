@@ -63,7 +63,7 @@ class BatchContext : public StudioContext
   bool saveDepth{false};
   bool saveNormal{false};
   bool saveLayers{false};
-  bool saveMetaData{false};
+  bool saveMetaData{true};
   std::string optImageFormat{"png"};
   bool animate{false};
   int fps{24};

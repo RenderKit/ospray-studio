@@ -49,6 +49,18 @@ struct PCDData
   std::vector<float> fileData;
 };
 
+inline vec4f makeRandomColor(const int i)
+{
+  const int mx = 13 * 17 * 43;
+  const int my = 11 * 29;
+  const int mz = 7 * 23 * 63;
+  const uint32_t g = (i * (3 * 5 * 127) + 12312314);
+  return vec4f((g % mx) * (1.f / (mx - 1)),
+      (g % my) * (1.f / (my - 1)),
+      (g % mz) * (1.f / (mz - 1)),
+      1.0f);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // read ascii header
 
@@ -618,23 +630,24 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
 
     // has color and additional channels, however only one channel interpreted
     // as color atm
-    if (numChannels > 3) {
-      auto value = pcdData.fileData[i + startIndex + 3];
+    vec4f color(0.f, 0.5f, 0.5f, 1.f);
+    if (numChannels > 5)
+      color = makeRandomColor(pcdData.fileData[i + 5]);
+    else if (numChannels > 4) {
+      float value = pcdData.fileData[i + 4];
       if (!isnan(value)) {
         float H = value;
         float R = std::fabs(H * 6.0f - 3.0f) - 1.0f;
         float G = 2.0f - std::fabs(H * 6.0f - 2.0f);
         float B = 2.0f - std::fabs(H * 6.0f - 4.0f);
 
-        vec4f color{std::max(0.f, std::min(1.f, R)),
+        color = vec4f(std::max(0.f, std::min(1.f, R)),
             std::max(0.f, std::min(1.f, G)),
             std::max(0.f, std::min(1.f, B)),
-            0.5f};
-        colors.push_back(color);
-      } else
-        colors.push_back(vec4f(0.f, 0.5f, 0.5f, 1.f));
-    } else
-      colors.push_back(vec4f(0.f, 0.5f, 0.5f, 1.f));
+            0.5f);
+      }
+    }
+    colors.push_back(color);
   }
 
   pcdData.spheres->createChildData("sphere.position", centers);

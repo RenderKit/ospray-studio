@@ -1,13 +1,8 @@
 // Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-#ifndef LIDARWRAPPER_H
-#define LIDARWRAPPER_H
-
-#include "valeo_lidar.h"
-
 #pragma once
 
-
+#include <stdint.h>
 
 // The following can be adapted within certain ranges:
 // NUM_APD_GROUPS * NUM_APDS_PER_GROUP has a maximum of 200
@@ -19,6 +14,13 @@
 
 
 // DO NOT CHANGE ANY OF THE FOLLOWING
+
+#define APD_AV_WIDTH_PIXEL 6
+#define APD_AV_HEIGHT_PIXEL 32
+#define APD_VERTI_PICKUP_RANGE_DEG 0.517487086
+#define APD_VERTI_SEPARATION_DEG 0.085012914
+#define APDGROUP_VERTI_SEPARATION_DEG 0.18422412
+#define APD_HORIZ_APERTURE_DEG 0.125
 
 #define NUM_APDS (NUM_APD_GROUPS * NUM_APDS_PER_GROUP)
 
@@ -39,13 +41,10 @@
 #define LIDAR_IMAGE_START (LIDAR_IMAGE_START_HOR, LIDAR_IMAGE_START_VER)
 #define LIDAR_IMAGE_END (LIDAR_IMAGE_END_HOR, LIDAR_IMAGE_END_VER)
 
-
-
-
-
 extern "C" void LidarProcessFrame(
     const float depths[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_FRAMEBUFFER_WIDTH],
     const float rgba[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_FRAMEBUFFER_WIDTH][4],
+    const uint32_t instanceID[LIDAR_FRAMEBUFFER_HEIGHT]
+                             [LIDAR_FRAMEBUFFER_WIDTH],
     const int verbose,
     const char *file_name);
-#endif

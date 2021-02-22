@@ -119,10 +119,11 @@ void writeDebugPCDBinary(const double distArray[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_
     outputfile.close();
 }
 
-
 void LidarProcessFrame(
     const float depths[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_FRAMEBUFFER_WIDTH],
     const float rgba[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_FRAMEBUFFER_WIDTH][4],
+    const uint32_t instanceID[LIDAR_FRAMEBUFFER_HEIGHT]
+                             [LIDAR_FRAMEBUFFER_WIDTH],
     const int verbose,
     const char *file_name)
 {
@@ -143,25 +144,20 @@ void LidarProcessFrame(
 #endif
 
   auto distance = new double[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_FRAMEBUFFER_WIDTH];
-  for (int y = 0; y < LIDAR_FRAMEBUFFER_HEIGHT; y++) {
+  for (int y = 0; y < LIDAR_FRAMEBUFFER_HEIGHT; y++)
     for (int x = 0; x < LIDAR_FRAMEBUFFER_WIDTH; x++)
       distance[LIDAR_FRAMEBUFFER_HEIGHT - 1 - y][x] = depths[y][x];
-  }
 
   auto intensity = new double[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_FRAMEBUFFER_WIDTH];
-  for (int y = 0; y < LIDAR_FRAMEBUFFER_HEIGHT; y++) {
+  for (int y = 0; y < LIDAR_FRAMEBUFFER_HEIGHT; y++)
     for (int x = 0; x < LIDAR_FRAMEBUFFER_WIDTH; x++)
       intensity[LIDAR_FRAMEBUFFER_HEIGHT - 1 - y][x] =
           rgba[y][x][0]+ rgba[y][x][1] * 0.1f + rgba[y][x][2] * 0.01f;
-  }
 
   auto instID = new unsigned int[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_FRAMEBUFFER_WIDTH];
-  for (int y = 0; y < LIDAR_FRAMEBUFFER_HEIGHT; y++) {
+  for (int y = 0; y < LIDAR_FRAMEBUFFER_HEIGHT; y++)
     for (int x = 0; x < LIDAR_FRAMEBUFFER_WIDTH; x++)
-      instID[LIDAR_FRAMEBUFFER_HEIGHT - 1 - y][x] = static_cast<unsigned int>(depths[y][x] * 5);
-  }
-
-
+      instID[LIDAR_FRAMEBUFFER_HEIGHT - 1 - y][x] = instanceID[y][x];
 
 #ifdef DEBUG_OUTPUT
   writeDebugPCDBinary(distance, intensity);
@@ -178,4 +174,5 @@ void LidarProcessFrame(
 
   delete[] distance;
   delete[] intensity;
+  delete[] instID;
 };
