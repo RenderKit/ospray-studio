@@ -16,8 +16,6 @@
 // DO NOT CHANGE
 
 #include <cmath>
-#include <array>
-#include <string>
 #include <memory>
 
 
@@ -54,7 +52,7 @@
 extern "C"
 {
 
-void processFrame(double ** ptrDistances, double ** ptrIntensities, const uint numColsP, const uint numAPDsPerGroupP, const uint numAPDGroupsP, const bool beVerboseP, const char * pcdOutputFileNameP);
+void processFrame(double * ptrDistances, double * ptrIntensities, unsigned int * ptrInstID, const uint numColsP, const uint numAPDsPerGroupP, const uint numAPDGroupsP, const bool beVerboseP, const char * pcdOutputFileNameP);
 
 
 }
