@@ -208,11 +208,11 @@ namespace ospray {
           } else {
             rkcommon::utility::Any paramValue;
             parseParameterString(paramValueStr, paramType, paramValue);
-            // Principled::thin is the only 'bool' material parameter
-            // but, needs to be treated with a "bool" paramType
+            // Principled::thin is the only non-float material parameter and
+            // needs to be converted to a "bool" paramType, imported as a float
             if (paramName == "thin") {
               paramType = "bool";
-              paramValue = paramValue == 0 ? false : true;
+              paramValue = (paramValue.get<float>() == 0.f) ? false : true;
             } else if ((paramName.find("Color") != std::string::npos
                            || paramName.find("color") != std::string::npos)
                 && paramType == "vec3f") {
