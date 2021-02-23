@@ -28,9 +28,9 @@ float writeDebugPPM(const float rgba[LIDAR_FRAMEBUFFER_HEIGHT][LIDAR_FRAMEBUFFER
   float maxValue = 0;
   for(uint j=0; j < vertPixels; j++){
       for(uint i = 0; i < horPixels; i++){
-          if(rgba[j][i][0]>maxValue) maxValue = rgba[j][i][0];
-          if(rgba[j][i][1]>maxValue) maxValue = rgba[j][i][1];
-          if(rgba[j][i][2]>maxValue) maxValue = rgba[j][i][2];
+          if((std::isfinite(rgba[j][i][0]))&&(rgba[j][i][0]>maxValue)) maxValue = rgba[j][i][0];
+          if((std::isfinite(rgba[j][i][1]))&&(rgba[j][i][1]>maxValue)) maxValue = rgba[j][i][1];
+          if((std::isfinite(rgba[j][i][2]))&&(rgba[j][i][2]>maxValue)) maxValue = rgba[j][i][2];
       }
   }
   std::cout<<"max value "<<maxValue<<std::endl;
