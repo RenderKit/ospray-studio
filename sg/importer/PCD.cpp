@@ -494,7 +494,10 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
   // map size calculation starting at dataId
   std::size_t mapSize = offset + dataId;
 
-  auto numChannels = pcdData.hData.fields.size();
+  int stride = 0;
+  for (auto f : pcdData.hData.fields)
+    stride += f.size * f.count;
+  unsigned int totalSize = pcdData.hData.numPoints * stride;
 
   if (dataType == "binary_compressed") {
     // reset to end of header
@@ -522,9 +525,8 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
     }
     mapSize += compSize;
     mapSize += 8;
-  } else {
-    mapSize += pcdData.hData.height * pcdData.hData.width * numChannels * 4;
-  }
+  } else
+    mapSize += totalSize;
 
   // reset position to beginning of file
   file.seekg(0, std::ios::beg);
@@ -542,9 +544,6 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
   file.read(map, mapSize);
 
   file.close();
-
-  // hard coding totalSize for data in numChannel-fields of size float
-  unsigned int totalSize = pcdData.hData.numPoints * numChannels * 4;
 
   if (dataType == "binary_compressed") {
     // check compressed and uncompressed size
@@ -584,7 +583,7 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
           uncompSize);
       return (-1);
     }
-
+/*
     // Unpack data from SOA to AOS format
     std::vector<char *> pters(numChannels);
     std::size_t toff = 0;
@@ -592,7 +591,6 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
       pters[i] = &buf[toff];
       toff += 4 * pcdData.hData.width * pcdData.hData.height;
     }
-
     pcdData.fileData.resize(pcdData.hData.width * pcdData.hData.height * 4);
 
     for (auto i = 0; i < pcdData.hData.width * pcdData.hData.height; ++i) {
@@ -606,9 +604,9 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
         // k++;
       }
     }
+*/
   } else {
-    pcdData.fileData.resize(
-        pcdData.hData.width * pcdData.hData.height * numChannels);
+    pcdData.fileData.resize((totalSize+3)/4);
     if (totalSize <= mapSize)
       memcpy(&pcdData.fileData[0], &map[0] + dataId, totalSize);
   }
@@ -631,20 +629,27 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
     // has color and additional channels, however only one channel interpreted
     // as color atm
     vec4f color(0.f, 0.5f, 0.5f, 1.f);
-    if (numChannels > 5)
-      color = makeRandomColor(pcdData.fileData[i + 5]);
-    else if (numChannels > 4) {
-      float value = pcdData.fileData[i + 4];
-      if (!isnan(value)) {
-        float H = value;
-        float R = std::fabs(H * 6.0f - 3.0f) - 1.0f;
-        float G = 2.0f - std::fabs(H * 6.0f - 2.0f);
-        float B = 2.0f - std::fabs(H * 6.0f - 4.0f);
+    if (numChannels > 4) {
+      if (pcdData.hData.fields[4].type == 'U') {
+        color = makeRandomColor(*(uint32_t *)&pcdData.fileData[i + 4]);
+        /*          color = vec4f(std::max(0.f, std::min(1.f, R)),
+                      std::max(0.f, std::min(1.f, G)),
+                      std::max(0.f, std::min(1.f, B)),
+                      0.5f);
+                      */
+      } else {
+        float value = pcdData.fileData[i + 4];
+        if (!isnan(value)) {
+          float H = value;
+          float R = std::fabs(H * 6.0f - 3.0f) - 1.0f;
+          float G = 2.0f - std::fabs(H * 6.0f - 2.0f);
+          float B = 2.0f - std::fabs(H * 6.0f - 4.0f);
 
-        color = vec4f(std::max(0.f, std::min(1.f, R)),
-            std::max(0.f, std::min(1.f, G)),
-            std::max(0.f, std::min(1.f, B)),
-            0.5f);
+          color = vec4f(std::max(0.f, std::min(1.f, R)),
+              std::max(0.f, std::min(1.f, G)),
+              std::max(0.f, std::min(1.f, B)),
+              0.5f);
+        }
       }
     }
     colors.push_back(color);
