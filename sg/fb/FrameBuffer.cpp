@@ -257,11 +257,11 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
   exp->doExport();
 
   unmap(fb);
-  if (albedo)
+  if (abuf)
     unmap(abuf);
-  if (depth)
+  if (zbuf)
     unmap(zbuf);
-  if (normal)
+  if (nbuf)
     unmap(nbuf);
 }
 
