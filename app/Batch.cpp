@@ -204,18 +204,22 @@ bool BatchContext::parseCommandLine()
 void BatchContext::render()
 {
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
+
   if (cameraDef <= cameras.size() && cameraDef > 0) {
     // simply adding a new camera to frame does not work
-    auto newCamera = cameras[cameraDef - 1]->nodeAs<sg::Camera>();
+    selectedSceneCamera = cameras[cameraDef - 1];
+    animateCamera = selectedSceneCamera->nodeAs<sg::Camera>()->animate;
+
     auto &camera =
-        frame->createChildAs<sg::Camera>("camera", newCamera->subType());
-    for (auto &c : newCamera->children())
+        frame->createChildAs<sg::Camera>("camera", selectedSceneCamera->subType());
+    for (auto &c : selectedSceneCamera->children())
       camera.add(c.second);
-  } else  {
+
+  } else {
     std::cout << "No cameras imported or invalid camera index specified" << std::endl;
     frame->createChild("camera", "camera_" + optCameraTypeStr);
   }
-  
+
   baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
 
   lightsManager->updateWorld(frame->childAs<sg::World>("world"));
@@ -312,6 +316,12 @@ void BatchContext::renderFrame()
     frame->denoiseFB = true;
   frame->immediatelyWait = true;
   frame->startNewFrame();
+
+  if (animateCamera) {
+    auto newCS = selectedSceneCamera->nodeAs<sg::Camera>()->getState();
+    arcballCamera->setState(*newCS);
+    updateCamera();
+  }
 
   static int filenum = framesRange.lower;
   char filenumber[8];

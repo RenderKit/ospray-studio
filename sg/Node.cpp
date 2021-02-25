@@ -76,7 +76,7 @@ namespace ospray {
     return properties.children;
   }
 
-  bool Node::hasChild(const std::string &name) const
+ bool Node::hasChild(const std::string &name) const
   {
     auto &c = properties.children;
     if (c.contains(name))
@@ -86,6 +86,20 @@ namespace ospray {
 
     auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
       return utility::lowerCase(n.first) == name_lower;
+    });
+
+    return itr != properties.children.end();
+  }
+
+  bool Node::hasChildOfType(const std::string &subType) const
+  {
+    auto &c = properties.children;
+
+    std::string subtype_lower = utility::lowerCase(subType);
+
+    auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
+      return utility::lowerCase(n.second->subType()) == subtype_lower
+          || n.second->subType() == subType;
     });
 
     return itr != properties.children.end();
@@ -110,6 +124,20 @@ namespace ospray {
     } else {
       return *itr->second;
     }
+  }
+
+  const std::vector<NodePtr> Node::childrenOfType(const std::string &subType)
+  {
+    auto &props = properties.children;
+    std::vector<NodePtr> childrenOfType;
+
+    std::string subType_lower = utility::lowerCase(subType);
+    for (auto &p : props) {
+      if (utility::lowerCase(p.second->subType()) == subType_lower
+          || p.second->subType() == subType)
+        childrenOfType.push_back(p.second);
+    }
+    return childrenOfType;
   }
 
   Node &Node::operator[](const std::string &c)

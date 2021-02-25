@@ -61,6 +61,9 @@ class CameraState
   AffineSpace3f centerTranslation, translation;
   quaternionf rotation;
 
+  AffineSpace3f cameraToWorld;
+  bool useCameraToWorld{false};
+
  protected:
   friend ArcballCamera;
 

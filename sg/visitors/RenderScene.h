@@ -8,6 +8,8 @@
 #include "../scene/Transform.h"
 #include "../scene/geometry/Geometry.h"
 #include "../scene/lights/Light.h"
+#include "../camera/Camera.h"
+#include "../../app/ArcballCamera.h"
 // std
 #include <stack>
 
@@ -30,6 +32,7 @@ namespace ospray {
     void createInstanceFromGroup();
     void placeInstancesInWorld();
     void setLightParams(Node &node);
+    void setCameraParams(Node &node);
 
     // Data //
 
@@ -59,6 +62,7 @@ namespace ospray {
     bool useCustomIds{false};
     GeomIdMap *g{nullptr};
     InstanceIdMap *in{nullptr};
+    std::shared_ptr<CameraState> cs;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -107,8 +111,15 @@ namespace ospray {
       auto xfmNode = node.nodeAs<Transform>();
       xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
       xfms.push(xfmNode->accumulatedXfm);
-      // special Ids overwrite all id writing implementations
-      if (node.hasChild("instanceID") && !useCustomIds){
+
+      if (node.hasChildOfType("camera_perspective")
+          || node.hasChildOfType("camera_orthographic")) {
+        cs = std::make_shared<CameraState>();
+        cs->useCameraToWorld = true;
+        cs->cameraToWorld = xfm;
+      }
+
+      if (node.hasChild("instanceID") && !useCustomIds) {
         instanceId = node.child("instanceId").valueAs<std::string>();
         if (node.hasChild("useCustomIds"))
           useCustomIds = true;
@@ -119,6 +130,9 @@ namespace ospray {
     }
     case NodeType::LIGHT:
       setLightParams(node);
+      break;
+    case NodeType::CAMERA:
+      setCameraParams(node);
       break;
     default:
       break;
@@ -155,11 +169,6 @@ namespace ospray {
       }
       if (node.hasChild("geomId"))
         geomId = "";
-      break;
-    case NodeType::MATERIAL_REFERENCE:
-      break;
-    case NodeType::LIGHT:
-      // world.commit();
       break;
     default:
       // Nothing
@@ -346,6 +355,15 @@ namespace ospray {
     }
     auto lightNode = node.nodeAs<sg::Light>();
     lightNode->initOrientation(propMap);
+  }
+
+  inline void RenderScene::setCameraParams(Node &node)
+  {
+    auto camera = node.nodeAs<sg::Camera>();
+    if (cs != nullptr) {
+      camera->setState(cs);
+      camera->animate = true;
+    }
   }
 
   inline void RenderScene::placeInstancesInWorld()

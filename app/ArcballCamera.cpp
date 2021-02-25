@@ -114,10 +114,14 @@ void ArcballCamera::setRotation(quaternionf q)
 
 void ArcballCamera::setState(const CameraState &state)
 {
-  centerTranslation = state.centerTranslation;
-  translation = state.translation;
-  rotation = state.rotation;
-  updateCamera();
+  if (state.useCameraToWorld) {
+    cameraToWorld = state.cameraToWorld;
+  } else {
+    centerTranslation = state.centerTranslation;
+    translation = state.translation;
+    rotation = state.rotation;
+    updateCamera();
+  }
 }
 
 void ArcballCamera::setZoomSpeed(float speed)

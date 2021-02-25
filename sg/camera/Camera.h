@@ -4,6 +4,7 @@
 #pragma once
 
 #include "sg/Node.h"
+#include "app/ArcballCamera.h"
 
 namespace ospray {
   namespace sg {
@@ -14,6 +15,19 @@ namespace ospray {
     virtual ~Camera() override = default;
 
     NodeType type() const override;
+
+    void setState(std::shared_ptr<CameraState> _cs) {
+      cs = _cs;
+    };
+
+    std::shared_ptr<CameraState> getState() {
+      return cs;
+    };
+
+    bool animate{false};
+
+   private:
+    std::shared_ptr<CameraState> cs;
   };
 
   }  // namespace sg

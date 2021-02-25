@@ -127,7 +127,12 @@ namespace sg {
 
     bool hasChild(const std::string &name) const;
 
+    bool hasChildOfType(const std::string &subType) const;
+
     Node &child(const std::string &name);
+
+    const std::vector<NodePtr> childrenOfType(const std::string &subType);
+    
     Node &operator[](const std::string &c);
 
     template <typename NODE_T>

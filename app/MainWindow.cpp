@@ -47,6 +47,7 @@ static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
+static bool g_animateCamera = false;
 
 static const std::vector<std::string> g_scenes = {"tutorial_scene",
     "random_spheres",
@@ -76,6 +77,7 @@ static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
 static const std::vector<std::string> g_lightTypes = {
     "ambient", "distant", "hdri", "sphere", "spot", "sunSky", "quad"};
 
+sg::NodePtr g_selectedSceneCamera;
 std::vector<CameraState> g_camPath; // interpolated path through cameraStack
 int g_camSelectedStackIndex = 0;
 int g_camCurrentPathIndex = 0;
@@ -652,6 +654,17 @@ void MainWindow::display()
       }
     } else {
       g_camCurrentPathIndex++;
+    }
+  }
+
+  // Add new camera params
+  if (g_animateCamera) {
+    auto selectedCamera = g_selectedSceneCamera->nodeAs<sg::Camera>();
+    auto cs = selectedCamera->getState();
+
+    if (cs != nullptr) {
+      arcballCamera->setState(*cs);
+      updateCamera();
     }
   }
 
@@ -1968,26 +1981,25 @@ void MainWindow::buildWindowCameraEditor()
           nullptr,
           g_sceneCameras.size())) {
     if (whichCamera > -1 && whichCamera < (int) g_sceneCameras.size()) {
-      auto &currentCamera = g_sceneCameras.at_index(whichCamera);
-      auto &cameraNode = currentCamera.second->children();
+      auto &newCamera = g_sceneCameras.at_index(whichCamera);
+      g_selectedSceneCamera = newCamera.second;
+      g_animateCamera = g_selectedSceneCamera->nodeAs<sg::Camera>()->animate;
 
       // Change the camera type, if the new camera is different.
       if (frame->childAs<sg::Camera>("camera").subType()
-          != currentCamera.second->subType()) {
+          != newCamera.second->subType()) {
         // Cancel any in-progress frame since we're changing the camera node.
         frame->cancelFrame();
         frame->waitOnFrame();
         frame->createChildAs<sg::Camera>("camera",
-            currentCamera.second->subType());
+            newCamera.second->subType());
       }
 
       // Add new camera params
       auto &camera = frame->childAs<sg::Camera>("camera");
-      for (auto &c : cameraNode) {
+      for (auto &c : g_selectedSceneCamera->children())
         camera.add(c.second);
-      }
 
-      camera.commit();
       reshape(windowSize); // resets aspect
       updateCamera();
     }

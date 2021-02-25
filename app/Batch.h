@@ -73,4 +73,8 @@ class BatchContext : public StudioContext
 
   // list of cameras imported with the scene definition
   std::vector<sg::NodePtr> cameras;
+
+  //camera animation
+  sg::NodePtr selectedSceneCamera;
+  bool animateCamera{false};
 };

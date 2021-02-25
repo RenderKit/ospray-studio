@@ -25,6 +25,5 @@ namespace ospray {
   {
     return NodeType::CAMERA;
   }
-
   }  // namespace sg
 } // namespace ospray

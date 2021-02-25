@@ -44,10 +44,15 @@ namespace ospray {
 
   struct GLTFData
   {
-    GLTFData(NodePtr rootNode, const FileName &fileName, std::shared_ptr<sg::MaterialRegistry> _materialRegistry)
-        : fileName(fileName), rootNode(rootNode), materialRegistry(_materialRegistry)
-    {
-    }
+    GLTFData(NodePtr rootNode,
+        const FileName &fileName,
+        std::shared_ptr<sg::MaterialRegistry> _materialRegistry,
+        std::vector<NodePtr> *_cameras)
+        : fileName(fileName),
+          rootNode(rootNode),
+          materialRegistry(_materialRegistry),
+          cameras(_cameras)
+    {}
 
    public:
     const FileName &fileName;
@@ -57,7 +62,7 @@ namespace ospray {
     void createSkins();
     void finalizeSkins();
     void createGeometries();
-    void createCameras(std::vector<NodePtr> &cameras);
+    void createCameras();
     void createLights();
     void buildScene();
     void loadNodeInfo(const int nid, NodePtr sgNode);
@@ -68,6 +73,7 @@ namespace ospray {
 
    private:
     NodePtr rootNode;
+    std::vector<NodePtr> *cameras{nullptr};
     std::vector<SkinPtr> skins;
     std::vector<NodePtr> ospMeshes;
     std::shared_ptr<sg::MaterialRegistry> materialRegistry;
@@ -331,12 +337,15 @@ namespace ospray {
       materialRegistry->add(m);
   }
 
-  void GLTFData::createCameras(std::vector<NodePtr> &cameras)
+  void GLTFData::createCameras()
   {
-    cameras.reserve(model.cameras.size());
+    cameras->reserve(model.cameras.size());
+
     for (auto &m : model.cameras) {
       static auto nCamera = 0;
-      auto cameraName = "camera_" + std::to_string(nCamera++);
+      auto cameraName = m.name;
+      if(cameraName == "")
+       cameraName = "camera_" + std::to_string(nCamera++);
       if (m.type == "perspective") {
         auto sgCamera = createNode(cameraName, "camera_perspective");
 
@@ -357,8 +366,7 @@ namespace ospray {
           sgCamera->createChild("apertureRadius",
                                 "float",
                                 (float)m.perspective.extras.Get("apertureRadius").GetNumberAsDouble());
-
-        cameras.push_back(sgCamera);
+        cameras->push_back(sgCamera);
       } else {
         auto sgCamera = createNode(cameraName, "camera_orthographic");
         sgCamera->createChild("height", "float", (float)m.orthographic.ymag);
@@ -367,8 +375,7 @@ namespace ospray {
         float aspect = (float)m.orthographic.xmag / m.orthographic.ymag;
         sgCamera->createChild("aspect", "float", aspect);
         sgCamera->createChild("nearClip", "float", (float)m.orthographic.znear);
-
-        cameras.push_back(sgCamera);
+        cameras->push_back(sgCamera);
       }
     }
   }
@@ -563,11 +570,19 @@ namespace ospray {
     auto nodeName = n.name + "_" + pad(std::to_string(nNode++));
     // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
     // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
+
     auto newXfm =
         createNode(nodeName + "_xfm_" + std::to_string(level), "transform");
     sceneNodes[nid] = newXfm;
     sgNode->add(newXfm);
     applyNodeTransform(newXfm, n);
+
+    if(n.camera != -1) {
+      auto &listCameras = *cameras;
+      auto &camera = listCameras[n.camera];
+      newXfm->add(camera);
+    }
+
     sgNode = newXfm;
 
     sgNode->createChild("instanceId", "string", sgNode->name());
@@ -1412,22 +1427,23 @@ namespace ospray {
     std::string baseName = fileName.name() + "_rootXfm";
     auto rootNode = createNode(baseName, "transform");
 
-    GLTFData gltf(rootNode, fileName, materialRegistry);
+    GLTFData gltf(rootNode, fileName, materialRegistry, cameras);
 
     if (!gltf.parseAsset())
       return;
 
     gltf.createMaterials();
     gltf.createLights();
+
+    if (importCameras)
+      gltf.createCameras();
+
     gltf.createSkins();
     gltf.createGeometries(); // needs skins
     gltf.buildScene();
     gltf.finalizeSkins(); // needs nodes / buildScene
     if (animations)
       gltf.createAnimations(*animations);
-    if (importCameras)
-      gltf.createCameras(*cameras);
-
     if (gltf.lights.size() != 0) {
       auto lightsMan = std::static_pointer_cast<sg::LightsManager>(lightsManager);
       lightsMan->addLights(gltf.lights);
