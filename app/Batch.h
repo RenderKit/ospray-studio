@@ -12,7 +12,6 @@
 #include "sg/renderer/MaterialRegistry.h"
 // Plugin
 #include <chrono>
-#include "AnimationManager.h"
 #include "PluginManager.h"
 #include "sg/scene/Animation.h"
 
@@ -68,8 +67,6 @@ class BatchContext : public StudioContext
   range1i framesRange{0, 0};
   void printHelp() override;
   int cameraDef{0};
-
-  std::shared_ptr<AnimationManager> animationManager{nullptr};
 
   // list of cameras imported with the scene definition
   std::vector<sg::NodePtr> cameras;

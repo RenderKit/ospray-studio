@@ -223,5 +223,4 @@ class MainWindow : public StudioContext
   GLenum gl_rgba_format;
 
   std::shared_ptr<AnimationWidget> animationWidget{nullptr};
-  std::shared_ptr<AnimationManager> animationManager{nullptr};
 };

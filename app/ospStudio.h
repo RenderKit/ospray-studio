@@ -15,6 +15,7 @@
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/lights/LightsManager.h"
 // studio app
+#include "AnimationManager.h"
 #include "ArcballCamera.h"
 // ospcommon
 #include "rkcommon/common.h"
@@ -89,6 +90,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
   std::shared_ptr<sg::LightsManager> lightsManager;
+  std::shared_ptr<AnimationManager> animationManager{nullptr};
 
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
