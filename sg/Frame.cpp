@@ -35,7 +35,7 @@ namespace ospray {
 
   void Frame::startNewFrame(bool interacting)
   {
-    auto &fb = childAs<FrameBuffer>("frameBuffer");
+    auto &fb = childAs<FrameBuffer>("framebuffer");
     auto &camera = childAs<Camera>("camera");
     auto &renderer = childAs<Renderer>("renderer");
     auto &world = childAs<World>("world");

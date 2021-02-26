@@ -82,10 +82,8 @@ namespace ospray {
     if (c.contains(name))
       return true;
 
-    std::string name_lower = utility::lowerCase(name);
-
     auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
-      return utility::lowerCase(n.first) == name_lower;
+      return n.first == name;
     });
 
     return itr != properties.children.end();
@@ -95,11 +93,8 @@ namespace ospray {
   {
     auto &c = properties.children;
 
-    std::string subtype_lower = utility::lowerCase(subType);
-
     auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
-      return utility::lowerCase(n.second->subType()) == subtype_lower
-          || n.second->subType() == subType;
+      return n.second->subType() == subType;
     });
 
     return itr != properties.children.end();
@@ -111,10 +106,8 @@ namespace ospray {
     if (c.contains(name))
       return *c[name];
 
-    std::string name_lower = utility::lowerCase(name);
-
     auto itr = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
-      return utility::lowerCase(n.first) == name_lower;
+      return n.first == name;
     });
 
     if (itr == properties.children.cend()) {
@@ -131,10 +124,8 @@ namespace ospray {
     auto &props = properties.children;
     std::vector<NodePtr> childrenOfType;
 
-    std::string subType_lower = utility::lowerCase(subType);
     for (auto &p : props) {
-      if (utility::lowerCase(p.second->subType()) == subType_lower
-          || p.second->subType() == subType)
+      if (p.second->subType() == subType)
         childrenOfType.push_back(p.second);
     }
     return childrenOfType;
