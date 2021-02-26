@@ -77,7 +77,6 @@ static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
 static const std::vector<std::string> g_lightTypes = {
     "ambient", "distant", "hdri", "sphere", "spot", "sunSky", "quad"};
 
-sg::NodePtr g_selectedSceneCamera;
 std::vector<CameraState> g_camPath; // interpolated path through cameraStack
 int g_camSelectedStackIndex = 0;
 int g_camCurrentPathIndex = 0;

@@ -6,7 +6,7 @@
 namespace ospray {
   namespace sg {
 
-  Camera::Camera(std::string type)
+  Camera::Camera(const std::string &type)
   {
     auto handle = ospNewCamera(type.c_str());
     setHandle(handle);

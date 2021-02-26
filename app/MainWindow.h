@@ -136,6 +136,7 @@ class MainWindow : public StudioContext
   void printHelp() override;
 
   std::vector<CameraState> cameraStack;
+  sg::NodePtr g_selectedSceneCamera;
 
   //Volume parameters
   sg::VolumeParams vp;

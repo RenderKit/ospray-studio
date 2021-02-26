@@ -119,7 +119,7 @@ namespace ospray {
         cs->cameraToWorld = xfm;
       }
 
-      if (node.hasChild("instanceID") && !useCustomIds) {
+      if (node.hasChild("instanceId") && !useCustomIds) {
         instanceId = node.child("instanceId").valueAs<std::string>();
         if (node.hasChild("useCustomIds"))
           useCustomIds = true;
