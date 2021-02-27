@@ -32,6 +32,7 @@ void BatchContext::start()
 
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
+    refreshRenderer();
     refreshScene(true);
     render();
     if (animate) {
@@ -201,10 +202,23 @@ bool BatchContext::parseCommandLine()
     return 1;
 }
 
-void BatchContext::render()
+void BatchContext::refreshRenderer()
 {
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
+  auto &renderer = frame->childAs<sg::Renderer>("renderer");
 
+  // The materials list needs to know the renderer type
+  baseMaterialRegistry->updateRendererType();
+
+  if (optPF >= 0)
+    renderer.createChild("pixelFilter", "int", optPF);
+
+  renderer.child("pixelSamples").setValue(optSPP);
+  renderer.child("varianceThreshold").setValue(optVariance);
+}
+
+void BatchContext::render()
+{
   if (cameraDef <= cameras.size() && cameraDef > 0) {
     // simply adding a new camera to frame does not work
     selectedSceneCamera = cameras[cameraDef - 1];
@@ -220,17 +234,8 @@ void BatchContext::render()
     frame->createChild("camera", "camera_" + optCameraTypeStr);
   }
 
-  baseMaterialRegistry->updateMaterialList(optRendererTypeStr);
-
-  lightsManager->updateWorld(frame->childAs<sg::World>("world"));
-
-  frame->child("renderer")
-      .createChildData("material", baseMaterialRegistry->cppMaterialList);
   // Set the frame "windowSize", it will create the right sized framebuffer
   frame->child("windowSize") = optImageSize;
-
-  if (optPF >= 0)
-    frame->child("renderer").createChild("pixelFilter", "int", optPF);
 
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
 
@@ -299,9 +304,6 @@ void BatchContext::render()
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
 
   frame->child("navMode") = false;
-
-  frame->child("renderer").child("pixelSamples").setValue(optSPP);
-  frame->child("renderer").child("varianceThreshold").setValue(optVariance);
 
   renderFrame();
 }
@@ -473,7 +475,7 @@ ospStudio batch specific parameters:
    -pf    --pixelfilter (default gauss)
             (0=point, 1=box, 2=gauss, 3=mitchell, 4=blackman_harris)
    -r     --renderer [type] (default "pathtracer")
-            rendererType scivis or pathtracer
+            rendererType scivis, ao, or pathtracer
    -c     --camera [type] (default "perspective")
             cameraType perspective or panoramic
    -vp    [x y z] camera position  

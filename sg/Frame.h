@@ -1,9 +1,16 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
+// ospray sg
 #include "Node.h"
+#include "camera/Camera.h"
+#include "fb/FrameBuffer.h"
+#include "renderer/MaterialRegistry.h"
+#include "renderer/Renderer.h"
+#include "scene/World.h"
+#include "scene/lights/LightsManager.h"
 
 namespace ospray {
   namespace sg {
@@ -44,6 +51,10 @@ namespace ospray {
     int accumLimit{0};
     int currentAccum{0};
     bool canceled{false};
+
+    // Shared by all frames
+    std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
+    std::shared_ptr<sg::LightsManager> lightsManager;
 
    private:
     bool navMode{false};

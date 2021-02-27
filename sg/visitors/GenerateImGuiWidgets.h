@@ -405,6 +405,10 @@ inline bool GenerateImGuiWidgets::operator()(Node &node, TraversalContext &ctx)
 {
   std::string widgetName = node.name();
 
+  // Skip any nodes set to not show in the UI, and don't process children
+  if (node.sgNoUI())
+    return false;
+
   auto generator = widgetGenerators[node.subType()];
 
   if (generator) {

@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "../Node.h"
-#include "../renderer/MaterialRegistry.h"
-#include "../scene/Transform.h"
-#include "../scene/geometry/Geometry.h"
-#include "../scene/lights/Light.h"
-#include "../camera/Camera.h"
-#include "../../app/ArcballCamera.h"
+#include "sg/Node.h"
+#include "sg/renderer/MaterialRegistry.h"
+#include "sg/scene/Transform.h"
+#include "sg/scene/geometry/Geometry.h"
+#include "sg/scene/lights/Light.h"
+#include "sg/camera/Camera.h"
+#include "app/ArcballCamera.h"
 // std
 #include <stack>
 

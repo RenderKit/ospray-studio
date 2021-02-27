@@ -221,6 +221,10 @@ namespace sg {
     bool sgOnly() const;
     void setSGOnly();
 
+    // Nodes that should not be shown in the UI 
+    bool sgNoUI() const;
+    void setSGNoUI();
+
    protected:
     virtual void preCommit();
     virtual void postCommit();
@@ -255,10 +259,13 @@ namespace sg {
       Any value;
       // vectors allows using length to determine if min/max is set
       std::vector<Any> minMax;
-      bool readOnly;
 
+      // prevent user adjustment to this Node *via the UI*
+      bool readOnly;
       // Nodes that are used internally to the SG and invalid for OSPRay
       bool sgOnly{false};
+      // Nodes that should not be shown in the UI 
+      bool sgNoUI{false};
 
       FlatMap<std::string, NodePtr> children;
       std::vector<Node *> parents;

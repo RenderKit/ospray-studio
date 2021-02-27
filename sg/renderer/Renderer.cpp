@@ -2,16 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Renderer.h"
-#include "sg/texture/Texture2D.h"
 
 namespace ospray {
 namespace sg {
 
 Renderer::Renderer(std::string type)
 {
-  auto handle = ospNewRenderer(type.c_str());
-  setHandle(handle);
-
+  createChild("type", "string", "renderer type", type);
   createChild("pixelSamples", "int", "samples-per-pixel", 1);
   createChild("maxPathLength", "int", "maximum ray recursion depth", 20);
   createChild("minContribution",
@@ -25,38 +22,28 @@ Renderer::Renderer(std::string type)
   createChild("backgroundColor",
       "rgba",
       "transparent background color and alpha (RGBA), if no map_backplate set",
-      rgba(vec3f(0.1f),1.f)); // Near black, with opaque alpha
+      rgba(vec3f(0.1f), 1.f)); // Near black, with opaque alpha
   createChild("pixelFilter",
       "int",
-      "pixel filter used by the renderer for antialiasing\n"\
+      "pixel filter used by the renderer for antialiasing\n"
       "(0=point, 1=box, 2=gauss, 3=mitchell, 4=blackman_harris)",
       (int)pixelFilter);
+
+  child("type").setSGNoUI();
+  child("type").setSGOnly();
 
   child("pixelSamples").setMinMax(1, 1000);
   child("maxPathLength").setMinMax(0, 1000);
   child("minContribution").setMinMax(0.f, 10.f);
   child("varianceThreshold").setMinMax(0.f, 100.f);
   child("pixelFilter").setMinMax(0, 4);
+
+  setHandle(cpp::Renderer(child("type").valueAs<std::string>()));
 }
 
 NodeType Renderer::type() const
 {
   return NodeType::RENDERER;
-}
-
-void Renderer::setNavMode(bool navMode)
-{
-  static auto oldNavMode = false;
-  if (navMode != oldNavMode) {
-    oldNavMode = navMode;
-
-    // XXX TODO renderer separate navigation and still settings.
-    // But, this is going to require more plumbing and UI to work correctly
-    // and be usable.
-
-    // Create 2 configurable sets of renderer options, to switch between.
-    // Should work with any renderer type.
-  }
 }
 
 // Register OSPRay's debug renderers //

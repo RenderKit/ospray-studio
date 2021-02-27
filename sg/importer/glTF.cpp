@@ -332,7 +332,7 @@ namespace ospray {
       ospMaterials.push_back(createOSPMaterial(material));
     }
 
-    baseMaterialOffset = materialRegistry->children().size();
+    baseMaterialOffset = materialRegistry->baseMaterialOffSet();
     for (auto m : ospMaterials)
       materialRegistry->add(m);
   }

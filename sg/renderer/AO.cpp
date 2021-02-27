@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Renderer.h"
@@ -10,7 +10,6 @@ struct OSPSG_INTERFACE AORenderer : public Renderer
 {
   AORenderer();
   virtual ~AORenderer() override = default;
-  void preCommit() override;
 };
 
 OSP_REGISTER_SG_NODE_NAME(AORenderer, renderer_ao);
@@ -34,17 +33,6 @@ AORenderer::AORenderer() : Renderer("ao")
   child("aoDistance").setMinMax(0.f, 1e20f);
   child("aoIntensity").setMinMax(0.f, 1000.f);
   child("volumeSamplingRate").setMinMax(0.f, 1e20f);
-}
-
-void AORenderer::preCommit()
-{
-  Renderer::preCommit();
-
-  auto &renderer = handle();
-  if (hasChild("map_backplate")) {
-    auto &cppTex = child("map_backplate").valueAs<cpp::Texture>();
-    renderer.setParam("map_backplate", cppTex);
-  }
 }
 
 } // namespace sg

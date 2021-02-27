@@ -304,7 +304,7 @@ namespace ospray {
     if (materialNodes.empty())
       materialNodes.emplace_back(createNode("default", "obj"));
 
-    size_t baseMaterialOffset = materialRegistry->children().size();
+    size_t baseMaterialOffset = materialRegistry->baseMaterialOffSet();
 
     for (auto m : materialNodes)
       materialRegistry->add(m);

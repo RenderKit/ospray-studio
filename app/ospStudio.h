@@ -62,17 +62,17 @@ class StudioCommon
 };
 
 // abstract base class for all Studio modes
-// ALOK: should be merged with StudioCommon above
+// XXX: should be merged with StudioCommon above
 class StudioContext : public std::enable_shared_from_this<StudioContext>
 {
  public:
-  StudioContext(StudioCommon &_common)
-    :studioCommon(_common)
+  StudioContext(StudioCommon &_common) : studioCommon(_common)
   {
     frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
-    baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
-        "baseMaterialRegistry", "materialRegistry");
-    lightsManager = sg::createNodeAs<sg::LightsManager>("lights", "lights");
+
+    // baseMaterialRegistry and lightsManager are owned by the Frame
+    baseMaterialRegistry = frame->baseMaterialRegistry;
+    lightsManager = frame->lightsManager;
   }
 
   virtual ~StudioContext() {}
@@ -108,8 +108,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   StudioCommon &studioCommon;
 };
 
-inline OSPError initializeOSPRay(
-    int &argc, const char **argv)
+inline OSPError initializeOSPRay(int &argc, const char **argv)
 {
   // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
   // e.g. "--osp:debug"

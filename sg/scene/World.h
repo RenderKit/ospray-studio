@@ -1,21 +1,21 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "../Node.h"
+#include "sg/Node.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
-  {
-    World();
-    ~World() override = default;
+struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
+{
+  World();
+  ~World() override = default;
 
-    virtual void preCommit() override;
-    virtual void postCommit() override;
-  };
+  virtual void preCommit() override;
+  virtual void postCommit() override;
+};
 
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray

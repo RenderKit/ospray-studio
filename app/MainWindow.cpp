@@ -827,22 +827,6 @@ void MainWindow::display()
 
 void MainWindow::startNewOSPRayFrame()
 {
-  // The baseMaterialRegistry and lightsManager don't hang off the frame, so
-  // must be checked separately.  If modified, notify the frame by modifying a
-  // child.
-  if (baseMaterialRegistry->isModified()) {
-    baseMaterialRegistry->commit();
-    baseMaterialRegistry->updateMaterialList(rendererTypeStr);
-    auto &r = frame->childAs<sg::Renderer>("renderer");
-    r.createChildData("material", baseMaterialRegistry->cppMaterialList);
-    frame->child("navMode") = true; // navMode is perfect for this
-  }
-
-  if (lightsManager->isModified()) {
-    lightsManager->updateWorld(frame->childAs<sg::World>("world"));
-    frame->child("navMode") = true; // navMode is perfect for this
-  }
-
   // UI responsiveness can be increased by knowing if we're in the middle of
   // ImGui widget interaction.
   ImGuiIO &io = ImGui::GetIO();
@@ -928,23 +912,19 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
-  auto &r = frame->createChildAs<sg::Renderer>(
-      "renderer", "renderer_" + rendererTypeStr);
+  // The materials list needs to know of a change in renderer type.
+  baseMaterialRegistry->updateRendererType();
 
+  auto &r = frame->childAs<sg::Renderer>("renderer");
   if (optPF >= 0)
     r.createChild("pixelFilter", "int", optPF);
 
-  if (rendererTypeStr != "debug") {
-    baseMaterialRegistry->updateMaterialList(rendererTypeStr);
-    r.createChildData("material", baseMaterialRegistry->cppMaterialList);
-  }
-  if (rendererTypeStr == "scivis" || rendererTypeStr == "pathtracer") {
-    if (backPlateTexture != "") {
-      auto backplateTex =
-          sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
-      backplateTex->load(backPlateTexture, false, false);
-      r.add(backplateTex);
-    }
+  // Re-add the backplate on renderer change
+  if (backPlateTexture != "") {
+    auto backplateTex =
+      sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
+    backplateTex->load(backPlateTexture, false, false);
+    r.add(backplateTex);
   }
 }
 
@@ -976,15 +956,9 @@ void MainWindow::refreshScene(bool resetCam)
     }
   }
 
-  if (baseMaterialRegistry->isModified())
-    refreshRenderer();
-
   world->render();
 
   frame->add(world);
-
-  // lightsManager must update the world *after* it's been added to the frame.
-  lightsManager->updateWorld(frame->childAs<sg::World>("world"));
 
   if (resetCam && !sgScene) {
     const auto &worldBounds = frame->child("world").bounds();
@@ -1077,7 +1051,7 @@ void MainWindow::importFiles(sg::NodePtr world)
     try {
       rkcommon::FileName fileName(file);
 
-      // ALOK: handling loading a scene here for now
+      // XXX: handling loading a scene here for now
       if (fileName.ext() == "sg") {
         sg::importScene(shared_from_this(), fileName);
         sgScene = true;
@@ -1353,7 +1327,14 @@ void MainWindow::buildMainMenuEdit()
       else
         rendererType = OSPRayRendererType::OTHER;
 
-      refreshRenderer();
+      // Change the renderer type, if the new renderer is different.
+      auto currentType = frame->childAs<sg::Renderer>("renderer").subType();
+      auto newType = "renderer_" + rendererTypeStr;
+
+      if (currentType != newType) {
+        frame->createChildAs<sg::Renderer>("renderer", newType);
+        refreshRenderer();
+      }
     }
 
     auto &renderer = frame->childAs<sg::Renderer>("renderer");
@@ -1560,14 +1541,19 @@ void MainWindow::buildMainMenuEdit()
           auto backplateTex =
               sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
           backplateTex->load(backPlateTexture, false, false);
-          frame->child("renderer").add(backplateTex);
+          renderer.add(backplateTex);
         }
       }
     }
     ImGui::SameLine();
     if (ImGui::Button("clear")) {
       backPlateTexture = "";
-      refreshRenderer();
+      // Cancel any in-progress frame since we're changing the renderer
+      frame->cancelFrame();
+      frame->waitOnFrame();
+      // Needs to be removed from the renderer node and its OSPRay params
+      renderer.remove("map_backplate");
+      renderer.handle().removeParam("map_backplate");
     }
 
     // Allows the user to cancel long frame renders, such as too-many spp or
@@ -1938,12 +1924,6 @@ void MainWindow::buildWindowLightEditor()
           auto &hdriTex = hdri.createChild("map", "texture_2d");
           auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
           ast2d->load(texFileName, false, false);
-        }
-        // When adding HDRI or sunSky, set background color to black.
-        // It's otherwise confusing.  The user can still adjust it afterward.
-        if (lightType == "hdri" || lightType == "sunSky") {
-          auto &r = frame->childAs<sg::Renderer>("renderer");
-          r["backgroundColor"] = vec4f(vec3f(0.f), 1.f); // black, opaque alpha
         }
       } else {
         lightNameWarning = true;

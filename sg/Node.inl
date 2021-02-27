@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -263,7 +263,8 @@ namespace ospray {
   inline void OSPNode<HANDLE_T, TYPE>::preCommit()
   {
     for (auto &c : children()) {
-      if (c.second->type() == NodeType::PARAMETER)
+      if (c.second->type() == NodeType::PARAMETER ||
+          c.second->type() == NodeType::TEXTURE)
         if (!c.second->sgOnly())
           c.second->setOSPRayParam(c.first, handle().handle());
     }

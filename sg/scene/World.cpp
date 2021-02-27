@@ -1,9 +1,9 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "World.h"
-#include "../visitors/RenderScene.h"
-#include "../fb/FrameBuffer.h"
+#include "sg/fb/FrameBuffer.h"
+#include "sg/visitors/RenderScene.h"
 
 namespace ospray {
 namespace sg {
@@ -14,20 +14,17 @@ World::World()
   createChild("saveMetaData", "bool", false);
 }
 
-void World::preCommit()
-{
-}
+void World::preCommit() {}
 
 void World::postCommit()
 {
-  if (child("saveMetaData").valueAs<bool>()){
+  if (child("saveMetaData").valueAs<bool>()) {
     auto &frame = parents().front();
     auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
     auto &geomIdmap = fb.ge;
     auto &instanceIdmap = fb.in;
     traverse<RenderScene>(geomIdmap, instanceIdmap);
-  }
-  else
+  } else
     traverse<RenderScene>();
 }
 

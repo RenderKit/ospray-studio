@@ -3,13 +3,15 @@
 
 #pragma once
 
-#include "../Node.h"
-#include "rkcommon/os/FileName.h"
+// sg
+#include "sg/Node.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/Animation.h"
 #include "sg/texture/Texture2D.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
 
-#include "../../app/ospStudio.h"
+#include "app/ospStudio.h"
 
 namespace ospray {
 namespace sg {

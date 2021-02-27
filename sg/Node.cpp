@@ -295,6 +295,16 @@ namespace ospray {
     properties.sgOnly = true;
   }
 
+  bool Node::sgNoUI() const
+  {
+    return properties.sgNoUI;
+  }
+
+  void Node::setSGNoUI()
+  {
+    properties.sgNoUI = true;
+  }
+
   /////////////////////////////////////////////////////////////////////////////
   // Private Members //////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
@@ -433,7 +443,7 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(UIntNode, uint32_t);
   OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
   OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
-  OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec4i);
+  OSP_REGISTER_SG_NODE_NAME(Vec4iNode, vec4i);
   OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
   OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
   OSP_REGISTER_SG_NODE_NAME(Box3iNode, box3i);
