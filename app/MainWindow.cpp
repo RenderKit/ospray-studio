@@ -2808,6 +2808,10 @@ void MainWindow::buildWindowRenderingStats()
         frame->currentAccum,
         frame->accumLimit);
     ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), message);
+    auto remaining = frame->accumLimit - frame->currentAccum;
+    auto secondsPerFrame = 1.f / (latestFPS + 1e-6);
+    ImGui::SameLine();
+    ImGui::Text("ETA: %d s", int(remaining * secondsPerFrame));
   }
 
   ImGui::End();
