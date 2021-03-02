@@ -1262,14 +1262,15 @@ void MainWindow::buildMainMenuFile()
         auto fbFloatFormat = fb["floatFormat"].valueAs<bool>();
         if (ImGui::Checkbox("FB float format ", &fbFloatFormat))
           fb["floatFormat"] = fbFloatFormat;
-        ImGui::Text("(following layers available with FB float format only)");
-        ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
-        ImGui::SameLine();
-        ImGui::Checkbox("layers as separate files", &screenshotLayers);
-        ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
-        ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
-        // implemented only as layers within single file for now
-        ImGui::Checkbox("metaData##screenshotMetaData", &screenshotMetaData);
+        if (fbFloatFormat) {
+          ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
+          ImGui::SameLine();
+          ImGui::Checkbox("layers as separate files", &screenshotLayers);
+          ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
+          ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
+          // implemented only as layers within single file for now
+          ImGui::Checkbox("metaData##screenshotMetaData", &screenshotMetaData);
+        }
       }
 
       ImGui::EndMenu();
