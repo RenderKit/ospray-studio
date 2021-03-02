@@ -1300,58 +1300,8 @@ void MainWindow::buildMainMenuEdit()
   if (ImGui::BeginMenu("Edit")) {
     ImGui::Text("general");
 
-    int whichRenderer =
-        find(g_renderers.begin(), g_renderers.end(), rendererTypeStr)
-        - g_renderers.begin();
-
-    static int whichDebuggerType = 0;
-    ImGui::PushItemWidth(10.f * ImGui::GetFontSize());
-    if (ImGui::Combo("renderer##whichRenderer",
-            &whichRenderer,
-            rendererUI_callback,
-            nullptr,
-            g_renderers.size())) {
-      rendererTypeStr = g_renderers[whichRenderer];
-
-      if (rendererType == OSPRayRendererType::DEBUGGER)
-        whichDebuggerType = 0; // reset UI if switching away
-                               // from debug renderer
-
-      if (rendererTypeStr == "scivis")
-        rendererType = OSPRayRendererType::SCIVIS;
-      else if (rendererTypeStr == "pathtracer")
-        rendererType = OSPRayRendererType::PATHTRACER;
-      else if (rendererTypeStr == "ao")
-        rendererType = OSPRayRendererType::AO;
-      else if (rendererTypeStr == "debug")
-        rendererType = OSPRayRendererType::DEBUGGER;
-      else
-        rendererType = OSPRayRendererType::OTHER;
-
-      // Change the renderer type, if the new renderer is different.
-      auto currentType = frame->childAs<sg::Renderer>("renderer").subType();
-      auto newType = "renderer_" + rendererTypeStr;
-
-      if (currentType != newType) {
-        frame->createChildAs<sg::Renderer>("renderer", newType);
-        refreshRenderer();
-      }
-    }
-
-    auto &renderer = frame->childAs<sg::Renderer>("renderer");
-
-    if (rendererType == OSPRayRendererType::DEBUGGER) {
-      if (ImGui::Combo("debug type##whichDebugType",
-              &whichDebuggerType,
-              debugTypeUI_callback,
-              nullptr,
-              g_debugRendererTypes.size())) {
-        renderer["method"] = g_debugRendererTypes[whichDebuggerType];
-      }
-    }
-
-    renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-
+    if (ImGui::MenuItem("Renderer..."))
+      showRendererEditor = true;
     ImGui::Separator();
 
     auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -1650,6 +1600,8 @@ void MainWindow::buildMainMenuPlugins()
 
 void MainWindow::buildWindows()
 {
+  if (showRendererEditor)
+    buildWindowRendererEditor();
   if (showKeyframes)
     buildWindowKeyframes();
   if (showSnapshots)
@@ -1668,6 +1620,69 @@ void MainWindow::buildWindows()
     buildWindowTransformEditor();
   if (showRenderingStats)
     buildWindowRenderingStats();
+}
+
+void MainWindow::buildWindowRendererEditor()
+{
+  if (!ImGui::Begin(
+          "Renderer editor", &showRendererEditor, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  int whichRenderer =
+      find(g_renderers.begin(), g_renderers.end(), rendererTypeStr)
+      - g_renderers.begin();
+
+  static int whichDebuggerType = 0;
+  ImGui::PushItemWidth(10.f * ImGui::GetFontSize());
+  if (ImGui::Combo("renderer##whichRenderer",
+          &whichRenderer,
+          rendererUI_callback,
+          nullptr,
+          g_renderers.size())) {
+    rendererTypeStr = g_renderers[whichRenderer];
+
+    if (rendererType == OSPRayRendererType::DEBUGGER)
+      whichDebuggerType = 0; // reset UI if switching away
+                             // from debug renderer
+
+    if (rendererTypeStr == "scivis")
+      rendererType = OSPRayRendererType::SCIVIS;
+    else if (rendererTypeStr == "pathtracer")
+      rendererType = OSPRayRendererType::PATHTRACER;
+    else if (rendererTypeStr == "ao")
+      rendererType = OSPRayRendererType::AO;
+    else if (rendererTypeStr == "debug")
+      rendererType = OSPRayRendererType::DEBUGGER;
+    else
+      rendererType = OSPRayRendererType::OTHER;
+
+    // Change the renderer type, if the new renderer is different.
+    auto currentType = frame->childAs<sg::Renderer>("renderer").subType();
+    auto newType = "renderer_" + rendererTypeStr;
+
+    if (currentType != newType) {
+      frame->createChildAs<sg::Renderer>("renderer", newType);
+      refreshRenderer();
+    }
+  }
+
+  auto &renderer = frame->childAs<sg::Renderer>("renderer");
+
+  if (rendererType == OSPRayRendererType::DEBUGGER) {
+    if (ImGui::Combo("debug type##whichDebugType",
+            &whichDebuggerType,
+            debugTypeUI_callback,
+            nullptr,
+            g_debugRendererTypes.size())) {
+      renderer["method"] = g_debugRendererTypes[whichDebuggerType];
+    }
+  }
+
+  renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+
+  ImGui::End();
 }
 
 void MainWindow::buildWindowKeyframes()

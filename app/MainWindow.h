@@ -121,7 +121,7 @@ class MainWindow : public StudioContext
   void buildMainMenuPlugins();
 
   void buildWindows();
-  void buildWindowPreferences();
+  void buildWindowRendererEditor();
   void buildWindowKeyframes();
   void buildWindowSnapshots();
   void buildWindowLightEditor();
@@ -149,6 +149,7 @@ class MainWindow : public StudioContext
   PluginManager pluginManager;
 
   // imgui window visibility toggles
+  bool showRendererEditor{false};
   bool showKeyframes{false};
   bool showSnapshots{false};
   bool showLightEditor{false};
