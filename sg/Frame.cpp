@@ -124,7 +124,7 @@ void Frame::resetAccumulation()
 
 bool Frame::varThresholdReached()
 {
-  auto &fb = childAs<FrameBuffer>("frameBuffer");
+  auto &fb = childAs<FrameBuffer>("framebuffer");
   auto &renderer = childAs<Renderer>("renderer");
   auto varianceThreshold = renderer["varianceThreshold"].valueAs<float>();
   return (varianceThreshold > 0 && fb.variance() > 0 && fb.variance() <= varianceThreshold);
