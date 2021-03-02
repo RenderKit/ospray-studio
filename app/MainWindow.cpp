@@ -1302,129 +1302,8 @@ void MainWindow::buildMainMenuEdit()
 
     if (ImGui::MenuItem("Renderer..."))
       showRendererEditor = true;
-    ImGui::Separator();
-
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-
-    ImGui::Text("display buffer");
-    static int whichBuffer = 0;
-    ImGui::RadioButton("color##displayColor", &whichBuffer, 0);
-
-    if (!fb.hasAlbedoChannel() && !fb.hasDepthChannel()) {
-      ImGui::Text("- No other channels available");
-      ImGui::Text("- Check that FrameBuffer floatFormat is enabled");
-    }
-
-    if (fb.hasAlbedoChannel()) {
-      ImGui::SameLine();
-      ImGui::RadioButton("albedo##displayAlbedo", &whichBuffer, 1);
-    }
-    if (fb.hasDepthChannel()) {
-      ImGui::SameLine();
-      ImGui::RadioButton("depth##displayDepth", &whichBuffer, 2);
-      ImGui::SameLine();
-      ImGui::RadioButton("invert depth##displayDepthInv", &whichBuffer, 3);
-    }
-
-    switch (whichBuffer) {
-    case 0:
-      showColor = true;
-      showAlbedo = showDepth = showDepthInvert = false;
-      break;
-    case 1:
-      showAlbedo = true;
-      showColor = showDepth = showDepthInvert = false;
-      break;
-    case 2:
-      showDepth = true;
-      showColor = showAlbedo = showDepthInvert = false;
-      break;
-    case 3:
-      showDepth = true;
-      showDepthInvert = true;
-      showColor = showAlbedo = false;
-      break;
-    }
-
-    ImGui::Separator();
-
-    if (fb.isFloatFormat()) {
-      ImGui::Checkbox("toneMap", &frame->toneMapFB);
-      ImGui::SameLine();
-      ImGui::Checkbox("toneMapNav", &frame->toneMapNavFB);
-
-      if (studioCommon.denoiserAvailable) {
-        ImGui::Checkbox("denoise", &frame->denoiseFB);
-        ImGui::SameLine();
-        ImGui::Checkbox("denoiseNav", &frame->denoiseNavFB);
-      }
-    } else
-      ImGui::Text("- Check that frameBuffer's floatFormat is enabled");
-
-    ImGui::Separator();
-    fb.traverse<sg::GenerateImGuiWidgets>();
-
-    ImGui::Text("frame scaling");
-    frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
-    ImGui::Text("framebuffer");
-    ImGui::SameLine();
-    fb["size"].traverse<sg::GenerateImGuiWidgets>();
-
-    static auto selectFrameScale = [&](const float scale) {
-      auto newScale = scale;
-      auto custom = true;
-      auto values = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
-      for (auto v : values) {
-        char label[64];
-        vec2i newSize = v * windowSize;
-        snprintf(label,
-            sizeof(label),
-            "%s%1.2fx (%d,%d)",
-            v == newScale ? "*" : " ",
-            v,
-            newSize.x,
-            newSize.y);
-        if (v == 1.f)
-      ImGui::Separator();
-        if (ImGui::MenuItem(label))
-          newScale = v;
-        if (v == 1.f)
-          ImGui::Separator();
-
-        custom &= (v != newScale);
-      }
-
-      ImGui::Separator();
-      vec2i newSize = newScale * windowSize;
-      char label[64];
-      snprintf(label,
-          sizeof(label),
-          "%scustom (%d,%d)",
-          custom ? "*" : " ",
-          newSize.x,
-          newSize.y);
-      if (ImGui::BeginMenu(label)) {
-        ImGui::InputFloat("x##fb_scaling", &newScale);
-        ImGui::EndMenu();
-      }
-      return newScale;
-    };
-
-    if (ImGui::BeginMenu("Scale Resolution")) {
-      auto scale = frame->child("scale").valueAs<float>();
-      auto newScale = selectFrameScale(scale);
-      if (scale != newScale)
-        frame->child("scale") = newScale;
-      ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Scale Nav Resolution")) {
-      auto scale = frame->child("scaleNav").valueAs<float>();
-      auto newScale = selectFrameScale(scale);
-      if (scale != newScale)
-        frame->child("scaleNav") = newScale;
-      ImGui::EndMenu();
-    }
+    if (ImGui::MenuItem("Frame buffer..."))
+      showFrameBufferEditor = true;
 
     ImGui::Separator();
     if (ImGui::BeginMenu("Common Window Sizes")) {
@@ -1446,23 +1325,6 @@ void MainWindow::buildMainMenuEdit()
           glfwSetWindowSize(glfwWindow, sizeChoice.x, sizeChoice.y);
           reshape(sizeChoice);
         }
-      }
-      ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Aspect Control")) {
-      const float origAspect = lockAspectRatio;
-      if (ImGui::MenuItem("Lock")) {
-        lockAspectRatio =
-            static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
-      }
-      if (ImGui::MenuItem("Unlock")) {
-        lockAspectRatio = 0.f;
-      }
-      ImGui::InputFloat("Set", &lockAspectRatio);
-      lockAspectRatio = std::max(lockAspectRatio, 0.f);
-      if (origAspect != lockAspectRatio) {
-        reshape(windowSize);
       }
       ImGui::EndMenu();
     }
@@ -1602,6 +1464,8 @@ void MainWindow::buildWindows()
 {
   if (showRendererEditor)
     buildWindowRendererEditor();
+  if (showFrameBufferEditor)
+    buildWindowFrameBufferEditor();
   if (showKeyframes)
     buildWindowKeyframes();
   if (showSnapshots)
@@ -1681,6 +1545,186 @@ void MainWindow::buildWindowRendererEditor()
   }
 
   renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+
+  ImGui::End();
+}
+
+void MainWindow::buildWindowFrameBufferEditor()
+{
+  if (!ImGui::Begin(
+          "Framebuffer editor", &showFrameBufferEditor, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  fb.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ALLOPEN);
+
+  ImGui::Separator();
+
+  static int whichBuffer = 0;
+  ImGui::Text("Display Buffer");
+  ImGui::RadioButton("color##displayColor", &whichBuffer, 0);
+
+  if (!fb.hasAlbedoChannel() && !fb.hasDepthChannel()) {
+    ImGui::TextColored(
+        ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for more buffers");
+  }
+
+  if (fb.hasAlbedoChannel()) {
+    ImGui::SameLine();
+    ImGui::RadioButton("albedo##displayAlbedo", &whichBuffer, 1);
+  }
+  if (fb.hasDepthChannel()) {
+    ImGui::SameLine();
+    ImGui::RadioButton("depth##displayDepth", &whichBuffer, 2);
+    ImGui::SameLine();
+    ImGui::RadioButton("invert depth##displayDepthInv", &whichBuffer, 3);
+  }
+
+  switch (whichBuffer) {
+  case 0:
+    showColor = true;
+    showAlbedo = showDepth = showDepthInvert = false;
+    break;
+  case 1:
+    showAlbedo = true;
+    showColor = showDepth = showDepthInvert = false;
+    break;
+  case 2:
+    showDepth = true;
+    showColor = showAlbedo = showDepthInvert = false;
+    break;
+  case 3:
+    showDepth = true;
+    showDepthInvert = true;
+    showColor = showAlbedo = false;
+    break;
+  }
+
+  ImGui::Separator();
+
+  ImGui::Text("Post-processing");
+  if (fb.isFloatFormat()) {
+    ImGui::Checkbox("Tonemap", &frame->toneMapFB);
+    ImGui::SameLine();
+    ImGui::Checkbox("Tonemap nav", &frame->toneMapNavFB);
+
+    if (studioCommon.denoiserAvailable) {
+      ImGui::Checkbox("Denoise", &frame->denoiseFB);
+      ImGui::SameLine();
+      ImGui::Checkbox("Denoise nav", &frame->denoiseNavFB);
+    }
+  } else {
+    ImGui::TextColored(
+        ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for post-processing");
+  }
+
+  ImGui::Separator();
+
+  ImGui::Text("Scaling");
+  frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
+  ImGui::Text("framebuffer");
+  ImGui::SameLine();
+  fb["size"].traverse<sg::GenerateImGuiWidgets>();
+
+  static int selectedScaleIndex = 3; // 1.f
+  static int selectedNavScaleIndex = 1; // 0.5f
+  static char selectedScaleLabel[64];
+  static char selectedNavScaleLabel[64];
+  static const float scaleValues[9] = {
+      0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
+
+  static auto selectFrameScale = [&](const float scale) {
+    auto newScale = scale;
+    auto custom = true;
+    int index = 0;
+    for (auto v : scaleValues) {
+      char label[64];
+      vec2i newSize = v * windowSize;
+      snprintf(label,
+          sizeof(label),
+          "%s%1.2fx (%d,%d)",
+          v == newScale ? "*" : " ",
+          v,
+          newSize.x,
+          newSize.y);
+      if (v == 1.f)
+        ImGui::Separator();
+      if (ImGui::Selectable(label, (index == selectedScaleIndex)))
+        newScale = v;
+      if (v == 1.f)
+        ImGui::Separator();
+
+      custom &= (v != newScale);
+      index++;
+    }
+
+    ImGui::Separator();
+    vec2i newSize = newScale * windowSize;
+    char label[64];
+    snprintf(label,
+        sizeof(label),
+        "%scustom (%d,%d)",
+        custom ? "*" : " ",
+        newSize.x,
+        newSize.y);
+    if (ImGui::BeginMenu(label)) {
+      ImGui::InputFloat("x##fb_scaling", &newScale);
+      ImGui::EndMenu();
+    }
+    return newScale;
+  };
+
+  // labels for the dropdowns
+  snprintf(selectedScaleLabel,
+      sizeof(selectedScaleLabel),
+      "%1.2fx",
+      scaleValues[selectedScaleIndex]);
+  snprintf(selectedNavScaleLabel,
+      sizeof(selectedNavScaleLabel),
+      "%1.2fx",
+      scaleValues[selectedNavScaleIndex]);
+
+  if (ImGui::BeginCombo("Scale resolution", selectedScaleLabel)) {
+    auto scale = frame->child("scale").valueAs<float>();
+    auto newScale = selectFrameScale(scale);
+    if (scale != newScale)
+      frame->child("scale") = newScale;
+    ImGui::EndCombo();
+  }
+
+  if (ImGui::BeginCombo("Scale Nav Resolution", selectedNavScaleLabel)) {
+    auto scale = frame->child("scaleNav").valueAs<float>();
+    auto newScale = selectFrameScale(scale);
+    if (scale != newScale)
+      frame->child("scaleNav") = newScale;
+    ImGui::EndCombo();
+  }
+
+  ImGui::Separator();
+
+  ImGui::Text("Aspect Ratio");
+  const float origAspect = lockAspectRatio;
+  if (lockAspectRatio != 0.f) {
+    ImGui::Text("Locked at %f", lockAspectRatio);
+    if (ImGui::Button("Unlock")) {
+      lockAspectRatio = 0.f;
+    }
+  } else {
+    if (ImGui::Button("Lock")) {
+      lockAspectRatio =
+          static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
+    }
+    sg::showTooltip("Lock to current aspect ratio");
+  }
+
+  ImGui::InputFloat("Set", &lockAspectRatio);
+  sg::showTooltip("Lock to custom aspect ratio");
+  lockAspectRatio = std::max(lockAspectRatio, 0.f);
+
+  if (origAspect != lockAspectRatio)
+    reshape(windowSize);
 
   ImGui::End();
 }
