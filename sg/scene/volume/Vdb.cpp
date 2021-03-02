@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Vdb.h"
@@ -143,7 +143,24 @@ namespace ospray {
         openvdb::io::File file(fileNameAbs.c_str());
         std::cout << "loading " << fileNameAbs << std::endl;
         file.open();
-        grid = file.readGrid("density");
+
+        std::vector<std::string> gridNames;
+
+        // Locate valid grid names within the file
+        for (auto nameIter = file.beginName(); nameIter != file.endName();
+             ++nameIter)
+          gridNames.push_back(nameIter.gridName());
+ 
+        if (gridNames.size() > 1) {
+          std::cout << "  multiple grids" << std::endl;
+          for (auto &n : gridNames)
+            std::cout << "    : " << n << std::endl;
+        }
+
+        // XXX at some point, add the ability to select which grid(s). For now,
+        // just choose the first.
+        std::cout << "  loading grid: " << gridNames[0] << std::endl;
+        grid = file.readGrid(gridNames[0]);
         file.close();
       } catch (const std::exception &e) {
         const std::string err = (std::string("Error loading ")
