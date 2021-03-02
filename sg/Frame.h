@@ -31,6 +31,7 @@ namespace ospray {
     bool accumLimitReached();
     bool accumAtFinal();
     void resetAccumulation();
+    bool varThresholdReached();
 
     inline bool isCanceled()
     {

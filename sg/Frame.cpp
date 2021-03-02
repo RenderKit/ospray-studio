@@ -59,7 +59,7 @@ void Frame::startNewFrame()
   if (isModified())
     commit();
 
-  if (!(pauseRendering || accumLimitReached())) {
+  if (!(pauseRendering || accumLimitReached() || varThresholdReached())) {
     auto future = fb.handle().renderFrame(
         renderer.handle(), camera.handle(), world.handle());
     setHandle(future, false); // setHandle but don't update modified time
@@ -67,7 +67,7 @@ void Frame::startNewFrame()
 
     if (immediatelyWait)
       waitOnFrame();
-    if (!accumLimitReached())
+    if (!accumLimitReached() && !varThresholdReached())
       currentAccum++;
   }
 }
@@ -120,6 +120,14 @@ void Frame::resetAccumulation()
   auto &fb = childAs<FrameBuffer>("framebuffer");
   fb.resetAccumulation();
   currentAccum = 0;
+}
+
+bool Frame::varThresholdReached()
+{
+  auto &fb = childAs<FrameBuffer>("frameBuffer");
+  auto &renderer = childAs<Renderer>("renderer");
+  auto varianceThreshold = renderer["varianceThreshold"].valueAs<float>();
+  return (varianceThreshold > 0 && fb.variance() > 0 && fb.variance() <= varianceThreshold);
 }
 
 const void *Frame::mapFrame(OSPFrameBufferChannel channel)

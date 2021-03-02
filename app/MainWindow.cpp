@@ -1125,7 +1125,7 @@ void MainWindow::updateTitleBar()
   } else if (frame->accumLimitReached()) {
     windowTitle << "accumulation limit reached";
   } else if (fb.variance() < varianceThreshold) {
-    windowTitle << "varianceThreshold reached";
+    windowTitle << "variance threshold reached";
   } else {
     windowTitle << std::setprecision(3) << latestFPS << " fps";
     if (latestFPS < 2.f) {
