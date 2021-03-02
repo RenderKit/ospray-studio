@@ -1188,7 +1188,7 @@ void MainWindow::buildMainMenuFile()
       ImGui::EndMenu();
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Clear Scene...", nullptr)) {
+    if (ImGui::MenuItem("Clear scene", nullptr)) {
       // Cancel any in-progress frame since we're removing the world.
       frame->cancelFrame();
       frame->waitOnFrame();
@@ -1298,15 +1298,81 @@ void MainWindow::buildMainMenuFile()
 void MainWindow::buildMainMenuEdit()
 {
   if (ImGui::BeginMenu("Edit")) {
-    ImGui::Text("general");
+    // Scene stuff /////////////////////////////////////////////////////
+
+    if (ImGui::MenuItem("Lights...", "", nullptr))
+      showLightEditor = true;
+    if (ImGui::MenuItem("Transforms...", "", nullptr))
+      showTransformEditor = true;
+    if (ImGui::MenuItem("Materials...", "", nullptr))
+      showMaterialEditor = true;
+    if (ImGui::MenuItem("Transfer Functions...", "", nullptr))
+      showTransferFunctionEditor = true;
+    if (ImGui::MenuItem("Isosurfaces...", "", nullptr))
+      showIsosurfaceEditor = true;
+    ImGui::Separator();
+
+    ImGui::EndMenu();
+  }
+}
+
+void MainWindow::buildMainMenuView()
+{
+  static bool showFileBrowser = false;
+  if (ImGui::BeginMenu("View")) {
+    // Camera stuff ////////////////////////////////////////////////////
+
+    if (ImGui::MenuItem("Camera...", "", nullptr))
+      showCameraEditor = true;
+    if (ImGui::MenuItem("Center camera", "", nullptr)) {
+      arcballCamera.reset(
+          new ArcballCamera(frame->child("world").bounds(), windowSize));
+      updateCamera();
+    }
+    if (ImGui::MenuItem("Keyframes...", "", nullptr))
+      showKeyframes = true;
+    if (ImGui::MenuItem("Snapshots...", "", nullptr))
+      showSnapshots = true;
+    ImGui::Separator();
+
+    // Renderer stuff //////////////////////////////////////////////////
 
     if (ImGui::MenuItem("Renderer..."))
       showRendererEditor = true;
-    if (ImGui::MenuItem("Frame buffer..."))
-      showFrameBufferEditor = true;
-
+    ImGui::Checkbox("Rendering stats", &showRenderingStats);
+    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    ImGui::DragInt(
+        "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
+    // Although varianceThreshold is found under the renderer, add it here to
+    // make it easier to find, alongside accumulation limit
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    frame->childAs<sg::Renderer>("renderer")["varianceThreshold"].
+      traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+    ImGui::Checkbox("Auto rotate", &autorotate);
+    if (autorotate) {
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+      ImGui::SliderInt(" speed", &autorotateSpeed, 1, 100);
+    }
     ImGui::Separator();
-    if (ImGui::BeginMenu("Common Window Sizes")) {
+
+    // Framebuffer and window stuff ////////////////////////////////////
+
+    if (ImGui::MenuItem("Framebuffer..."))
+      showFrameBufferEditor = true;
+    if (ImGui::MenuItem("Set background texture..."))
+      showFileBrowser = true;
+    if (!backPlateTexture.str().empty()) {
+      ImGui::TextColored(ImVec4(.5f, .5f, .5f, 1.f),
+          "current: %s",
+          backPlateTexture.base().c_str());
+      if (ImGui::MenuItem("Clear background texture")) {
+        backPlateTexture = "";
+        refreshRenderer();
+      }
+    }
+    if (ImGui::BeginMenu("Quick window size")) {
       const std::vector<vec2i> options = {{480, 270},
           {960, 540},
           {1280, 720},
@@ -1328,120 +1394,45 @@ void MainWindow::buildMainMenuEdit()
       }
       ImGui::EndMenu();
     }
-
-    ImGui::Separator();
-    ImGui::Text("scene");
-
-    static bool showFileBrowser = false;
-    ImGui::Text("Background texture...");
-    ImGui::SameLine();
-    // This field won't be typed into.
-    ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
-    ImGui::InputTextWithHint(
-        "##BPTex", "select...", (char *)backPlateTexture.base().c_str(), 0);
-    if (ImGui::IsItemClicked())
-      showFileBrowser = true;
-
-    // Leave the fileBrowser open until file is selected
-    if (showFileBrowser) {
-      FileList fileList = {};
-      if (fileBrowser(fileList, "Select Background Texture")) {
-        showFileBrowser = false;
-
-        if (!fileList.empty()) {
-          backPlateTexture = fileList[0];
-
-          auto backplateTex =
-              sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
-          backplateTex->load(backPlateTexture, false, false);
-          renderer.add(backplateTex);
-        }
-      }
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("clear")) {
-      backPlateTexture = "";
-      // Cancel any in-progress frame since we're changing the renderer
-      frame->cancelFrame();
-      frame->waitOnFrame();
-      // Needs to be removed from the renderer node and its OSPRay params
-      renderer.remove("map_backplate");
-      renderer.handle().removeParam("map_backplate");
-    }
-
+    ImGui::Checkbox("Display as sRGB", &uiDisplays_sRGB);
+    sg::showTooltip("Display linear framebuffers as sRGB,\n"
+                    "maintains consistent display across all formats.");
     // Allows the user to cancel long frame renders, such as too-many spp or
     // very large resolution.  Don't wait on the frame-cancel completion as
     // this locks up the UI.  Note: Next frame-start following frame
     // cancelation isn't immediate.
-    if (ImGui::Button("cancel Frame"))
+    if (ImGui::MenuItem("Cancel frame"))
       frame->cancelFrame();
 
-    ImGui::EndMenu();
-  }
-}
-
-void MainWindow::buildMainMenuView()
-{
-  if (ImGui::BeginMenu("View")) {
-    if (ImGui::MenuItem("Keyframes...", "", nullptr))
-      showKeyframes = true;
-    if (ImGui::MenuItem("Snapshots...", "", nullptr))
-      showSnapshots = true;
     ImGui::Separator();
-    if (ImGui::MenuItem("Lights...", "", nullptr))
-      showLightEditor = true;
-    if (ImGui::MenuItem("Camera...", "", nullptr))
-      showCameraEditor = true;
-    if (ImGui::MenuItem("Center camera", "", nullptr)) {
-      arcballCamera.reset(
-          new ArcballCamera(frame->child("world").bounds(), windowSize));
-      updateCamera();
-    }
 
-    ImGui::Separator();
-    if (ImGui::MenuItem("Transforms...", "", nullptr))
-      showTransformEditor = true;
-    if (ImGui::MenuItem("Materials...", "", nullptr))
-      showMaterialEditor = true;
-    if (ImGui::MenuItem("Transfer Functions...", "", nullptr))
-      showTransferFunctionEditor = true;
-    if (ImGui::MenuItem("Isosurfaces...", "", nullptr))
-      showIsosurfaceEditor = true;
+    // UI options //////////////////////////////////////////////////////
 
-    ImGui::Separator();
-    ImGui::Checkbox("Rendering stats...", &showRenderingStats);
-    ImGui::SameLine();
-    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
-
-    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-    ImGui::DragInt(
-        "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
-    // Although varianceThreshold is found under the renderer, add it here to
-    // make it easier to find, alongside accumulation limit
-    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-    frame->childAs<sg::Renderer>("renderer")["varianceThreshold"].
-      traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-
-    ImGui::Checkbox("auto rotate", &autorotate);
-    if (autorotate) {
-      ImGui::SameLine();
-      ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-      ImGui::SliderInt(" speed", &autorotateSpeed, 1, 100);
-    }
-
-    ImGui::Separator();
-    ImGui::Checkbox("Display as sRGB...", &uiDisplays_sRGB);
-    sg::showTooltip("Display linear framebuffers as sRGB,\n"
-                    "maintains consistent display across all formats.");
-
-    ImGui::Separator();
-    ImGui::Checkbox("Show Tooltips...", &g_ShowTooltips);
+    ImGui::Checkbox("Show tooltips", &g_ShowTooltips);
     if (g_ShowTooltips) {
       ImGui::SameLine();
       ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
       ImGui::DragInt("delay", &g_TooltipDelay, 50, 0, 1000, "%d ms");
     }
+
     ImGui::EndMenu();
+  }
+
+  // Leave the fileBrowser open until file is selected
+  if (showFileBrowser) {
+    FileList fileList = {};
+    if (fileBrowser(fileList, "Select Background Texture")) {
+      showFileBrowser = false;
+
+      if (!fileList.empty()) {
+        backPlateTexture = fileList[0];
+
+        auto backplateTex =
+            sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
+        backplateTex->load(backPlateTexture, false, false);
+        frame->child("renderer").add(backplateTex);
+      }
+    }
   }
 }
 
