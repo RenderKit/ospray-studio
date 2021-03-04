@@ -6,10 +6,6 @@ set(CMAKE_CXX_FLAGS "-I/usr/include/python3.8 -lpython3.8")
 
 pybind11_add_module(pysg pysg.cpp)
 
-# EXAMPLE_VERSION_INFO is defined by setup.py and passed into the C++ code as a
-# define (VERSION_INFO) here.
-# target_compile_definitions(sgPython PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
-
 target_include_directories(pysg
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>

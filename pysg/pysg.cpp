@@ -8,6 +8,7 @@
 #include <pybind11/stl.h>
 
 // SG classes
+#include <sg/Data.h>
 #include <sg/Frame.h>
 #include <sg/Node.h>
 #include <sg/camera/Camera.h>
@@ -17,7 +18,6 @@
 #include <sg/scene/World.h>
 #include <sg/scene/geometry/Geometry.h>
 #include <sg/scene/lights/LightsManager.h>
-#include <sg/Data.h>
 
 namespace py = pybind11;
 using namespace ospray::sg;
@@ -94,11 +94,118 @@ void pysg_vec4Type(py::module &sg, const char *name)
       .def(py::init<T, T, T, T>());
 }
 
+// sg::Data ////////////////////////////////////////////////////////////////
+
+std::shared_ptr<Data> pysg_Data(const py::array &array, bool is_shared = false)
+{
+  // check array dimensions
+  if (array.ndim() > 3) {
+    std::cout << "only 3 dimensional array supported in pysg::Data()" << std::endl;
+    return std::make_shared<Data>();
+  }
+
+  // check max size of vec elements( for eg: vec2/vec3/vec4)
+  const int vecSize = array.shape(array.ndim() - 1);
+
+  if (vecSize < 2 || vecSize > 4) {
+    std::cout << "only vec2/3/4 element types supported by pysg::Data()" << std::endl;
+    return std::make_shared<Data>();
+  }
+
+  auto numElements = vec3l(1, 1, 1);
+  auto byteStride = vec3l(0, 0, 0);
+
+  for (int i = 0; i < array.ndim() - 1; i++)
+    numElements[i] = array.shape(i);
+
+  if (vecSize == 2) {
+
+    if (py::isinstance<py::array_t<float>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec2f*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<int32_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec2i*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint32_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec2ui*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint8_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec2uc*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<int64_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec2l*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint64_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec2ul*)array.data(), is_shared);
+
+  } else if (vecSize == 3) {
+
+    if (py::isinstance<py::array_t<float>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec3f*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<int32_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec3i*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint32_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec3ui*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint8_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec3uc*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<int64_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec3l*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint64_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec3ul*)array.data(), is_shared);
+
+  } else {
+
+    if (py::isinstance<py::array_t<float>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec4f*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<int32_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec4i*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint32_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec4ui*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint8_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec4uc*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<int64_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec4l*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint64_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (vec4ul*)array.data(), is_shared);
+
+  }
+
+  return std::make_shared<Data>();
+}
+
 // Main SG python Module ///////////////////////////////////////////////////
 
 PYBIND11_MODULE(pysg, sg)
 {
-  // OSPRay initialization 
+  // OSPRay initialization
 
   sg.def("init", &init);
 
@@ -158,7 +265,8 @@ PYBIND11_MODULE(pysg, sg)
               &Node::createChildData))
       .def("createChildData",
           static_cast<void (Node::*)(std::string, vec3f &)>(
-              &Node::createChildData));
+              &Node::createChildData))
+      .def("setSGOnly", &Node::setSGOnly);
 
   // Nodes with strongly-types values ////////////////////////////////////////
 
@@ -236,18 +344,27 @@ PYBIND11_MODULE(pysg, sg)
 
   py::class_<MaterialRegistry, Node, std::shared_ptr<MaterialRegistry>>(
       sg, "MaterialRegistry")
-      .def(py::init<>());
+      .def(py::init<>())
+      .def("createCPPMaterials", &MaterialRegistry::createCPPMaterials)
+      .def("updateMaterialList", &MaterialRegistry::updateMaterialList);
 
   py::class_<LightsManager,
       OSPNode<ospray::cpp::Light, NodeType::LIGHTS>,
       Node,
       std::shared_ptr<LightsManager>>(sg, "LightsManager")
-      .def(py::init<>());
+      .def(py::init<>())
+      .def("addLight",
+          py::overload_cast<std::string, std::string>(&LightsManager::addLight))
+      .def("addLight", py::overload_cast<NodePtr>(&LightsManager::addLight))
+      .def("addLights", &LightsManager::addLights)
+      .def("removeLight", &LightsManager::removeLight)
+      .def("lightExists", &LightsManager::lightExists)
+      .def("hasDefaultLight", &LightsManager::hasDefaultLight)
+      .def("updateWorld", &LightsManager::updateWorld);
 
   py::class_<Data,
       OSPNode<ospray::cpp::CopiedData, NodeType::PARAMETER>,
       Node,
       std::shared_ptr<Data>>(sg, "Data")
-      .def(py::init<>());
-
+      .def(py::init([](py::array &array) { return pysg_Data(array); }));
 }
