@@ -39,7 +39,7 @@ bool LightsManager::addLight(NodePtr light)
   if (light->subType() == "hdri" || light->subType() == "sunSky") {
     auto &frame = parents().front();
     auto &renderer = frame->childAs<sg::Renderer>("renderer");
-    renderer["backgroundColor"] = vec4f(vec3f(0.f), 1.f); // black, opaque
+    renderer["backgroundColor"] = rgba(vec3f(0.f), 1.f); // black, opaque
   }
 
   lightNames.push_back(light->name());
@@ -80,8 +80,11 @@ void LightsManager::clear()
     removeLight(name);
   }
 
-  // Re-add the default-ambient light, when clearing all others
+  // Re-add the default-ambient light and gray background, when clearing lights
   addLight("default-ambient", "ambient");
+  auto &frame = parents().front();
+  auto &renderer = frame->childAs<sg::Renderer>("renderer");
+  renderer["backgroundColor"] = rgba(vec3f(0.1f), 1.f); // Near black
 }
 
 void LightsManager::preCommit()
