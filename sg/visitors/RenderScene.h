@@ -362,7 +362,8 @@ namespace ospray {
     auto camera = node.nodeAs<sg::Camera>();
     if (cs != nullptr) {
       camera->setState(cs);
-      camera->animate = true;
+      if(node.parents().front()->child("animateCamera").valueAs<bool>())
+        camera->animate = true;
     }
   }
 
