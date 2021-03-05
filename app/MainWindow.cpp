@@ -1175,6 +1175,7 @@ void MainWindow::buildMainMenuFile()
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem("Import ...", nullptr)) {
       showImportFileBrowser = true;
+      animate = false;
     } else if (ImGui::MenuItem("Import and animate ...", nullptr)) {
       showImportFileBrowser = true;
       animate = true;
