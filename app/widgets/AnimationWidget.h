@@ -10,6 +10,7 @@ class AnimationWidget
  public:
   AnimationWidget(
       std::string name, std::shared_ptr<AnimationManager> animationManager);
+  ~AnimationWidget();
   void addAnimationUI();
 
  private:

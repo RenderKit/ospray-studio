@@ -1321,6 +1321,10 @@ void MainWindow::buildMainMenuEdit()
       frame->waitOnFrame();
       frame->remove("world");
       lightsManager->clear();
+      if(animationWidget) {
+        animationWidget.reset();
+        registerImGuiCallback(nullptr);
+      }
 
       // TODO: lights caching to avoid complete re-importing after clearing
       sg::clearAssets();
