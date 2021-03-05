@@ -1188,24 +1188,29 @@ void MainWindow::buildMainMenuFile()
       ImGui::EndMenu();
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Clear scene", nullptr)) {
-      // Cancel any in-progress frame since we're removing the world.
-      frame->cancelFrame();
-      frame->waitOnFrame();
-      frame->remove("world");
-      lightsManager->clear();
+    if (ImGui::BeginMenu("Clear scene")) {
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, .0f, .0f, 1.f));
+      if (ImGui::MenuItem("confirm!")) {
+        // Cancel any in-progress frame since we're removing the world.
+        frame->cancelFrame();
+        frame->waitOnFrame();
+        frame->remove("world");
+        lightsManager->clear();
 
-      // TODO: lights caching to avoid complete re-importing after clearing
-      sg::clearAssets();
+        // TODO: lights caching to avoid complete re-importing after clearing
+        sg::clearAssets();
 
-      // Recreate MaterialRegistry, clearing old registry and all materials
-      baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
-          "baseMaterialRegistry", "materialRegistry");
+        // Recreate MaterialRegistry, clearing old registry and all materials
+        baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
+            "baseMaterialRegistry", "materialRegistry");
 
-      scene = "";
-      refreshScene(true);
+        scene = "";
+        refreshScene(true);
+      }
+      ImGui::PopStyleColor();
+      ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu("Save...")) {
+    if (ImGui::BeginMenu("Save")) {
       if (ImGui::MenuItem("Scene (entire)")) {
         std::ofstream dump("studio_scene.sg");
         JSON j = {{"world", frame->child("world")},
@@ -1369,7 +1374,13 @@ void MainWindow::buildMainMenuView()
           backPlateTexture.base().c_str());
       if (ImGui::MenuItem("Clear background texture")) {
         backPlateTexture = "";
-        refreshRenderer();
+        // Cancel any in-progress frame since we're changing the renderer
+        frame->cancelFrame();
+        frame->waitOnFrame();
+        // Needs to be removed from the renderer node and its OSPRay params
+        auto &renderer = frame->childAs<sg::Renderer>("renderer");
+        renderer.remove("map_backplate");
+        renderer.handle().removeParam("map_backplate");
       }
     }
     if (ImGui::BeginMenu("Quick window size")) {
@@ -1614,83 +1625,67 @@ void MainWindow::buildWindowFrameBufferEditor()
   ImGui::Separator();
 
   ImGui::Text("Scaling");
-  frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
-  ImGui::Text("framebuffer");
-  ImGui::SameLine();
-  fb["size"].traverse<sg::GenerateImGuiWidgets>();
+  {
+    frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
+    ImGui::Text("framebuffer");
+    ImGui::SameLine();
+    fb["size"].traverse<sg::GenerateImGuiWidgets>();
 
-  static int selectedScaleIndex = 3; // 1.f
-  static int selectedNavScaleIndex = 1; // 0.5f
-  static char selectedScaleLabel[64];
-  static char selectedNavScaleLabel[64];
-  static const float scaleValues[9] = {
-      0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
+    static const float scaleValues[9] = {
+        0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
 
-  static auto selectFrameScale = [&](const float scale) {
-    auto newScale = scale;
-    auto custom = true;
-    int index = 0;
-    for (auto v : scaleValues) {
-      char label[64];
-      vec2i newSize = v * windowSize;
-      snprintf(label,
-          sizeof(label),
-          "%s%1.2fx (%d,%d)",
-          v == newScale ? "*" : " ",
+    auto size = windowSize; // need a local scope copy for lambda
+    char _label[64];
+    static auto createLabel = [&_label, size](std::string uniqueId, float v) {
+      const vec2i _sz = v * size;
+      snprintf(_label,
+          sizeof(_label),
+          "%1.2fx (%d,%d)##%s",
           v,
-          newSize.x,
-          newSize.y);
-      if (v == 1.f)
-        ImGui::Separator();
-      if (ImGui::Selectable(label, (index == selectedScaleIndex)))
-        newScale = v;
-      if (v == 1.f)
-        ImGui::Separator();
+          _sz.x,
+          _sz.y,
+          uniqueId.c_str());
+      return _label;
+    };
 
-      custom &= (v != newScale);
-      index++;
-    }
+    static auto selectNewScale = [size](std::string id, const float _scale) {
+      auto scale = _scale;
+      auto custom = true;
+      for (auto v : scaleValues) {
+        if (ImGui::Selectable(createLabel(id, v), v == scale))
+          scale = v;
+        custom &= (v != scale);
+      }
 
-    ImGui::Separator();
-    vec2i newSize = newScale * windowSize;
-    char label[64];
-    snprintf(label,
-        sizeof(label),
-        "%scustom (%d,%d)",
-        custom ? "*" : " ",
-        newSize.x,
-        newSize.y);
-    if (ImGui::BeginMenu(label)) {
-      ImGui::InputFloat("x##fb_scaling", &newScale);
-      ImGui::EndMenu();
-    }
-    return newScale;
-  };
+      ImGui::Separator();
+      char cLabel[64];
+      snprintf(cLabel, sizeof(cLabel), "custom %s", createLabel(id, scale));
+      if (ImGui::BeginMenu(cLabel)) {
+        ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+        ImGui::InputFloat("x##fb_scaling", &scale);
+        ImGui::EndMenu();
+      }
 
-  // labels for the dropdowns
-  snprintf(selectedScaleLabel,
-      sizeof(selectedScaleLabel),
-      "%1.2fx",
-      scaleValues[selectedScaleIndex]);
-  snprintf(selectedNavScaleLabel,
-      sizeof(selectedNavScaleLabel),
-      "%1.2fx",
-      scaleValues[selectedNavScaleIndex]);
+      return scale;
+    };
 
-  if (ImGui::BeginCombo("Scale resolution", selectedScaleLabel)) {
     auto scale = frame->child("scale").valueAs<float>();
-    auto newScale = selectFrameScale(scale);
-    if (scale != newScale)
-      frame->child("scale") = newScale;
-    ImGui::EndCombo();
-  }
+    ImGui::SetNextItemWidth(12 * ImGui::GetFontSize());
+    if (ImGui::BeginCombo("Scale resolution", createLabel("still", scale))) {
+      auto newScale = selectNewScale("still", scale);
+      if (scale != newScale)
+        frame->child("scale") = newScale;
+      ImGui::EndCombo();
+    }
 
-  if (ImGui::BeginCombo("Scale Nav Resolution", selectedNavScaleLabel)) {
-    auto scale = frame->child("scaleNav").valueAs<float>();
-    auto newScale = selectFrameScale(scale);
-    if (scale != newScale)
-      frame->child("scaleNav") = newScale;
-    ImGui::EndCombo();
+    scale = frame->child("scaleNav").valueAs<float>();
+    ImGui::SetNextItemWidth(12 * ImGui::GetFontSize());
+    if (ImGui::BeginCombo("Scale Nav resolution", createLabel("nav", scale))) {
+      auto newScale = selectNewScale("nav", scale);
+      if (scale != newScale)
+        frame->child("scaleNav") = newScale;
+      ImGui::EndCombo();
+    }
   }
 
   ImGui::Separator();
@@ -1698,7 +1693,8 @@ void MainWindow::buildWindowFrameBufferEditor()
   ImGui::Text("Aspect Ratio");
   const float origAspect = lockAspectRatio;
   if (lockAspectRatio != 0.f) {
-    ImGui::Text("Locked at %f", lockAspectRatio);
+    ImGui::SameLine();
+    ImGui::Text("locked at %f", lockAspectRatio);
     if (ImGui::Button("Unlock")) {
       lockAspectRatio = 0.f;
     }
@@ -1710,6 +1706,7 @@ void MainWindow::buildWindowFrameBufferEditor()
     sg::showTooltip("Lock to current aspect ratio");
   }
 
+  ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
   ImGui::InputFloat("Set", &lockAspectRatio);
   sg::showTooltip("Lock to custom aspect ratio");
   lockAspectRatio = std::max(lockAspectRatio, 0.f);
