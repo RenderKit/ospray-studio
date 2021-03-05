@@ -169,7 +169,7 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   // create GLFW window
   glfwWindow = glfwCreateWindow(
-      windowSize.x, windowSize.y, "OSPRay Tutorial", nullptr, nullptr);
+      windowSize.x, windowSize.y, "OSPRay Studio", nullptr, nullptr);
 
   if (!glfwWindow) {
     glfwTerminate();
