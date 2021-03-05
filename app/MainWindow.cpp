@@ -48,6 +48,7 @@ static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
 static bool g_animateCamera = false;
+static bool g_clearSceneConfirm = false;
 
 static const std::vector<std::string> g_scenes = {"tutorial_scene",
     "random_spheres",
@@ -1188,28 +1189,6 @@ void MainWindow::buildMainMenuFile()
       ImGui::EndMenu();
     }
     ImGui::Separator();
-    if (ImGui::BeginMenu("Clear scene")) {
-      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, .0f, .0f, 1.f));
-      if (ImGui::MenuItem("confirm!")) {
-        // Cancel any in-progress frame since we're removing the world.
-        frame->cancelFrame();
-        frame->waitOnFrame();
-        frame->remove("world");
-        lightsManager->clear();
-
-        // TODO: lights caching to avoid complete re-importing after clearing
-        sg::clearAssets();
-
-        // Recreate MaterialRegistry, clearing old registry and all materials
-        baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
-            "baseMaterialRegistry", "materialRegistry");
-
-        scene = "";
-        refreshScene(true);
-      }
-      ImGui::PopStyleColor();
-      ImGui::EndMenu();
-    }
     if (ImGui::BeginMenu("Save")) {
       if (ImGui::MenuItem("Scene (entire)")) {
         std::ofstream dump("studio_scene.sg");
@@ -1317,7 +1296,44 @@ void MainWindow::buildMainMenuEdit()
       showIsosurfaceEditor = true;
     ImGui::Separator();
 
+    if (ImGui::MenuItem("Clear scene"))
+      g_clearSceneConfirm = true;
+
     ImGui::EndMenu();
+  }
+
+  if (g_clearSceneConfirm) {
+    g_clearSceneConfirm = false;
+    ImGui::OpenPopup("Clear scene");
+  }
+
+  if (ImGui::BeginPopupModal("Clear scene")) {
+    ImGui::Text("Are you sure you want to clear the scene?");
+    ImGui::Text("This will delete all objects, materials and lights.");
+
+    if (ImGui::Button("No!"))
+      ImGui::CloseCurrentPopup();
+    ImGui::SameLine(ImGui::GetWindowWidth()-(8*ImGui::GetFontSize()));
+
+    if (ImGui::Button("Yes, clear it")) {
+      // Cancel any in-progress frame since we're removing the world.
+      frame->cancelFrame();
+      frame->waitOnFrame();
+      frame->remove("world");
+      lightsManager->clear();
+
+      // TODO: lights caching to avoid complete re-importing after clearing
+      sg::clearAssets();
+
+      // Recreate MaterialRegistry, clearing old registry and all materials
+      baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
+          "baseMaterialRegistry", "materialRegistry");
+
+      scene = "";
+      refreshScene(true);
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
   }
 }
 
