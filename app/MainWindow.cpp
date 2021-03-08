@@ -1647,15 +1647,10 @@ void MainWindow::buildWindowFrameBufferEditor()
 
   ImGui::Text("Scaling");
   {
-    frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
-    ImGui::Text("framebuffer");
-    ImGui::SameLine();
-    fb["size"].traverse<sg::GenerateImGuiWidgets>();
-
     static const float scaleValues[9] = {
         0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
 
-    auto size = windowSize; // need a local scope copy for lambda
+    auto size = fb["size"].valueAs<vec2i>(); // need a local scope for lambda
     char _label[64];
     static auto createLabel = [&_label, size](std::string uniqueId, float v) {
       const vec2i _sz = v * size;
@@ -1669,7 +1664,7 @@ void MainWindow::buildWindowFrameBufferEditor()
       return _label;
     };
 
-    static auto selectNewScale = [size](std::string id, const float _scale) {
+    static auto selectNewScale = [&](std::string id, const float _scale) {
       auto scale = _scale;
       auto custom = true;
       for (auto v : scaleValues) {
