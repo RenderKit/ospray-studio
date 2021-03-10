@@ -34,6 +34,10 @@ PathTracer::PathTracer() : Renderer("pathtracer")
       "bool",
       "whether geometries with an emissive material illuminate the scene",
       true);
+  createChild("backgroundRefraction",
+      "bool",
+      "allow for alpha blending even if background is seen through refractive objects like glass",
+      false);
 
   child("lightSamples").setMinMax(-1, 1000);
   child("roulettePathLength").setMinMax(0, 1000);
