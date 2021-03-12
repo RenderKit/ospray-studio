@@ -14,6 +14,7 @@
 #include <chrono>
 #include "PluginManager.h"
 #include "sg/scene/Animation.h"
+#include "sg/importer/Importer.h"
 
 using namespace rkcommon::math;
 using namespace ospray;
@@ -75,4 +76,7 @@ class BatchContext : public StudioContext
   //camera animation
   sg::NodePtr selectedSceneCamera;
   bool animateCamera{false};
+
+  //Volume parameters
+  sg::NodePtr volumeParams;
 };

@@ -5,11 +5,11 @@
 // ospray_sg
 #include "sg/Frame.h"
 #include "sg/fb/FrameBuffer.h"
-#include "sg/importer/Importer.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/visitors/Commit.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/camera/Camera.h"
+#include "sg/scene/volume/Volume.h"
 // rkcommon
 #include "rkcommon/utility/SaveImage.h"
 // json
@@ -49,6 +49,8 @@ bool BatchContext::parseCommandLine()
   int argc = studioCommon.argc;
   const char **argv = studioCommon.argv;
   int argIndex = 1;
+
+  volumeParams = std::make_shared<sg::VolumeParams>();
 
   auto argAvailability = [&](std::string switchArg, int nComp) {
     if (argc >= argIndex + nComp)
@@ -187,10 +189,50 @@ bool BatchContext::parseCommandLine()
         framesRange.lower = x;
         framesRange.upper = y;
       }
+    }
+    // volume parameters 
+    else if (switchArg == "--dimensions" || switchArg == "-dim") {
+      if (argAvailability(switchArg, 3)) {
+      const std::string dimX(argv[argIndex++]);
+      const std::string dimY(argv[argIndex++]);
+      const std::string dimZ(argv[argIndex++]);
+      auto dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
+      volumeParams->createChild("dimensions", "vec3i", dimensions);
+      }
+    } else if (switchArg == "--gridSpacing" || switchArg == "-gs") {
+      if (argAvailability(switchArg, 3)) {
+      const std::string gridSpacingX(argv[argIndex++]);
+      const std::string gridSpacingY(argv[argIndex++]);
+      const std::string gridSpacingZ(argv[argIndex++]);
+      auto gridSpacing =
+          vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
+      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
+      }
+    } else if (switchArg == "--gridOrigin" || switchArg == "-go") {
+      if (argAvailability(switchArg, 3)) {
+      const std::string gridOriginX(argv[argIndex++]);
+      const std::string gridOriginY(argv[argIndex++]);
+      const std::string gridOriginZ(argv[argIndex++]);
+      auto gridOrigin =
+          vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
+      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
+      }
+    } else if (switchArg == "--voxelType" || switchArg == "-vt") {
+      if (argAvailability(switchArg, 1)) {
+      auto voxelTypeStr = std::string(argv[argIndex++]);
+      auto it           = sg::volumeVoxelType.find(voxelTypeStr);
+      if (it != sg::volumeVoxelType.end()) {
+        auto voxelType = it->second;
+        volumeParams->createChild("voxelType", "int", voxelType);
+      } else {
+        throw std::runtime_error("improper -voxelType format requested");
+      }
+      }
     } else if (switchArg.front() == '-') {
       std::cout << " Unknown option: " << switchArg << std::endl;
       break;
-    } else {
+    }
+    else {
       filesToImport.push_back(switchArg);
     }
   }
@@ -424,6 +466,13 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
+          if (volumeParams->children().size() > 0) {
+            auto vp = importer->getVolumeParams();
+            for (auto &c : volumeParams->children()) {
+              vp->remove(c.first);
+              vp->add(c.second);
+            }
+          }
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
           importer->importScene();

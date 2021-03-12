@@ -970,7 +970,7 @@ bool MainWindow::parseCommandLine()
 {
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
-
+  volumeParams = std::make_shared<sg::VolumeParams>();
   for (int i = 1; i < ac; i++) {
     const auto arg = std::string(av[i]);
     if (arg.rfind("-", 0) != 0) {
@@ -984,32 +984,32 @@ bool MainWindow::parseCommandLine()
       --i;
     } else if (arg == "--animate" || arg == "-a") {
       animate = true;
-    } else if (arg == "--dimensions" || arg == "-d") {
+    } else if (arg == "--dimensions" || arg == "-dim") {
       const std::string dimX(av[++i]);
       const std::string dimY(av[++i]);
       const std::string dimZ(av[++i]);
-      useVolumeParams = true;
-      vp.dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
-    } else if (arg == "--gridSpacing" || arg == "-g") {
+      auto dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
+      volumeParams->createChild("dimensions", "vec3i", dimensions);
+    } else if (arg == "--gridSpacing" || arg == "-gs") {
       const std::string gridSpacingX(av[++i]);
       const std::string gridSpacingY(av[++i]);
       const std::string gridSpacingZ(av[++i]);
-      useVolumeParams = true;
-      vp.gridSpacing =
+      auto gridSpacing =
           vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
-    } else if (arg == "--gridOrigin" || arg == "-o") {
+      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
+    } else if (arg == "--gridOrigin" || arg == "-go") {
       const std::string gridOriginX(av[++i]);
       const std::string gridOriginY(av[++i]);
       const std::string gridOriginZ(av[++i]);
-      useVolumeParams = true;
-      vp.gridOrigin =
+      auto gridOrigin =
           vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
-    } else if (arg == "--voxelType" || arg == "-v") {
+      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
+    } else if (arg == "--voxelType" || arg == "-vt") {
       auto voxelTypeStr = std::string(av[++i]);
       auto it           = sg::volumeVoxelType.find(voxelTypeStr);
       if (it != sg::volumeVoxelType.end()) {
-        vp.voxelType = it->second;
-        useVolumeParams = true;
+        auto voxelType = it->second;
+        volumeParams->createChild("voxelType", "int", voxelType);
       } else {
         throw std::runtime_error("improper -voxelType format requested");
       }
@@ -1057,10 +1057,13 @@ void MainWindow::importFiles(sg::NodePtr world)
 
         auto importer = sg::getImporter(world, file);
         if (importer) {
-          // Could be any type of importer.  Need to pass the MaterialRegistry,
-          // importer will use what it needs.
-          if(useVolumeParams)
-            importer->setVolumeParams(&vp);
+          if (volumeParams->children().size() > 0) {
+            auto vp = importer->getVolumeParams();
+            for (auto &c : volumeParams->children()) {
+              vp->remove(c.first);
+              vp->add(c.second);
+            }
+          }
 
           importer->pointSize = pointSize;
           importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));

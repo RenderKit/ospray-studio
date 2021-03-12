@@ -140,8 +140,7 @@ class MainWindow : public StudioContext
   sg::NodePtr g_selectedSceneCamera;
 
   //Volume parameters
-  sg::VolumeParams vp;
-  bool useVolumeParams{false};
+  sg::NodePtr volumeParams;
 
   float pointSize{0.05f};
 

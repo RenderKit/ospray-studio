@@ -37,19 +37,17 @@ void RawImporter::importScene()
 
   if (volumeTypeExt == ".spherical") {
     auto volume = createNode(nodeName, "structuredSpherical");
-    volume->createChild("voxelType", "int", p->voxelType);
-    volume->createChild("gridOrigin", "vec3f", p->gridOrigin);
-    volume->createChild("gridSpacing", "vec3f", p->gridSpacing);
-    volume->createChild("dimensions", "vec3i", p->dimensions);
+    for (auto &c : volumeParams->children())
+      volume->add(c.second);
+
     auto sphericalVolume = std::static_pointer_cast<StructuredSpherical>(volume);
     sphericalVolume->load(fileName);
     volumeImport = sphericalVolume;
   } else {
     auto volume = createNode(nodeName, "structuredRegular");
-    volume->createChild("voxelType", "int", p->voxelType);
-    volume->createChild("gridOrigin", "vec3f", p->gridOrigin);
-    volume->createChild("gridSpacing", "vec3f", p->gridSpacing);
-    volume->createChild("dimensions", "vec3i", p->dimensions);
+    for (auto &c : volumeParams->children())
+      volume->add(c.second);
+
     auto structuredVolume = std::static_pointer_cast<StructuredVolume>(volume);
     structuredVolume->load(fileName);
     volumeImport = structuredVolume;
