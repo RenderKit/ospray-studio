@@ -423,6 +423,7 @@ void BatchContext::importFiles(sg::NodePtr world)
         if (importer) {
           // Could be any type of importer.  Need to pass the MaterialRegistry,
           // importer will use what it needs.
+          importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);

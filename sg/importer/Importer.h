@@ -73,6 +73,10 @@ struct OSPSG_INTERFACE Importer : public Node
     lightsManager = _lightsManager;
   }
 
+  inline void setFb(sg::FrameBuffer &_fb)
+  {
+    fb = &_fb;
+  }
   inline VolumeParams* setDefaultParams(bool structured) {
     if (structured) {
       defaultParams.voxelType = int(OSP_FLOAT);
@@ -101,6 +105,7 @@ struct OSPSG_INTERFACE Importer : public Node
   bool importCameras{false};
   VolumeParams *p{nullptr};
   NodePtr lightsManager;
+  sg::FrameBuffer *fb{nullptr};
 };
 
 // global assets catalogue

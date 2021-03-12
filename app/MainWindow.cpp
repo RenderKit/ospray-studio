@@ -1067,6 +1067,7 @@ void MainWindow::importFiles(sg::NodePtr world)
             importer->setVolumeParams(&vp);
 
           importer->pointSize = pointSize;
+          importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);

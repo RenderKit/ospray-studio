@@ -47,11 +47,13 @@ namespace ospray {
     GLTFData(NodePtr rootNode,
         const FileName &fileName,
         std::shared_ptr<sg::MaterialRegistry> _materialRegistry,
-        std::vector<NodePtr> *_cameras)
+        std::vector<NodePtr> *_cameras,
+        sg::FrameBuffer *_fb)
         : fileName(fileName),
           rootNode(rootNode),
           materialRegistry(_materialRegistry),
-          cameras(_cameras)
+          cameras(_cameras),
+          fb(_fb)
     {}
 
    public:
@@ -73,6 +75,7 @@ namespace ospray {
 
    private:
     NodePtr rootNode;
+    sg::FrameBuffer *fb{nullptr};
     std::vector<NodePtr> *cameras{nullptr};
     std::vector<SkinPtr> skins;
     std::vector<NodePtr> ospMeshes;
@@ -340,6 +343,7 @@ namespace ospray {
   void GLTFData::createCameras()
   {
     cameras->reserve(model.cameras.size());
+    NodePtr sgCamera;
 
     for (auto &m : model.cameras) {
       static auto nCamera = 0;
@@ -347,7 +351,7 @@ namespace ospray {
       if(cameraName == "")
        cameraName = "camera_" + std::to_string(nCamera++);
       if (m.type == "perspective") {
-        auto sgCamera = createNode(cameraName, "camera_perspective");
+        sgCamera = createNode(cameraName, "camera_perspective");
 
         // convert radians to degrees for vertical FOV
         float fovy = (float)m.perspective.yfov * (180.f / (float)pi);
@@ -366,17 +370,62 @@ namespace ospray {
           sgCamera->createChild("apertureRadius",
                                 "float",
                                 (float)m.perspective.extras.Get("apertureRadius").GetNumberAsDouble());
-        cameras->push_back(sgCamera);
       } else {
-        auto sgCamera = createNode(cameraName, "camera_orthographic");
+        sgCamera = createNode(cameraName, "camera_orthographic");
         sgCamera->createChild("height", "float", (float)m.orthographic.ymag);
 
         // calculate orthographic aspect with horizontal and vertical maginifications
         float aspect = (float)m.orthographic.xmag / m.orthographic.ymag;
         sgCamera->createChild("aspect", "float", aspect);
         sgCamera->createChild("nearClip", "float", (float)m.orthographic.znear);
-        cameras->push_back(sgCamera);
       }
+
+      // check if camera has EXT_cameras_sensor
+      if (m.extensions.find("EXT_cameras_sensor") != m.extensions.end()
+          && sgCamera->subType() == "camera_perspective") {
+        auto ext = m.extensions["EXT_cameras_sensor"];
+        float len_x, len_y{0.f};
+
+        if (ext.Has("imageSensor")) {
+          auto imageSensor = ext.Get("imageSensor");
+          auto pixels = imageSensor.Get("pixels").Get<tinygltf::Value::Array>();
+          auto pixelSize =
+              imageSensor.Get("pixelSize").Get<tinygltf::Value::Array>();
+          int x = pixels[0].Get<int>();
+          int y = pixels[1].Get<int>();
+          fb->child("size").setValue(vec2i(x, y));
+          len_x = x * (float)pixelSize[0].Get<double>();
+          len_y = y * (float)pixelSize[1].Get<double>();
+          sgCamera->child("aspect").setValue(len_x / len_y);
+        }
+
+        if (ext.Has("lens")) {
+          auto lens = ext.Get("lens");
+          float chamberConstant =
+              (float)lens.Get("chamberConstant").Get<double>();
+          float fovy = 2 * atan(len_y / (2 * chamberConstant));
+          sgCamera->child("fovy").setValue(fovy);
+
+          float apertureRadius =
+              (float)lens.Get("apertureRadius").Get<double>();
+          sgCamera->child("apertureRadius").setValue(apertureRadius);
+
+          float focusDistance = (float)lens.Get("focusDistance").Get<double>();
+          sgCamera->child("focusDistance").setValue(focusDistance);
+          
+          auto centerPointShift =
+              lens.Get("centerPointShift").Get<tinygltf::Value::Array>();
+          float x_shift = (float)centerPointShift[0].Get<double>();
+          float y_shift = (float)centerPointShift[1].Get<double>();
+          vec2f imageStart = vec2f(x_shift, y_shift)
+              + sgCamera->child("imageStart").valueAs<vec2f>();
+          vec2f imageEnd = vec2f(x_shift, y_shift)
+              + sgCamera->child("imageEnd").valueAs<vec2f>();
+          sgCamera->child("imageStart").setValue(imageStart);
+          sgCamera->child("imageEnd").setValue(imageEnd);
+        }
+      }
+      cameras->push_back(sgCamera);
     }
   }
 
@@ -1431,7 +1480,7 @@ namespace ospray {
     std::string baseName = fileName.name() + "_rootXfm";
     auto rootNode = createNode(baseName, "transform");
 
-    GLTFData gltf(rootNode, fileName, materialRegistry, cameras);
+    GLTFData gltf(rootNode, fileName, materialRegistry, cameras, fb);
 
     if (!gltf.parseAsset())
       return;
