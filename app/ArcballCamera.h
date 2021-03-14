@@ -105,6 +105,7 @@ class ArcballCamera
   void rotate(const vec2f &from, const vec2f &to);
   void constrainedRotate(const vec2f &from, const vec2f &to, int axis /* 0 = x, 1 = y, 2 = z, otherwise none*/);
   void zoom(float amount);
+  void dolly(float amount);
   void pan(const vec2f &delta);
 
   vec3f eyePos() const;

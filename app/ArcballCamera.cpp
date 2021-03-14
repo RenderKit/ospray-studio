@@ -64,8 +64,17 @@ void ArcballCamera::zoom(float amount)
   updateCamera();
 }
 
+void ArcballCamera::dolly(float amount)
+{
+  auto worldt = lookDir() * amount * zoomSpeed;
+  centerTranslation = AffineSpace3f::translate(worldt) * centerTranslation;
+  updateCamera();
+}
+
 void ArcballCamera::pan(const vec2f &delta)
 {
+  // XXX This should really be called "truck/pedestal". "pan/tilt" are
+  // a fixed-base rotation about the camera (more like our rotate)
   const vec3f t =
       vec3f(delta.x * invWindowSize.x, delta.y * invWindowSize.y, 0);
   const vec3f worldt = abs(translation.p.z) * xfmVector(cameraToWorld, t);

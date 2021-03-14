@@ -346,6 +346,13 @@ MainWindow::MainWindow(StudioCommon &_common)
     }
   });
 
+  glfwSetScrollCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
+    ImGuiIO &io = ImGui::GetIO();
+    if (!activeWindow->showUi || !io.WantCaptureMouse) {
+      activeWindow->mouseWheel(vec2f{float(x), float(y)});
+    }
+  });
+
   glfwSetCursorPosCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
     ImGuiIO &io = ImGui::GetIO();
     if (!activeWindow->showUi || !io.WantCaptureMouse) {
@@ -504,6 +511,20 @@ void MainWindow::updateCamera()
   camera["position"] = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
   camera["up"] = arcballCamera->upDir();
+
+  if (camera.hasChild("focusDistance")) {
+    float focusDistance = rkcommon::math::length(
+        camera["lookAt"].valueAs<vec3f>() - arcballCamera->eyePos());
+    float oldFocusDistance = camera["focusDistance"].valueAs<float>();
+
+    camera["focusDistance"] = focusDistance;
+
+    if (!(isinf(oldFocusDistance) || isinf(focusDistance))) {
+      float apertureRadius = camera["apertureRadius"].valueAs<float>();
+      camera["apertureRadius"] = apertureRadius *
+        focusDistance / oldFocusDistance;
+    }
+  }
 }
 
 void MainWindow::setCameraState(CameraState &cs)
@@ -524,6 +545,8 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   res = fb.handle().pick(r, c, w, x, y);
   if (res.hasHit) {
     arcballCamera->setCenter(vec3f(res.worldPosition));
+    auto &camera = frame->child("camera");
+    camera["lookAt"] = vec3f(res.worldPosition);
     updateCamera();
   }
 }
@@ -548,7 +571,7 @@ void MainWindow::keyboardMotion()
   double azimuth = g_camMoveA;
 
   if (inOut) {
-    arcballCamera->zoom(inOut * sensitivity);
+    arcballCamera->dolly(inOut * sensitivity);
   }
   if (leftRight) {
     arcballCamera->pan(vec2f(leftRight, 0) * sensitivity);
@@ -603,7 +626,10 @@ void MainWindow::motion(const vec2f &position)
           lerp(sensitivity, mouseFrom, mouseTo),
           g_rotationConstraint);
     } else if (rightDown) {
-      arcballCamera->zoom((mouse.y - prev.y) * sensitivity);
+      if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        arcballCamera->dolly((mouse.y - prev.y) * sensitivity);
+      else
+        arcballCamera->zoom((mouse.y - prev.y) * sensitivity);
     } else if (middleDown) {
       arcballCamera->pan(
           vec2f(mouse.x - prev.x, prev.y - mouse.y) * sensitivity);
@@ -625,6 +651,33 @@ void MainWindow::mouseButton(const vec2f &position)
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
     pickCenterOfRotation(position.x, position.y);
   }
+}
+
+void MainWindow::mouseWheel(const vec2f &scroll)
+{
+  if (!scroll || frame->pauseRendering)
+    return;
+
+  // scroll is +/- 1 for horizontal/vertical mouseWheel motion
+
+  // XXX TODO make sensitivity UI adjustable
+  auto sensitivity = 1.f;
+  auto fineControl = 5.f;
+  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    sensitivity /= fineControl;
+
+  if (scroll.y) {
+    auto &camera = frame->child("camera");
+    if (camera.hasChild("fovy")) {
+      auto fovy = camera["fovy"].valueAs<float>();
+      fovy = std::min(180.f, std::max(0.f, fovy + scroll.y * sensitivity));
+      camera["fovy"] = fovy;
+      updateCamera();
+    }
+  }
+
+  // XXX anything interesting to do with horizontal scroll wheel?
+  // Perhaps cycle through renderer types?  Or toggle denoiser or navigation?
 }
 
 void MainWindow::display()
@@ -2181,8 +2234,8 @@ void MainWindow::buildWindowIsosurfaceEditor()
 
   // Specialized node vector list box
   using vNodePtr = std::vector<sg::NodePtr>;
-  static auto ListBox = [](const char *label, int *selected, vNodePtr &nodes) {
-    static auto getter = [](void *vec, int index, const char **name) {
+  auto ListBox = [](const char *label, int *selected, vNodePtr &nodes) {
+    auto getter = [](void *vec, int index, const char **name) {
       auto nodes = static_cast<vNodePtr *>(vec);
       if (0 > index || index >= (int) nodes->size())
         return false;

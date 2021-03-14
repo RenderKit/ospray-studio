@@ -100,6 +100,7 @@ class MainWindow : public StudioContext
   void motion(const vec2f &position);
   void keyboardMotion();
   void mouseButton(const vec2f &position);
+  void mouseWheel(const vec2f &scroll);
   void display();
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
