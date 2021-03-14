@@ -544,7 +544,8 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   y = 1.f - clamp(y / windowSize.y, 0.f, 1.f);
   res = fb.handle().pick(r, c, w, x, y);
   if (res.hasHit) {
-    arcballCamera->setCenter(vec3f(res.worldPosition));
+    if (!glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+      arcballCamera->setCenter(vec3f(res.worldPosition));
     auto &camera = frame->child("camera");
     camera["lookAt"] = vec3f(res.worldPosition);
     updateCamera();
