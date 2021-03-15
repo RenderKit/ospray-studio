@@ -41,7 +41,8 @@ void MaterialRegistry::updateRendererType()
 
   // This will modify the material registry causing it to recreate the list
   // for the current renderer type, at commit.
-  child("rType").setValue(rType);
+  if (rType != child("rType").valueAs<std::string>())
+    child("rType").setValue(rType);
 }
 
 void MaterialRegistry::preCommit()

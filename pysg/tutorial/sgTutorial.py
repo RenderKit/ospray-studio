@@ -15,7 +15,7 @@ up = Any(vec3f(0.0, 1.0, 0.0))
 W = 1024
 H = 768
 
-aspect = sg.Any(W / H)
+aspect = Any(float(W / H))
 
 vertex = numpy.array([
    [-1.0, -1.0, 3.0],

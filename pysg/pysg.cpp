@@ -344,9 +344,7 @@ PYBIND11_MODULE(pysg, sg)
 
   py::class_<MaterialRegistry, Node, std::shared_ptr<MaterialRegistry>>(
       sg, "MaterialRegistry")
-      .def(py::init<>())
-      .def("createCPPMaterials", &MaterialRegistry::createCPPMaterials)
-      .def("updateMaterialList", &MaterialRegistry::updateMaterialList);
+      .def(py::init<>());
 
   py::class_<LightsManager,
       OSPNode<ospray::cpp::Light, NodeType::LIGHTS>,

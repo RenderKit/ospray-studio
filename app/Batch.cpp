@@ -207,9 +207,6 @@ void BatchContext::refreshRenderer()
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
   auto &renderer = frame->childAs<sg::Renderer>("renderer");
 
-  // The materials list needs to know the renderer type
-  baseMaterialRegistry->updateRendererType();
-
   if (optPF >= 0)
     renderer.createChild("pixelFilter", "int", optPF);
 

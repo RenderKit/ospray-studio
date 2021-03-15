@@ -913,9 +913,6 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
-  // The materials list needs to know of a change in renderer type.
-  baseMaterialRegistry->updateRendererType();
-
   auto &r = frame->childAs<sg::Renderer>("renderer");
   if (optPF >= 0)
     r.createChild("pixelFilter", "int", optPF);
