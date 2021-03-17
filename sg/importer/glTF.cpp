@@ -403,7 +403,7 @@ namespace ospray {
           auto lens = ext.Get("lens");
           float chamberConstant =
               (float)lens.Get("chamberConstant").Get<double>();
-          float fovy = 2 * atan(len_y / (2 * chamberConstant));
+          float fovy = atan(len_y / (2 * chamberConstant)) * 360.f / (float)pi;
           sgCamera->child("fovy").setValue(fovy);
 
           float apertureRadius =
