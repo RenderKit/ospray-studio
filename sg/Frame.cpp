@@ -47,6 +47,7 @@ void Frame::startNewFrame(bool interacting)
   // If working on a frame, cancel it, something has changed
   if (isModified()) {
     cancelFrame();
+    waitOnFrame();
     fb.resetAccumulation();
     // Enable navMode
     if (!navMode)

@@ -1569,6 +1569,8 @@ void MainWindow::buildWindowRendererEditor()
   }
 
   renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+  if (renderer.isModified())
+    frame->cancelFrame();
 
   ImGui::End();
 }
@@ -1583,6 +1585,8 @@ void MainWindow::buildWindowFrameBufferEditor()
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ALLOPEN);
+  if (fb.isModified())
+    frame->cancelFrame();
 
   ImGui::Separator();
 
@@ -1805,7 +1809,7 @@ void MainWindow::buildWindowKeyframes()
         std::fill(colors.begin(), colors.end(), vec4f(0.8f, 0.4f, 0.4f, 1.f));
 
         const std::vector<uint32_t> mID = {
-            static_cast<uint32_t>(baseMaterialRegistry->children().size())};
+            static_cast<uint32_t>(baseMaterialRegistry->baseMaterialOffSet())};
         auto mat = sg::createNode("pathGlass", "thinGlass");
         baseMaterialRegistry->add(mat);
 
@@ -2257,7 +2261,7 @@ void MainWindow::buildWindowIsosurfaceEditor()
       isoGeom->createChild("isovalue", "float", 0.f);
       isoGeom->child("isovalue").setMinMax(-1.f, 1.f);
 
-      uint32_t materialID = baseMaterialRegistry->children().size();
+      uint32_t materialID = baseMaterialRegistry->baseMaterialOffSet();
       const std::vector<uint32_t> mID = {materialID};
       auto mat = sg::createNode(surfName, "obj");
       // Give it some editable parameters
@@ -2299,8 +2303,13 @@ void MainWindow::buildWindowIsosurfaceEditor()
   if (surfaces.empty()) {
     ImGui::Text("== empty == ");
   } else {
-    for (auto &surface : surfaces)
+    for (auto &surface : surfaces) {
       surface->traverse<sg::GenerateImGuiWidgets>();
+      if (surface->isModified()) {
+        frame->cancelFrame();
+        break;
+      }
+    }
   }
 
   ImGui::End();
@@ -2386,7 +2395,7 @@ void MainWindow::buildWindowTransformEditor()
           sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
       if (userUpdated) {
-        result->commit();
+        frame->cancelFrame();
         break;
       }
     }
@@ -2399,7 +2408,7 @@ void MainWindow::buildWindowTransformEditor()
             sg::TreeState::ROOTOPEN, userUpdated);
         // Don't continue traversing
         if (userUpdated) {
-          node.second->commit();
+          frame->cancelFrame();
           break;
         }
       }
