@@ -222,13 +222,15 @@ namespace ospray {
       if (node["material"].valueIsType<cpp::CopiedData>())
         model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
       else
-        model.setParam("material", node["material"].valueAs<unsigned int>());
+        model.setParam("material",
+            cpp::CopiedData(std::vector<uint32_t>{
+                node["material"].valueAs<unsigned int>()}));
     } else {
       if (current.materials.size() != 0) {
-        model.setParam("material", *current.materials.begin());
+        model.setParam("material", cpp::CopiedData(*current.materials.begin()));
         current.materials.clear();
       } else
-        model.setParam("material", materialIDs.top());
+        model.setParam("material", cpp::CopiedData(std::vector<uint32_t>{0}));
     }
 
     if (node.hasChild("color")) {

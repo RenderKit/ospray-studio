@@ -11,11 +11,9 @@ namespace ospray {
     setValue(cpp::Geometry(osp_type));
     createChild("isClipping", "bool", false);
     createChild("visible", "bool", true);
-    createChildData("material", 0);
 
     child("isClipping").setSGOnly();
     child("visible").setSGOnly();
-    child("material").setSGOnly();
   }
 
   }  // namespace sg

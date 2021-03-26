@@ -21,6 +21,12 @@ namespace ospray {
   if (node.subType() == #type) \
   std::cout << " [" << node.valueAs<type>() << "]";
 
+  // uchar/uint8_t is only useful printed as an int
+  static std::ostream &operator<<(std::ostream &cout, const uint8_t &uc)
+  {
+    return cout << (int)uc;
+  }
+
   inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
   {
     std::cout << std::string(2*ctx.level, ' ') << node.name() << " : " << node.subType();
@@ -28,6 +34,7 @@ namespace ospray {
     // A couple of usings to make subType strings match types
     using string = std::string;
     using Transform = affine3f;
+    using uchar = uint8_t;
     PRINT_AS(node, string);      
     PRINT_AS(node, bool);      
     PRINT_AS(node, float);     
@@ -35,6 +42,7 @@ namespace ospray {
     PRINT_AS(node, vec3f);
     PRINT_AS(node, vec4f);
     PRINT_AS(node, quaternionf);
+    PRINT_AS(node, uchar);       
     PRINT_AS(node, int);       
     PRINT_AS(node, vec2i);     
     PRINT_AS(node, vec3i);     
