@@ -938,16 +938,10 @@ void MainWindow::refreshScene(bool resetCam)
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
 
-  if (!filesToImport.empty()) {
-    // Cancel any in-progress frame since we're changing the world.
-    frame->cancelFrame();
-    frame->waitOnFrame();
+  if (!filesToImport.empty())
     importFiles(world);
-  } else {
+  else
     if (scene != "") {
-      // Cancel any in-progress frame since we're changing the world.
-      frame->cancelFrame();
-      frame->waitOnFrame();
       auto &gen = world->createChildAs<sg::Generator>(
           "generator", "generator_" + scene);
       gen.setMaterialRegistry(baseMaterialRegistry);
@@ -955,9 +949,14 @@ void MainWindow::refreshScene(bool resetCam)
       // The generators should reset the camera
       resetCam = true;
     }
-  }
 
-  world->render();
+  if (world->isModified()) {
+    // Cancel any in-progress frame as world->render() will modify live device
+    // parameters
+    frame->cancelFrame();
+    frame->waitOnFrame();
+    world->render();
+  }
 
   frame->add(world);
 
@@ -1318,9 +1317,6 @@ void MainWindow::buildMainMenuEdit()
     ImGui::SameLine(ImGui::GetWindowWidth()-(8*ImGui::GetFontSize()));
 
     if (ImGui::Button("Yes, clear it")) {
-      // Cancel any in-progress frame since we're removing the world.
-      frame->cancelFrame();
-      frame->waitOnFrame();
       frame->remove("world");
       lightsManager->clear();
       if(animationWidget) {
@@ -1396,9 +1392,6 @@ void MainWindow::buildMainMenuView()
           backPlateTexture.base().c_str());
       if (ImGui::MenuItem("Clear background texture")) {
         backPlateTexture = "";
-        // Cancel any in-progress frame since we're changing the renderer
-        frame->cancelFrame();
-        frame->waitOnFrame();
         // Needs to be removed from the renderer node and its OSPRay params
         auto &renderer = frame->childAs<sg::Renderer>("renderer");
         renderer.remove("map_backplate");
@@ -1569,8 +1562,6 @@ void MainWindow::buildWindowRendererEditor()
   }
 
   renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-  if (renderer.isModified())
-    frame->cancelFrame();
 
   ImGui::End();
 }
@@ -1585,8 +1576,6 @@ void MainWindow::buildWindowFrameBufferEditor()
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ALLOPEN);
-  if (fb.isModified())
-    frame->cancelFrame();
 
   ImGui::Separator();
 
@@ -1785,8 +1774,6 @@ void MainWindow::buildWindowKeyframes()
     static bool showCameraPath = false;
     if (ImGui::Checkbox("show camera path", &showCameraPath)) {
       if (!showCameraPath) {
-        frame->cancelFrame();
-        frame->waitOnFrame();
         frame->child("world").remove("cameraPath");
         frame->child("world").remove("cameraPathCaps");
         refreshScene(false);
@@ -2036,9 +2023,6 @@ void MainWindow::buildWindowCameraEditor()
       // Change the camera type, if the new camera is different.
       if (frame->childAs<sg::Camera>("camera").subType()
           != newCamera.second->subType()) {
-        // Cancel any in-progress frame since we're changing the camera node.
-        frame->cancelFrame();
-        frame->waitOnFrame();
         frame->createChildAs<sg::Camera>("camera",
             newCamera.second->subType());
       }
@@ -2062,12 +2046,8 @@ void MainWindow::buildWindowCameraEditor()
     auto newType = "camera_" + type;
     ImGui::SameLine();
     if (ImGui::RadioButton(type.c_str(), currentType == newType)) {
-      // Cancel any in-progress frame since we're changing the camera node.
-      frame->cancelFrame();
-      frame->waitOnFrame();
       // Create new camera of new type
       frame->createChildAs<sg::Camera>("camera", newType);
-      frame->childAs<sg::Camera>("camera").commit();
       reshape(windowSize); // resets aspect
       updateCamera(); // resets position, direction, etc
       break;
@@ -2078,8 +2058,6 @@ void MainWindow::buildWindowCameraEditor()
   auto &camera = frame->childAs<sg::Camera>("camera");
   bool updated = false;
   camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN, updated);
-  if (updated)
-    camera.commit();
 
   ImGui::End();
 }
@@ -2305,10 +2283,8 @@ void MainWindow::buildWindowIsosurfaceEditor()
   } else {
     for (auto &surface : surfaces) {
       surface->traverse<sg::GenerateImGuiWidgets>();
-      if (surface->isModified()) {
-        frame->cancelFrame();
+      if (surface->isModified())
         break;
-      }
     }
   }
 
@@ -2395,7 +2371,6 @@ void MainWindow::buildWindowTransformEditor()
           sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
       if (userUpdated) {
-        frame->cancelFrame();
         break;
       }
     }
@@ -2408,7 +2383,6 @@ void MainWindow::buildWindowTransformEditor()
             sg::TreeState::ROOTOPEN, userUpdated);
         // Don't continue traversing
         if (userUpdated) {
-          frame->cancelFrame();
           break;
         }
       }

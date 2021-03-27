@@ -128,8 +128,12 @@ namespace ospray {
         std::cout << "... found " << numTriangles << " triangles "
                   << "and " << numQuads << " quads.\n";
 
-        if (!err.empty()) {
+        if (!warn.empty()) {
           std::cerr << "#ospsg: obj parsing warning(s)...\n"
+                    << warn << std::endl;
+        }
+        if (!err.empty()) {
+          std::cerr << "#ospsg: obj parsing errors(s)...\n"
                     << err << std::endl;
         }
         return retval;
