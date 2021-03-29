@@ -29,6 +29,7 @@ namespace ospray {
     void waitOnFrame();
     void cancelFrame();
     bool accumLimitReached();
+    void resetAccumulation();
 
     inline bool isCanceled()
     {

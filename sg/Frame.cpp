@@ -42,13 +42,11 @@ void Frame::startNewFrame(bool interacting)
   auto &renderer = childAs<Renderer>("renderer");
   auto &world = childAs<World>("world");
 
-  refreshFrameOperations();
-
   // If working on a frame, cancel it, something has changed
   if (isModified()) {
     cancelFrame();
     waitOnFrame();
-    fb.resetAccumulation();
+    resetAccumulation();
     // Enable navMode
     if (!navMode)
       child("navMode") = true;
@@ -57,6 +55,8 @@ void Frame::startNewFrame(bool interacting)
     if (navMode)
       child("navMode") = false;
   }
+
+  refreshFrameOperations();
 
   // Commit only when modified and not while interacting.
   if (isModified() && !interacting)
@@ -115,6 +115,13 @@ bool Frame::accumLimitReached()
   return (accumLimit > 0 && currentAccum >= accumLimit);
 }
 
+void Frame::resetAccumulation()
+{
+  auto &fb = childAs<FrameBuffer>("framebuffer");
+  fb.resetAccumulation();
+  currentAccum = 0;
+}
+
 const void *Frame::mapFrame(OSPFrameBufferChannel channel)
 {
   waitOnFrame();
@@ -136,10 +143,23 @@ void Frame::saveFrame(std::string filename, int flags)
 
 void Frame::refreshFrameOperations()
 {
+  auto &fb = childAs<FrameBuffer>("framebuffer");
   auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
   auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
 
-  auto &fb = childAs<FrameBuffer>("framebuffer");
+  // If frameOps change, cancel and wait on current frame before making
+  // framebuffer changes
+  static auto currentDenoiser = false;
+  static auto currentToneMapper = false;
+  if (currentDenoiser != denoiserEnabled
+      || currentToneMapper != toneMapperEnabled) {
+    cancelFrame();
+    waitOnFrame();
+    resetAccumulation();
+  }
+  currentDenoiser = denoiserEnabled;
+  currentToneMapper = toneMapperEnabled;
+
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
   fb.updateImageOperations();
@@ -152,7 +172,6 @@ void Frame::preCommit()
 
   if (navMode != currentNavMode) {
     currentNavMode = navMode;
-    currentAccum = 0; // Changing navMode resets currentAccum
 
     // Recreate framebuffers on windowsize or scale changes.
     auto &fb = child("framebuffer");
