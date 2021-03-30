@@ -14,11 +14,13 @@ namespace ospray {
   {
     StructuredVolume();
     virtual ~StructuredVolume() override = default;
-    void load(const FileName &fileName) override;
-
-   private:
-    bool fileLoaded{false};
   };
+
+  // StructuredVolume definitions /////////////////////////////////////////////
+
+  StructuredVolume::StructuredVolume() : Volume("structuredRegular") {}
+
+  OSP_REGISTER_SG_NODE_NAME(StructuredVolume, structuredRegular);
 
   }  // namespace sg
 } // namespace ospray

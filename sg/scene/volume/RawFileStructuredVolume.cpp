@@ -14,6 +14,7 @@ namespace ospray {
 
   std::vector<float> RawFileStructuredVolume::generateVoxels()
   {
+    std::cout << "suing raw file structured volume" << std::endl;
     std::vector<float> voxels(dimensions.product());
 
     std::ifstream input(filename, std::ios::binary);

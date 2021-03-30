@@ -121,9 +121,6 @@ add_library(ospray_sg SHARED
   scene/transfer_function/Jet.cpp
   scene/transfer_function/TransferFunction.cpp
 
-  scene/volume/Structured.cpp
-  scene/volume/Unstructured.cpp
-  scene/volume/StructuredSpherical.cpp
   scene/volume/Vdb.cpp
   scene/volume/Volume.cpp
   scene/volume/RawFileStructuredVolume.cpp

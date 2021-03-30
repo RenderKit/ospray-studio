@@ -4,6 +4,7 @@
 #include "Generator.h"
 // std
 #include <random>
+#include <sg/scene/volume/Unstructured.h>
 
 namespace ospray {
   namespace sg {

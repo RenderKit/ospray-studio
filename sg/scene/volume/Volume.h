@@ -44,6 +44,9 @@ namespace ospray {
 
     NodeType type() const override;
     virtual void load(const FileName &fileName);
+    
+    private:
+    bool fileLoaded{false};
   };
 
   }  // namespace sg

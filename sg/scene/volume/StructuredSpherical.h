@@ -14,11 +14,13 @@ namespace ospray {
   {
     StructuredSpherical();
     virtual ~StructuredSpherical() override = default;
-    void load(const FileName &fileName) override;
-
-   private:
-    bool fileLoaded{false};
   };
+
+  // StructuredSpherical definitions /////////////////////////////////////////////
+
+  StructuredSpherical::StructuredSpherical() : Volume("structuredSpherical") {}
+
+  OSP_REGISTER_SG_NODE_NAME(StructuredSpherical, structuredSpherical);
 
   }  // namespace sg
 } // namespace ospray
