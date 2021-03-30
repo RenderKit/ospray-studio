@@ -629,7 +629,7 @@ namespace ospray {
     sgNode->add(newXfm);
     applyNodeTransform(newXfm, n);
 
-    if(n.camera != -1) {
+    if(n.camera != -1 && cameras != nullptr) {
       auto &listCameras = *cameras;
       auto &camera = listCameras[n.camera];
       newXfm->add(camera);

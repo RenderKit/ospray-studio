@@ -19,6 +19,10 @@
 #include <sg/scene/geometry/Geometry.h>
 #include <sg/scene/lights/LightsManager.h>
 
+#include <sg/importer/Importer.h>
+#include <app/ArcballCamera.h>
+#include "../app/ArcballCamera.cpp"
+
 namespace py = pybind11;
 using namespace ospray::sg;
 
@@ -39,12 +43,20 @@ static std::vector<std::string> init(const std::vector<std::string> &args)
 
   std::vector<std::string> newargs;
 
-  for (int i = 0; i < argc; i++)
-    newargs.push_back(std::string(argv[i]));
+  if (argc > 1)
+    for (int i = 1; i < argc; i++)
+      newargs.push_back(std::string(argv[i]));
 
   delete[] argv;
 
   return newargs;
+}
+
+void updateCamera(Node &camera, ArcballCamera &arcballCamera)
+{
+  camera["position"] = arcballCamera.eyePos();
+  camera["direction"] = arcballCamera.lookDir();
+  camera["up"] = arcballCamera.upDir();
 }
 
 // OSPNode typedefs //////////////////////////////////////////////////////
@@ -209,13 +221,29 @@ PYBIND11_MODULE(pysg, sg)
 
   sg.def("init", &init);
 
-  // Main Node factory function ///////////////////////////////////////////
+  // Main Node factory function ////////////////////////////////////////////
 
   sg.def(
       "createNode", py::overload_cast<std::string, std::string>(&createNode));
   sg.def("createNode",
       py::overload_cast<std::string, std::string, rkcommon::utility::Any>(
           &createNode));
+
+  // Importer functions ////////////////////////////////////////////////////
+  sg.def("getImporter",
+      &getImporter);
+
+  py::class_<FileName>(sg, "FileName").def(py::init<std::string>());
+
+  // Arcball Camera ////////////////////////////////////////////////////
+  py::class_<ArcballCamera>(sg, "ArcballCamera")
+      .def(py::init<const box3f &, const vec2i &>());
+
+  sg.def("updateCamera", &updateCamera);
+
+  py::class_<rkcommon::math::range_t<rkcommon::math::vec_t<float, 3, false>>>(
+      sg, "box3f")
+      .def(py::init<>());
 
   // commonly used vector types ////////////////////////////////////////////
 
@@ -241,12 +269,18 @@ PYBIND11_MODULE(pysg, sg)
       .def(py::init<float>())
       .def(py::init<vec2f>())
       .def(py::init<vec3f>())
-      .def(py::init<vec4f>());
+      .def(py::init<vec4f>())
+      .def(py::init<vec2i>())
+      .def(py::init<vec3i>())
+      .def(py::init<vec4i>())
+      .def(py::init<box2f>())
+      .def(py::init<box3f>());
 
   // Generic Node class definition ////////////////////////////////////////////
 
   py::class_<Node, std::shared_ptr<Node>>(sg, "Node")
       .def(py::init<>())
+      .def("bounds", &Node::bounds)
       .def("createChild",
           static_cast<Node &(
               Node::*)(const std::string &, const std::string &, Any &)>(
@@ -266,9 +300,10 @@ PYBIND11_MODULE(pysg, sg)
       .def("createChildData",
           static_cast<void (Node::*)(std::string, vec3f &)>(
               &Node::createChildData))
-      .def("setSGOnly", &Node::setSGOnly);
+      .def("setSGOnly", &Node::setSGOnly)
+      .def("subType", &Node::subType);
 
-  // Nodes with strongly-types values ////////////////////////////////////////
+  // Nodes with strongly-typed values ////////////////////////////////////////
 
   pysg_nodeType<std::string>(sg, "StringNode");
   pysg_nodeType<bool>(sg, "BoolNode");
@@ -286,6 +321,9 @@ PYBIND11_MODULE(pysg, sg)
   pysg_nodeType<range1f>(sg, "Range1fNode");
   pysg_nodeType<affine3f>(sg, "Affine3fNode");
   pysg_nodeType<quaternionf>(sg, "QuaternionfNode");
+  pysg_nodeType<vec2i>(sg, "Vec2iNode");
+  pysg_nodeType<vec3i>(sg, "Vec3iNode");
+  pysg_nodeType<vec4i>(sg, "Vec4iNode");
 
   // pysg_nodeType<rgb>(sg, "RGBNode");
   // pysg_nodeType<rgba>(sg, "RGBANode");
@@ -365,4 +403,11 @@ PYBIND11_MODULE(pysg, sg)
       Node,
       std::shared_ptr<Data>>(sg, "Data")
       .def(py::init([](py::array &array) { return pysg_Data(array); }));
+
+  py::class_<Importer, Node, std::shared_ptr<Importer>>(sg, "Importer")
+      .def(py::init<>())
+      .def("importScene", &Importer::importScene)
+      .def("setLightsManager", &Importer::setLightsManager)
+      .def("setMaterialRegistry", &Importer::setMaterialRegistry)
+      .def("setCameraList", &Importer::setCameraList);
 }
