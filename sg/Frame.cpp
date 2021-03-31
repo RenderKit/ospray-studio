@@ -147,19 +147,6 @@ void Frame::refreshFrameOperations()
   auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
   auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
 
-  // If frameOps change, cancel and wait on current frame before making
-  // framebuffer changes
-  static auto currentDenoiser = false;
-  static auto currentToneMapper = false;
-  if (currentDenoiser != denoiserEnabled
-      || currentToneMapper != toneMapperEnabled) {
-    cancelFrame();
-    waitOnFrame();
-    resetAccumulation();
-  }
-  currentDenoiser = denoiserEnabled;
-  currentToneMapper = toneMapperEnabled;
-
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
   fb.updateImageOperations();
