@@ -223,7 +223,7 @@ bool BatchContext::parseCommandLine()
       auto it           = sg::volumeVoxelType.find(voxelTypeStr);
       if (it != sg::volumeVoxelType.end()) {
         auto voxelType = it->second;
-        volumeParams->createChild("voxelType", "int", voxelType);
+        volumeParams->createChild("voxelType", "int", (int)voxelType);
       } else {
         throw std::runtime_error("improper -voxelType format requested");
       }
