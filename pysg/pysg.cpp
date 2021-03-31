@@ -13,15 +13,12 @@
 #include <sg/Node.h>
 #include <sg/camera/Camera.h>
 #include <sg/fb/FrameBuffer.h>
+#include <sg/importer/Importer.h>
 #include <sg/renderer/MaterialRegistry.h>
 #include <sg/renderer/Renderer.h>
 #include <sg/scene/World.h>
 #include <sg/scene/geometry/Geometry.h>
 #include <sg/scene/lights/LightsManager.h>
-
-#include <sg/importer/Importer.h>
-#include <app/ArcballCamera.h>
-#include "../app/ArcballCamera.cpp"
 
 namespace py = pybind11;
 using namespace ospray::sg;
@@ -241,10 +238,6 @@ PYBIND11_MODULE(pysg, sg)
 
   sg.def("updateCamera", &updateCamera);
 
-  py::class_<rkcommon::math::range_t<rkcommon::math::vec_t<float, 3, false>>>(
-      sg, "box3f")
-      .def(py::init<>());
-
   // commonly used vector types ////////////////////////////////////////////
 
   pysg_vec2Type<float>(sg, "vec2f");
@@ -275,6 +268,11 @@ PYBIND11_MODULE(pysg, sg)
       .def(py::init<vec4i>())
       .def(py::init<box2f>())
       .def(py::init<box3f>());
+
+  // rkcommon::math specializations ////////////////
+
+  py::class_<rkcommon::math::box3f>(sg, "box3f")
+      .def(py::init<>());
 
   // Generic Node class definition ////////////////////////////////////////////
 

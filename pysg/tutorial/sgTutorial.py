@@ -3,7 +3,7 @@
 
 import sys, numpy
 import pysg as sg
-from pysg import Any, vec3f, Data
+from pysg import Any, vec3f, Data, vec2i
 
 sg.init(sys.argv)
 
@@ -15,7 +15,8 @@ up = Any(vec3f(0.0, 1.0, 0.0))
 W = 1024
 H = 768
 
-aspect = Any(float(W / H))
+window_size = Any(vec2i(W, H))
+aspect = Any(float(W) / H)
 
 vertex = numpy.array([
    [-1.0, -1.0, 3.0],
@@ -38,6 +39,7 @@ index = numpy.array([
 mat = numpy.array([0], dtype=numpy.uint32)
 
 frame = sg.Frame()
+frame.createChild("windowSize", "vec2i", window_size)
 world = frame.child("world")
 
 cam = frame.child("camera")
@@ -57,6 +59,7 @@ lightsMan.updateWorld(world)
 
 world.render()
 
+frame.startNewFrame(bool(0))
 frame.startNewFrame(bool(0))
 frame.waitOnFrame()
 frame.saveFrame("sgTutorial.png", 0)

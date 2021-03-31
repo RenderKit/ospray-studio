@@ -11,10 +11,10 @@ W = 1920
 H = 1080
 
 window_size = vec2i(W, H)
-
-aspect = Any(float(W / H))
+aspect = Any(float(W) / H)
 
 frame = sg.Frame()
+frame.createChild("windowSize", "vec2i", Any(window_size))
 world = frame.child("world")
 
 lightsMan = frame.child("lights")
@@ -32,6 +32,7 @@ bounds = world.bounds()
 
 arcballCamera = ArcballCamera(bounds, window_size)
 cam = frame.child("camera")
+cam.createChild("aspect", "float", aspect)
 sg.updateCamera(cam, arcballCamera)
 
 frame.startNewFrame(bool(0))
