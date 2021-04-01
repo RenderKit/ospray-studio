@@ -1644,9 +1644,9 @@ void MainWindow::buildWindowFrameBufferEditor()
     static const float scaleValues[9] = {
         0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
 
-    auto size = fb["size"].valueAs<vec2i>(); // need a local scope for lambda
-    char _label[64];
-    static auto createLabel = [&_label, size](std::string uniqueId, float v) {
+    auto size = frame->child("windowSize").valueAs<vec2i>();
+    char _label[56];
+    auto createLabel = [&_label, size](std::string uniqueId, float v) {
       const vec2i _sz = v * size;
       snprintf(_label,
           sizeof(_label),
@@ -1658,7 +1658,7 @@ void MainWindow::buildWindowFrameBufferEditor()
       return _label;
     };
 
-    static auto selectNewScale = [&](std::string id, const float _scale) {
+    auto selectNewScale = [&](std::string id, const float _scale) {
       auto scale = _scale;
       auto custom = true;
       for (auto v : scaleValues) {
