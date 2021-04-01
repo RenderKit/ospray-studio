@@ -40,9 +40,15 @@ void BatchContext::start()
       resetFileId = true;
       refreshCamera(cameraDef);
       render();
+      updateCamera();
       if (animate) {
         std::cout << "..rendering animation!" << std::endl;
         renderAnimation();
+      } else if (!cameraStack.empty()) {
+        for (auto &cs : cameraStack) {
+          applyCameraState(cs);
+          renderFrame();
+        }
       } else
         renderFrame();
     } else {
@@ -51,6 +57,7 @@ void BatchContext::start()
         resetFileId = true;
         refreshCamera(cameraIdx);
         render();
+        updateCamera();
         if (animate) {
           std::cout << "..rendering animation!" << std::endl;
           renderAnimation();
@@ -352,40 +359,27 @@ void BatchContext::render()
         }
   }
 
-  // Update camera based on world bounds after import
+  frame->child("navMode") = false;
+
+  std::ifstream cams("cams.json");
+  if (cams) {
+    JSON j;
+    cams >> j;
+    cameraStack = j.get<std::vector<CameraState>>();
+  }
+}
+
+void BatchContext::applyCameraState(CameraState &cs)
+{
+      // apply command line camera params or cams.json settings
   if (!sgScene)
     arcballCamera.reset(
         new ArcballCamera(frame->child("world").bounds(), optImageSize));
 
-  std::ifstream cams("cams.json");
-  if (cams) {
-    std::vector<CameraState> cameraStack;
-    JSON j;
-    cams >> j;
-    cameraStack = j.get<std::vector<CameraState>>();
-    CameraState cs = cameraStack.front();
-    arcballCamera->setState(cs);
-  }
+  arcballCamera->setState(cs);
 
   updateCamera();
 
-  auto &camera = frame->child("camera");
-  if (camera.hasChild("aspect"))
-    camera["aspect"] = optImageSize.x / (float)optImageSize.y;
-
-  if (cmdlCam) {
-    camera["position"] = pos;
-    camera["direction"] = normalize(gaze - pos);
-    camera["up"] = up;
-  }
-
-  if(camera.hasChild("stereoMode"))
-  camera["stereoMode"] = optStereoMode;
-
-  if(camera.hasChild("interpupillaryDistance"))
-  camera["interpupillaryDistance"] = optInterpupillaryDistance;
-
-  frame->child("navMode") = false;
 }
 
 void BatchContext::renderFrame()
@@ -484,9 +478,23 @@ void BatchContext::updateCamera()
 {
   auto &camera = frame->child("camera");
 
-  camera["position"]  = arcballCamera->eyePos();
+  camera["position"] = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
-  camera["up"]        = arcballCamera->upDir();
+  camera["up"] = arcballCamera->upDir();
+  if (camera.hasChild("aspect"))
+    camera["aspect"] = optImageSize.x / (float)optImageSize.y;
+
+  if (cmdlCam) {
+    camera["position"] = pos;
+    camera["direction"] = normalize(gaze - pos);
+    camera["up"] = up;
+  }
+
+  if (camera.hasChild("stereoMode"))
+    camera["stereoMode"] = optStereoMode;
+
+  if (camera.hasChild("interpupillaryDistance"))
+    camera["interpupillaryDistance"] = optInterpupillaryDistance;
 }
 
 void BatchContext::setCameraState(CameraState &cs)

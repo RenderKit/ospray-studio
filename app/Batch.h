@@ -38,6 +38,7 @@ class BatchContext : public StudioContext
   void renderFrame();
   void renderAnimation();
   void refreshCamera(int cameraIdx);
+  void applyCameraState(CameraState &cs);
 
  protected:
   PluginManager pluginManager;
@@ -75,6 +76,8 @@ class BatchContext : public StudioContext
 
   // list of cameras imported with the scene definition
   std::vector<sg::NodePtr> cameras;
+
+  std::vector<CameraState> cameraStack;
 
   //camera animation
   sg::NodePtr selectedSceneCamera;
