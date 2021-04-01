@@ -251,7 +251,6 @@ namespace ospray {
     auto node = n.extensions.find("BIT_node_info")->second;
     auto &nodeId = node.Get("id").Get<std::string>();
     sgNode->createChild("instanceId", "string", nodeId);
-    sgNode->createChild("useCustomIds", "bool", true);
 
     if (refTitle.empty())
       return;
@@ -660,8 +659,6 @@ namespace ospray {
     }
 
     sgNode = newXfm;
-
-    sgNode->createChild("instanceId", "string", sgNode->name());
 
     // while parsing assets from BIT-TS look for BIT_asset_info to add to
     // assetCatalogue

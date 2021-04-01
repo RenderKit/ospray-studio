@@ -59,7 +59,6 @@ namespace ospray {
     std::stack<cpp::TransferFunction> tfns;
     std::string instanceId{""};
     std::string geomId{""};
-    bool useCustomIds{false};
     GeomIdMap *g{nullptr};
     InstanceIdMap *in{nullptr};
     std::shared_ptr<CameraState> cs;
@@ -119,11 +118,8 @@ namespace ospray {
         cs->cameraToWorld = xfm;
       }
 
-      if (node.hasChild("instanceId") && !useCustomIds) {
+      if (node.hasChild("instanceId"))
         instanceId = node.child("instanceId").valueAs<std::string>();
-        if (node.hasChild("useCustomIds"))
-          useCustomIds = true;
-      }
       if (node.hasChild("geomId"))
         geomId = node.child("geomId").valueAs<std::string>();
       break;
@@ -159,12 +155,6 @@ namespace ospray {
       createInstanceFromGroup();
       xfms.pop();
       if (node.hasChild("instanceID")) {
-        if (useCustomIds) {
-          if (node.hasChild("useCustomIds")){
-            instanceId = "";
-            useCustomIds = false;
-          }
-        } else
           instanceId = "";
       }
       if (node.hasChild("geomId"))
