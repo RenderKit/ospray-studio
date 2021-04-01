@@ -69,6 +69,7 @@ class BatchContext : public StudioContext
   range1i framesRange{0, 0};
   void printHelp() override;
   int cameraDef{0};
+  range1i cameraRange{0, 0};
 
   // list of cameras imported with the scene definition
   std::vector<sg::NodePtr> cameras;

@@ -182,6 +182,17 @@ bool BatchContext::parseCommandLine()
         std::cout
             << "using default ospray camera, to use imported definition camera indices begins from 1"
             << std::endl;
+    } else if (switchArg == "-cams" || switchArg == "--cameras") {
+      if (argAvailability(switchArg, 2)) {
+        auto x = atoi(argv[argIndex++]);
+        auto y = atoi(argv[argIndex++]);
+        cameraRange.lower = x;
+        cameraRange.upper = y;
+      }
+      if (!cameraRange.lower && !cameraRange.upper)
+        std::cout
+            << "using default ospray camera, to use imported definition camera indices begins from 1"
+            << std::endl;
     } else if (switchArg == "-rn" || switchArg == "--range") {
       if (argAvailability(switchArg, 2)) {
         auto x = atoi(argv[argIndex++]);
