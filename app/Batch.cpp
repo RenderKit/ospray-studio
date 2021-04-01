@@ -15,6 +15,8 @@
 // json
 #include "sg/JSONDefs.h"
 
+static bool resetFileId = false;
+
 BatchContext::BatchContext(StudioCommon &_common)
     : StudioContext(_common), optImageSize(_common.defaultSize)
 {
@@ -34,11 +36,29 @@ void BatchContext::start()
     std::cout << "...importing files!" << std::endl;
     refreshRenderer();
     refreshScene(true);
-    render();
-    if (animate) {
-      std::cout << "..rendering animation!" << std::endl;
-      renderAnimation();
+    if (!useCameraRange) {
+      resetFileId = true;
+      refreshCamera(cameraDef);
+      render();
+      if (animate) {
+        std::cout << "..rendering animation!" << std::endl;
+        renderAnimation();
+      } else
+        renderFrame();
+    } else {
+      for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
+           ++cameraIdx) {
+        resetFileId = true;
+        refreshCamera(cameraIdx);
+        render();
+        if (animate) {
+          std::cout << "..rendering animation!" << std::endl;
+          renderAnimation();
+        } else
+          renderFrame();
+      }
     }
+
     std::cout << "...finished!" << std::endl;
     sg::clearAssets();
   }
@@ -188,6 +208,7 @@ bool BatchContext::parseCommandLine()
         auto y = atoi(argv[argIndex++]);
         cameraRange.lower = x;
         cameraRange.upper = y;
+        useCameraRange = true;
       }
       if (!cameraRange.lower && !cameraRange.upper)
         std::cout
@@ -267,23 +288,34 @@ void BatchContext::refreshRenderer()
   renderer.child("varianceThreshold").setValue(optVariance);
 }
 
-void BatchContext::render()
+void BatchContext::refreshCamera(int cameraIdx)
 {
-  if (cameraDef <= cameras.size() && cameraDef > 0) {
-    // simply adding a new camera to frame does not work
-    selectedSceneCamera = cameras[cameraDef - 1];
+  if (cameraIdx <= cameras.size() && cameraIdx > 0) {
+    std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
+              << std::endl;
+    selectedSceneCamera = cameras[cameraIdx - 1];
     animateCamera = selectedSceneCamera->nodeAs<sg::Camera>()->animate;
 
-    auto &camera =
-        frame->createChildAs<sg::Camera>("camera", selectedSceneCamera->subType());
+    auto &camera = frame->createChildAs<sg::Camera>(
+        "camera", selectedSceneCamera->subType());
     for (auto &c : selectedSceneCamera->children())
       camera.add(c.second);
 
   } else {
-    std::cout << "No cameras imported or invalid camera index specified" << std::endl;
-    frame->createChild("camera", "camera_" + optCameraTypeStr);
+    std::cout << "No cameras imported or invalid camera index specified"
+              << std::endl;
+    selectedSceneCamera = createNode(
+        "camera" + std::to_string(cameraIdx), "camera_" + optCameraTypeStr);
+    frame->add(selectedSceneCamera);
   }
+  // create unique cameraId for every camera
+  auto &cameraXfm = selectedSceneCamera->parents().front();
+  cameraXfm->createChild(
+      "cameraId", "string", "Camera_" + std::to_string(cameraIdx));
+}
 
+void BatchContext::render()
+{
   // Set the frame "windowSize", it will create the right sized framebuffer
   frame->child("windowSize") = optImageSize;
 
@@ -354,8 +386,6 @@ void BatchContext::render()
   camera["interpupillaryDistance"] = optInterpupillaryDistance;
 
   frame->child("navMode") = false;
-
-  renderFrame();
 }
 
 void BatchContext::renderFrame()
@@ -374,18 +404,29 @@ void BatchContext::renderFrame()
     arcballCamera->setState(*newCS);
     updateCamera();
   }
+  std::string cameraId{""};
+  auto &cameraXfm = selectedSceneCamera->parents().front();
+  if (cameraXfm->hasChild("geomId"))
+    cameraId = cameraXfm->child("geomId").valueAs<std::string>();
+  else
+    cameraId = cameraXfm->child("cameraId").valueAs<std::string>();
 
-  static int filenum = framesRange.lower;
+  static int filenum;
+  if (resetFileId) {
+    filenum = framesRange.lower;
+    resetFileId = false;
+  }
+
   char filenumber[8];
   std::string filename;
   if (!forceRewrite)
     do {
       std::snprintf(filenumber, 8, ".%05d.", filenum++);
-      filename = optImageName + filenumber + optImageFormat;
+      filename = cameraId + "_" + optImageName + filenumber + optImageFormat;
     } while (std::ifstream(filename.c_str()).good());
   else {
     std::snprintf(filenumber, 8, ".%05d.", filenum++);
-    filename = optImageName + filenumber + optImageFormat;
+    filename = cameraId + "_" + optImageName + filenumber + optImageFormat;
   }
 
   int screenshotFlags = saveMetaData << 4 | saveLayers << 3
@@ -516,6 +557,9 @@ ospStudio batch specific parameters:
    -cam  --camera 
          In case of mulitple imported cameras specify which camera definition to use, counting starts from 1
          0 here would use default camera implementation
+   -cams  --cameras 
+         In case of mulitple imported cameras specify which camera-range to use, counting starts from 1
+         for eg. a valid range would be [1 7]
    -a    --albedo
    -d    --depth
    -n    --normal
