@@ -1981,6 +1981,8 @@ void MainWindow::buildWindowLightEditor()
           auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
           ast2d->load(texFileName, false, false);
         }
+        // Select newly added light
+        whichLight = lights.size() - 1;
       } else {
         lightNameWarning = true;
       }
