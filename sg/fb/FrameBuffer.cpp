@@ -7,7 +7,6 @@
 #include "sg/camera/Camera.h"
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/World.h"
-#include "sg/Math.h"
 
 namespace ospray {
 namespace sg {
@@ -52,13 +51,6 @@ FrameBuffer::FrameBuffer()
   child("hdrMax").setMinMax(0.f, 100.f);
 
   updateHandle();
-}
-
-FrameBuffer::~FrameBuffer()
-{
-  std::free(instData);
-  std::free(geomData);
-  std::free(worldPosData);
 }
 
 NodeType FrameBuffer::type() const
@@ -112,13 +104,6 @@ void FrameBuffer::updateHandle()
 
   auto size = child("size").valueAs<vec2i>();
   auto colorFormatStr = child("colorFormat").valueAs<std::string>();
-
-  std::free(instData);
-  std::free(geomData);
-  std::free(worldPosData);
-  instData = nullptr;
-  geomData = nullptr;
-  worldPosData = nullptr;
 
   auto fb =
       cpp::FrameBuffer(size.x, size.y, colorFormats[colorFormatStr], channels);
@@ -214,7 +199,6 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
   bool depth = flags & 0b10;
   bool normal = flags & 0b100;
   bool asLayers = flags & 0b1000;
-  bool metaData = flags & 0b10000;
 
   if (albedo) {
     abuf = (void *)map(OSP_FB_ALBEDO);
@@ -243,17 +227,6 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
     exp->createChild("asLayers", "bool", true);
   }
 
-  if (metaData) {
-    std::cout << "saving meta data for pixels .." << std::endl;
-    pickFrame(filename);
-
-    if (geomData != nullptr && instData != nullptr && worldPosData != nullptr) {
-      exp->child("asLayers").setValue(true);
-      exp->_geomData = geomData;
-      exp->_instData = instData;
-      exp->_worldPosition = worldPosData;
-    }
-  }
   exp->doExport();
 
   unmap(fb);
@@ -263,141 +236,6 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
     unmap(zbuf);
   if (nbuf)
     unmap(nbuf);
-}
-
-  void FrameBuffer::pickFrame(std::string filename)
-  {
-    auto &frame = parents().front();
-    auto &world = frame->childAs<sg::World>("world").handle();
-    auto &camera = frame->childAs<sg::Camera>("camera").handle();
-    auto &renderer = frame->childAs<sg::Renderer>("renderer").handle();
-    auto size = child("size").valueAs<vec2i>();
-    if (!instData)
-      instData = (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
-    if (!geomData)
-      geomData = (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
-    if (!worldPosData)
-      worldPosData = (float *)std::malloc(size.x * size.y * 3 * sizeof(float));
-
-    if(!instData || !geomData || !worldPosData)
-      return;
-
-    std::map<std::string, int> gUnique;
-    gUnique.insert(std::make_pair("", 0));
-
-    std::map<std::string, std::pair<int, std::tuple<vec3f, vec3f, vec4f>>> iUnique;
-    iUnique.insert(std::make_pair("", std::make_pair(0, std::make_tuple(vec3f(0.f), vec3f(0.f), vec4f(0.f)))));
-
-    size_t idx = 0;
-    for (auto j = 0; j < size.y; ++j) {
-      for (auto i = 0; i < size.x; ++i, ++idx) {
-        float normalize_x = (i + 0.5f) / size.x;
-        float normalize_y = (j + 0.5f) / size.y;
-
-        auto pickResult =
-            handle().pick(renderer, camera, world, normalize_x, normalize_y);
-
-        uint32_t instId = 0;
-        uint32_t geomId = 0;
-        float worldPosition[3] = {0,0,0};
-        box3f bbox;
-        bbox.lower = vec3f(0);
-        bbox.upper = vec3f(0);
-
-        if (pickResult.hasHit) {
-          auto ospGeometricModel = pickResult.model.handle();
-          if (ge.find(ospGeometricModel) != ge.end()) {
-            auto g_uuid = ge[ospGeometricModel];
-            if(gUnique.find(g_uuid) == gUnique.end()) {
-              auto size = gUnique.size();
-              gUnique.insert(std::make_pair(g_uuid, size));
-              geomId = size;
-            } else {
-              geomId = gUnique[g_uuid];
-            }
-          }
-
-          auto ospInstance = pickResult.instance.handle();
-
-          if (in.find(ospInstance) != in.end()) {
-            auto i_uuid = in[ospInstance].first;
-            if (iUnique.find(i_uuid) == iUnique.end()) {
-              auto size = iUnique.size();
-              bbox = pickResult.instance.getBounds<box3f>();
-
-              auto size_bbox = bbox.upper - bbox.lower;
-              auto center = (bbox.lower + bbox.upper) * 0.5;
-              auto bboxXfm = in[ospInstance].second;
-              auto centerTranslation = xfmPoint(bboxXfm, center);
-              LinearSpace3f R, S;
-              sg::getRSComponent(bboxXfm, R, S);
-              auto q = getRotationQuaternion(R);
-              iUnique.insert(std::make_pair(i_uuid,
-                  std::make_pair(size,
-                      std::make_tuple(size_bbox,
-                          centerTranslation,
-                          vec4f(q.i, q.j, q.k, q.r)))));
-              instId = size;
-            } else {
-              instId = iUnique[i_uuid].first;
-            }
-          }
-        worldPosition[0] = pickResult.worldPosition[0];
-        worldPosition[1] = pickResult.worldPosition[1];
-        worldPosition[2] = pickResult.worldPosition[2];
-      }
-      geomData[idx] = geomId;
-      instData[idx] = instId;
-      worldPosData[idx * 3] = worldPosition[0];
-      worldPosData[idx * 3 + 1] = worldPosition[1];
-      worldPosData[idx * 3 + 2] = worldPosition[2];
-    }
-  }
-
-    auto geomStream = filename.substr(0, filename.find_last_of(".")) + ".objectId.json";
-    auto instStream = filename.substr(0, filename.find_last_of(".")) + ".id.json";
-    auto bboxStream =
-        filename.substr(0, filename.find_last_of(".")) + ".bboxId.json";
-
-    std::ofstream geomDump(geomStream);
-    std::ofstream instDump(instStream);
-    std::ofstream bboxDump(bboxStream);
-
-    std::cout << "JSON maps saved to : \n" << geomStream << " " << instStream << " " <<  bboxStream << std::endl;
-
-  std::cout << "JSON maps saved to : " << geomStream << " and " << instStream
-            << std::endl;
-
-    // instanceId output
-    auto nj = nlohmann::json::array();
-    // bbox json output
-    nlohmann::json j;
-    for (auto &i : iUnique) {
-      nj.push_back(i.first);
-      // bbox output
-      auto bboxSize = nlohmann::json::array();
-      auto bboxCenter = nlohmann::json::array();
-      auto bboxRotation = nlohmann::json::array();
-      auto size = std::get<0>(i.second.second);
-      auto center = std::get<1>(i.second.second);
-      auto rotation = std::get<2>(i.second.second);
-      bboxSize.push_back(size[0]);
-      bboxSize.push_back(size[1]);
-      bboxSize.push_back(size[2]);
-
-      bboxCenter.push_back(center[0]);
-      bboxCenter.push_back(center[1]);
-      bboxCenter.push_back(center[2]);
-
-      bboxRotation.push_back(rotation[0]);
-      bboxRotation.push_back(rotation[1]);
-      bboxRotation.push_back(rotation[2]);
-      bboxRotation.push_back(rotation[3]);
-      j[i.first] = {
-          {"size", bboxSize}, {"center", bboxCenter}, {"rot", bboxRotation}};
-    }
-    instDump << nj.dump();
-    bboxDump << j.dump();    
 }
 
 OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);

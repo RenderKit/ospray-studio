@@ -1114,7 +1114,7 @@ void MainWindow::saveCurrentFrame()
   do
     std::snprintf(filename, 64, "studio.%04d.%s", filenum++, ext);
   while (std::ifstream(filename).good());
-  int screenshotFlags = screenshotMetaData << 4 | screenshotLayers << 3
+  int screenshotFlags = screenshotLayers << 3
       | screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -1253,8 +1253,6 @@ void MainWindow::buildMainMenuFile()
           ImGui::Checkbox("layers as separate files", &screenshotLayers);
           ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
           ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
-          // implemented only as layers within single file for now
-          ImGui::Checkbox("metaData##screenshotMetaData", &screenshotMetaData);
         }
       }
 
@@ -1275,9 +1273,6 @@ void MainWindow::buildMainMenuFile()
       refreshScene(resetCam);
     }
   }
-
-  if (screenshotMetaData)
-    frame->child("world").child("saveMetaData").setValue(true);
 }
 
 void MainWindow::buildMainMenuEdit()

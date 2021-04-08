@@ -195,7 +195,6 @@ namespace sg {
 
     void commit();
     void render();
-    void render(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap);
 
     box3f bounds();
 

@@ -69,4 +69,12 @@ PanelList PluginManager::getAllPanelsFromPlugins(
   return allPanels;
 }
 
+void PluginManager::callMainMethod(
+    std::shared_ptr<StudioContext> _context) const
+{
+  for (auto &plugin : plugins)
+    if (plugin.instance->hasMainMethod)
+      plugin.instance->mainMethod(_context);
+}
+
 } // namespace ospray

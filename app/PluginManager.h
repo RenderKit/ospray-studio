@@ -21,6 +21,8 @@ struct PluginManager
   // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
   PanelList getAllPanelsFromPlugins(
       std::shared_ptr<StudioContext> _context) const;
+  // use following function to invoke main method of a plugin
+  void callMainMethod(std::shared_ptr<StudioContext> _context) const;
 
  private:
   // Helper types //

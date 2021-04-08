@@ -258,13 +258,7 @@ namespace ospray {
     commit();
     traverse<RenderScene>();
   }
-
-  void Node::render(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap)
-  {
-    commit();
-    traverse<RenderScene>(geomIdMap, instanceIdMap);
-  }
-
+  
   box3f Node::bounds()
   {
     GetBounds visitor;

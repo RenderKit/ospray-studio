@@ -41,6 +41,8 @@ void BatchContext::start()
       bool useCamera = refreshCamera(cameraDef);
       if (useCamera) {
         render();
+        if (saveMetaData)
+          pluginManager.callMainMethod(shared_from_this());
         if (animate) {
           std::cout << "..rendering animation!" << std::endl;
           renderAnimation();
@@ -61,6 +63,8 @@ void BatchContext::start()
         bool useCamera = refreshCamera(cameraIdx, true);
         if (useCamera) {
           render();
+          if (saveMetaData)
+            pluginManager.callMainMethod(shared_from_this());
           if (animate) {
             std::cout << "..rendering animation!" << std::endl;
             renderAnimation();
@@ -363,8 +367,6 @@ void BatchContext::render()
   }
 
   frame->child("world").createChild("materialref", "reference_to_material", 0);
-  if(saveMetaData)
-    frame->child("world").child("saveMetaData").setValue(true);
 
   if (optGridEnable) {
     // Determine world bounds to calculate grid offsets
@@ -434,7 +436,7 @@ void BatchContext::renderFrame()
     filename = optImageName + cameraId + filenumber + optImageFormat;
   }
 
-  int screenshotFlags = saveMetaData << 4 | saveLayers << 3
+  int screenshotFlags = saveLayers << 3
       | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
 
   frame->saveFrame(filename, screenshotFlags);
@@ -467,8 +469,6 @@ void BatchContext::refreshScene(bool resetCam)
 
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
-  if (saveMetaData)
-    world->child("saveMetaData").setValue(true);
 
   if (!filesToImport.empty())
     importFiles(world);
