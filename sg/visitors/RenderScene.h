@@ -111,8 +111,8 @@ namespace ospray {
       xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
       xfms.push(xfmNode->accumulatedXfm);
 
-      if (node.hasChildOfType("camera_perspective")
-          || node.hasChildOfType("camera_orthographic")) {
+      if (node.hasChildOfSubType("camera_perspective")
+          || node.hasChildOfSubType("camera_orthographic")) {
         cs = std::make_shared<CameraState>();
         cs->useCameraToWorld = true;
         cs->cameraToWorld = xfm;

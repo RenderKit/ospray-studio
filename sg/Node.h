@@ -128,11 +128,13 @@ namespace sg {
 
     bool hasChild(const std::string &name) const;
 
-    bool hasChildOfType(const std::string &subType) const;
+    bool hasChildOfSubType(const std::string &subType) const;
+    bool hasChildOfType(NodeType type) const;
 
     Node &child(const std::string &name);
 
-    const std::vector<NodePtr> childrenOfType(const std::string &subType);
+    const std::vector<NodePtr> childrenOfSubType(const std::string &subType);
+    const std::vector<NodePtr> childrenOfType(NodeType type);
     
     Node &operator[](const std::string &c);
 

@@ -405,6 +405,13 @@ void BatchContext::renderFrame()
   else
     cameraId = cameraXfm->child("cameraId").valueAs<std::string>();
 
+  std::string sceneId{""};
+  auto &world = frame->child("world");
+  if (world.hasChildOfType(NodeType::IMPORTER)) {
+    auto importer = world.childrenOfType(NodeType::IMPORTER).front();
+    sceneId = importer->name().substr(0, importer->name().find_last_of("_"));
+  }
+
   static int filenum;
   if (resetFileId) {
     filenum = framesRange.lower;
@@ -416,11 +423,11 @@ void BatchContext::renderFrame()
   if (!forceRewrite)
     do {
       std::snprintf(filenumber, 8, ".%05d.", filenum++);
-      filename = cameraId + "_" + optImageName + filenumber + optImageFormat;
+      filename = sceneId + "_" + cameraId + "_" + optImageName + filenumber + optImageFormat;
     } while (std::ifstream(filename.c_str()).good());
   else {
     std::snprintf(filenumber, 8, ".%05d.", filenum++);
-    filename = cameraId + "_" + optImageName + filenumber + optImageFormat;
+    filename = sceneId + "_" + cameraId + "_" + optImageName + filenumber + optImageFormat;
   }
 
   int screenshotFlags = saveMetaData << 4 | saveLayers << 3
