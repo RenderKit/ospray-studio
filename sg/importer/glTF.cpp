@@ -48,12 +48,14 @@ namespace ospray {
         const FileName &fileName,
         std::shared_ptr<sg::MaterialRegistry> _materialRegistry,
         std::vector<NodePtr> *_cameras,
-        sg::FrameBuffer *_fb)
+        sg::FrameBuffer *_fb,
+        NodePtr _currentImporter)
         : fileName(fileName),
           rootNode(rootNode),
           materialRegistry(_materialRegistry),
           cameras(_cameras),
-          fb(_fb)
+          fb(_fb),
+          currentImporter(_currentImporter)
     {}
 
    public:
@@ -74,6 +76,7 @@ namespace ospray {
     std::vector<NodePtr> lights;
 
    private:
+    NodePtr currentImporter;
     NodePtr rootNode;
     sg::FrameBuffer *fb{nullptr};
     std::vector<NodePtr> *cameras{nullptr};
@@ -268,6 +271,26 @@ namespace ospray {
         std::static_pointer_cast<sg::Importer>(sg::getImporter(sgNode, file));
     if (importer) {
       importer->setMaterialRegistry(materialRegistry);
+      auto parentImporter = currentImporter->nodeAs<sg::Importer>();
+
+      auto cameraList = parentImporter->getCameraList();
+      if (cameraList)
+        importer->setCameraList(*cameraList);
+
+      auto animationList = parentImporter->getAnimationList();
+      if (animationList)
+        importer->setAnimationList(*animationList);
+
+      auto lightsManager = parentImporter->getLightsManager();
+      importer->setLightsManager(lightsManager);
+
+      auto fb = parentImporter->getFb();
+      if (fb)
+        importer->setFb(*fb);
+
+      auto &pointSize = parentImporter->pointSize;
+      importer->pointSize = pointSize;
+
       importer->importScene();
     }
   }
@@ -1480,7 +1503,7 @@ namespace ospray {
     std::string baseName = fileName.name() + "_rootXfm";
     auto rootNode = createNode(baseName, "transform");
 
-    GLTFData gltf(rootNode, fileName, materialRegistry, cameras, fb);
+    GLTFData gltf(rootNode, fileName, materialRegistry, cameras, fb, shared_from_this());
 
     if (!gltf.parseAsset())
       return;

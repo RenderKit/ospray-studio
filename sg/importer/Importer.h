@@ -51,9 +51,19 @@ struct OSPSG_INTERFACE Importer : public Node
     importCameras = true;
   }
 
+  inline std::vector<NodePtr> *getCameraList()
+  {
+    return cameras;
+  }
+
   inline void setAnimationList(std::vector<sg::Animation> &_animations)
   {
     animations = &_animations;
+  }
+
+  inline std::vector<sg::Animation> *getAnimationList()
+  {
+    return animations;
   }
 
   inline void setLightsManager(NodePtr _lightsManager)
@@ -61,9 +71,19 @@ struct OSPSG_INTERFACE Importer : public Node
     lightsManager = _lightsManager;
   }
 
+  inline NodePtr getLightsManager()
+  {
+    return lightsManager;
+  }
+
   inline void setFb(sg::FrameBuffer &_fb)
   {
     fb = &_fb;
+  }
+
+  inline sg::FrameBuffer *getFb()
+  {
+    return fb;
   }
 
   inline void setVolumeParams(NodePtr vp) {
