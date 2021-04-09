@@ -37,7 +37,7 @@ class BatchContext : public StudioContext
   void render();
   void renderFrame();
   void renderAnimation();
-  void refreshCamera(int cameraIdx);
+  bool refreshCamera(int cameraIdx);
   void applyCameraState(CameraState &cs);
 
  protected:
@@ -76,6 +76,7 @@ class BatchContext : public StudioContext
 
   // list of cameras imported with the scene definition
   std::vector<sg::NodePtr> cameras;
+  std::string cameraId{""};
 
   std::vector<CameraState> cameraStack;
 

@@ -38,31 +38,35 @@ void BatchContext::start()
     refreshScene(true);
     if (!useCameraRange) {
       resetFileId = true;
-      refreshCamera(cameraDef);
-      render();
-      updateCamera();
-      if (animate) {
-        std::cout << "..rendering animation!" << std::endl;
-        renderAnimation();
-      } else if (!cameraStack.empty()) {
-        for (auto &cs : cameraStack) {
-          applyCameraState(cs);
-          renderFrame();
-        }
-      } else
-        renderFrame();
-    } else {
-      for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
-           ++cameraIdx) {
-        resetFileId = true;
-        refreshCamera(cameraIdx);
+      bool useCamera = refreshCamera(cameraDef);
+      if (useCamera) {
         render();
         updateCamera();
         if (animate) {
           std::cout << "..rendering animation!" << std::endl;
           renderAnimation();
+        } else if (!cameraStack.empty()) {
+          for (auto &cs : cameraStack) {
+            applyCameraState(cs);
+            renderFrame();
+          }
         } else
           renderFrame();
+      }
+    } else {
+      for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
+           ++cameraIdx) {
+        resetFileId = true;
+        bool useCamera = refreshCamera(cameraIdx);
+        if (useCamera) {
+          render();
+          updateCamera();
+          if (animate) {
+            std::cout << "..rendering animation!" << std::endl;
+            renderAnimation();
+          } else
+            renderFrame();
+        }
       }
     }
 
@@ -295,7 +299,7 @@ void BatchContext::refreshRenderer()
   renderer.child("varianceThreshold").setValue(optVariance);
 }
 
-void BatchContext::refreshCamera(int cameraIdx)
+bool BatchContext::refreshCamera(int cameraIdx)
 {
   if (cameraIdx <= cameras.size() && cameraIdx > 0) {
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
@@ -308,6 +312,20 @@ void BatchContext::refreshCamera(int cameraIdx)
     for (auto &c : selectedSceneCamera->children())
       camera.add(c.second);
 
+    // create unique cameraId for every camera
+    auto &cameraParents = selectedSceneCamera->parents();
+    if (cameraParents.size()) {
+      auto &cameraXfm = cameraParents.front();
+      if (cameraXfm->hasChild("geomId"))
+        cameraId = cameraXfm->child("geomId").valueAs<std::string>();
+      else
+        cameraId = "Camera_" + std::to_string(cameraIdx);
+
+    } else {
+      std::cout << "camera not used in GLTF scene" << std::endl;
+      return false;
+    }
+
   } else {
     std::cout << "No cameras imported or invalid camera index specified"
               << std::endl;
@@ -315,10 +333,8 @@ void BatchContext::refreshCamera(int cameraIdx)
         "camera" + std::to_string(cameraIdx), "camera_" + optCameraTypeStr);
     frame->add(selectedSceneCamera);
   }
-  // create unique cameraId for every camera
-  auto &cameraXfm = selectedSceneCamera->parents().front();
-  cameraXfm->createChild(
-      "cameraId", "string", "Camera_" + std::to_string(cameraIdx));
+
+  return true;
 }
 
 void BatchContext::render()
@@ -398,19 +414,6 @@ void BatchContext::renderFrame()
     arcballCamera->setState(*newCS);
     updateCamera();
   }
-  std::string cameraId{""};
-  auto &cameraXfm = selectedSceneCamera->parents().front();
-  if (cameraXfm->hasChild("geomId"))
-    cameraId = cameraXfm->child("geomId").valueAs<std::string>();
-  else
-    cameraId = cameraXfm->child("cameraId").valueAs<std::string>();
-
-  std::string sceneId{""};
-  auto &world = frame->child("world");
-  if (world.hasChildOfType(NodeType::IMPORTER)) {
-    auto importer = world.childrenOfType(NodeType::IMPORTER).front();
-    sceneId = importer->name().substr(0, importer->name().find_last_of("_"));
-  }
 
   static int filenum;
   if (resetFileId) {
@@ -423,11 +426,11 @@ void BatchContext::renderFrame()
   if (!forceRewrite)
     do {
       std::snprintf(filenumber, 8, ".%05d.", filenum++);
-      filename = sceneId + "_" + cameraId + "_" + optImageName + filenumber + optImageFormat;
+      filename = optImageName + "_" + cameraId + filenumber + optImageFormat;
     } while (std::ifstream(filename.c_str()).good());
   else {
     std::snprintf(filenumber, 8, ".%05d.", filenum++);
-    filename = sceneId + "_" + cameraId + "_" + optImageName + filenumber + optImageFormat;
+    filename = optImageName + "_" + cameraId + filenumber + optImageFormat;
   }
 
   int screenshotFlags = saveMetaData << 4 | saveLayers << 3
