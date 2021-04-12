@@ -651,6 +651,8 @@ namespace ospray {
     sgNode->add(newXfm);
     applyNodeTransform(newXfm, n);
 
+    // create child animate camera for all camera nodes added to scene hierarchy,
+    // bool value is set during createAnimation when appropriate target xfm is found
     if(n.camera != -1 && cameras != nullptr) {
       auto &listCameras = *cameras;
       auto &camera = listCameras[n.camera];

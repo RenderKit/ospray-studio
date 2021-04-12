@@ -41,13 +41,13 @@ void BatchContext::start()
       bool useCamera = refreshCamera(cameraDef);
       if (useCamera) {
         render();
-        updateCamera();
         if (animate) {
           std::cout << "..rendering animation!" << std::endl;
           renderAnimation();
         } else if (!cameraStack.empty()) {
           for (auto &cs : cameraStack) {
-            applyCameraState(cs);
+            arcballCamera->setState(cs);
+            updateCamera();
             renderFrame();
           }
         } else
@@ -60,7 +60,6 @@ void BatchContext::start()
         bool useCamera = refreshCamera(cameraIdx);
         if (useCamera) {
           render();
-          updateCamera();
           if (animate) {
             std::cout << "..rendering animation!" << std::endl;
             renderAnimation();
@@ -301,14 +300,21 @@ void BatchContext::refreshRenderer()
 
 bool BatchContext::refreshCamera(int cameraIdx)
 {
+  if(frame->hasChild("camera"))
+  frame->remove("camera");
+
+  if (!sgScene)
+    arcballCamera.reset(
+        new ArcballCamera(frame->child("world").bounds(), optImageSize));
+
   if (cameraIdx <= cameras.size() && cameraIdx > 0) {
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
               << std::endl;
     selectedSceneCamera = cameras[cameraIdx - 1];
-    animateCamera = selectedSceneCamera->nodeAs<sg::Camera>()->animate;
 
     auto &camera = frame->createChildAs<sg::Camera>(
         "camera", selectedSceneCamera->subType());
+      
     for (auto &c : selectedSceneCamera->children())
       camera.add(c.second);
 
@@ -332,15 +338,18 @@ bool BatchContext::refreshCamera(int cameraIdx)
     std::cout << "No cameras imported or invalid camera index specified"
               << std::endl;
     selectedSceneCamera = createNode(
-        "camera" + std::to_string(cameraIdx), "camera_" + optCameraTypeStr);
+        "camera", "camera_" + optCameraTypeStr);
     frame->add(selectedSceneCamera);
   }
+
+  updateCamera();
 
   return true;
 }
 
 void BatchContext::render()
 {
+  
   // Set the frame "windowSize", it will create the right sized framebuffer
   frame->child("windowSize") = optImageSize;
 
@@ -387,19 +396,6 @@ void BatchContext::render()
   }
 }
 
-void BatchContext::applyCameraState(CameraState &cs)
-{
-      // apply command line camera params or cams.json settings
-  if (!sgScene)
-    arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), optImageSize));
-
-  arcballCamera->setState(cs);
-
-  updateCamera();
-
-}
-
 void BatchContext::renderFrame()
 {
   // Only denoise the final frame
@@ -411,10 +407,12 @@ void BatchContext::renderFrame()
   frame->immediatelyWait = true;
   frame->startNewFrame();
 
-  if (animateCamera) {
+  if (selectedSceneCamera->nodeAs<sg::Camera>()->animate) {
     auto newCS = selectedSceneCamera->nodeAs<sg::Camera>()->getState();
     arcballCamera->setState(*newCS);
     updateCamera();
+    frame->cancelFrame();
+    frame->startNewFrame();
   }
 
   static int filenum;
@@ -474,25 +472,29 @@ void BatchContext::refreshScene(bool resetCam)
   if (!filesToImport.empty())
     importFiles(world);
 
-  world->render();
+    if (world->isModified()) {
+    // Cancel any in-progress frame as world->render() will modify live device
+    // parameters
+    frame->cancelFrame();
+    frame->waitOnFrame();
+    world->render();
+  }
 
   frame->add(world);
 
-  if (resetCam && !sgScene)
-    arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), optImageSize));
-  updateCamera();
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();
 }
 
 void BatchContext::updateCamera()
 {
+  frame->currentAccum = 0;
   auto &camera = frame->child("camera");
 
   camera["position"] = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
   camera["up"] = arcballCamera->upDir();
+
   if (camera.hasChild("aspect"))
     camera["aspect"] = optImageSize.x / (float)optImageSize.y;
 

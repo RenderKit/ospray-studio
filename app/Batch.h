@@ -31,14 +31,14 @@ class BatchContext : public StudioContext
   bool parseCommandLine() override;
   void importFiles(sg::NodePtr world) override;
   void refreshRenderer();
-  void refreshScene(bool resetCam = false) override;
+  void refreshScene(bool resetCam) override;
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void render();
   void renderFrame();
   void renderAnimation();
   bool refreshCamera(int cameraIdx);
-  void applyCameraState(CameraState &cs);
+  // NodePtr world;
 
  protected:
   PluginManager pluginManager;
@@ -82,7 +82,6 @@ class BatchContext : public StudioContext
 
   //camera animation
   sg::NodePtr selectedSceneCamera;
-  bool animateCamera{false};
 
   //Volume parameters
   sg::NodePtr volumeParams;
