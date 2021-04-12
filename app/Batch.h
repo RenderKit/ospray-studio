@@ -31,7 +31,7 @@ class BatchContext : public StudioContext
   bool parseCommandLine() override;
   void importFiles(sg::NodePtr world) override;
   void refreshRenderer();
-  void refreshScene(bool resetCam) override;
+  void refreshScene(bool resetCam = false) override;
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void render();

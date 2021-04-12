@@ -315,11 +315,13 @@ bool BatchContext::refreshCamera(int cameraIdx)
     // create unique cameraId for every camera
     auto &cameraParents = selectedSceneCamera->parents();
     if (cameraParents.size()) {
-      auto &cameraXfm = cameraParents.front();
-      if (cameraXfm->hasChild("geomId"))
-        cameraId = cameraXfm->child("geomId").valueAs<std::string>();
-      else
-        cameraId = "Camera_" + std::to_string(cameraIdx);
+      if (useCameraRange) {
+        auto &cameraXfm = cameraParents.front();
+        if (cameraXfm->hasChild("geomId"))
+          cameraId = cameraXfm->child("geomId").valueAs<std::string>();
+        else
+          cameraId = ".Camera_" + std::to_string(cameraIdx);
+      }
 
     } else {
       std::cout << "camera not used in GLTF scene" << std::endl;
@@ -426,11 +428,11 @@ void BatchContext::renderFrame()
   if (!forceRewrite)
     do {
       std::snprintf(filenumber, 8, ".%05d.", filenum++);
-      filename = optImageName + "_" + cameraId + filenumber + optImageFormat;
+      filename = optImageName + cameraId + filenumber + optImageFormat;
     } while (std::ifstream(filename.c_str()).good());
   else {
     std::snprintf(filenumber, 8, ".%05d.", filenum++);
-    filename = optImageName + "_" + cameraId + filenumber + optImageFormat;
+    filename = optImageName + cameraId + filenumber + optImageFormat;
   }
 
   int screenshotFlags = saveMetaData << 4 | saveLayers << 3
