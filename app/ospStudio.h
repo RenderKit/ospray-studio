@@ -97,6 +97,8 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   int defaultMaterialIdx = 0;
 
+  std::string outputFilename{""};
+
  protected:
   virtual void printHelp()
   {

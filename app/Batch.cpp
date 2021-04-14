@@ -41,8 +41,6 @@ void BatchContext::start()
       bool useCamera = refreshCamera(cameraDef);
       if (useCamera) {
         render();
-        if (saveMetaData)
-          pluginManager.callMainMethod(shared_from_this());
         if (animate) {
           std::cout << "..rendering animation!" << std::endl;
           renderAnimation();
@@ -63,8 +61,6 @@ void BatchContext::start()
         bool useCamera = refreshCamera(cameraIdx, true);
         if (useCamera) {
           render();
-          if (saveMetaData)
-            pluginManager.callMainMethod(shared_from_this());
           if (animate) {
             std::cout << "..rendering animation!" << std::endl;
             renderAnimation();
@@ -424,8 +420,8 @@ void BatchContext::renderFrame()
     resetFileId = false;
   }
 
-  char filenumber[8];
   std::string filename;
+  char filenumber[8];
   if (!forceRewrite)
     do {
       std::snprintf(filenumber, 8, ".%05d.", filenum++);
@@ -440,6 +436,10 @@ void BatchContext::renderFrame()
       | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
 
   frame->saveFrame(filename, screenshotFlags);
+  if (saveMetaData) {
+    this->outputFilename = filename;
+    pluginManager.callMainMethod(shared_from_this());
+  }
 }
 
 void BatchContext::renderAnimation()

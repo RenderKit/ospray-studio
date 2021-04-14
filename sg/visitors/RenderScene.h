@@ -19,7 +19,7 @@ namespace ospray {
   struct RenderScene : public Visitor
   {
     RenderScene();
-    RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap);
+    RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
     void postChildren(Node &node, TraversalContext &) override;
@@ -61,6 +61,7 @@ namespace ospray {
     std::string geomId{""};
     GeomIdMap *g{nullptr};
     InstanceIdMap *in{nullptr};
+    affine3f *camXfm{nullptr};
     std::shared_ptr<CameraState> cs;
   };
 
@@ -71,11 +72,12 @@ namespace ospray {
     xfms.emplace(math::one);
   }
 
-  inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap)
+  inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld)
   {
     xfms.emplace(math::one);
     g = &geomIdMap;
     in = &instanceIdMap;
+    camXfm = cameraToWorld;
   }
 
   inline bool RenderScene::operator()(Node &node, TraversalContext &)
@@ -116,6 +118,10 @@ namespace ospray {
         cs = std::make_shared<CameraState>();
         cs->useCameraToWorld = true;
         cs->cameraToWorld = xfm;
+        if (camXfm) {
+          auto &outputCamXfm = *camXfm;
+          outputCamXfm = outputCamXfm * xfm;
+        }
       }
 
       if (node.hasChild("instanceId"))
@@ -355,7 +361,7 @@ namespace ospray {
     auto camera = node.nodeAs<sg::Camera>();
     if (cs != nullptr) {
       camera->setState(cs);
-      if(node.parents().front()->child("animateCamera").valueAs<bool>())
+      if (node.parents().front()->child("animateCamera").valueAs<bool>())
         camera->animate = true;
     }
   }
