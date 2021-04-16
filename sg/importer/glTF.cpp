@@ -850,8 +850,9 @@ namespace ospray {
       // Positions: vec3f
       Accessor<vec3f> pos_accessor(
           model.accessors[prim.attributes["POSITION"]], model);
-      ospGeom->skinnedPositions.reserve(pos_accessor.size());
-      for (size_t i = 0; i < pos_accessor.size(); ++i)
+      const auto vertices = pos_accessor.size();
+      ospGeom->skinnedPositions.reserve(vertices);
+      for (size_t i = 0; i < vertices; ++i)
         ospGeom->skinnedPositions.emplace_back(pos_accessor[i]);
       ospGeom->createChildData(
           "vertex.position", ospGeom->skinnedPositions, true);
@@ -860,64 +861,87 @@ namespace ospray {
       fnd = prim.attributes.find("NORMAL");
       if (fnd != prim.attributes.end()) {
         Accessor<vec3f> normal_accessor(model.accessors[fnd->second], model);
-        ospGeom->skinnedNormals.reserve(normal_accessor.size());
-        for (size_t i = 0; i < normal_accessor.size(); ++i)
-          ospGeom->skinnedNormals.emplace_back(normal_accessor[i]);
-        ospGeom->createChildData(
-            "vertex.normal", ospGeom->skinnedNormals, true);
+        if (vertices == normal_accessor.size()) {
+          ospGeom->skinnedNormals.reserve(vertices);
+          for (size_t i = 0; i < vertices; ++i)
+            ospGeom->skinnedNormals.emplace_back(normal_accessor[i]);
+          ospGeom->createChildData(
+              "vertex.normal", ospGeom->skinnedNormals, true);
+        } else
+          WARN << "mismatching NORMAL size\n";
       }
 
       ospGeom->createChildData("index", vi);
-      if (!vc.empty())
+      if (vertices == vc.size())
         ospGeom->createChildData("vertex.color", vc);
-      if (!vt.empty())
+      else if (!vc.empty())
+        WARN << "mismatching COLOR_0 size\n";
+      if (vertices == vt.size())
         ospGeom->createChildData("vertex.texcoord", vt);
+      else if (!vt.empty())
+        WARN << "mismatching TEXCOORD_0 size\n";
 
       // skinning, XXX for now only for triangles
-      const auto fndj = prim.attributes.find("JOINTS_0");
-      const auto fndw = prim.attributes.find("WEIGHTS_0");
-      if (fndj != prim.attributes.end() && fndw != prim.attributes.end()) {
-        ospGeom->positions = ospGeom->skinnedPositions;
-        ospGeom->normals = ospGeom->skinnedNormals;
+      ospGeom->weightsPerVertex = 0;
+      int stride = 0;
+      for (int set = 2; set >= 0; set--) {
+        auto fndj = prim.attributes.find("JOINTS_" + std::to_string(set));
+        auto fndw = prim.attributes.find("WEIGHTS_" + std::to_string(set));
+        if (fndj == prim.attributes.end() || fndw == prim.attributes.end())
+          continue;
+        if (ospGeom->weightsPerVertex == 0) { // init only for largest found set
+          stride = set + 1;
+          ospGeom->weightsPerVertex = stride * 4;
+          ospGeom->joints.resize(vertices * ospGeom->weightsPerVertex);
+          ospGeom->weights.resize(vertices * ospGeom->weightsPerVertex);
+          ospGeom->positions = ospGeom->skinnedPositions;
+          ospGeom->normals = ospGeom->skinnedNormals;
+        }
         auto &joints = model.accessors[fndj->second];
+        if (vertices != joints.count) {
+          WARN << "mismatching JOINTS_" << set << " size\n";
+          continue;
+        }
+        vec4us *geomJoints = (vec4us *)ospGeom->joints.data() + set;
         bool isVec4 = joints.type == TINYGLTF_TYPE_VEC4;
         if (isVec4
             && joints.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
           Accessor<vec4uc> joint(joints, model);
           for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->joints.emplace_back(joint[i]);
+            geomJoints[i * stride] = joint[i];
         } else if (isVec4
             && joints.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
           Accessor<vec4us> joint(joints, model);
           for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->joints.emplace_back(joint[i]);
-        } else {
-          WARN << "invalid JOINTS_0\n";
-          ospGeom->joints.resize(joints.count);
-        }
+            geomJoints[i * stride] = joint[i];
+        } else
+          WARN << "invalid JOINTS_" << set << std::endl;
 
         auto &weights = model.accessors[fndw->second];
+        if (vertices != weights.count) {
+          WARN << "mismatching WEIGHTS_" << set << " size\n";
+          continue;
+        }
+        vec4f *geomWeights = (vec4f *)ospGeom->weights.data() + set;
         isVec4 = weights.type == TINYGLTF_TYPE_VEC4;
         if (isVec4
             && weights.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-          Accessor<vec4uc> joint(weights, model);
-          for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->weights.emplace_back(joint[i]);
+          Accessor<vec4uc> weight(weights, model);
+          for (size_t i = 0; i < weight.size(); ++i)
+            geomWeights[i * stride] = weight[i] / 255.0f;
         } else if (isVec4
             && weights.componentType
                 == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-          Accessor<vec4us> joint(weights, model);
-          for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->weights.emplace_back(joint[i]);
+          Accessor<vec4us> weight(weights, model);
+          for (size_t i = 0; i < weight.size(); ++i)
+            geomWeights[i * stride] = weight[i] / 65535.0f;
         } else if (isVec4
             && weights.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
-          Accessor<vec4f> joint(weights, model);
-          for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->weights.emplace_back(joint[i]);
-        } else {
-          WARN << "invalid WEIGHTS_0\n";
-          ospGeom->weights.resize(weights.count);
-        }
+          Accessor<vec4f> weight(weights, model);
+          for (size_t i = 0; i < weight.size(); ++i)
+            geomWeights[i * stride] = weight[i];
+        } else
+          WARN << "invalid WEIGHTS_" << set << std::endl;
       }
     } else if (prim.mode == TINYGLTF_MODE_POINTS) {
       // points as spheres

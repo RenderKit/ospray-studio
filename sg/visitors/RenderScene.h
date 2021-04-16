@@ -182,12 +182,14 @@ namespace ospray {
     if (geomNode->skin) {
       auto &joints = geomNode->skin->joints;
       auto &inverseBindMatrices = geomNode->skin->inverseBindMatrices;
+      const size_t weightsPerVertex = geomNode->weightsPerVertex;
+      size_t weightIdx = 0;
       for (size_t i = 0; i < geomNode->positions.size(); ++i) { // XXX parallel
         affine3f xfm{zero};
-        for (size_t j = 0; j < 4; ++j) {
-          const int idx = geomNode->joints[i][j];
+        for (size_t j = 0; j < weightsPerVertex; ++j, ++weightIdx) {
+          const int idx = geomNode->joints[weightIdx];
           xfm = xfm
-              + geomNode->weights[i][j]
+              + geomNode->weights[weightIdx]
                   * joints[idx]->nodeAs<Transform>()->accumulatedXfm
                   * inverseBindMatrices[idx];
         }

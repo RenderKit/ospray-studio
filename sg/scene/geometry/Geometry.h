@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -24,8 +24,9 @@ namespace ospray {
     // skinning info
     SkinPtr skin;
     NodePtr skeletonRoot;
-    std::vector<vec4us> joints;
-    std::vector<vec4f> weights;
+    size_t weightsPerVertex{0};
+    std::vector<uint16_t> joints; // 2D
+    std::vector<float> weights; // 2D
     std::vector<vec3f> positions;
     std::vector<vec3f> skinnedPositions;
     std::vector<vec3f> normals;
