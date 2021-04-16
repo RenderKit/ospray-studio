@@ -21,6 +21,9 @@ BatchContext::BatchContext(StudioCommon &_common)
     : StudioContext(_common), optImageSize(_common.defaultSize)
 {
   frame->child("scaleNav").setValue(1.f);
+  // Initialize the Arcball
+  arcballCamera.reset(
+      new ArcballCamera(frame->child("world").bounds(), optImageSize));
 }
 
 void BatchContext::start()
@@ -45,6 +48,7 @@ void BatchContext::start()
           std::cout << "..rendering animation!" << std::endl;
           renderAnimation();
         } else if (!cameraStack.empty()) {
+          std::cout << "..using cams.json camera stack" << std::endl;
           for (auto &cs : cameraStack) {
             arcballCamera->setState(cs);
             updateCamera();
