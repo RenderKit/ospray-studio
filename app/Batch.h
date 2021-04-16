@@ -37,7 +37,7 @@ class BatchContext : public StudioContext
   void render();
   void renderFrame();
   void renderAnimation();
-  bool refreshCamera(int cameraIdx);
+  bool refreshCamera(int cameraIdx, bool resetArcball = false);
   // NodePtr world;
 
  protected:

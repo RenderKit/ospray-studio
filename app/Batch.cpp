@@ -21,9 +21,6 @@ BatchContext::BatchContext(StudioCommon &_common)
     : StudioContext(_common), optImageSize(_common.defaultSize)
 {
   frame->child("scaleNav").setValue(1.f);
-  // Initialize the Arcball
-  arcballCamera.reset(
-      new ArcballCamera(frame->child("world").bounds(), optImageSize));
 }
 
 void BatchContext::start()
@@ -61,7 +58,7 @@ void BatchContext::start()
       for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
            ++cameraIdx) {
         resetFileId = true;
-        bool useCamera = refreshCamera(cameraIdx);
+        bool useCamera = refreshCamera(cameraIdx, true);
         if (useCamera) {
           render();
           if (animate) {
@@ -302,12 +299,12 @@ void BatchContext::refreshRenderer()
   renderer.child("varianceThreshold").setValue(optVariance);
 }
 
-bool BatchContext::refreshCamera(int cameraIdx)
+bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 {
   if(frame->hasChild("camera"))
   frame->remove("camera");
 
-  if (!sgScene)
+  if (resetArcball)
     arcballCamera.reset(
         new ArcballCamera(frame->child("world").bounds(), optImageSize));
 
@@ -476,7 +473,7 @@ void BatchContext::refreshScene(bool resetCam)
   if (!filesToImport.empty())
     importFiles(world);
 
-    if (world->isModified()) {
+  if (world->isModified()) {
     // Cancel any in-progress frame as world->render() will modify live device
     // parameters
     frame->cancelFrame();
@@ -485,6 +482,10 @@ void BatchContext::refreshScene(bool resetCam)
   }
 
   frame->add(world);
+
+  if (resetCam && !sgScene)
+    arcballCamera.reset(
+        new ArcballCamera(frame->child("world").bounds(), optImageSize));
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();
