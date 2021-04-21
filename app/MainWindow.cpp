@@ -244,6 +244,10 @@ MainWindow::MainWindow(StudioCommon &_common)
               g_rotationConstraint = 2;
               break;
 
+            case GLFW_KEY_I:
+              activeWindow->centerOnEyePos();
+              break;
+
             case GLFW_KEY_G:
               activeWindow->showUi = !(activeWindow->showUi);
               break;
@@ -532,6 +536,14 @@ void MainWindow::setCameraState(CameraState &cs)
   arcballCamera->setState(cs);
 }
 
+void MainWindow::centerOnEyePos()
+{
+  // Like FPV, recenters the camera at the eye position and zooms all the way
+  // in.
+  arcballCamera->setCenter(arcballCamera->eyePos());
+  arcballCamera->zoom(-windowSize.y);
+}
+
 void MainWindow::pickCenterOfRotation(float x, float y)
 {
   ospray::cpp::PickResult res;
@@ -544,10 +556,12 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   y = 1.f - clamp(y / windowSize.y, 0.f, 1.f);
   res = fb.handle().pick(r, c, w, x, y);
   if (res.hasHit) {
-    if (!glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    if (!glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+      // Constraining rotation around the up works pretty well.
+      arcballCamera->constrainedRotate(vec2f(0.5f,0.5f), vec2f(x,y), 1);
       arcballCamera->setCenter(vec3f(res.worldPosition));
-    auto &camera = frame->child("camera");
-    camera["lookAt"] = vec3f(res.worldPosition);
+    }
+    c["lookAt"] = vec3f(res.worldPosition);
     updateCamera();
   }
 }

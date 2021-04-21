@@ -110,6 +110,7 @@ class MainWindow : public StudioContext
   void addPTMaterials();
 
   void saveCurrentFrame();
+  void centerOnEyePos();
   void pickCenterOfRotation(float x, float y);
   void pushLookMark();
   void popLookMark();
