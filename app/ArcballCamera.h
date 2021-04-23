@@ -115,9 +115,11 @@ class ArcballCamera
   vec3f lookDir() const;
   vec3f upDir() const;
 
+  float getZoomLevel();
+  void setZoomLevel(float zoomLevel);
+
   void setRotation(quaternionf);
   void setState(const CameraState &state);
-  void setZoomSpeed(float speed);
   CameraState getState() const;
 
   void updateWindowSize(const vec2i &windowSize);
@@ -129,7 +131,7 @@ class ArcballCamera
   // Project the point in [-1, 1] screen space onto the arcball sphere
   quaternionf screenToArcball(const vec2f &p);
 
-  float zoomSpeed;
+  float worldDiag;  // length of the world bounds diagonal
   vec2f invWindowSize;
   AffineSpace3f centerTranslation, translation, cameraToWorld;
   quaternionf rotation;

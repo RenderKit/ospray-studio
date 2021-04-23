@@ -221,6 +221,11 @@ class MainWindow : public StudioContext
   // auto rotation speed, 1=0.1% window width mouse movement, 100=10%
   int autorotateSpeed{1};
 
+  // Camera motion controls
+  float maxMoveSpeed{1.f};
+  float fineControl{0.2f};
+  float preFPVZoom{0.f};
+
   // format used by glTexImage2D, as determined at context creation time
   GLenum gl_rgb_format;
   GLenum gl_rgba_format;

@@ -538,10 +538,11 @@ void MainWindow::setCameraState(CameraState &cs)
 
 void MainWindow::centerOnEyePos()
 {
-  // Like FPV, recenters the camera at the eye position and zooms all the way
-  // in.
+  // Recenters camera at the eye position and zooms all the way in, like FPV
+  // Save current zoom level
+  preFPVZoom = arcballCamera->getZoomLevel();
   arcballCamera->setCenter(arcballCamera->eyePos());
-  arcballCamera->zoom(-windowSize.y);
+  arcballCamera->setZoomLevel(0.f);
 }
 
 void MainWindow::pickCenterOfRotation(float x, float y)
@@ -559,6 +560,9 @@ void MainWindow::pickCenterOfRotation(float x, float y)
     if (!glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
       // Constraining rotation around the up works pretty well.
       arcballCamera->constrainedRotate(vec2f(0.5f,0.5f), vec2f(x,y), 1);
+      // Restore any preFPV zoom level, then clear it.
+      arcballCamera->setZoomLevel(preFPVZoom + arcballCamera->getZoomLevel());
+      preFPVZoom = 0.f;
       arcballCamera->setCenter(vec3f(res.worldPosition));
     }
     c["lookAt"] = vec3f(res.worldPosition);
@@ -572,10 +576,9 @@ void MainWindow::keyboardMotion()
           || g_camMoveR))
     return;
 
-  auto sensitivity = 1.f;
-  auto fineControl = 5.f;
+  auto sensitivity = maxMoveSpeed;
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    sensitivity /= fineControl;
+    sensitivity *= fineControl;
 
   // 6 degrees of freedom, four arrow keys? no problem.
   double inOut = g_camMoveZ;
@@ -626,28 +629,26 @@ void MainWindow::motion(const vec2f &position)
 
     bool cameraChanged = leftDown || rightDown || middleDown;
 
-    // XXX TODO make sensitivity UI adjustable
-    auto sensitivity = 1.f;
-    auto fineControl = 5.f;
+    auto sensitivity = maxMoveSpeed;
     if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-      sensitivity /= fineControl;
+      sensitivity *= fineControl;
+
+    const vec2f mouseFrom(clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
+        clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
+    const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
+        clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
 
     if (leftDown) {
-      const vec2f mouseFrom(clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-          clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
-      const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-          clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
       arcballCamera->constrainedRotate(mouseFrom,
           lerp(sensitivity, mouseFrom, mouseTo),
           g_rotationConstraint);
     } else if (rightDown) {
       if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        arcballCamera->dolly((mouse.y - prev.y) * sensitivity);
+        arcballCamera->dolly((mouseTo - mouseFrom).y * sensitivity);
       else
-        arcballCamera->zoom((mouse.y - prev.y) * sensitivity);
+        arcballCamera->zoom((mouseTo - mouseFrom).y * sensitivity);
     } else if (middleDown) {
-      arcballCamera->pan(
-          vec2f(mouse.x - prev.x, prev.y - mouse.y) * sensitivity);
+      arcballCamera->pan((mouseTo - mouseFrom) * sensitivity);
     }
 
     if (cameraChanged)
@@ -675,11 +676,9 @@ void MainWindow::mouseWheel(const vec2f &scroll)
 
   // scroll is +/- 1 for horizontal/vertical mouseWheel motion
 
-  // XXX TODO make sensitivity UI adjustable
-  auto sensitivity = 1.f;
-  auto fineControl = 5.f;
+  auto sensitivity = maxMoveSpeed;
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    sensitivity /= fineControl;
+    sensitivity *= fineControl;
 
   if (scroll.y) {
     auto &camera = frame->child("camera");
@@ -1419,6 +1418,14 @@ void MainWindow::buildMainMenuView()
       showKeyframes = true;
     if (ImGui::MenuItem("Snapshots...", "", nullptr))
       showSnapshots = true;
+
+    ImGui::Text("Camera Movement Speed:");
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    ImGui::SliderFloat("Speed##camMov", &maxMoveSpeed, 0.1f, 5.0f);
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    ImGui::SliderFloat("FineControl##camMov", &fineControl, 0.1f, 1.0f, "%0.2fx");
+    sg::showTooltip("hold <left-Ctrl> for more sensitive camera movement.");
+
     ImGui::Separator();
 
     // Renderer stuff //////////////////////////////////////////////////
