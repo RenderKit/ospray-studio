@@ -31,6 +31,12 @@ namespace ospray {
     std::vector<vec3f> skinnedPositions;
     std::vector<vec3f> normals;
     std::vector<vec3f> skinnedNormals;
+
+    // XXX: Create node types based on actual accessor types
+    std::vector<vec3ui> vi;  // XXX support both 3i and 4i OSPRay 2?
+    std::vector<vec4f> vc;
+    std::vector<vec2f> vt;
+    std::vector<uint32_t> mIDs;
   };
 
   }  // namespace sg

@@ -731,16 +731,30 @@ namespace ospray {
       //     << model.materials[prim.material].alphaMode << ")\n";
     }
 
-    // XXX: Create node types based on actual accessor types
-    std::vector<vec3ui> vi;  // XXX support both 3i and 4i OSPRay 2?
-    std::vector<vec4f> vc;
-    std::vector<vec2f> vt;
+    std::shared_ptr<Geometry> ospGeom = nullptr;
+
+    // create appropriate Geometry node
+    if (prim.mode == TINYGLTF_MODE_TRIANGLES) 
+      ospGeom =
+          createNodeAs<Geometry>(primName + "_object", "geometry_triangles");
+    else if (prim.mode == TINYGLTF_MODE_POINTS) {
+      // points as spheres
+      ospGeom =
+          createNodeAs<Geometry>(primName + "_object", "geometry_spheres");
+    } else {
+      ERROR << "Unsupported primitive mode! File must contain only "
+        "triangles or points\n";
+      throw std::runtime_error(
+          "Unsupported primitive mode! Only triangles are supported");
+    }
+
 
 #if 1  // XXX: Generalize these with full component support!!!
        // In : 1,2,3,4 ubyte, ubyte(N), ushort, ushort(N), uint, float
        // Out:   2,3,4 int, float
 
     if (prim.indices >  -1) {
+      auto &vi = ospGeom->vi;
       // Indices: scalar ubyte/ushort/uint
       if (model.accessors[prim.indices].componentType ==
           TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
@@ -777,6 +791,7 @@ namespace ospray {
     // accessor->normalized
     auto fnd = prim.attributes.find("COLOR_0");
     if (fnd != prim.attributes.end()) {
+      auto &vc = ospGeom->vc;
       auto col_attrib = fnd->second;
       if (model.accessors[col_attrib].componentType ==
           TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
@@ -825,6 +840,7 @@ namespace ospray {
     // textures.  Only supporting TEXCOORD_0
     fnd = prim.attributes.find("TEXCOORD_0");
     if (fnd != prim.attributes.end()) {
+      auto &vt = ospGeom->vt;
       Accessor<vec2f> uv_accessor(model.accessors[fnd->second], model);
       vt.reserve(uv_accessor.size());
       for (size_t i = 0; i < uv_accessor.size(); ++i)
@@ -840,19 +856,8 @@ namespace ospray {
 #endif
 #endif
 
-    // XXX Handle this gracefully!
-    // XXX GLTF 2.0 spec supports
-    // POINTS
-    // LINES LINE_LOOP LINE_STRIP
-    // TRIANGLES TRIANGLE_STRIP TRIANGLE_FAN
-    // XXX There's code in gltf-loader.cc for convertedToTriangleList
-    std::shared_ptr<Geometry> ospGeom = nullptr;
-
     // Add attribute arrays to mesh
-    if (prim.mode == TINYGLTF_MODE_TRIANGLES) {
-      ospGeom =
-          createNodeAs<Geometry>(primName + "_object", "geometry_triangles");
-
+    if (ospGeom->subType() == "geometry_triangles") {
       // Positions: vec3f
       Accessor<vec3f> pos_accessor(
           model.accessors[prim.attributes["POSITION"]], model);
@@ -877,14 +882,14 @@ namespace ospray {
           WARN << "mismatching NORMAL size\n";
       }
 
-      ospGeom->createChildData("index", vi);
-      if (vertices == vc.size())
-        ospGeom->createChildData("vertex.color", vc);
-      else if (!vc.empty())
+      ospGeom->createChildData("index", ospGeom->vi, true);
+      if (vertices == ospGeom->vc.size())
+        ospGeom->createChildData("vertex.color", ospGeom->vc, true);
+      else if (!ospGeom->vc.empty())
         WARN << "mismatching COLOR_0 size\n";
-      if (vertices == vt.size())
-        ospGeom->createChildData("vertex.texcoord", vt);
-      else if (!vt.empty())
+      if (vertices == ospGeom->vt.size())
+        ospGeom->createChildData("vertex.texcoord", ospGeom->vt, true);
+      else if (!ospGeom->vt.empty())
         WARN << "mismatching TEXCOORD_0 size\n";
 
       // skinning, XXX for now only for triangles
@@ -949,10 +954,7 @@ namespace ospray {
         } else
           WARN << "invalid WEIGHTS_" << set << std::endl;
       }
-    } else if (prim.mode == TINYGLTF_MODE_POINTS) {
-      // points as spheres
-      ospGeom =
-          createNodeAs<Geometry>(primName + "_object", "geometry_spheres");
+    } else if (ospGeom->subType() == "geometry_spheres") {
 
       // Positions: vec3f
       Accessor<vec3f> pos_accessor(
@@ -965,27 +967,22 @@ namespace ospray {
       // glTF doesn't specify point radius.
       ospGeom->createChild("radius", "float", 0.005f);
 
-      if (!vc.empty()) {
-        ospGeom->createChildData("color", vc);
+      if (!ospGeom->vc.empty()) {
+        ospGeom->createChildData("color", ospGeom->vc, true);
         // color will be added to the geometric model, it is not directly part
         // of the spheres primitive
         ospGeom->child("color").setSGOnly();
       }
-      if (!vt.empty())
-        ospGeom->createChildData("sphere.texcoord", vt);
-    } else {
-      ERROR << "Unsupported primitive mode! File must contain only "
-        "triangles or points\n";
-      throw std::runtime_error(
-          "Unsupported primitive mode! Only triangles are supported");
-      // continue;
+      if (!ospGeom->vt.empty())
+        ospGeom->createChildData("sphere.texcoord", ospGeom->vt, true);
     }
 
     if (ospGeom) {
       // add one for default, "no material" material
       auto materialID = prim.material + 1 + baseMaterialOffset;
-      std::vector<uint32_t> mIDs(ospGeom->skinnedPositions.size(), materialID);
-      ospGeom->createChildData("material", mIDs);
+      // std::vector<uint32_t> mIDs(ospGeom->skinnedPositions.size(), materialID);
+      ospGeom->mIDs.resize(ospGeom->skinnedPositions.size(), materialID);
+      ospGeom->createChildData("material", ospGeom->mIDs, true);
       ospGeom->child("material").setSGOnly();
     }
 
