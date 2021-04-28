@@ -49,13 +49,15 @@ namespace ospray {
         std::shared_ptr<sg::MaterialRegistry> _materialRegistry,
         std::vector<NodePtr> *_cameras,
         sg::FrameBuffer *_fb,
-        NodePtr _currentImporter)
+        NodePtr _currentImporter,
+        InstanceConfiguration _ic)
         : fileName(fileName),
           rootNode(rootNode),
           materialRegistry(_materialRegistry),
           cameras(_cameras),
           fb(_fb),
-          currentImporter(_currentImporter)
+          currentImporter(_currentImporter),
+          ic(_ic)
     {}
 
    public:
@@ -76,12 +78,13 @@ namespace ospray {
     std::vector<NodePtr> lights;
 
    private:
+    InstanceConfiguration ic;
     NodePtr currentImporter;
     NodePtr rootNode;
     sg::FrameBuffer *fb{nullptr};
     std::vector<NodePtr> *cameras{nullptr};
     std::vector<SkinPtr> skins;
-    std::vector<NodePtr> ospMeshes;
+    std::vector<std::vector<NodePtr>> ospMeshes;
     std::shared_ptr<sg::MaterialRegistry> materialRegistry;
     std::vector<NodePtr> sceneNodes; // lookup table glTF:nodeID -> NodePtr
 
@@ -290,6 +293,9 @@ namespace ospray {
       auto &pointSize = parentImporter->pointSize;
       importer->pointSize = pointSize;
 
+      auto instanceConfig = parentImporter->getInstanceConfiguration();
+      importer->setInstanceConfiguration(instanceConfig);
+
       importer->importScene();
     }
   }
@@ -490,22 +496,18 @@ namespace ospray {
     // DEBUG << "Create Geometries\n";
 
     ospMeshes.reserve(model.meshes.size());
-    for (auto &m : model.meshes) {  // -> Model
+    for (auto &m : model.meshes) {
       static auto nModel = 0;
-      auto modelName     = m.name + "_" + pad(std::to_string(nModel++));
+      auto modelName = m.name + "_" + pad(std::to_string(nModel++));
+      std::vector<NodePtr> mesh_subsets;
 
-      // XXX Is there a better way to represent this "group" than a transform
-      // node?
-      auto ospModel =
-          createNode(modelName + "_model", "transform"); // Model "group"
-      // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
-
-      for (auto &prim : m.primitives) {  // -> TriangleMesh
-        // Create per 'primitive' geometry
-        ospModel->add(createOSPMesh(modelName, prim));
+      for (auto &prim : m.primitives) {
+        static auto nSubset = 0;
+        modelName = modelName + "_" + pad(std::to_string(nSubset++));
+        auto mesh = createOSPMesh(modelName, prim);
+        mesh_subsets.push_back(mesh);
       }
-
-      ospMeshes.push_back(ospModel);
+      ospMeshes.push_back(mesh_subsets);
     }
   }
 
@@ -618,14 +620,14 @@ namespace ospray {
         if (n.skin != -1) {
           if (model.skins[n.skin].skeleton != -1)
             targetNode = sceneNodes[model.skins[n.skin].skeleton];
-          for (auto &prim : ospMesh->children())
-            if (prim.second->type() == NodeType::GEOMETRY) {
-              const auto &geom = prim.second->nodeAs<Geometry>();
-              geom->skin = skins[n.skin];
-              geom->skeletonRoot = targetNode;
-            }
+          for (auto &m : ospMesh) {
+            const auto &geom = m->nodeAs<Geometry>();
+            geom->skin = skins[n.skin];
+            geom->skeletonRoot = targetNode;
+          }
         }
-        targetNode->add(ospMesh);
+        for (auto &m : ospMesh)
+          targetNode->add(m);
       }
       nIdx++;
     }
@@ -646,6 +648,13 @@ namespace ospray {
 
     auto newXfm =
         createNode(nodeName + "_xfm_" + std::to_string(level), "transform");
+    if (ic == 1)
+      newXfm->child("dynamicScene").setValue(true);
+    else if (ic == 2)
+      newXfm->child("compactMode").setValue(true);
+    else if (ic ==3)
+      newXfm->child("robustMode").setValue(true);
+
     sceneNodes[nid] = newXfm;
     sgNode->add(newXfm);
     applyNodeTransform(newXfm, n);
@@ -1525,7 +1534,7 @@ namespace ospray {
     std::string baseName = fileName.name() + "_rootXfm";
     auto rootNode = createNode(baseName, "transform");
 
-    GLTFData gltf(rootNode, fileName, materialRegistry, cameras, fb, shared_from_this());
+    GLTFData gltf(rootNode, fileName, materialRegistry, cameras, fb, shared_from_this(), ic);
 
     if (!gltf.parseAsset())
       return;

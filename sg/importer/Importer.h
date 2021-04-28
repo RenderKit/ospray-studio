@@ -20,6 +20,13 @@ namespace sg {
 // map of asset Titles and corresponding original importer nodes
 typedef std::map<std::string, NodePtr> AssetsCatalogue;
 
+enum InstanceConfiguration {
+    STATIC = 0,
+    DYNAMIC= 1,
+    COMPACT = 2,
+    ROBUST = 3     
+};
+
 struct OSPSG_INTERFACE Importer : public Node
 {
   Importer();
@@ -94,6 +101,14 @@ struct OSPSG_INTERFACE Importer : public Node
     return volumeParams;
   }
 
+  inline void setInstanceConfiguration(InstanceConfiguration _ic) {
+    ic = _ic;
+  }
+
+  inline InstanceConfiguration getInstanceConfiguration() {
+    return ic;
+  }
+
   float pointSize{0.0f};
 
  protected:
@@ -105,6 +120,7 @@ struct OSPSG_INTERFACE Importer : public Node
   NodePtr volumeParams;
   NodePtr lightsManager;
   sg::FrameBuffer *fb{nullptr};
+  InstanceConfiguration ic{STATIC};
 };
 
 // global assets catalogue

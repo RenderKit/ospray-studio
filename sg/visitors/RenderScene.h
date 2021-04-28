@@ -29,7 +29,7 @@ namespace ospray {
     void createGeometry(Node &node);
     void createVolume(Node &node);
     void addGeometriesToGroup();
-    void createInstanceFromGroup();
+    void createInstanceFromGroup(Node &node);
     void placeInstancesInWorld();
     void setLightParams(Node &node);
     void setCameraParams(Node &node);
@@ -87,8 +87,6 @@ namespace ospray {
     switch (node.type()) {
     case NodeType::WORLD:
       world = node.valueAs<cpp::World>();
-      // XXX Can this be set only when in navMode?
-      world.setParam("dynamicScene", true);
       break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
@@ -147,7 +145,6 @@ namespace ospray {
   {
     switch (node.type()) {
     case NodeType::WORLD:
-      createInstanceFromGroup();
       placeInstancesInWorld();
       world.commit();
       break;
@@ -158,7 +155,7 @@ namespace ospray {
       tfns.pop();
       break;
     case NodeType::TRANSFORM:
-      createInstanceFromGroup();
+      createInstanceFromGroup(node);
       xfms.pop();
       if (node.hasChild("instanceID")) {
           instanceId = "";
@@ -288,7 +285,7 @@ namespace ospray {
       current.volumes.push_back(model);
   }
 
-  inline void RenderScene::createInstanceFromGroup()
+  inline void RenderScene::createInstanceFromGroup(Node &node)
   {
     #if defined(DEBUG)
     std::cout << "number of geometries : " << current.geometries.size()
@@ -300,6 +297,9 @@ namespace ospray {
       return;
 
     cpp::Group group;
+    group.setParam("dynamicScene", node.child("dynamicScene").valueAs<bool>());
+    group.setParam("compactMode", node.child("compactMode").valueAs<bool>());
+    group.setParam("robustMode", node.child("robustMode").valueAs<bool>());
 
     if (!current.geometries.empty())
       group.setParam("geometry", cpp::CopiedData(current.geometries));
@@ -314,9 +314,6 @@ namespace ospray {
     current.geometries.clear();
     current.volumes.clear();
     current.clippingGeometries.clear();
-
-    // XXX Can this be set only when in navMode?
-    group.setParam("dynamicScene", true);
 
     group.commit();
 

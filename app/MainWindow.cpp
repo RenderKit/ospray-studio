@@ -998,6 +998,12 @@ void MainWindow::refreshScene(bool resetCam)
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
+  if (sceneConfig == "dynamic")
+    world->child("dynamicScene").setValue(true);
+  else if (sceneConfig == "compact")
+    world->child("compactMode").setValue(true);
+  else if (sceneConfig == "robust")
+    world->child("robustMode").setValue(true);
 
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
@@ -1080,6 +1086,14 @@ bool MainWindow::parseCommandLine()
       } else {
         throw std::runtime_error("improper -voxelType format requested");
       }
+    } else if (arg == "--scene" || arg == "-s") {
+      // valid values are dynamic, compact and robust
+      const std::string sc(av[++i]);
+      sceneConfig = sc;
+    } else if (arg == "--instance" || arg == "-i") {
+      // valid values are dynamic, compact and robust
+      const std::string ic(av[++i]);
+      instanceConfig = ic;
     } else if (arg == "--2160p")
       glfwSetWindowSize(glfwWindow, 3840, 2160);
     else if (arg == "--1440p")
@@ -1139,6 +1153,16 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->setLightsManager(lightsManager);
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
+          if (instanceConfig == "dynamic")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::DYNAMIC);
+          else if (instanceConfig == "compact")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::COMPACT);
+          else if (instanceConfig == "robust")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::ROBUST);
+
           importer->importScene();
         }
       }
