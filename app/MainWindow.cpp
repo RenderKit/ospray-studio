@@ -1086,11 +1086,11 @@ bool MainWindow::parseCommandLine()
       } else {
         throw std::runtime_error("improper -voxelType format requested");
       }
-    } else if (arg == "--scene" || arg == "-s") {
+    } else if (arg == "--sceneConfig" || arg == "-sc") {
       // valid values are dynamic, compact and robust
       const std::string sc(av[++i]);
       sceneConfig = sc;
-    } else if (arg == "--instance" || arg == "-i") {
+    } else if (arg == "--instanceConfig" || arg == "-ic") {
       // valid values are dynamic, compact and robust
       const std::string ic(av[++i]);
       instanceConfig = ic;

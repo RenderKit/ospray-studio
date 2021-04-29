@@ -85,4 +85,8 @@ class BatchContext : public StudioContext
 
   //Volume parameters
   sg::NodePtr volumeParams;
+
+  // scene/instance configuration params
+  std::string sceneConfig{""};
+  std::string instanceConfig{""};
 };

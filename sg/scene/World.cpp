@@ -26,7 +26,8 @@ World::World()
 void World::preCommit()
 {
   for (auto &c : children())
-    c.second->setOSPRayParam(c.first, valueAs<cpp::World>().handle());
+    if (c.second->type() == NodeType::PARAMETER)
+      c.second->setOSPRayParam(c.first, valueAs<cpp::World>().handle());
 }
 
 void World::postCommit()

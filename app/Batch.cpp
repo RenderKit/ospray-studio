@@ -262,20 +262,31 @@ bool BatchContext::parseCommandLine()
       }
     } else if (switchArg == "--voxelType" || switchArg == "-vt") {
       if (argAvailability(switchArg, 1)) {
-      auto voxelTypeStr = std::string(argv[argIndex++]);
-      auto it           = sg::volumeVoxelType.find(voxelTypeStr);
-      if (it != sg::volumeVoxelType.end()) {
-        auto voxelType = it->second;
-        volumeParams->createChild("voxelType", "int", (int)voxelType);
-      } else {
-        throw std::runtime_error("improper -voxelType format requested");
+        auto voxelTypeStr = std::string(argv[argIndex++]);
+        auto it = sg::volumeVoxelType.find(voxelTypeStr);
+        if (it != sg::volumeVoxelType.end()) {
+          auto voxelType = it->second;
+          volumeParams->createChild("voxelType", "int", (int)voxelType);
+        } else {
+          throw std::runtime_error("improper -voxelType format requested");
+        }
       }
+    } else if (switchArg == "--sceneConfig" || switchArg == "-sc") {
+      // valid values are dynamic, compact and robust
+      if (argAvailability(switchArg, 1)) {
+        const std::string sc(argv[argIndex++]);
+        sceneConfig = sc;
+      }
+    } else if (switchArg == "--instanceConfig" || switchArg == "-ic") {
+      // valid values are dynamic, compact and robust
+      if (argAvailability(switchArg, 1)) {
+        const std::string ic(argv[argIndex++]);
+        instanceConfig = ic;
       }
     } else if (switchArg.front() == '-') {
       std::cout << " Unknown option: " << switchArg << std::endl;
       break;
-    }
-    else {
+    } else {
       filesToImport.push_back(switchArg);
     }
   }
@@ -466,7 +477,12 @@ void BatchContext::refreshScene(bool resetCam)
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
-
+  if (sceneConfig == "dynamic")
+    world->child("dynamicScene").setValue(true);
+  else if (sceneConfig == "compact")
+    world->child("compactMode").setValue(true);
+  else if (sceneConfig == "robust")
+    world->child("robustMode").setValue(true);
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
 
@@ -554,6 +570,15 @@ void BatchContext::importFiles(sg::NodePtr world)
           }
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
+          if (instanceConfig == "dynamic")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::DYNAMIC);
+          else if (instanceConfig == "compact")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::COMPACT);
+          else if (instanceConfig == "robust")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::ROBUST);
           importer->importScene();
           world->add(importer);
         }
@@ -613,7 +638,13 @@ ospStudio batch specific parameters:
    -sm    --stereoMode 0=none, 1=left, 2=right, 3=side-by-side, 4=top-bottom
    -id    --interpupillaryDistance
    -g     --grid [x y z] (default 1 1 1, single instance)
-            instace a grid of models)text"
+            instace a grid of models
+   -sc    --sceneConfig(default is the static BVH build of embree)
+          set global scene configuration params
+          valid values are dynamic, compact and robust
+   -ic    --instanceConfig(default is the static BVH build of embree)
+          set instance scene configuration params
+          valid values are dynamic, compact and robust)text"
             << std::endl;
   if (studioCommon.denoiserAvailable) {
     std::cout <<
