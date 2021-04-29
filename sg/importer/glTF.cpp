@@ -356,7 +356,7 @@ namespace ospray {
     ospMaterials.reserve(model.materials.size() + 1);
 
     // "default" material for glTF '-1' index (no material)
-    ospMaterials.emplace_back(createNode("default", "obj"));
+    ospMaterials.emplace_back(createNode(fileName.name() + ":default", "obj"));
 
     // Create materials (also sets textures to material params)
     for (const auto &material : model.materials) {
