@@ -6,6 +6,7 @@
 #include "tiny_obj_loader.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
+#include "../scene/geometry/Geometry.h"
 
 namespace ospray {
   namespace sg {
@@ -324,15 +325,16 @@ namespace ospray {
       // (points, lines, curves and surfaces)
       if (numSrcIndices == 0)
         continue;
-
-      std::vector<vec3f> v;
-      std::vector<vec4ui> vi;
-      std::vector<vec3f> vn;
-      std::vector<vec2f> vt;
-
+      
+      auto name = std::to_string(shapeId++) + '_' + shape.name;
+      auto mesh = createNodeAs<Geometry>(name, "geometry_triangles");
+      auto &v = mesh->positions;
       v.reserve(numSrcIndices);
+      auto &vi = mesh->quad_vi;
       vi.reserve(numSrcIndices);
+      auto &vn = mesh->normals;
       vn.reserve(numSrcIndices);
+      auto &vt = mesh->vt;
       vt.reserve(numSrcIndices);
 
       // OSPRay doesn't support separate arrays for vertex, normal & texcoord
@@ -362,25 +364,23 @@ namespace ospray {
         if (!attrib.texcoords.empty() && idx.texcoord_index != -1)
           vt.emplace_back(&attrib.texcoords[idx.texcoord_index * 2]);
       }
-
-      auto name = std::to_string(shapeId++) + '_' + shape.name;
-
-      auto &mesh = rootNode->createChild(name, "geometry_triangles");
-
-      std::vector<uint32_t> mIDs(shape.mesh.material_ids.size());
+      auto &mIDs = mesh->mIDs;
+      mIDs.resize(shape.mesh.material_ids.size());
       std::transform(shape.mesh.material_ids.begin(),
-                     shape.mesh.material_ids.end(),
-                     mIDs.begin(),
-                     [&](int i) { return i + baseMaterialOffset; });
-      mesh.createChildData("material", mIDs);
-      mesh.child("material").setSGOnly();
+          shape.mesh.material_ids.end(),
+          mIDs.begin(),
+          [&](int i) { return i + baseMaterialOffset; });
+      mesh->createChildData("material", mIDs, true);
+      mesh->child("material").setSGOnly();
 
-      mesh.createChildData("vertex.position", v);
-      mesh.createChildData("index", vi);
+      mesh->createChildData("vertex.position", v, true);
+      mesh->createChildData("index", vi, true);
       if (!vn.empty())
-        mesh.createChildData("vertex.normal", vn);
+        mesh->createChildData("vertex.normal", vn, true);
       if (!vt.empty())
-        mesh.createChildData("vertex.texcoord", vt);
+        mesh->createChildData("vertex.texcoord", vt, true);
+
+      rootNode->add(mesh);
     }
 
     // Finally, add node hierarchy to importer parent

@@ -34,6 +34,7 @@ namespace ospray {
 
     // XXX: Create node types based on actual accessor types
     std::vector<vec3ui> vi;  // XXX support both 3i and 4i OSPRay 2?
+    std::vector<vec4ui> quad_vi;
     std::vector<vec4f> vc;
     std::vector<vec2f> vt;
     std::vector<uint32_t> mIDs;

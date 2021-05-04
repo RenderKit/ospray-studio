@@ -980,7 +980,6 @@ namespace ospray {
     if (ospGeom) {
       // add one for default, "no material" material
       auto materialID = prim.material + 1 + baseMaterialOffset;
-      // std::vector<uint32_t> mIDs(ospGeom->skinnedPositions.size(), materialID);
       ospGeom->mIDs.resize(ospGeom->skinnedPositions.size(), materialID);
       ospGeom->createChildData("material", ospGeom->mIDs, true);
       ospGeom->child("material").setSGOnly();
