@@ -1403,6 +1403,9 @@ void MainWindow::buildMainMenuEdit()
     ImGui::SameLine(ImGui::GetWindowWidth()-(8*ImGui::GetFontSize()));
 
     if (ImGui::Button("Yes, clear it")) {
+      // Cancel any in-progress frame
+      frame->cancelFrame();
+      frame->waitOnFrame();
       frame->remove("world");
       lightsManager->clear();
       if(animationWidget) {
