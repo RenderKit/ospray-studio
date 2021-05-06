@@ -229,7 +229,12 @@ namespace ospray {
     }
 
     if (node.hasChild("color")) {
-      model.setParam("color", node["color"].valueAs<cpp::CopiedData>());
+      if (node["color"].valueIsType<cpp::CopiedData>())
+        model.setParam("color", node["color"].valueAs<cpp::CopiedData>());
+      else
+        model.setParam("color",
+            cpp::CopiedData(std::vector<vec4f>{
+                node["color"].valueAs<vec4f>()}));
     }
 
     model.commit();

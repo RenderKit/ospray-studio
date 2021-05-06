@@ -58,11 +58,14 @@ WaveletVolume::WaveletVolume()
   parameters.createChild("dimensions", "vec3i", vec3i(128));
   parameters.createChild("gridOrigin", "vec3f", vec3f(-1.f));
   parameters.createChild("gridSpacing", "vec3f", vec3f(2.f / 100));
+
+  auto &xfm = createChild("xfm", "transform");
 }
 
 void WaveletVolume::generateData()
 {
-  remove("wavelet");
+  auto &xfm = child("xfm");
+  auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
 
   // Create voxel data
 
@@ -90,7 +93,6 @@ void WaveletVolume::generateData()
   });
 
   // Create sg subtree
-  auto &tf = createChild("transferFunction", "transfer_function_jet");
   auto &volume = tf.createChild("wavelet", "structuredRegular");
   volume.createChild("voxelType") = int(OSP_FLOAT);
   volume.createChild("gridOrigin") = gridOrigin;

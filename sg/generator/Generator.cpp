@@ -16,6 +16,17 @@ namespace ospray {
     return NodeType::GENERATOR;
   }
 
+  void Generator::preCommit()
+  {
+    // Re-run generator on paramater changes in the UI
+    if (child("parameters").isModified())
+      generateData();
+  }
+
+  void Generator::postCommit()
+  {
+  }
+
   void Generator::generateData()
   {
   }

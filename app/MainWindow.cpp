@@ -51,6 +51,7 @@ static bool g_animateCamera = false;
 static bool g_clearSceneConfirm = false;
 
 static const std::vector<std::string> g_scenes = {"tutorial_scene",
+    "sphere",
     "random_spheres",
     "wavelet",
     "torus_volume",
@@ -1010,15 +1011,13 @@ void MainWindow::refreshScene(bool resetCam)
 
   if (!filesToImport.empty())
     importFiles(world);
-  else
-    if (scene != "") {
-      auto &gen = world->createChildAs<sg::Generator>(
-          "generator", "generator_" + scene);
-      gen.setMaterialRegistry(baseMaterialRegistry);
-      gen.generateData();
-      // The generators should reset the camera
-      resetCam = true;
-    }
+  else if (scene != "") {
+    auto &gen = world->createChildAs<sg::Generator>(
+        scene + "_generator", "generator_" + scene);
+    gen.setMaterialRegistry(baseMaterialRegistry);
+    // The generators should reset the camera
+    resetCam = true;
+  }
 
   if (world->isModified()) {
     // Cancel any in-progress frame as world->render() will modify live device
@@ -2226,7 +2225,6 @@ void MainWindow::buildWindowTransferFunctionEditor()
                 opacities.begin(),
                 [](vec4f c4) { return c4[3]; });
 
-            tfn["valueRange"] = valueRange.toVec2();
             tfn.createChildData("color", colors);
             tfn.createChildData("opacity", opacities);
           }
@@ -2245,6 +2243,11 @@ void MainWindow::buildWindowTransferFunctionEditor()
           selected = t.first;
 
 #if 0 // XXX Needs to be fixed.  This overwrites the default transferfunction
+          // Ex: find min and max density values for the transfer function.
+          //const auto minmax =
+          //  std::minmax_element(begin(volumeData), end(volumeData));
+          //tf["valueRange"] = vec2f(*std::get<0>(minmax), std::get<1>(minmax));
+
           auto &tfn = *(t.second->nodeAs<sg::TransferFunction>());
           const auto numSamples = tfn.colors.size();
 
