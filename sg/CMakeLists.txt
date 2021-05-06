@@ -82,6 +82,7 @@ add_library(ospray_sg SHARED
   importer/glTF/tiny_gltf_impl.cpp
   importer/glTF/gltf_types.cpp
   importer/raw.cpp
+  importer/particleVolume.cpp
   importer/vdb.cpp
 
   renderer/Material.cpp
