@@ -601,6 +601,8 @@ namespace ospray {
       return;
 
     // DEBUG << "Build Scene\n";
+    sceneNodes.resize(model.nodes.size());
+
     // Process all nodes in default scene
     auto &scene = model.scenes[defaultScene];
     for (const auto &nid : scene.nodes) {
@@ -612,7 +614,7 @@ namespace ospray {
     // attach (skinned) meshes to correct transform node
     size_t nIdx = 0;
     for (auto n : model.nodes) {
-      if (n.mesh != -1 && nIdx < sceneNodes.size()) {
+      if (n.mesh != -1 && sceneNodes[nIdx]) {
         auto &ospMesh = ospMeshes[n.mesh];
         auto &targetNode = sceneNodes[nIdx];
         if (n.skin != -1) {
@@ -653,7 +655,7 @@ namespace ospray {
     else if (ic ==3)
       newXfm->child("robustMode").setValue(true);
 
-    sceneNodes.push_back(newXfm);
+    sceneNodes[nid] = newXfm;
     sgNode->add(newXfm);
     applyNodeTransform(newXfm, n);
 
