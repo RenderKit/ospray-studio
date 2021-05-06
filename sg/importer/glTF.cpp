@@ -959,10 +959,10 @@ namespace ospray {
       // Positions: vec3f
       Accessor<vec3f> pos_accessor(
           model.accessors[prim.attributes["POSITION"]], model);
-      ospGeom->positions.reserve(pos_accessor.size());
+      ospGeom->skinnedPositions.reserve(pos_accessor.size());
       for (size_t i = 0; i < pos_accessor.size(); ++i)
-        ospGeom->positions.emplace_back(pos_accessor[i]);
-      ospGeom->createChildData("sphere.position", ospGeom->positions, true);
+        ospGeom->skinnedPositions.emplace_back(pos_accessor[i]);
+      ospGeom->createChildData("sphere.position", ospGeom->skinnedPositions, true);
 
       // glTF doesn't specify point radius.
       ospGeom->createChild("radius", "float", 0.005f);
