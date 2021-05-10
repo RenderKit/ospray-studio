@@ -377,7 +377,7 @@ namespace ospray {
       static auto nCamera = 0;
       auto cameraName = m.name;
       if(cameraName == "")
-       cameraName = "camera_" + std::to_string(nCamera++);
+       cameraName = "camera_" + std::to_string(nCamera);
       if (m.type == "perspective") {
         sgCamera = createNode(cameraName, "camera_perspective");
 
@@ -452,6 +452,8 @@ namespace ospray {
           sgCamera->child("imageEnd").setValue(imageEnd);
         }
       }
+      sgCamera->createChild("cameraId", "int", ++nCamera);
+      sgCamera->child("cameraId").setSGOnly();
       cameras->push_back(sgCamera);
     }
   }
