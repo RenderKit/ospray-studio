@@ -18,6 +18,8 @@ namespace ospray {
 
   ParticleVolume::ParticleVolume() : Volume("particle")
   {
+    std::cout << "ParticleVolume::ParticleVolume()" << std::endl;
+
     //AMK: initializing with empty data. Is this a problem?
     createChildData("particle.position");
     createChildData("particle.radius");

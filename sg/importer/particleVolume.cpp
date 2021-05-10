@@ -23,7 +23,7 @@ OSP_REGISTER_SG_NODE_NAME(ParticleVolumeImporter, importer_pvol);
 
 void ParticleVolumeImporter::importScene()
 {
-  cout << "ParticleVolumeImporter::importScene()"
+  std::cout << "ParticleVolumeImporter::importScene()" << std::endl;
 
   // Create a root Transform/Instance off the Importer, then place the volume
   // under this.
