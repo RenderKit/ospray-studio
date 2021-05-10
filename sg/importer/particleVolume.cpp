@@ -9,19 +9,19 @@
 namespace ospray {
 namespace sg {
 
-struct ParticleImporter : public Importer
+struct ParticleVolumeImporter : public Importer
 {
-  ParticleImporter() = default;
-  ~ParticleImporter() override = default;
+  ParticleVolumeImporter() = default;
+  ~ParticleVolumeImporter() override = default;
 
   void importScene() override;
 };
 
-OSP_REGISTER_SG_NODE_NAME(ParticleImporter, importer_particle);
+OSP_REGISTER_SG_NODE_NAME(ParticleVolumeImporter, importer_particle);
 
 // ParticleImporter definitions /////////////////////////////////////////////
 
-void ParticleImporter::importScene()
+void ParticleVolumeImporter::importScene()
 {
   // Create a root Transform/Instance off the Importer, then place the volume
   // under this.
