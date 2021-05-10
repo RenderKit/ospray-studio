@@ -17,12 +17,14 @@ struct ParticleVolumeImporter : public Importer
   void importScene() override;
 };
 
-OSP_REGISTER_SG_NODE_NAME(ParticleVolumeImporter, importer_particle);
+OSP_REGISTER_SG_NODE_NAME(ParticleVolumeImporter, importer_pvol);
 
 // ParticleImporter definitions /////////////////////////////////////////////
 
 void ParticleVolumeImporter::importScene()
 {
+  cout << "ParticleVolumeImporter::importScene()"
+
   // Create a root Transform/Instance off the Importer, then place the volume
   // under this.
   auto rootName = fileName.name() + "_rootXfm";

@@ -18,12 +18,13 @@ namespace ospray {
 
   ParticleVolume::ParticleVolume() : Volume("particle")
   {
+    //AMK: initializing with empty data. Is this a problem?
     createChildData("particle.position");
     createChildData("particle.radius");
     createChildData("particle.weight");
     createChildData("clampMaxCumulativeValue");
     createChildData("radiusSupportFactor");
-    createChildData("enableValueRangeEstimation");
+    createChildData("estimateValueRanges");
   }
 
   }  // namespace sg

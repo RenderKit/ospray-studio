@@ -17,7 +17,8 @@ OSPSG_INTERFACE std::map<std::string, std::string> importerMap = {
     {"structured", "importer_raw"},
     {"spherical", "importer_raw"},
     {"vdb", "importer_vdb"},
-    {"pcd", "importer_pcd"}};
+    {"pcd", "importer_pcd"},
+    {"pvol", "importer_pvol"}};
 
 Importer::Importer() {}
 
