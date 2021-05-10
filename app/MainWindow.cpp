@@ -2130,6 +2130,9 @@ void MainWindow::buildWindowCameraEditor()
       for (auto &c : g_selectedSceneCamera->children())
         camera.add(c.second);
 
+      auto newCS = g_selectedSceneCamera->nodeAs<sg::Camera>()->getState();
+      arcballCamera->setState(*newCS);
+
       reshape(windowSize); // resets aspect
       updateCamera();
     }
