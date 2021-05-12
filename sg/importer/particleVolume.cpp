@@ -36,7 +36,7 @@ void ParticleVolumeImporter::importScene()
   auto rootNode = createNode(rootName, "transform");
   NodePtr volumeImport;
 
-  auto volume = createNode(nodeName, "particle");
+  auto volume = createNode(nodeName, "volume_particle");
   for (auto &c : volumeParams->children())
     volume->add(c.second);
 

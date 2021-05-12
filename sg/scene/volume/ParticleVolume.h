@@ -20,13 +20,15 @@ namespace ospray {
   {
     std::cout << "ParticleVolume::ParticleVolume()" << std::endl;
 
-    //AMK: initializing with empty data. Is this a problem?
+    //AMK: initializing with empty data. This will get overwritten by the actual importer that constructs a ParticleVolume node.
+    //TODO: create more sensible defaults.
+    
     createChildData("particle.position");
     createChildData("particle.radius");
     createChildData("particle.weight");
-    createChildData("clampMaxCumulativeValue");
-    createChildData("radiusSupportFactor");
-    createChildData("estimateValueRanges");
+    createChildData("clampMaxCumulativeValue", 1.f);
+    createChildData("radiusSupportFactor", 1.f);
+    createChildData("estimateValueRanges", false);
   }
 
   }  // namespace sg
