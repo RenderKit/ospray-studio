@@ -66,6 +66,7 @@ add_library(ospray_sg SHARED
   fb/FrameBuffer.cpp
 
   generator/Generator.cpp
+  generator/ParticleVol.cpp
   generator/RandomSpheres.cpp
   generator/TutorialScene.cpp
   generator/TutorialSceneML.cpp
@@ -124,6 +125,7 @@ add_library(ospray_sg SHARED
 
   scene/volume/Vdb.cpp
   scene/volume/Volume.cpp
+  scene/volume/ParticleVolume.cpp
   scene/volume/RawFileStructuredVolume.cpp
 
   scene/lights/Light.cpp

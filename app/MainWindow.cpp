@@ -52,6 +52,7 @@ static bool g_clearSceneConfirm = false;
 
 static const std::vector<std::string> g_scenes = {"tutorial_scene",
     "sphere",
+    "particle_volume",
     "random_spheres",
     "wavelet",
     "torus_volume",
