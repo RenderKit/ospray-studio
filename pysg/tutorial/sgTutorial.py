@@ -48,7 +48,8 @@ cam.createChild("position", "vec3f", pos)
 cam.createChild("direction", "vec3f", dir)
 cam.createChild("up", "vec3f", up)
 
-geom = world.createChild("mesh", "geometry_triangles")
+transform = world.createChild("xfm", "transform")
+geom = transform.createChild("mesh", "geometry_triangles")
 geom.createChildData("vertex.position", Data(vertex))
 geom.createChildData("vertex.color", Data(color))
 geom.createChildData("index", Data(index))
@@ -59,6 +60,8 @@ lightsMan.updateWorld(world)
 
 world.render()
 
+# First frame will be "navigation" resolution.
+# Render again for full sized frame.
 frame.startNewFrame(bool(0))
 frame.startNewFrame(bool(0))
 frame.waitOnFrame()
