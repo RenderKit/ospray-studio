@@ -77,6 +77,8 @@ void ParticleVol::generateData()
   std::uniform_real_distribution<float> weightDistribution(
       weightRange.lower, weightRange.upper);
 
+  numParticles = std::max(1, numParticles);
+
   position.resize(numParticles);
   radius.resize(numParticles);
   weight.resize(numParticles);
@@ -91,6 +93,7 @@ void ParticleVol::generateData()
 
   auto &xfm = child("xfm");
   auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
+  tf["valueRange"] = vec2f(0.f, weightRange.upper);
 
   auto &pvol = tf.createChild("pvol", "volume_particle");
   pvol.createChild("gridOrigin", "vec3f", vec3f(-1.f));
