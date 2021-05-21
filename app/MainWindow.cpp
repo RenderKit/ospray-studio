@@ -521,15 +521,15 @@ void MainWindow::updateCamera()
   if (camera.hasChild("focusDistance")) {
     float focusDistance = rkcommon::math::length(
         camera["lookAt"].valueAs<vec3f>() - arcballCamera->eyePos());
-    float oldFocusDistance = camera["focusDistance"].valueAs<float>();
-
-    camera["focusDistance"] = focusDistance;
-
-    if (!(isinf(oldFocusDistance) || isinf(focusDistance))) {
-      float apertureRadius = camera["apertureRadius"].valueAs<float>();
-      camera["apertureRadius"] = apertureRadius *
-        focusDistance / oldFocusDistance;
+    if (camera["adjustAperture"].valueAs<bool>()) {
+      float oldFocusDistance = camera["focusDistance"].valueAs<float>();
+      if (!(isinf(oldFocusDistance) || isinf(focusDistance))) {
+        float apertureRadius = camera["apertureRadius"].valueAs<float>();
+        camera["apertureRadius"] = apertureRadius *
+          focusDistance / oldFocusDistance;
+      }
     }
+    camera["focusDistance"] = focusDistance;
   }
 }
 
