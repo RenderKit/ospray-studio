@@ -38,6 +38,9 @@ else()
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CONFIGURATION_TYPES})
 endif()
 
+## resources / copyright ##
+set(OSPRAY_STUDIO_RESOURCE_FILE "${PROJECT_SOURCE_DIR}/resources/ospray_studio.rc")
+
 ## Find dependencies ##
 
 set(OpenGL_GL_PREFERENCE "LEGACY")

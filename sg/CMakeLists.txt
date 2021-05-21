@@ -141,6 +141,8 @@ add_library(ospray_sg SHARED
   texture/Texture.cpp
   texture/Texture2D.cpp
   texture/TextureVolume.cpp
+
+  ${OSPRAY_STUDIO_RESOURCE_FILE}
   )
 
 target_compile_definitions(ospray_sg PUBLIC OSPRAY_CPP_RKCOMMON_TYPES)
