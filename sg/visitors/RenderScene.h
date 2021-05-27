@@ -256,7 +256,7 @@ namespace ospray {
 
     auto &vol = node.valueAs<cpp::Volume>();
     cpp::VolumetricModel model(vol);
-    if (node.hasChild("transferFunction")) {
+    if (node.hasChildOfType(sg::NodeType::TRANSFER_FUNCTION)) {
       model.setParam("transferFunction",
                      node["transferFunction"].valueAs<cpp::TransferFunction>());
     } else
