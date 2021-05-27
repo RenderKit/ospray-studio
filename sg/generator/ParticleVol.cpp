@@ -96,6 +96,8 @@ void ParticleVol::generateData()
   tf["valueRange"] = vec2f(0.f, weightRange.upper);
 
   auto &pvol = tf.createChild("pvol", "volume_particle");
+  pvol["valueRange"] = range1f(0.f, weightRange.upper);
+
   pvol.createChild("gridOrigin", "vec3f", vec3f(-1.f));
   pvol.createChild("gridSpacing", "vec3f", 1.f / dimensions);
 

@@ -4,7 +4,6 @@
 #include "Generator.h"
 // std
 #include <algorithm>
-#include <chrono>
 #include <random>
 // rkcommon
 #include "rkcommon/tasking/parallel_for.h"
@@ -39,8 +38,6 @@ Torus::Torus()
 
 void Torus::generateData()
 {
-  auto start = std::chrono::high_resolution_clock::now();
-
   auto &parameters = child("parameters");
 
   // Maintain a persistent volume, don't recreate on each generation
@@ -74,18 +71,17 @@ void Torus::generateData()
 
   auto volume = createNode("torus", "structuredRegular");
   volume->createChild("voxelType", "int", int(OSP_FLOAT));
-  volume->createChild("gridOrigin", "vec3f", vec3f(-0.5f, -0.5f, -0.5f));
-  volume->createChild(
-      "gridSpacing", "vec3f", vec3f(1.f / size, 1.f / size, 1.f / size));
-  volume->createChild("dimensions", "vec3i", vec3i(size));
+  volume->createChild("gridOrigin", "vec3f", vec3f(-0.5f));
+  volume->createChild("gridSpacing", "vec3f", vec3f(1.f / size));
   // The "true" flag shares data with OSPRay rather than copying.
   volume->createChildData("data", vec3i(size), 0, volumetricData.data(), true);
-  tf.add(volume);
 
-  auto end = std::chrono::high_resolution_clock::now();
-  auto duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  std::cout << "Torus build time (ms): " << duration.count() << std::endl;
+  // The torus is prominent in the 0.f - 1.f value range.
+  auto valueRange = range1f(0.f, 1.f);
+  volume->child("valueRange") = valueRange;
+
+  tf.add(volume);
+  tf["valueRange"] = vec2f(0.f, 1.f);
 }
 
 } // namespace sg

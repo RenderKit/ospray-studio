@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Intel Corporation
+// Copyright 2018-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "PluginManager.h"
@@ -34,6 +34,9 @@ void PluginManager::loadPlugin(const std::string &name)
     auto pluginInstance =
         std::unique_ptr<Plugin>(static_cast<Plugin *>(initMethod()));
     addPlugin(std::move(pluginInstance));
+  } catch (const std::exception &e) {
+    std::cout << "...failed to initialize plugin '" << name << "'!\n";
+    std::cout << "  " << e.what() << std::endl;
   } catch (...) {
     std::cout << "...failed to initialize plugin '" << name << "'!\n";
   }

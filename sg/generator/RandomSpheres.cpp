@@ -14,6 +14,10 @@ struct RandomSpheres : public Generator
   ~RandomSpheres() override = default;
 
   void generateData() override;
+
+ private:
+  std::vector<vec3f> centers;
+  std::vector<vec4f> colors;
 };
 
 OSP_REGISTER_SG_NODE_NAME(RandomSpheres, generator_random_spheres);
@@ -37,6 +41,7 @@ void RandomSpheres::generateData()
   auto &parameters = child("parameters");
   auto numSpheres = parameters["numSpheres"].valueAs<int>();
   auto radius = parameters["radius"].valueAs<float>();
+  auto generateColors = parameters["generateColors"].valueAs<bool>();
 
   auto &xfm = child("xfm");
   auto &spheres = xfm.createChild("spheres", "geometry_spheres");
@@ -46,19 +51,19 @@ void RandomSpheres::generateData()
   std::uniform_real_distribution<float> dist(-1.f + radius, 1.f - radius);
   std::uniform_real_distribution<float> rgb(0.f, 1.f);
 
-  std::vector<vec3f> centers;
-  std::vector<vec4f> colors;
+  centers.resize(numSpheres);
+  colors.resize(numSpheres);
 
   for (int i = 0; i < numSpheres; ++i) {
-    centers.push_back(vec3f(dist(rng), dist(rng), dist(rng)));
-    colors.push_back(vec4f(rgb(rng), rgb(rng), rgb(rng), 1.f));
+    centers[i] = vec3f(dist(rng), dist(rng), dist(rng));
+    colors[i] = vec4f(rgb(rng), rgb(rng), rgb(rng), 1.f);
   }
 
-  spheres.createChildData("sphere.position", centers);
+  spheres.createChildData("sphere.position", centers, true);
   spheres.child("radius") = radius;
 
-  if (parameters["generateColors"].valueAs<bool>()) {
-    spheres.createChildData("color", colors);
+  if (generateColors) {
+    spheres.createChildData("color", colors, true);
     // color will be added to the geometric model, it is not directly part
     // of the spheres primitive
     spheres.child("color").setSGOnly();

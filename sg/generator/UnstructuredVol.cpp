@@ -171,6 +171,12 @@ void UnstructuredVol::generateData()
 
   auto &volume = tf.createChild("unstructured_volume", "volume_unstructured");
 
+  const auto minmax =
+      std::minmax_element(begin(vertexValues), end(vertexValues));
+  auto valueRange = range1f(*std::get<0>(minmax), *std::get<1>(minmax));
+  volume["valueRange"] = valueRange;
+  tf["valueRange"] = valueRange.toVec2();
+
   // set data objects for volume object
   volume["vertex.position"] = (cpp::CopiedData)vertices;
   volume["index"] = (cpp::CopiedData)indices;

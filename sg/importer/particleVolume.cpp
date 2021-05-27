@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -45,6 +45,8 @@ void ParticleVolumeImporter::importScene()
   volumeImport = particleVolume;
 
   auto tf = createNode("transferFunction", "transfer_function_jet");
+  auto valueRange = volumeImport->child("valueRange").valueAs<range1f>();
+  tf->child("valueRange") = valueRange.toVec2();
   volumeImport->add(tf);
 
   rootNode->add(volumeImport);

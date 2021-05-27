@@ -1166,6 +1166,9 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->importScene();
         }
       }
+    } catch (const std::exception &e) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
+      std::cerr << "   " << e.what() << std::endl;
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }
@@ -2231,6 +2234,7 @@ void MainWindow::buildWindowTransferFunctionEditor()
 
             tfn.createChildData("color", colors);
             tfn.createChildData("opacity", opacities);
+            tfn["valueRange"] = valueRange.toVec2();
           }
         };
 
@@ -2246,26 +2250,25 @@ void MainWindow::buildWindowTransferFunctionEditor()
           whichTFn = i;
           selected = t.first;
 
-#if 0 // XXX Needs to be fixed.  This overwrites the default transferfunction
-          // Ex: find min and max density values for the transfer function.
-          //const auto minmax =
-          //  std::minmax_element(begin(volumeData), end(volumeData));
-          //tf["valueRange"] = vec2f(*std::get<0>(minmax), std::get<1>(minmax));
-
           auto &tfn = *(t.second->nodeAs<sg::TransferFunction>());
           const auto numSamples = tfn.colors.size();
 
           if (numSamples > 1) {
             auto vRange = tfn["valueRange"].valueAs<vec2f>();
 
-            std::vector<vec4f> c4(numSamples);
-            for (int n = 0; n < numSamples; n++)
+            // Create a c4 from c3 + opacity
+            std::vector<vec4f> c4;
+
+            if (tfn.opacities.size() != numSamples)
+              tfn.opacities.resize(numSamples, tfn.opacities.back());
+
+            for (int n = 0; n < numSamples; n++) {
               c4.emplace_back(vec4f(tfn.colors.at(n), tfn.opacities.at(n)));
+            }
 
             transferFunctionWidget.setValueRange(range1f(vRange[0], vRange[1]));
             transferFunctionWidget.setColorsAndOpacities(c4);
           }
-#endif
         }
         i++;
       }
@@ -2341,13 +2344,18 @@ void MainWindow::buildWindowIsosurfaceEditor()
       auto isoXfm =
           sg::createNode(surfName + "_xfm", "transform", affine3f{one});
 
+      auto valueRange = selected->child("valueRange").valueAs<range1f>();
+
       auto isoGeom = sg::createNode(surfName, "geometry_isosurfaces");
-      isoGeom->createChild("isovalue", "float", 0.f);
-      isoGeom->child("isovalue").setMinMax(-1.f, 1.f);
+      isoGeom->createChild("valueRange", "range1f", valueRange);
+      isoGeom->child("valueRange").setSGOnly();
+      isoGeom->createChild("isovalue", "float", valueRange.center());
+      isoGeom->child("isovalue").setMinMax(valueRange.lower, valueRange.upper);
 
       uint32_t materialID = baseMaterialRegistry->baseMaterialOffSet();
       const std::vector<uint32_t> mID = {materialID};
       auto mat = sg::createNode(surfName, "obj");
+
       // Give it some editable parameters
       mat->createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
       mat->createChild("ks", "rgb", "specular color", vec3f(0.f));

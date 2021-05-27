@@ -583,6 +583,9 @@ void BatchContext::importFiles(sg::NodePtr world)
           world->add(importer);
         }
       }
+    } catch (const std::exception &e) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
+      std::cerr << "   " << e.what() << std::endl;
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }

@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -6,13 +6,13 @@
 #include "Volume.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE ParticleVolume : public Volume
-  {
-    ParticleVolume();
-    virtual ~ParticleVolume() override = default;
-  };
+struct OSPSG_INTERFACE ParticleVolume : public Volume
+{
+  ParticleVolume();
+  virtual ~ParticleVolume() override = default;
+};
 
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray

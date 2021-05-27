@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "TransferFunctionWidget.h"
@@ -173,8 +173,20 @@ void TransferFunctionWidget::loadDefaultMaps()
   opacities.emplace_back(0.f, 0.f);
   opacities.emplace_back(1.f, 1.f);
 
-  // Jet
+  // Original (this gets replaced by the volumes's attached transfer function)
   std::vector<ColorPoint> colors;
+
+  colors.emplace_back(0.0f, 0.f, 0.f, 0.f);
+  colors.emplace_back(1.0f, 1.f, 1.f, 1.f);
+
+  tfnsColorPoints.push_back(colors);
+  tfnsOpacityPoints.push_back(opacities);
+
+  tfnsEditable.push_back(true);
+  tfnsNames.push_back("Original");
+
+  // Jet
+  colors.clear();
 
   colors.emplace_back(0.0f, 0.f, 0.f, 1.f);
   colors.emplace_back(0.3f, 0.f, 1.f, 1.f);
@@ -803,9 +815,17 @@ void TransferFunctionWidget::drawEditor()
         }
         tfnChanged = true;
       } else if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip(
+        char _tip[128];
+        auto xScaled =
+            valueRange.size() * (*tfnOpacityPoints)[i].x + valueRange.lower;
+        snprintf(_tip,
+            sizeof(_tip),
+            "(%1.3f, %1.3f)\n"
             "Double right click button to delete point\n"
-            "Left click and drag to move point");
+            "Left click and drag to move point",
+            xScaled,
+            (*tfnOpacityPoints)[i].y);
+        ImGui::SetTooltip("%s", _tip);
       }
     }
   }
@@ -834,7 +854,17 @@ void TransferFunctionWidget::drawEditor()
   }
 
   if (ImGui::IsItemHovered()) {
-    ImGui::SetTooltip("Double left click to add new color point");
+    char _tip[128];
+    const float p = clamp(
+        (mouse_x - canvas_x - margin - scroll_x) / (float)width, 0.f, 1.f);
+    auto xScaled = valueRange.size() * p + valueRange.lower;
+    snprintf(_tip,
+        sizeof(_tip),
+        "(%1.3f)\n"
+        "Double left click to add new color point\n"
+        "Left click and drag to move point",
+        xScaled);
+    ImGui::SetTooltip("%s", _tip);
   }
 
   // draw background interaction
