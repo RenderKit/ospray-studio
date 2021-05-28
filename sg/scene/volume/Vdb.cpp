@@ -217,6 +217,11 @@ namespace ospray {
                         static_cast<float>(i2o[12]),
                         static_cast<float>(i2o[13]),
                         static_cast<float>(i2o[14])};
+
+      // Query VDB voxel value range and set volume range
+      range1f valueRange;
+      vdb->evalMinMax(valueRange.lower, valueRange.upper);
+      child("valueRange") = valueRange;
     }
 #endif //USE_OPENVDB
 
