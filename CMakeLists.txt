@@ -46,8 +46,8 @@ set(OSPRAY_STUDIO_RESOURCE_FILE "${PROJECT_SOURCE_DIR}/resources/ospray_studio.r
 set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL 2 REQUIRED)
 find_package(glfw3 REQUIRED)
-find_package(rkcommon 1.6.0 REQUIRED)
-find_package(ospray 2.5.0 REQUIRED)
+find_package(rkcommon 1.6.1 REQUIRED)
+find_package(ospray 2.6.0 REQUIRED)
 
 ## Build application ##
 

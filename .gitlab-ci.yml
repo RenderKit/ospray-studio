@@ -3,8 +3,8 @@
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  OSPRAY_VER: "2.5.0"
-  RKCOMMON_VER: "1.6.0"
+  OSPRAY_VER: "2.6.0"
+  RKCOMMON_VER: "1.6.1"
 
 stages:
   - build
@@ -39,8 +39,8 @@ build-ubuntu18.04:
     paths:
       - build/
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 build-osx-clang:
   stage: build
@@ -52,8 +52,8 @@ build-osx-clang:
     paths:
       - build-macos/
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 build-windows-msvc15:
   stage: build
@@ -65,8 +65,8 @@ build-windows-msvc15:
     paths:
       - build-win/
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 build-kw:
   extends: .build-linux
@@ -77,8 +77,8 @@ build-kw:
     paths:
       - klockwork/*
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 test-run-ubuntu18.04:
   stage: test
@@ -88,8 +88,8 @@ test-run-ubuntu18.04:
   script:
     - gitlab/run.sh
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 test-kw:
   stage: test
@@ -100,8 +100,8 @@ test-kw:
     - gitlab/test-kw.sh
   allow_failure: true
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 ########
 # Transitional phases, only works against devel branch dependencies

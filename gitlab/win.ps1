@@ -9,8 +9,8 @@
 $ErrorActionPreference = "Stop"
 
 # Versions if not set by CI (standalone run)
-if (! $OSPRAY_VER )   { set OSPRAY_VER "2.5.0"   }
-if (! $RKCOMMON_VER ) { set RKCOMMON_VER "1.6.0" }
+if (! $OSPRAY_VER )   { set OSPRAY_VER "2.6.0"   }
+if (! $RKCOMMON_VER ) { set RKCOMMON_VER "1.6.1" }
 if (! $GLFW_VER )     { set GLFW_VER "3.3.2"     }
 
 # Pull OSPRay and RKCommon releases from OSPRay github
