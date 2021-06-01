@@ -75,7 +75,7 @@ build-kw:
     - gitlab/build-kw.sh
   artifacts:
     paths:
-      - klockwork/*
+      - klocwork/*
   only:
     - master
     - /^release-.*$/
@@ -92,12 +92,12 @@ test-run-ubuntu18.04:
     - /^release-.*$/
 
 test-kw:
-  stage: test
+  stage: scan
   tags: [docker]
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
   needs: [build-kw]
   script:
-    - gitlab/test-kw.sh
+    - gitlab/kw-check-issues.sh
   allow_failure: true
   only:
     - master

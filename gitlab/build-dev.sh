@@ -32,9 +32,6 @@ fi
 cd $CI_PROJECT_DIR
 mkdir build && cd build
 export CMAKE_PREFIX_PATH="$CACHE_DIR/ospray-$OSPRAY_VER/build/install"
-#export CMAKE_PREFIX_PATH="$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray:$CACHE_DIR/ospray-$OSPRAY_VER/build/install/rkcommon"
-#export ospray_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray/lib/cmake/ospray-$OSPRAY_VER
-#export rkcommon_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/rkcommon/lib/cmake
 export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
 cmake -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
 make -j
