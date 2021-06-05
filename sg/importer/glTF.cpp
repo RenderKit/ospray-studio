@@ -1013,12 +1013,11 @@ namespace ospray {
 
     // We can emulate a constant colored emissive texture
     // XXX this is a workaround
-    auto constColor = false;
+    auto constColor = true;
     if (emissiveColor != vec3f(0.f) && mat.emissiveTexture.index != -1) {
       const auto &tex = model.textures[mat.emissiveTexture.index];
       const auto &img = model.images[tex.source];
       if (img.image.size() > 0) {
-        constColor = true;
         const auto *data = img.image.data();
 
         const vec3f color0 = vec3f(data[0], data[1], data[2]);
@@ -1037,6 +1036,8 @@ namespace ospray {
           }
           i++;
         }
+        // Module the emissiveColor with the texture value.
+        emissiveColor *= color0;
       }
     }
 
