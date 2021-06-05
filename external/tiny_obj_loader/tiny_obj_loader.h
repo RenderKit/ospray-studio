@@ -1356,7 +1356,8 @@ static bool exportGroupsToShape(shape_t *shape, const PrimGroup &prim_group,
       vertex_index_t i1(-1);
       vertex_index_t i2 = face.vertex_indices[1];
 
-      if (triangulate) {
+      // XXX: Allow triangles & quads.
+      if (npolys > 4 || triangulate) {
         // find the two axes to work in
         size_t axes[2] = {1, 2};
         for (size_t k = 0; k < npolys; ++k) {
