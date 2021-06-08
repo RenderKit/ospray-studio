@@ -20,6 +20,18 @@ add_executable(ospStudio
 )
 
 target_compile_definitions(ospStudio PRIVATE OSPRAY_CPP_RKCOMMON_TYPES)
+if(APPLE)
+  set_target_properties(ospStudio PROPERTIES
+    SKIP_INSTALL_RPATH OFF
+    INSTALL_RPATH "@executable_path;@executable_path/../${CMAKE_INSTALL_LIBDIR};${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+  )
+elseif(UNIX)
+  set_target_properties(ospStudio PROPERTIES
+    SKIP_INSTALL_RPATH OFF
+    INSTALL_RPATH "\$ORIGIN:\$ORIGIN/../${CMAKE_INSTALL_LIBDIR}"
+    LINK_OPTIONS "LINKER:-disable-new-dtags"
+  )
+endif()
 
 add_library(ospray_ui STATIC
   ArcballCamera.cpp
@@ -31,21 +43,41 @@ add_library(ospray_ui STATIC
 )
 
 target_link_libraries(ospray_ui
-  json
-  glfw
+  ospray_sg
   imgui
   imguiFileDialog
+  json
   ${OPENGL_LIBRARIES}
-  ospray_sg
+  glfw
 )
 
 target_link_libraries(ospStudio
-  json
   ospray_ui # Not all run modes should link against UI (ie batch).
   ospray_sg
+  json
 )
+
+_target_strip_and_sign(ospStudio)
 
 install(TARGETS ospStudio
   DESTINATION ${CMAKE_INSTALL_BINDIR}
   COMPONENT apps
 )
+
+get_target_property(OSPRAY_LIBNAME ospray::ospray IMPORTED_LOCATION_RELEASE)
+
+string(REGEX MATCH "^.*/" _sharedlib_glob "${OSPRAY_LIBNAME}")
+string(APPEND _sharedlib_glob "*${CMAKE_SHARED_LIBRARY_SUFFIX}*")
+# message(STATUS "_sharedlib_glob: ${_sharedlib_glob}")
+file(GLOB _sharedlibs LIST_DIRECTORIES false "${_sharedlib_glob}")
+# message(STATUS "_sharedlibs: ${_sharedlibs}")
+
+if(WIN32)
+  install(FILES
+    ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_BINDIR}
+  )
+else()
+  install(FILES
+    ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
+endif()

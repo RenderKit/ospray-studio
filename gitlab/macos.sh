@@ -1,62 +1,51 @@
-#!/bin/bash
+#!/bin/bash -ex
 ## Copyright 2015-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
-# Stop script on first failure
-set -e
-
-# Versions if not set by CI (standalone run)
-OSPRAY_VER=${OSPRAY_VER:-"2.6.0"}
-RKCOMMON_VER=${RKCOMMON_VER:-"1.6.1"}
-GLFW_VER=${GLFW_VER:-"3.3.2"}
-
-# Pull OSPRay and RKCommon releases from github
-GITHUB_HOME="https://github.com/ospray"
-
-OSPRAY_DIR="ospray-${OSPRAY_VER}.x86_64.macosx"
-OSPRAY_ZIP="${OSPRAY_DIR}.zip"
-OSPRAY_LINK="${GITHUB_HOME}/ospray/releases/download/v${OSPRAY_VER}/${OSPRAY_ZIP}"
-
-RKCOMMON_DIR="rkcommon-${RKCOMMON_VER}"
-RKCOMMON_ZIP="v${RKCOMMON_VER}.zip"
-RKCOMMON_LINK="${GITHUB_HOME}/rkcommon/archive/${RKCOMMON_ZIP}"
-
-mkdir -p build-macos && cd build-macos
-pushd .
+PACKAGE=false
+if [[ $# -gt 0 ]]
+then
+    if [[ "$1" == "package" ]]
+    then
+        PACKAGE=true
+    fi
+fi
 
 cmake --version
 
-# XXX Can macOS and Windows cache OSPRay and RKCommon on /NAS ???
+mkdir -p build-macos && cd build-macos
 
-if [ ! -d ${OSPRAY_DIR} ]; then
-  echo "Fetching OSPRay release ${OSPRAY_VER}"
-  wget --no-verbose ${OSPRAY_LINK}
-  unzip -q ${OSPRAY_ZIP}
-  rm ${OSPRAY_ZIP}
+if [[ "$PACKAGE" == true ]]
+then
+    cmake -L \
+        -D ENABLE_OPENIMAGEIO=OFF \
+        -D ENABLE_OPENVDB=OFF \
+        -D ENABLE_EXR=OFF \
+        -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_MAC \
+        ..
+    cmake --build . --parallel --config Release
+    cpack -G ZIP -B "${PWD}/package" -V
+
+    cmake -L \
+        -D CMAKE_INSTALL_PREFIX=/opt/local \
+        -D CMAKE_INSTALL_DOCDIR=../../Applications/OSPRay/doc \
+        -D CMAKE_INSTALL_BINDIR=../../Applications/OSPRay/bin \
+        -D ENABLE_OPENIMAGEIO=OFF \
+        -D ENABLE_OPENVDB=OFF \
+        -D ENABLE_EXR=OFF \
+        -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_MAC \
+        ..
+    cmake --build . --parallel --config Release
+    cpack -B "${PWD}/package" -V
+
+    $SIGN_FILE_MAC -o runtime package/ospray_studio-*pkg
+    $CI_PROJECT_DIR/gitlab/macosx_notarization.sh package/ospray_studio-*.pkg
 else
-  echo "OSPRay release exists"
+    cmake -L \
+        -D CMAKE_INSTALL_PREFIX=install \
+        -D ENABLE_OPENIMAGEIO=OFF \
+        -D ENABLE_OPENVDB=OFF \
+        -D ENABLE_EXR=OFF \
+        ..
+    cmake --build . --parallel --config Release --target install
 fi
-
-if [ ! -d ${RKCOMMON_DIR} ]; then
-  echo "Fetching RKCommon release ${RKCOMMON_VER}"
-  wget --no-verbose ${RKCOMMON_LINK}
-  unzip -q ${RKCOMMON_ZIP}
-  rm ${RKCOMMON_ZIP}
-  cd ${RKCOMMON_DIR}
-  # Need to build RKCommon
-  echo "Building RKCommon"
-  mkdir build && cd build
-  cmake ..  -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTING=OFF
-  make -j install
-  cd .. && rm -rf build
-else
-  echo "RKCommon release exists"
-fi
-
-popd
-
-CMAKE_PREFIX_PATH="${PWD}/${RKCOMMON_DIR}/install;${PWD}/${OSPRAY_DIR}"
-cmake .. -DCMAKE_INSTALL_PREFIX=install \
-  -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} \
-  -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
-make -j install
