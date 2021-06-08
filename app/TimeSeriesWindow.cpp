@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "TimeSeriesWindow.h"
-#include "../sg/scene/transfer_function/TransferFunction.h"
+#include "sg/scene/transfer_function/TransferFunction.h"
 #include "sg/scene/lights/LightsManager.h"
 // imgui
 #include "imgui.h"
@@ -13,9 +13,9 @@
 
 #include <chrono>
 
-#include "../sg/scene/volume/VDBVolumeTimeStep.h"
-#include "../sg/scene/volume/VolumeTimeStep.h"
-#include "../sg/scene/volume/Volume.h"
+#include "sg/scene/volume/VDBVolumeTimeStep.h"
+#include "sg/scene/volume/VolumeTimeStep.h"
+#include "sg/scene/volume/Volume.h"
 
 using namespace ospray::sg;
 
@@ -120,7 +120,6 @@ void TimeSeriesWindow::mainLoop()
 
   lightsManager->addLight(lightTypeStr, lightTypeStr);
   activeWindow->lightTypeStr = lightTypeStr;
-  lightsManager->removeLight("ambient");
 
   if (!importAsSeparateTimeseries) {
     // generate one world per timestep
@@ -632,27 +631,30 @@ void TimeSeriesWindow::setVariableTimeseries(int whichVariable, int timestep)
 {
   auto frame = activeWindow->getFrame();
   auto world = g_allSeparateWorlds[whichVariable][timestep];
-  frame->add(world);
 
-  frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
+  // Simply changing the world doesn't mark lights or world as modified.  Make
+  // sure the current lights list is set on the new world.
+  lightsManager->updateWorld(*world);
+  frame->add(world);
 
   //set up separate framebuffers
   if (setSeparateFramebuffers)
-  setTimestepFb(timestep);
+    setTimestepFb(timestep);
 }
 
 void TimeSeriesWindow::setTimestep(int timestep)
 {
   auto frame = activeWindow->getFrame();
   auto world = g_allWorlds[timestep];
+
+  // Simply changing the world doesn't mark lights or world as modified.  Make
+  // sure the current lights list is set on the new world.
   lightsManager->updateWorld(*world);
   frame->add(world); 
 
-  frame->childAs<FrameBuffer>("framebuffer").resetAccumulation();
-
   //set up separate framebuffers
   if (setSeparateFramebuffers)
-  setTimestepFb(timestep);
+    setTimestepFb(timestep);
 }
 
 void TimeSeriesWindow::printHelp()

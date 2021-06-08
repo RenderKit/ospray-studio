@@ -10,7 +10,6 @@ struct OSPSG_INTERFACE SciVis : public Renderer
 {
   SciVis();
   virtual ~SciVis() override = default;
-  void preCommit() override;
 };
 
 OSP_REGISTER_SG_NODE_NAME(SciVis, renderer_scivis);
@@ -37,17 +36,6 @@ SciVis::SciVis() : Renderer("scivis")
   child("aoSamples").setMinMax(0, 1000);
   child("aoDistance").setMinMax(0.f, 1e20f);
   child("volumeSamplingRate").setMinMax(0.f, 1e20f);
-}
-
-void SciVis::preCommit()
-{
-  Renderer::preCommit();
-
-  auto &renderer = handle();
-  if (hasChild("map_backplate")) {
-    auto &cppTex = child("map_backplate").valueAs<cpp::Texture>();
-    renderer.setParam("map_backplate", cppTex);
-  }
 }
 
 } // namespace sg

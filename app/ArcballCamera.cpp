@@ -1,26 +1,20 @@
-// Copyright 2017-2020 Intel Corporation
+// Copyright 2017-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ArcballCamera.h"
 
 ArcballCamera::ArcballCamera(const box3f &worldBounds, const vec2i &windowSize)
-    : zoomSpeed(1),
+    : worldDiag(1),
       invWindowSize(vec2f(1.0) / vec2f(windowSize)),
       centerTranslation(one),
       translation(one),
       rotation(one)
 {
-  float diag = length(worldBounds.size());
-
-  zoomSpeed  = max(diag / 150.0, 0.001);
-
-  // if Box3f defining wolrd bounds is less than a unit cube
-  // translate along (0, 0, 1)
-  if (diag < 1.7)
-    diag = 1.7f;;
+  // Affects camera placement and camera movement.
+  worldDiag = length(worldBounds.size());
 
   centerTranslation = AffineSpace3f::translate(-worldBounds.center());
-  translation       = AffineSpace3f::translate(vec3f(0, 0, -diag));
+  translation       = AffineSpace3f::translate(vec3f(0, 0, -worldDiag));
   updateCamera();
 }
 
@@ -58,17 +52,26 @@ void ArcballCamera::constrainedRotate(const vec2f &from, const vec2f &to, int ax
 
 void ArcballCamera::zoom(float amount)
 {
-  amount *= zoomSpeed;
+  amount *= worldDiag;
   translation = AffineSpace3f::translate(vec3f(0, 0, -amount)) * translation;
-  translation.p.z = std::min<float>(-zoomSpeed, translation.p.z);
+  // Don't allow zooming through the center of the arcBall
+  translation.p.z = std::min<float>(0.f, translation.p.z);
+  updateCamera();
+}
+
+void ArcballCamera::dolly(float amount)
+{
+  auto worldt = lookDir() * amount * worldDiag;
+  centerTranslation = AffineSpace3f::translate(worldt) * centerTranslation;
   updateCamera();
 }
 
 void ArcballCamera::pan(const vec2f &delta)
 {
-  const vec3f t =
-      vec3f(delta.x * invWindowSize.x, delta.y * invWindowSize.y, 0);
-  const vec3f worldt = abs(translation.p.z) * xfmVector(cameraToWorld, t);
+  // XXX This should really be called "truck/pedestal". "pan/tilt" are
+  // a fixed-base rotation about the camera (more like our rotate)
+  const vec3f t = vec3f(delta.x, -delta.y, 0.f) * worldDiag;
+  const vec3f worldt = 0.1f * xfmVector(cameraToWorld, t);
   centerTranslation  = AffineSpace3f::translate(worldt) * centerTranslation;
   updateCamera();
 }
@@ -114,15 +117,25 @@ void ArcballCamera::setRotation(quaternionf q)
 
 void ArcballCamera::setState(const CameraState &state)
 {
-  centerTranslation = state.centerTranslation;
-  translation = state.translation;
-  rotation = state.rotation;
-  updateCamera();
+  if (state.useCameraToWorld) {
+    cameraToWorld = state.cameraToWorld;
+  } else {
+    centerTranslation = state.centerTranslation;
+    translation = state.translation;
+    rotation = state.rotation;
+    updateCamera();
+  }
 }
 
-void ArcballCamera::setZoomSpeed(float speed)
+float ArcballCamera::getZoomLevel()
 {
-  zoomSpeed = speed;
+  return translation.p.z;
+}
+
+void ArcballCamera::setZoomLevel(float zoomLevel)
+{
+  translation.p.z = zoomLevel;
+  updateCamera();
 }
 
 CameraState ArcballCamera::getState() const

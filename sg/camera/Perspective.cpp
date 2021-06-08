@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Camera.h"
@@ -23,6 +23,11 @@ Perspective::Perspective() : Camera("perspective")
       "float",
       "distance at where the image is sharpest when depth of field is enabled",
       1.f);
+  createChild("adjustAperture",
+      "bool",
+      "Automatically adjust aperture to maintain relative DoF when varying focalDistance",
+      false);
+  child("adjustAperture").setSGOnly();
   createChild("architectural",
       "bool",
       "vertical edges are projected to be parallel",

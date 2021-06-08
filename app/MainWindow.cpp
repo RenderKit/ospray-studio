@@ -47,8 +47,12 @@ static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
+static bool g_animateCamera = false;
+static bool g_clearSceneConfirm = false;
 
 static const std::vector<std::string> g_scenes = {"tutorial_scene",
+    "sphere",
+    "particle_volume",
     "random_spheres",
     "wavelet",
     "torus_volume",
@@ -167,7 +171,7 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   // create GLFW window
   glfwWindow = glfwCreateWindow(
-      windowSize.x, windowSize.y, "OSPRay Tutorial", nullptr, nullptr);
+      windowSize.x, windowSize.y, "OSPRay Studio", nullptr, nullptr);
 
   if (!glfwWindow) {
     glfwTerminate();
@@ -240,6 +244,10 @@ MainWindow::MainWindow(StudioCommon &_common)
               break;
             case GLFW_KEY_Z:
               g_rotationConstraint = 2;
+              break;
+
+            case GLFW_KEY_I:
+              activeWindow->centerOnEyePos();
               break;
 
             case GLFW_KEY_G:
@@ -341,6 +349,13 @@ MainWindow::MainWindow(StudioCommon &_common)
       double x, y;
       glfwGetCursorPos(win, &x, &y);
       activeWindow->mouseButton(vec2f{float(x), float(y)});
+    }
+  });
+
+  glfwSetScrollCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
+    ImGuiIO &io = ImGui::GetIO();
+    if (!activeWindow->showUi || !io.WantCaptureMouse) {
+      activeWindow->mouseWheel(vec2f{float(x), float(y)});
     }
   });
 
@@ -502,11 +517,34 @@ void MainWindow::updateCamera()
   camera["position"] = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
   camera["up"] = arcballCamera->upDir();
+
+  if (camera.hasChild("focusDistance")) {
+    float focusDistance = rkcommon::math::length(
+        camera["lookAt"].valueAs<vec3f>() - arcballCamera->eyePos());
+    if (camera["adjustAperture"].valueAs<bool>()) {
+      float oldFocusDistance = camera["focusDistance"].valueAs<float>();
+      if (!(isinf(oldFocusDistance) || isinf(focusDistance))) {
+        float apertureRadius = camera["apertureRadius"].valueAs<float>();
+        camera["apertureRadius"] = apertureRadius *
+          focusDistance / oldFocusDistance;
+      }
+    }
+    camera["focusDistance"] = focusDistance;
+  }
 }
 
 void MainWindow::setCameraState(CameraState &cs)
 {
   arcballCamera->setState(cs);
+}
+
+void MainWindow::centerOnEyePos()
+{
+  // Recenters camera at the eye position and zooms all the way in, like FPV
+  // Save current zoom level
+  preFPVZoom = arcballCamera->getZoomLevel();
+  arcballCamera->setCenter(arcballCamera->eyePos());
+  arcballCamera->setZoomLevel(0.f);
 }
 
 void MainWindow::pickCenterOfRotation(float x, float y)
@@ -521,7 +559,15 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   y = 1.f - clamp(y / windowSize.y, 0.f, 1.f);
   res = fb.handle().pick(r, c, w, x, y);
   if (res.hasHit) {
-    arcballCamera->setCenter(vec3f(res.worldPosition));
+    if (!glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+      // Constraining rotation around the up works pretty well.
+      arcballCamera->constrainedRotate(vec2f(0.5f,0.5f), vec2f(x,y), 1);
+      // Restore any preFPV zoom level, then clear it.
+      arcballCamera->setZoomLevel(preFPVZoom + arcballCamera->getZoomLevel());
+      preFPVZoom = 0.f;
+      arcballCamera->setCenter(vec3f(res.worldPosition));
+    }
+    c["lookAt"] = vec3f(res.worldPosition);
     updateCamera();
   }
 }
@@ -532,10 +578,9 @@ void MainWindow::keyboardMotion()
           || g_camMoveR))
     return;
 
-  auto sensitivity = 1.f;
-  auto fineControl = 5.f;
+  auto sensitivity = maxMoveSpeed;
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    sensitivity /= fineControl;
+    sensitivity *= fineControl;
 
   // 6 degrees of freedom, four arrow keys? no problem.
   double inOut = g_camMoveZ;
@@ -546,7 +591,7 @@ void MainWindow::keyboardMotion()
   double azimuth = g_camMoveA;
 
   if (inOut) {
-    arcballCamera->zoom(inOut * sensitivity);
+    arcballCamera->dolly(inOut * sensitivity);
   }
   if (leftRight) {
     arcballCamera->pan(vec2f(leftRight, 0) * sensitivity);
@@ -586,25 +631,26 @@ void MainWindow::motion(const vec2f &position)
 
     bool cameraChanged = leftDown || rightDown || middleDown;
 
-    // XXX TODO make sensitivity UI adjustable
-    auto sensitivity = 1.f;
-    auto fineControl = 5.f;
+    auto sensitivity = maxMoveSpeed;
     if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-      sensitivity /= fineControl;
+      sensitivity *= fineControl;
+
+    const vec2f mouseFrom(clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
+        clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
+    const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
+        clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
 
     if (leftDown) {
-      const vec2f mouseFrom(clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-          clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
-      const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-          clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
       arcballCamera->constrainedRotate(mouseFrom,
           lerp(sensitivity, mouseFrom, mouseTo),
           g_rotationConstraint);
     } else if (rightDown) {
-      arcballCamera->zoom((mouse.y - prev.y) * sensitivity);
+      if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        arcballCamera->dolly((mouseTo - mouseFrom).y * sensitivity);
+      else
+        arcballCamera->zoom((mouseTo - mouseFrom).y * sensitivity);
     } else if (middleDown) {
-      arcballCamera->pan(
-          vec2f(mouse.x - prev.x, prev.y - mouse.y) * sensitivity);
+      arcballCamera->pan((mouseTo - mouseFrom) * sensitivity);
     }
 
     if (cameraChanged)
@@ -623,6 +669,31 @@ void MainWindow::mouseButton(const vec2f &position)
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
     pickCenterOfRotation(position.x, position.y);
   }
+}
+
+void MainWindow::mouseWheel(const vec2f &scroll)
+{
+  if (!scroll || frame->pauseRendering)
+    return;
+
+  // scroll is +/- 1 for horizontal/vertical mouseWheel motion
+
+  auto sensitivity = maxMoveSpeed;
+  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    sensitivity *= fineControl;
+
+  if (scroll.y) {
+    auto &camera = frame->child("camera");
+    if (camera.hasChild("fovy")) {
+      auto fovy = camera["fovy"].valueAs<float>();
+      fovy = std::min(180.f, std::max(0.f, fovy + scroll.y * sensitivity));
+      camera["fovy"] = fovy;
+      updateCamera();
+    }
+  }
+
+  // XXX anything interesting to do with horizontal scroll wheel?
+  // Perhaps cycle through renderer types?  Or toggle denoiser or navigation?
 }
 
 void MainWindow::display()
@@ -652,6 +723,17 @@ void MainWindow::display()
       }
     } else {
       g_camCurrentPathIndex++;
+    }
+  }
+
+  // Add new camera params
+  if (g_animateCamera) {
+    auto selectedCamera = g_selectedSceneCamera->nodeAs<sg::Camera>();
+    auto cs = selectedCamera->getState();
+
+    if (cs != nullptr) {
+      arcballCamera->setState(*cs);
+      updateCamera();
     }
   }
 
@@ -815,22 +897,6 @@ void MainWindow::display()
 
 void MainWindow::startNewOSPRayFrame()
 {
-  // The baseMaterialRegistry and lightsManager don't hang off the frame, so
-  // must be checked separately.  If modified, notify the frame by modifying a
-  // child.
-  if (baseMaterialRegistry->isModified()) {
-    baseMaterialRegistry->commit();
-    baseMaterialRegistry->updateMaterialList(rendererTypeStr);
-    auto &r = frame->childAs<sg::Renderer>("renderer");
-    r.createChildData("material", baseMaterialRegistry->cppMaterialList);
-    frame->child("navMode") = true; // navMode is perfect for this
-  }
-
-  if (lightsManager->isModified()) {
-    lightsManager->updateWorld(frame->childAs<sg::World>("world"));
-    frame->child("navMode") = true; // navMode is perfect for this
-  }
-
   // UI responsiveness can be increased by knowing if we're in the middle of
   // ImGui widget interaction.
   ImGuiIO &io = ImGui::GetIO();
@@ -857,10 +923,16 @@ void MainWindow::updateTitleBar()
   std::stringstream windowTitle;
   windowTitle << "OSPRay Studio: ";
 
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto &v = frame->childAs<sg::Renderer>("renderer")["varianceThreshold"];
+  auto varianceThreshold = v.valueAs<float>();
+
   if (frame->pauseRendering) {
     windowTitle << "rendering paused";
   } else if (frame->accumLimitReached()) {
     windowTitle << "accumulation limit reached";
+  } else if (fb.variance() < varianceThreshold) {
+    windowTitle << "varianceThreshold reached";
   } else {
     windowTitle << std::setprecision(3) << latestFPS << " fps";
     if (latestFPS < 2.f) {
@@ -910,23 +982,16 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
-  auto &r = frame->createChildAs<sg::Renderer>(
-      "renderer", "renderer_" + rendererTypeStr);
-
+  auto &r = frame->childAs<sg::Renderer>("renderer");
   if (optPF >= 0)
     r.createChild("pixelFilter", "int", optPF);
 
-  if (rendererTypeStr != "debug") {
-    baseMaterialRegistry->updateMaterialList(rendererTypeStr);
-    r.createChildData("material", baseMaterialRegistry->cppMaterialList);
-  }
-  if (rendererTypeStr == "scivis" || rendererTypeStr == "pathtracer") {
-    if (backPlateTexture != "") {
-      auto backplateTex =
-          sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
-      backplateTex->load(backPlateTexture, false, false);
-      r.add(backplateTex);
-    }
+  // Re-add the backplate on renderer change
+  if (backPlateTexture != "") {
+    auto backplateTex =
+      sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
+    backplateTex->load(backPlateTexture, false, false);
+    r.add(backplateTex);
   }
 }
 
@@ -935,38 +1000,35 @@ void MainWindow::refreshScene(bool resetCam)
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
+  if (sceneConfig == "dynamic")
+    world->child("dynamicScene").setValue(true);
+  else if (sceneConfig == "compact")
+    world->child("compactMode").setValue(true);
+  else if (sceneConfig == "robust")
+    world->child("robustMode").setValue(true);
 
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
 
-  if (!filesToImport.empty()) {
-    // Cancel any in-progress frame since we're changing the world.
-    frame->cancelFrame();
-    frame->waitOnFrame();
+  if (!filesToImport.empty())
     importFiles(world);
-  } else {
-    if (scene != "") {
-      // Cancel any in-progress frame since we're changing the world.
-      frame->cancelFrame();
-      frame->waitOnFrame();
-      auto &gen = world->createChildAs<sg::Generator>(
-          "generator", "generator_" + scene);
-      gen.setMaterialRegistry(baseMaterialRegistry);
-      gen.generateData();
-      // The generators should reset the camera
-      resetCam = true;
-    }
+  else if (scene != "") {
+    auto &gen = world->createChildAs<sg::Generator>(
+        scene + "_generator", "generator_" + scene);
+    gen.setMaterialRegistry(baseMaterialRegistry);
+    // The generators should reset the camera
+    resetCam = true;
   }
 
-  if (baseMaterialRegistry->isModified())
-    refreshRenderer();
-
-  world->render();
+  if (world->isModified()) {
+    // Cancel any in-progress frame as world->render() will modify live device
+    // parameters
+    frame->cancelFrame();
+    frame->waitOnFrame();
+    world->render();
+  }
 
   frame->add(world);
-
-  // lightsManager must update the world *after* it's been added to the frame.
-  lightsManager->updateWorld(frame->childAs<sg::World>("world"));
 
   if (resetCam && !sgScene) {
     const auto &worldBounds = frame->child("world").bounds();
@@ -981,7 +1043,7 @@ bool MainWindow::parseCommandLine()
 {
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
-
+  volumeParams = std::make_shared<sg::VolumeParams>();
   for (int i = 1; i < ac; i++) {
     const auto arg = std::string(av[i]);
     if (arg.rfind("-", 0) != 0) {
@@ -995,35 +1057,43 @@ bool MainWindow::parseCommandLine()
       --i;
     } else if (arg == "--animate" || arg == "-a") {
       animate = true;
-    } else if (arg == "--dimensions" || arg == "-d") {
+    } else if (arg == "--dimensions" || arg == "-dim") {
       const std::string dimX(av[++i]);
       const std::string dimY(av[++i]);
       const std::string dimZ(av[++i]);
-      useVolumeParams = true;
-      vp.dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
-    } else if (arg == "--gridSpacing" || arg == "-g") {
+      auto dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
+      volumeParams->createChild("dimensions", "vec3i", dimensions);
+    } else if (arg == "--gridSpacing" || arg == "-gs") {
       const std::string gridSpacingX(av[++i]);
       const std::string gridSpacingY(av[++i]);
       const std::string gridSpacingZ(av[++i]);
-      useVolumeParams = true;
-      vp.gridSpacing =
+      auto gridSpacing =
           vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
-    } else if (arg == "--gridOrigin" || arg == "-o") {
+      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
+    } else if (arg == "--gridOrigin" || arg == "-go") {
       const std::string gridOriginX(av[++i]);
       const std::string gridOriginY(av[++i]);
       const std::string gridOriginZ(av[++i]);
-      useVolumeParams = true;
-      vp.gridOrigin =
+      auto gridOrigin =
           vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
-    } else if (arg == "--voxelType" || arg == "-v") {
+      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
+    } else if (arg == "--voxelType" || arg == "-vt") {
       auto voxelTypeStr = std::string(av[++i]);
       auto it           = sg::volumeVoxelType.find(voxelTypeStr);
       if (it != sg::volumeVoxelType.end()) {
-        vp.voxelType = it->second;
-        useVolumeParams = true;
+        auto voxelType = it->second;
+        volumeParams->createChild("voxelType", "int", (int)voxelType);
       } else {
         throw std::runtime_error("improper -voxelType format requested");
       }
+    } else if (arg == "--sceneConfig" || arg == "-sc") {
+      // valid values are dynamic, compact and robust
+      const std::string sc(av[++i]);
+      sceneConfig = sc;
+    } else if (arg == "--instanceConfig" || arg == "-ic") {
+      // valid values are dynamic, compact and robust
+      const std::string ic(av[++i]);
+      instanceConfig = ic;
     } else if (arg == "--2160p")
       glfwSetWindowSize(glfwWindow, 3840, 2160);
     else if (arg == "--1440p")
@@ -1036,6 +1106,8 @@ bool MainWindow::parseCommandLine()
       glfwSetWindowSize(glfwWindow, 960, 540);
     else if (arg == "--270p")
       glfwSetWindowSize(glfwWindow, 480, 270);
+    else if (arg == "--pointSize" || arg == "-ps")
+      pointSize = std::stof(av[++i]);
   }
 
   if (!filesToImport.empty()) {
@@ -1057,7 +1129,7 @@ void MainWindow::importFiles(sg::NodePtr world)
     try {
       rkcommon::FileName fileName(file);
 
-      // ALOK: handling loading a scene here for now
+      // XXX: handling loading a scene here for now
       if (fileName.ext() == "sg") {
         sg::importScene(shared_from_this(), fileName);
         sgScene = true;
@@ -1066,19 +1138,37 @@ void MainWindow::importFiles(sg::NodePtr world)
 
         auto importer = sg::getImporter(world, file);
         if (importer) {
-          // Could be any type of importer.  Need to pass the MaterialRegistry,
-          // importer will use what it needs.
-          if(useVolumeParams)
-            importer->setVolumeParams(&vp);
+          if (volumeParams->children().size() > 0) {
+            auto vp = importer->getVolumeParams();
+            for (auto &c : volumeParams->children()) {
+              vp->remove(c.first);
+              vp->add(c.second);
+            }
+          }
 
+          importer->pointSize = pointSize;
+          importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
+          if (instanceConfig == "dynamic")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::DYNAMIC);
+          else if (instanceConfig == "compact")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::COMPACT);
+          else if (instanceConfig == "robust")
+            importer->setInstanceConfiguration(
+                sg::InstanceConfiguration::ROBUST);
+
           importer->importScene();
         }
       }
+    } catch (const std::exception &e) {
+      std::cerr << "Failed to open file '" << file << "'!\n";
+      std::cerr << "   " << e.what() << std::endl;
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }
@@ -1118,7 +1208,7 @@ void MainWindow::saveCurrentFrame()
   do
     std::snprintf(filename, 64, "studio.%04d.%s", filenum++, ext);
   while (std::ifstream(filename).good());
-  int screenshotFlags = screenshotMetaData << 4 | screenshotLayers << 3
+  int screenshotFlags = screenshotLayers << 3
       | screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -1179,6 +1269,7 @@ void MainWindow::buildMainMenuFile()
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem("Import ...", nullptr)) {
       showImportFileBrowser = true;
+      animate = false;
     } else if (ImGui::MenuItem("Import and animate ...", nullptr)) {
       showImportFileBrowser = true;
       animate = true;
@@ -1193,24 +1284,7 @@ void MainWindow::buildMainMenuFile()
       ImGui::EndMenu();
     }
     ImGui::Separator();
-    if (ImGui::MenuItem("Clear Scene...", nullptr)) {
-      // Cancel any in-progress frame since we're removing the world.
-      frame->cancelFrame();
-      frame->waitOnFrame();
-      frame->remove("world");
-      lightsManager->clear();
-
-      // TODO: lights caching to avoid complete re-importing after clearing
-      sg::clearAssets();
-
-      // Recreate MaterialRegistry, clearing old registry and all materials
-      baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
-          "baseMaterialRegistry", "materialRegistry");
-
-      scene = "";
-      refreshScene(true);
-    }
-    if (ImGui::BeginMenu("Save...")) {
+    if (ImGui::BeginMenu("Save")) {
       if (ImGui::MenuItem("Scene (entire)")) {
         std::ofstream dump("studio_scene.sg");
         JSON j = {{"world", frame->child("world")},
@@ -1267,14 +1341,13 @@ void MainWindow::buildMainMenuFile()
         auto fbFloatFormat = fb["floatFormat"].valueAs<bool>();
         if (ImGui::Checkbox("FB float format ", &fbFloatFormat))
           fb["floatFormat"] = fbFloatFormat;
-        ImGui::Text("(following layers available with FB float format only)");
-        ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
-        ImGui::SameLine();
-        ImGui::Checkbox("layers as separate files", &screenshotLayers);
-        ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
-        ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
-        // implemented only as layers within single file for now
-        ImGui::Checkbox("metaData##screenshotMetaData", &screenshotMetaData);
+        if (fbFloatFormat) {
+          ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
+          ImGui::SameLine();
+          ImGui::Checkbox("layers as separate files", &screenshotLayers);
+          ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
+          ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
+        }
       }
 
       ImGui::EndMenu();
@@ -1294,302 +1367,15 @@ void MainWindow::buildMainMenuFile()
       refreshScene(resetCam);
     }
   }
-
-  if (screenshotMetaData)
-    frame->child("world").child("saveMetaData").setValue(true);
 }
 
 void MainWindow::buildMainMenuEdit()
 {
   if (ImGui::BeginMenu("Edit")) {
-    ImGui::Text("general");
+    // Scene stuff /////////////////////////////////////////////////////
 
-    int whichRenderer =
-        find(g_renderers.begin(), g_renderers.end(), rendererTypeStr)
-        - g_renderers.begin();
-
-    static int whichDebuggerType = 0;
-    ImGui::PushItemWidth(10.f * ImGui::GetFontSize());
-    if (ImGui::Combo("renderer##whichRenderer",
-            &whichRenderer,
-            rendererUI_callback,
-            nullptr,
-            g_renderers.size())) {
-      rendererTypeStr = g_renderers[whichRenderer];
-
-      if (rendererType == OSPRayRendererType::DEBUGGER)
-        whichDebuggerType = 0; // reset UI if switching away
-                               // from debug renderer
-
-      if (rendererTypeStr == "scivis")
-        rendererType = OSPRayRendererType::SCIVIS;
-      else if (rendererTypeStr == "pathtracer")
-        rendererType = OSPRayRendererType::PATHTRACER;
-      else if (rendererTypeStr == "ao")
-        rendererType = OSPRayRendererType::AO;
-      else if (rendererTypeStr == "debug")
-        rendererType = OSPRayRendererType::DEBUGGER;
-      else
-        rendererType = OSPRayRendererType::OTHER;
-
-      refreshRenderer();
-    }
-
-    auto &renderer = frame->childAs<sg::Renderer>("renderer");
-
-    if (rendererType == OSPRayRendererType::DEBUGGER) {
-      if (ImGui::Combo("debug type##whichDebugType",
-              &whichDebuggerType,
-              debugTypeUI_callback,
-              nullptr,
-              g_debugRendererTypes.size())) {
-        renderer["method"] = g_debugRendererTypes[whichDebuggerType];
-      }
-    }
-
-    renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-
-    ImGui::Separator();
-
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-
-    ImGui::Text("display buffer");
-    static int whichBuffer = 0;
-    ImGui::RadioButton("color##displayColor", &whichBuffer, 0);
-
-    if (!fb.hasAlbedoChannel() && !fb.hasDepthChannel()) {
-      ImGui::Text("- No other channels available");
-      ImGui::Text("- Check that FrameBuffer floatFormat is enabled");
-    }
-
-    if (fb.hasAlbedoChannel()) {
-      ImGui::SameLine();
-      ImGui::RadioButton("albedo##displayAlbedo", &whichBuffer, 1);
-    }
-    if (fb.hasDepthChannel()) {
-      ImGui::SameLine();
-      ImGui::RadioButton("depth##displayDepth", &whichBuffer, 2);
-      ImGui::SameLine();
-      ImGui::RadioButton("invert depth##displayDepthInv", &whichBuffer, 3);
-    }
-
-    switch (whichBuffer) {
-    case 0:
-      showColor = true;
-      showAlbedo = showDepth = showDepthInvert = false;
-      break;
-    case 1:
-      showAlbedo = true;
-      showColor = showDepth = showDepthInvert = false;
-      break;
-    case 2:
-      showDepth = true;
-      showColor = showAlbedo = showDepthInvert = false;
-      break;
-    case 3:
-      showDepth = true;
-      showDepthInvert = true;
-      showColor = showAlbedo = false;
-      break;
-    }
-
-    ImGui::Separator();
-
-    if (fb.isFloatFormat()) {
-      ImGui::Checkbox("toneMap", &frame->toneMapFB);
-      ImGui::SameLine();
-      ImGui::Checkbox("toneMapNav", &frame->toneMapNavFB);
-
-      if (studioCommon.denoiserAvailable) {
-        ImGui::Checkbox("denoise", &frame->denoiseFB);
-        ImGui::SameLine();
-        ImGui::Checkbox("denoiseNav", &frame->denoiseNavFB);
-      }
-    } else
-      ImGui::Text("- Check that frameBuffer's floatFormat is enabled");
-
-    ImGui::Separator();
-    fb.traverse<sg::GenerateImGuiWidgets>();
-
-    ImGui::Text("frame scaling");
-    frame->child("windowSize").traverse<sg::GenerateImGuiWidgets>();
-    ImGui::Text("framebuffer");
-    ImGui::SameLine();
-    fb["size"].traverse<sg::GenerateImGuiWidgets>();
-
-    // XXX combine these two!  they're nearly identical
-    if (ImGui::BeginMenu("Scale Resolution")) {
-      auto scale = frame->child("scale").valueAs<float>();
-      auto oldScale = scale;
-      auto custom = true;
-      auto values = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
-      for (auto v : values) {
-        char label[64];
-        vec2i newSize = v * windowSize;
-        snprintf(label,
-            sizeof(label),
-            "%s%1.2fx (%d,%d)",
-            v == scale ? "*" : " ",
-            v,
-            newSize[0],
-            newSize[1]);
-        if (v == 1.f)
-          ImGui::Separator();
-        if (ImGui::MenuItem(label))
-          scale = v;
-        if (v == 1.f)
-          ImGui::Separator();
-
-        custom &= (v != scale);
-      }
-
-      ImGui::Separator();
-      vec2i newSize = scale * windowSize;
-      char label[64];
-      snprintf(label,
-          sizeof(label),
-          "%scustom (%d,%d)",
-          custom ? "*" : " ",
-          newSize[0],
-          newSize[1]);
-      if (ImGui::BeginMenu(label)) {
-        ImGui::InputFloat("x##fb_scaling", &scale);
-        ImGui::EndMenu();
-      }
-
-      if (oldScale != scale)
-        frame->child("scale") = scale;
-
-      ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Scale Nav Resolution")) {
-      auto scale = frame->child("scaleNav").valueAs<float>();
-      auto oldScale = scale;
-      auto custom = true;
-      auto values = {0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
-      for (auto v : values) {
-        char label[64];
-        vec2i newSize = v * windowSize;
-        snprintf(label,
-            sizeof(label),
-            "%s%1.2fx (%d,%d)",
-            v == scale ? "*" : " ",
-            v,
-            newSize[0],
-            newSize[1]);
-        if (v == 1.f)
-          ImGui::Separator();
-        if (ImGui::MenuItem(label))
-          scale = v;
-        if (v == 1.f)
-          ImGui::Separator();
-
-        custom &= (v != scale);
-      }
-
-      ImGui::Separator();
-      vec2i newSize = scale * windowSize;
-      char label[64];
-      snprintf(label,
-          sizeof(label),
-          "%scustom (%d,%d)",
-          custom ? "*" : " ",
-          newSize[0],
-          newSize[1]);
-      if (ImGui::BeginMenu(label)) {
-        ImGui::InputFloat("x##fb_scaling", &scale);
-        ImGui::EndMenu();
-      }
-
-      if (oldScale != scale)
-        frame->child("scaleNav") = scale;
-
-      ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Aspect Control")) {
-      const float origAspect = lockAspectRatio;
-      if (ImGui::MenuItem("Lock")) {
-        lockAspectRatio =
-            static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
-      }
-      if (ImGui::MenuItem("Unlock")) {
-        lockAspectRatio = 0.f;
-      }
-      ImGui::InputFloat("Set", &lockAspectRatio);
-      lockAspectRatio = std::max(lockAspectRatio, 0.f);
-      if (origAspect != lockAspectRatio) {
-        reshape(windowSize);
-      }
-      ImGui::EndMenu();
-    }
-
-    ImGui::Separator();
-    ImGui::Text("scene");
-
-    static bool showFileBrowser = false;
-    ImGui::Text("Background texture...");
-    ImGui::SameLine();
-    // This field won't be typed into.
-    ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
-    ImGui::InputTextWithHint(
-        "##BPTex", "select...", (char *)backPlateTexture.base().c_str(), 0);
-    if (ImGui::IsItemClicked())
-      showFileBrowser = true;
-
-    // Leave the fileBrowser open until file is selected
-    if (showFileBrowser) {
-      FileList fileList = {};
-      if (fileBrowser(fileList, "Select Background Texture")) {
-        showFileBrowser = false;
-
-        if (!fileList.empty()) {
-          backPlateTexture = fileList[0];
-
-          auto backplateTex =
-              sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
-          backplateTex->load(backPlateTexture, false, false);
-          frame->child("renderer").add(backplateTex);
-        }
-      }
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("clear")) {
-      backPlateTexture = "";
-      refreshRenderer();
-    }
-
-    // Allows the user to cancel long frame renders, such as too-many spp or
-    // very large resolution.  Don't wait on the frame-cancel completion as
-    // this locks up the UI.  Note: Next frame-start following frame
-    // cancelation isn't immediate.
-    if (ImGui::Button("cancel Frame"))
-      frame->cancelFrame();
-
-    ImGui::EndMenu();
-  }
-}
-
-void MainWindow::buildMainMenuView()
-{
-  if (ImGui::BeginMenu("View")) {
-    if (ImGui::MenuItem("Keyframes...", "", nullptr))
-      showKeyframes = true;
-    if (ImGui::MenuItem("Snapshots...", "", nullptr))
-      showSnapshots = true;
-    ImGui::Separator();
     if (ImGui::MenuItem("Lights...", "", nullptr))
       showLightEditor = true;
-    if (ImGui::MenuItem("Camera...", "", nullptr))
-      showCameraEditor = true;
-    if (ImGui::MenuItem("Center camera", "", nullptr)) {
-      arcballCamera.reset(
-          new ArcballCamera(frame->child("world").bounds(), windowSize));
-      updateCamera();
-    }
-
-    ImGui::Separator();
     if (ImGui::MenuItem("Transforms...", "", nullptr))
       showTransformEditor = true;
     if (ImGui::MenuItem("Materials...", "", nullptr))
@@ -1598,36 +1384,181 @@ void MainWindow::buildMainMenuView()
       showTransferFunctionEditor = true;
     if (ImGui::MenuItem("Isosurfaces...", "", nullptr))
       showIsosurfaceEditor = true;
+    ImGui::Separator();
+
+    if (ImGui::MenuItem("Clear scene"))
+      g_clearSceneConfirm = true;
+
+    ImGui::EndMenu();
+  }
+
+  if (g_clearSceneConfirm) {
+    g_clearSceneConfirm = false;
+    ImGui::OpenPopup("Clear scene");
+  }
+
+  if (ImGui::BeginPopupModal("Clear scene")) {
+    ImGui::Text("Are you sure you want to clear the scene?");
+    ImGui::Text("This will delete all objects, materials and lights.");
+
+    if (ImGui::Button("No!"))
+      ImGui::CloseCurrentPopup();
+    ImGui::SameLine(ImGui::GetWindowWidth()-(8*ImGui::GetFontSize()));
+
+    if (ImGui::Button("Yes, clear it")) {
+      // Cancel any in-progress frame
+      frame->cancelFrame();
+      frame->waitOnFrame();
+      frame->remove("world");
+      lightsManager->clear();
+      if(animationWidget) {
+        animationWidget.reset();
+        registerImGuiCallback(nullptr);
+      }
+
+      // TODO: lights caching to avoid complete re-importing after clearing
+      sg::clearAssets();
+
+      // Recreate MaterialRegistry, clearing old registry and all materials
+      baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
+          "baseMaterialRegistry", "materialRegistry");
+
+      scene = "";
+      refreshScene(true);
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+  }
+}
+
+void MainWindow::buildMainMenuView()
+{
+  static bool showFileBrowser = false;
+  if (ImGui::BeginMenu("View")) {
+    // Camera stuff ////////////////////////////////////////////////////
+
+    if (ImGui::MenuItem("Camera...", "", nullptr))
+      showCameraEditor = true;
+    if (ImGui::MenuItem("Center camera", "", nullptr)) {
+      arcballCamera.reset(
+          new ArcballCamera(frame->child("world").bounds(), windowSize));
+      updateCamera();
+    }
+    if (ImGui::MenuItem("Keyframes...", "", nullptr))
+      showKeyframes = true;
+    if (ImGui::MenuItem("Snapshots...", "", nullptr))
+      showSnapshots = true;
+
+    ImGui::Text("Camera Movement Speed:");
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    ImGui::SliderFloat("Speed##camMov", &maxMoveSpeed, 0.1f, 5.0f);
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    ImGui::SliderFloat("FineControl##camMov", &fineControl, 0.1f, 1.0f, "%0.2fx");
+    sg::showTooltip("hold <left-Ctrl> for more sensitive camera movement.");
 
     ImGui::Separator();
-    ImGui::Checkbox("Rendering stats...", &showRenderingStats);
-    ImGui::SameLine();
-    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
 
+    // Renderer stuff //////////////////////////////////////////////////
+
+    if (ImGui::MenuItem("Renderer..."))
+      showRendererEditor = true;
+    ImGui::Checkbox("Rendering stats", &showRenderingStats);
+    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     ImGui::DragInt(
         "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
-
-    ImGui::Checkbox("auto rotate", &autorotate);
+    // Although varianceThreshold is found under the renderer, add it here to
+    // make it easier to find, alongside accumulation limit
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    frame->childAs<sg::Renderer>("renderer")["varianceThreshold"].
+      traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+    ImGui::Checkbox("Auto rotate", &autorotate);
     if (autorotate) {
       ImGui::SameLine();
       ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
       ImGui::SliderInt(" speed", &autorotateSpeed, 1, 100);
     }
-
     ImGui::Separator();
-    ImGui::Checkbox("Display as sRGB...", &uiDisplays_sRGB);
+
+    // Framebuffer and window stuff ////////////////////////////////////
+
+    if (ImGui::MenuItem("Framebuffer..."))
+      showFrameBufferEditor = true;
+    if (ImGui::MenuItem("Set background texture..."))
+      showFileBrowser = true;
+    if (!backPlateTexture.str().empty()) {
+      ImGui::TextColored(ImVec4(.5f, .5f, .5f, 1.f),
+          "current: %s",
+          backPlateTexture.base().c_str());
+      if (ImGui::MenuItem("Clear background texture")) {
+        backPlateTexture = "";
+        // Needs to be removed from the renderer node and its OSPRay params
+        auto &renderer = frame->childAs<sg::Renderer>("renderer");
+        renderer.remove("map_backplate");
+        renderer.handle().removeParam("map_backplate");
+      }
+    }
+    if (ImGui::BeginMenu("Quick window size")) {
+      const std::vector<vec2i> options = {{480, 270},
+          {960, 540},
+          {1280, 720},
+          {1920, 1080},
+          {2560, 1440},
+          {3840, 2160}};
+      for (auto &sizeChoice : options) {
+        char label[64];
+        snprintf(label,
+            sizeof(label),
+            "%s%d x %d",
+            windowSize == sizeChoice ? "*" : " ",
+            sizeChoice.x,
+            sizeChoice.y);
+        if (ImGui::MenuItem(label)) {
+          glfwSetWindowSize(glfwWindow, sizeChoice.x, sizeChoice.y);
+          reshape(sizeChoice);
+        }
+      }
+      ImGui::EndMenu();
+    }
+    ImGui::Checkbox("Display as sRGB", &uiDisplays_sRGB);
     sg::showTooltip("Display linear framebuffers as sRGB,\n"
                     "maintains consistent display across all formats.");
+    // Allows the user to cancel long frame renders, such as too-many spp or
+    // very large resolution.  Don't wait on the frame-cancel completion as
+    // this locks up the UI.  Note: Next frame-start following frame
+    // cancelation isn't immediate.
+    if (ImGui::MenuItem("Cancel frame"))
+      frame->cancelFrame();
 
     ImGui::Separator();
-    ImGui::Checkbox("Show Tooltips...", &g_ShowTooltips);
+
+    // UI options //////////////////////////////////////////////////////
+
+    ImGui::Checkbox("Show tooltips", &g_ShowTooltips);
     if (g_ShowTooltips) {
       ImGui::SameLine();
       ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
       ImGui::DragInt("delay", &g_TooltipDelay, 50, 0, 1000, "%d ms");
     }
+
     ImGui::EndMenu();
+  }
+
+  // Leave the fileBrowser open until file is selected
+  if (showFileBrowser) {
+    FileList fileList = {};
+    if (fileBrowser(fileList, "Select Background Texture")) {
+      showFileBrowser = false;
+
+      if (!fileList.empty()) {
+        backPlateTexture = fileList[0];
+
+        auto backplateTex =
+            sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
+        backplateTex->load(backPlateTexture, false, false);
+        frame->child("renderer").add(backplateTex);
+      }
+    }
   }
 }
 
@@ -1648,6 +1579,10 @@ void MainWindow::buildMainMenuPlugins()
 
 void MainWindow::buildWindows()
 {
+  if (showRendererEditor)
+    buildWindowRendererEditor();
+  if (showFrameBufferEditor)
+    buildWindowFrameBufferEditor();
   if (showKeyframes)
     buildWindowKeyframes();
   if (showSnapshots)
@@ -1666,6 +1601,230 @@ void MainWindow::buildWindows()
     buildWindowTransformEditor();
   if (showRenderingStats)
     buildWindowRenderingStats();
+}
+
+void MainWindow::buildWindowRendererEditor()
+{
+  if (!ImGui::Begin(
+          "Renderer editor", &showRendererEditor, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  int whichRenderer =
+      find(g_renderers.begin(), g_renderers.end(), rendererTypeStr)
+      - g_renderers.begin();
+
+  static int whichDebuggerType = 0;
+  ImGui::PushItemWidth(10.f * ImGui::GetFontSize());
+  if (ImGui::Combo("renderer##whichRenderer",
+          &whichRenderer,
+          rendererUI_callback,
+          nullptr,
+          g_renderers.size())) {
+    rendererTypeStr = g_renderers[whichRenderer];
+
+    if (rendererType == OSPRayRendererType::DEBUGGER)
+      whichDebuggerType = 0; // reset UI if switching away
+                             // from debug renderer
+
+    if (rendererTypeStr == "scivis")
+      rendererType = OSPRayRendererType::SCIVIS;
+    else if (rendererTypeStr == "pathtracer")
+      rendererType = OSPRayRendererType::PATHTRACER;
+    else if (rendererTypeStr == "ao")
+      rendererType = OSPRayRendererType::AO;
+    else if (rendererTypeStr == "debug")
+      rendererType = OSPRayRendererType::DEBUGGER;
+    else
+      rendererType = OSPRayRendererType::OTHER;
+
+    // Change the renderer type, if the new renderer is different.
+    auto currentType = frame->childAs<sg::Renderer>("renderer").subType();
+    auto newType = "renderer_" + rendererTypeStr;
+
+    if (currentType != newType) {
+      frame->createChildAs<sg::Renderer>("renderer", newType);
+      refreshRenderer();
+    }
+  }
+
+  auto &renderer = frame->childAs<sg::Renderer>("renderer");
+
+  if (rendererType == OSPRayRendererType::DEBUGGER) {
+    if (ImGui::Combo("debug type##whichDebugType",
+            &whichDebuggerType,
+            debugTypeUI_callback,
+            nullptr,
+            g_debugRendererTypes.size())) {
+      renderer["method"] = g_debugRendererTypes[whichDebuggerType];
+    }
+  }
+
+  renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+
+  ImGui::End();
+}
+
+void MainWindow::buildWindowFrameBufferEditor()
+{
+  if (!ImGui::Begin(
+          "Framebuffer editor", &showFrameBufferEditor, g_imguiWindowFlags)) {
+    ImGui::End();
+    return;
+  }
+
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  fb.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ALLOPEN);
+
+  ImGui::Separator();
+
+  static int whichBuffer = 0;
+  ImGui::Text("Display Buffer");
+  ImGui::RadioButton("color##displayColor", &whichBuffer, 0);
+
+  if (!fb.hasAlbedoChannel() && !fb.hasDepthChannel()) {
+    ImGui::TextColored(
+        ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for more buffers");
+  }
+
+  if (fb.hasAlbedoChannel()) {
+    ImGui::SameLine();
+    ImGui::RadioButton("albedo##displayAlbedo", &whichBuffer, 1);
+  }
+  if (fb.hasDepthChannel()) {
+    ImGui::SameLine();
+    ImGui::RadioButton("depth##displayDepth", &whichBuffer, 2);
+    ImGui::SameLine();
+    ImGui::RadioButton("invert depth##displayDepthInv", &whichBuffer, 3);
+  }
+
+  switch (whichBuffer) {
+  case 0:
+    showColor = true;
+    showAlbedo = showDepth = showDepthInvert = false;
+    break;
+  case 1:
+    showAlbedo = true;
+    showColor = showDepth = showDepthInvert = false;
+    break;
+  case 2:
+    showDepth = true;
+    showColor = showAlbedo = showDepthInvert = false;
+    break;
+  case 3:
+    showDepth = true;
+    showDepthInvert = true;
+    showColor = showAlbedo = false;
+    break;
+  }
+
+  ImGui::Separator();
+
+  ImGui::Text("Post-processing");
+  if (fb.isFloatFormat()) {
+    ImGui::Checkbox("Tonemap", &frame->toneMapFB);
+    ImGui::SameLine();
+    ImGui::Checkbox("Tonemap nav", &frame->toneMapNavFB);
+
+    if (studioCommon.denoiserAvailable) {
+      ImGui::Checkbox("Denoise", &frame->denoiseFB);
+      ImGui::SameLine();
+      ImGui::Checkbox("Denoise nav", &frame->denoiseNavFB);
+    }
+  } else {
+    ImGui::TextColored(
+        ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for post-processing");
+  }
+
+  ImGui::Separator();
+
+  ImGui::Text("Scaling");
+  {
+    static const float scaleValues[9] = {
+        0.25f, 0.5f, 0.75f, 1.f, 1.25f, 1.5f, 2.f, 4.f, 8.f};
+
+    auto size = frame->child("windowSize").valueAs<vec2i>();
+    char _label[56];
+    auto createLabel = [&_label, size](std::string uniqueId, float v) {
+      const vec2i _sz = v * size;
+      snprintf(_label,
+          sizeof(_label),
+          "%1.2fx (%d,%d)##%s",
+          v,
+          _sz.x,
+          _sz.y,
+          uniqueId.c_str());
+      return _label;
+    };
+
+    auto selectNewScale = [&](std::string id, const float _scale) {
+      auto scale = _scale;
+      auto custom = true;
+      for (auto v : scaleValues) {
+        if (ImGui::Selectable(createLabel(id, v), v == scale))
+          scale = v;
+        custom &= (v != scale);
+      }
+
+      ImGui::Separator();
+      char cLabel[64];
+      snprintf(cLabel, sizeof(cLabel), "custom %s", createLabel(id, scale));
+      if (ImGui::BeginMenu(cLabel)) {
+        ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+        ImGui::InputFloat("x##fb_scaling", &scale);
+        ImGui::EndMenu();
+      }
+
+      return scale;
+    };
+
+    auto scale = frame->child("scale").valueAs<float>();
+    ImGui::SetNextItemWidth(12 * ImGui::GetFontSize());
+    if (ImGui::BeginCombo("Scale resolution", createLabel("still", scale))) {
+      auto newScale = selectNewScale("still", scale);
+      if (scale != newScale)
+        frame->child("scale") = newScale;
+      ImGui::EndCombo();
+    }
+
+    scale = frame->child("scaleNav").valueAs<float>();
+    ImGui::SetNextItemWidth(12 * ImGui::GetFontSize());
+    if (ImGui::BeginCombo("Scale Nav resolution", createLabel("nav", scale))) {
+      auto newScale = selectNewScale("nav", scale);
+      if (scale != newScale)
+        frame->child("scaleNav") = newScale;
+      ImGui::EndCombo();
+    }
+  }
+
+  ImGui::Separator();
+
+  ImGui::Text("Aspect Ratio");
+  const float origAspect = lockAspectRatio;
+  if (lockAspectRatio != 0.f) {
+    ImGui::SameLine();
+    ImGui::Text("locked at %f", lockAspectRatio);
+    if (ImGui::Button("Unlock")) {
+      lockAspectRatio = 0.f;
+    }
+  } else {
+    if (ImGui::Button("Lock")) {
+      lockAspectRatio =
+          static_cast<float>(windowSize.x) / static_cast<float>(windowSize.y);
+    }
+    sg::showTooltip("Lock to current aspect ratio");
+  }
+
+  ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+  ImGui::InputFloat("Set", &lockAspectRatio);
+  sg::showTooltip("Lock to custom aspect ratio");
+  lockAspectRatio = std::max(lockAspectRatio, 0.f);
+
+  if (origAspect != lockAspectRatio)
+    reshape(windowSize);
+
+  ImGui::End();
 }
 
 void MainWindow::buildWindowKeyframes()
@@ -1715,8 +1874,6 @@ void MainWindow::buildWindowKeyframes()
     static bool showCameraPath = false;
     if (ImGui::Checkbox("show camera path", &showCameraPath)) {
       if (!showCameraPath) {
-        frame->cancelFrame();
-        frame->waitOnFrame();
         frame->child("world").remove("cameraPath");
         frame->child("world").remove("cameraPathCaps");
         refreshScene(false);
@@ -1739,7 +1896,7 @@ void MainWindow::buildWindowKeyframes()
         std::fill(colors.begin(), colors.end(), vec4f(0.8f, 0.4f, 0.4f, 1.f));
 
         const std::vector<uint32_t> mID = {
-            static_cast<uint32_t>(baseMaterialRegistry->children().size())};
+            static_cast<uint32_t>(baseMaterialRegistry->baseMaterialOffSet())};
         auto mat = sg::createNode("pathGlass", "thinGlass");
         baseMaterialRegistry->add(mat);
 
@@ -1924,12 +2081,8 @@ void MainWindow::buildWindowLightEditor()
           auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
           ast2d->load(texFileName, false, false);
         }
-        // When adding HDRI or sunSky, set background color to black.
-        // It's otherwise confusing.  The user can still adjust it afterward.
-        if (lightType == "hdri" || lightType == "sunSky") {
-          auto &r = frame->childAs<sg::Renderer>("renderer");
-          r["backgroundColor"] = vec4f(vec3f(0.f), 1.f); // black, opaque alpha
-        }
+        // Select newly added light
+        whichLight = lights.size() - 1;
       } else {
         lightNameWarning = true;
       }
@@ -1965,26 +2118,25 @@ void MainWindow::buildWindowCameraEditor()
           nullptr,
           g_sceneCameras.size())) {
     if (whichCamera > -1 && whichCamera < (int) g_sceneCameras.size()) {
-      auto &currentCamera = g_sceneCameras.at_index(whichCamera);
-      auto &cameraNode = currentCamera.second->children();
+      auto &newCamera = g_sceneCameras.at_index(whichCamera);
+      g_selectedSceneCamera = newCamera.second;
+      g_animateCamera = g_selectedSceneCamera->nodeAs<sg::Camera>()->animate;
 
       // Change the camera type, if the new camera is different.
       if (frame->childAs<sg::Camera>("camera").subType()
-          != currentCamera.second->subType()) {
-        // Cancel any in-progress frame since we're changing the camera node.
-        frame->cancelFrame();
-        frame->waitOnFrame();
+          != newCamera.second->subType()) {
         frame->createChildAs<sg::Camera>("camera",
-            currentCamera.second->subType());
+            newCamera.second->subType());
       }
 
       // Add new camera params
       auto &camera = frame->childAs<sg::Camera>("camera");
-      for (auto &c : cameraNode) {
+      for (auto &c : g_selectedSceneCamera->children())
         camera.add(c.second);
-      }
 
-      camera.commit();
+      auto newCS = g_selectedSceneCamera->nodeAs<sg::Camera>()->getState();
+      arcballCamera->setState(*newCS);
+
       reshape(windowSize); // resets aspect
       updateCamera();
     }
@@ -1999,12 +2151,8 @@ void MainWindow::buildWindowCameraEditor()
     auto newType = "camera_" + type;
     ImGui::SameLine();
     if (ImGui::RadioButton(type.c_str(), currentType == newType)) {
-      // Cancel any in-progress frame since we're changing the camera node.
-      frame->cancelFrame();
-      frame->waitOnFrame();
       // Create new camera of new type
       frame->createChildAs<sg::Camera>("camera", newType);
-      frame->childAs<sg::Camera>("camera").commit();
       reshape(windowSize); // resets aspect
       updateCamera(); // resets position, direction, etc
       break;
@@ -2015,8 +2163,6 @@ void MainWindow::buildWindowCameraEditor()
   auto &camera = frame->childAs<sg::Camera>("camera");
   bool updated = false;
   camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN, updated);
-  if (updated)
-    camera.commit();
 
   ImGui::End();
 }
@@ -2086,9 +2232,9 @@ void MainWindow::buildWindowTransferFunctionEditor()
                 opacities.begin(),
                 [](vec4f c4) { return c4[3]; });
 
-            tfn["valueRange"] = valueRange.toVec2();
             tfn.createChildData("color", colors);
             tfn.createChildData("opacity", opacities);
+            tfn["valueRange"] = valueRange.toVec2();
           }
         };
 
@@ -2104,21 +2250,25 @@ void MainWindow::buildWindowTransferFunctionEditor()
           whichTFn = i;
           selected = t.first;
 
-#if 0 // XXX Needs to be fixed.  This overwrites the default transferfunction
           auto &tfn = *(t.second->nodeAs<sg::TransferFunction>());
           const auto numSamples = tfn.colors.size();
 
           if (numSamples > 1) {
             auto vRange = tfn["valueRange"].valueAs<vec2f>();
 
-            std::vector<vec4f> c4(numSamples);
-            for (int n = 0; n < numSamples; n++)
+            // Create a c4 from c3 + opacity
+            std::vector<vec4f> c4;
+
+            if (tfn.opacities.size() != numSamples)
+              tfn.opacities.resize(numSamples, tfn.opacities.back());
+
+            for (int n = 0; n < numSamples; n++) {
               c4.emplace_back(vec4f(tfn.colors.at(n), tfn.opacities.at(n)));
+            }
 
             transferFunctionWidget.setValueRange(range1f(vRange[0], vRange[1]));
             transferFunctionWidget.setColorsAndOpacities(c4);
           }
-#endif
         }
         i++;
       }
@@ -2143,8 +2293,8 @@ void MainWindow::buildWindowIsosurfaceEditor()
 
   // Specialized node vector list box
   using vNodePtr = std::vector<sg::NodePtr>;
-  static auto ListBox = [](const char *label, int *selected, vNodePtr &nodes) {
-    static auto getter = [](void *vec, int index, const char **name) {
+  auto ListBox = [](const char *label, int *selected, vNodePtr &nodes) {
+    auto getter = [](void *vec, int index, const char **name) {
       auto nodes = static_cast<vNodePtr *>(vec);
       if (0 > index || index >= (int) nodes->size())
         return false;
@@ -2194,13 +2344,18 @@ void MainWindow::buildWindowIsosurfaceEditor()
       auto isoXfm =
           sg::createNode(surfName + "_xfm", "transform", affine3f{one});
 
-      auto isoGeom = sg::createNode(surfName, "geometry_isosurfaces");
-      isoGeom->createChild("isovalue", "float", 0.f);
-      isoGeom->child("isovalue").setMinMax(-1.f, 1.f);
+      auto valueRange = selected->child("valueRange").valueAs<range1f>();
 
-      uint32_t materialID = baseMaterialRegistry->children().size();
+      auto isoGeom = sg::createNode(surfName, "geometry_isosurfaces");
+      isoGeom->createChild("valueRange", "range1f", valueRange);
+      isoGeom->child("valueRange").setSGOnly();
+      isoGeom->createChild("isovalue", "float", valueRange.center());
+      isoGeom->child("isovalue").setMinMax(valueRange.lower, valueRange.upper);
+
+      uint32_t materialID = baseMaterialRegistry->baseMaterialOffSet();
       const std::vector<uint32_t> mID = {materialID};
       auto mat = sg::createNode(surfName, "obj");
+
       // Give it some editable parameters
       mat->createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
       mat->createChild("ks", "rgb", "specular color", vec3f(0.f));
@@ -2240,8 +2395,11 @@ void MainWindow::buildWindowIsosurfaceEditor()
   if (surfaces.empty()) {
     ImGui::Text("== empty == ");
   } else {
-    for (auto &surface : surfaces)
+    for (auto &surface : surfaces) {
       surface->traverse<sg::GenerateImGuiWidgets>();
+      if (surface->isModified())
+        break;
+    }
   }
 
   ImGui::End();
@@ -2327,7 +2485,6 @@ void MainWindow::buildWindowTransformEditor()
           sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
       if (userUpdated) {
-        result->commit();
         break;
       }
     }
@@ -2340,7 +2497,6 @@ void MainWindow::buildWindowTransformEditor()
             sg::TreeState::ROOTOPEN, userUpdated);
         // Don't continue traversing
         if (userUpdated) {
-          node.second->commit();
           break;
         }
       }
@@ -2372,18 +2528,46 @@ void MainWindow::buildWindowRenderingStats()
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   auto variance = fb.variance();
+  auto &v = frame->childAs<sg::Renderer>("renderer")["varianceThreshold"];
+  auto varianceThreshold = v.valueAs<float>();
+
+  std::string mode = frame->child("navMode").valueAs<bool>() ? "Nav" : "";
+  float scale = frame->child("scale" + mode).valueAs<float>();
 
   ImGui::Text("renderer: %s", rendererTypeStr.c_str());
-  ImGui::Text("framerate: %-7.1f fps", latestFPS);
-  ImGui::Text("ui framerate: %-7.1f fps", ImGui::GetIO().Framerate);
-  ImGui::Text("variance : %-5.2f    ", variance);
-  if (frame->accumLimit > 0) {
+  ImGui::Text("frame size: (%d,%d)", windowSize.x, windowSize.y);
+  ImGui::SameLine();
+  ImGui::Text("x%1.2f", scale);
+  ImGui::Text("framerate: %-4.1f fps", latestFPS);
+  ImGui::Text("ui framerate: %-4.1f fps", ImGui::GetIO().Framerate);
+
+  if (varianceThreshold == 0) {
+    ImGui::Text("variance    : %-5.2f    ", variance);
+  } else {
+    ImGui::Text("variance    :");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(8 * ImGui::GetFontSize());
+    float progress = varianceThreshold / variance;
+    char message[64];
+    snprintf(
+        message, sizeof(message), "%.2f/%.2f", variance, varianceThreshold);
+    ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), message);
+  }
+
+  if (frame->accumLimit == 0) {
+    ImGui::Text("accumulation: %d", frame->currentAccum);
+  } else {
     ImGui::Text("accumulation:");
     ImGui::SameLine();
+    ImGui::SetNextItemWidth(8 * ImGui::GetFontSize());
     float progress = float(frame->currentAccum) / frame->accumLimit;
-    std::string progressStr = std::to_string(frame->currentAccum) + "/"
-        + std::to_string(frame->accumLimit);
-    ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), progressStr.c_str());
+    char message[64];
+    snprintf(message,
+        sizeof(message),
+        "%d/%d",
+        frame->currentAccum,
+        frame->accumLimit);
+    ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), message);
   }
 
   ImGui::End();

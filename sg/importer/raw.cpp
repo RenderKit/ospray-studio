@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -37,25 +37,26 @@ void RawImporter::importScene()
 
   if (volumeTypeExt == ".spherical") {
     auto volume = createNode(nodeName, "structuredSpherical");
-    volume->createChild("voxelType", "int", p->voxelType);
-    volume->createChild("gridOrigin", "vec3f", p->gridOrigin);
-    volume->createChild("gridSpacing", "vec3f", p->gridSpacing);
-    volume->createChild("dimensions", "vec3i", p->dimensions);
-    auto sphericalVolume = std::static_pointer_cast<StructuredSpherical>(volume);
+    for (auto &c : volumeParams->children())
+      volume->add(c.second);
+
+    auto sphericalVolume =
+        std::static_pointer_cast<StructuredSpherical>(volume);
     sphericalVolume->load(fileName);
     volumeImport = sphericalVolume;
   } else {
     auto volume = createNode(nodeName, "structuredRegular");
-    volume->createChild("voxelType", "int", p->voxelType);
-    volume->createChild("gridOrigin", "vec3f", p->gridOrigin);
-    volume->createChild("gridSpacing", "vec3f", p->gridSpacing);
-    volume->createChild("dimensions", "vec3i", p->dimensions);
+    for (auto &c : volumeParams->children())
+      volume->add(c.second);
+
     auto structuredVolume = std::static_pointer_cast<StructuredVolume>(volume);
     structuredVolume->load(fileName);
     volumeImport = structuredVolume;
   }
 
   auto tf = createNode("transferFunction", "transfer_function_jet");
+  auto valueRange = volumeImport->child("valueRange").valueAs<range1f>();
+  tf->child("valueRange") = valueRange.toVec2();
   volumeImport->add(tf);
 
   rootNode->add(volumeImport);

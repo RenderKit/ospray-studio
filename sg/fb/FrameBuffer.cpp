@@ -53,13 +53,6 @@ FrameBuffer::FrameBuffer()
   updateHandle();
 }
 
-FrameBuffer::~FrameBuffer()
-{
-  std::free(instData);
-  std::free(geomData);
-  std::free(worldPosData);
-}
-
 NodeType FrameBuffer::type() const
 {
   return NodeType::FRAME_BUFFER;
@@ -111,13 +104,6 @@ void FrameBuffer::updateHandle()
 
   auto size = child("size").valueAs<vec2i>();
   auto colorFormatStr = child("colorFormat").valueAs<std::string>();
-
-  std::free(instData);
-  std::free(geomData);
-  std::free(worldPosData);
-  instData = nullptr;
-  geomData = nullptr;
-  worldPosData = nullptr;
 
   auto fb =
       cpp::FrameBuffer(size.x, size.y, colorFormats[colorFormatStr], channels);
@@ -213,7 +199,6 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
   bool depth = flags & 0b10;
   bool normal = flags & 0b100;
   bool asLayers = flags & 0b1000;
-  bool metaData = flags & 0b10000;
 
   if (albedo) {
     abuf = (void *)map(OSP_FB_ALBEDO);
@@ -242,122 +227,15 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
     exp->createChild("asLayers", "bool", true);
   }
 
-  if (metaData) {
-    std::cout << "saving meta data for pixels .." << std::endl;
-    pickFrame(filename);
-
-    if (geomData != nullptr && instData != nullptr && worldPosData != nullptr) {
-      exp->child("asLayers").setValue(true);
-      exp->_geomData = geomData;
-      exp->_instData = instData;
-      exp->_worldPosition = worldPosData;
-    }
-  }
-
   exp->doExport();
 
   unmap(fb);
-  if (albedo)
+  if (abuf)
     unmap(abuf);
-  if (depth)
+  if (zbuf)
     unmap(zbuf);
-  if (normal)
+  if (nbuf)
     unmap(nbuf);
-}
-
-void FrameBuffer::pickFrame(std::string filename)
-{
-  auto &frame = parents().front();
-  auto &world = frame->childAs<sg::World>("world").handle();
-  auto &camera = frame->childAs<sg::Camera>("camera").handle();
-  auto &renderer = frame->childAs<sg::Renderer>("renderer").handle();
-  auto size = child("size").valueAs<vec2i>();
-  if (!instData)
-    instData = (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
-  if (!geomData)
-    geomData = (uint32_t *)std::malloc(size.x * size.y * sizeof(uint32_t));
-  if (!worldPosData)
-    worldPosData = (float *)std::malloc(size.x * size.y * 3 * sizeof(float));
-
-  if (!instData || !geomData || !worldPosData)
-    return;
-
-  std::map<std::string, int> gUnique;
-  gUnique.insert(std::make_pair("", 0));
-
-  std::map<std::string, int> iUnique;
-  iUnique.insert(std::make_pair("", 0));
-
-  size_t idx = 0;
-  for (auto j = 0; j < size.y; ++j) {
-    for (auto i = 0; i < size.x; ++i, ++idx) {
-      float normalize_x = (i + 0.5f) / size.x;
-      float normalize_y = (j + 0.5f) / size.y;
-
-      auto pickResult =
-          handle().pick(renderer, camera, world, normalize_x, normalize_y);
-
-      uint32_t instId = 0;
-      uint32_t geomId = 0;
-      float worldPosition[3] = {0, 0, 0};
-
-      if (pickResult.hasHit) {
-        auto ospGeometricModel = pickResult.model.handle();
-        if (ge.find(ospGeometricModel) != ge.end()) {
-          auto g_uuid = ge[ospGeometricModel];
-          if (gUnique.find(g_uuid) == gUnique.end()) {
-            auto size = gUnique.size();
-            gUnique.insert(std::make_pair(g_uuid, size));
-            geomId = size;
-          } else {
-            geomId = gUnique[g_uuid];
-          }
-        }
-
-        auto ospInstance = pickResult.instance.handle();
-        if (in.find(ospInstance) != in.end()) {
-          auto i_uuid = in[ospInstance];
-          if (iUnique.find(i_uuid) == iUnique.end()) {
-            auto size = iUnique.size();
-            iUnique.insert(std::make_pair(i_uuid, size));
-            instId = size;
-          } else {
-            instId = iUnique[i_uuid];
-          }
-        }
-        worldPosition[0] = pickResult.worldPosition[0];
-        worldPosition[1] = pickResult.worldPosition[1];
-        worldPosition[2] = pickResult.worldPosition[2];
-      }
-      geomData[idx] = geomId;
-      instData[idx] = instId;
-      worldPosData[idx * 3] = worldPosition[0];
-      worldPosData[idx * 3 + 1] = worldPosition[1];
-      worldPosData[idx * 3 + 2] = worldPosition[2];
-    }
-  }
-
-  auto geomStream =
-      filename.substr(0, filename.find_last_of(".")) + ".objectId.json";
-  auto instStream = filename.substr(0, filename.find_last_of(".")) + ".id.json";
-
-  std::ofstream geomDump(geomStream);
-  std::ofstream instDump(instStream);
-
-  std::cout << "JSON maps saved to : " << geomStream << " and " << instStream
-            << std::endl;
-
-  auto gj = nlohmann::json::array();
-  for (auto &g : gUnique) {
-    gj.push_back(g.first);
-  }
-  geomDump << gj.dump();
-
-  auto nj = nlohmann::json::array();
-  for (auto &g : iUnique) {
-    nj.push_back(g.first);
-  }
-  instDump << nj.dump();
 }
 
 OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);

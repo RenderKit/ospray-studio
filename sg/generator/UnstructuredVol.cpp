@@ -1,160 +1,188 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Generator.h"
 // std
+#include <sg/scene/volume/Unstructured.h>
 #include <random>
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-    struct UnstructuredVol : public Generator
-    {
-      UnstructuredVol()           = default;
-      ~UnstructuredVol() override = default;
+struct UnstructuredVol : public Generator
+{
+  UnstructuredVol();
+  ~UnstructuredVol() override = default;
 
-      void generateData() override;
-    };
+  void generateData() override;
+};
 
-    OSP_REGISTER_SG_NODE_NAME(UnstructuredVol, generator_unstructured_volume);
+OSP_REGISTER_SG_NODE_NAME(UnstructuredVol, generator_unstructured_volume);
 
-    // UnstructuredVol definitions
-    // //////////////////////////////////////////////
+// UnstructuredVol definitions
+// //////////////////////////////////////////////
 
-    void UnstructuredVol::generateData()
-    {
-      // define hexahedron parameters
-      const float hSize = .4f;
-      const float hX = -.5f, hY = -.5f, hZ = 0.f;
+UnstructuredVol::UnstructuredVol()
+{
+  auto &parameters = child("parameters");
+  parameters.sgOnly();
 
-      // define wedge parameters
-      const float wSize = .4f;
-      const float wX = .5f, wY = -.5f, wZ = 0.f;
+  // define hexahedron parameters
+  parameters.createChild("hSize", "float", .4f);
+  parameters.createChild("hSpacing", "vec3f", vec3f(-.5f, -.5f, 0.f));
+  // define wedge parameters
+  parameters.createChild("wSize", "float", .4f);
+  parameters.createChild("wSpacing", "vec3f", vec3f(.5f, -.5f, 0.f));
+  // define tetrahedron parameters
+  parameters.createChild("tSize", "float", .4f);
+  parameters.createChild("tSpacing", "vec3f", vec3f(.5f, .5f, 0.f));
+  // define pyramid parameters
+  parameters.createChild("pSize", "float", .4f);
+  parameters.createChild("pSpacing", "vec3f", vec3f(-.5f, .5f, 0.f));
 
-      // define tetrahedron parameters
-      const float tSize = .4f;
-      const float tX = .5f, tY = .5f, tZ = 0.f;
+  auto &xfm = createChild("xfm", "transform");
+}
 
-      // define pyramid parameters
-      const float pSize = .4f;
-      const float pX = -.5f, pY = .5f, pZ = 0.f;
+void UnstructuredVol::generateData()
+{
+  auto &xfm = child("xfm");
+  auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
 
-      // define vertex positions
-      std::vector<vec3f> vertices = {
-          // hexahedron
-          {-hSize + hX, -hSize + hY, hSize + hZ},  // bottom quad
-          {hSize + hX, -hSize + hY, hSize + hZ},
-          {hSize + hX, -hSize + hY, -hSize + hZ},
-          {-hSize + hX, -hSize + hY, -hSize + hZ},
-          {-hSize + hX, hSize + hY, hSize + hZ},  // top quad
-          {hSize + hX, hSize + hY, hSize + hZ},
-          {hSize + hX, hSize + hY, -hSize + hZ},
-          {-hSize + hX, hSize + hY, -hSize + hZ},
+  auto &parameters = child("parameters");
 
-          // wedge
-          {-wSize + wX, -wSize + wY, wSize + wZ},  // botom triangle
-          {wSize + wX, -wSize + wY, 0.f + wZ},
-          {-wSize + wX, -wSize + wY, -wSize + wZ},
-          {-wSize + wX, wSize + wY, wSize + wZ},  // top triangle
-          {wSize + wX, wSize + wY, 0.f + wZ},
-          {-wSize + wX, wSize + wY, -wSize + wZ},
+  auto hSize = parameters["hSize"].valueAs<float>();
+  auto h = parameters["hSpacing"].valueAs<vec3f>();
 
-          // tetrahedron
-          {-tSize + tX, -tSize + tY, tSize + tZ},
-          {tSize + tX, -tSize + tY, 0.f + tZ},
-          {-tSize + tX, -tSize + tY, -tSize + tZ},
-          {-tSize + tX, tSize + tY, 0.f + tZ},
+  auto wSize = parameters["wSize"].valueAs<float>();
+  auto w = parameters["wSpacing"].valueAs<vec3f>();
 
-          // pyramid
-          {-pSize + pX, -pSize + pY, pSize + pZ},
-          {pSize + pX, -pSize + pY, pSize + pZ},
-          {pSize + pX, -pSize + pY, -pSize + pZ},
-          {-pSize + pX, -pSize + pY, -pSize + pZ},
-          {pSize + pX, pSize + pY, 0.f + pZ}};
+  auto tSize = parameters["tSize"].valueAs<float>();
+  auto t = parameters["tSpacing"].valueAs<vec3f>();
 
-      // define per-vertex values
-      std::vector<float> vertexValues = {// hexahedron
-                                         0.f,
-                                         0.f,
-                                         0.f,
-                                         0.f,
-                                         0.f,
-                                         1.f,
-                                         1.f,
-                                         0.f,
+  auto pSize = parameters["pSize"].valueAs<float>();
+  auto p = parameters["pSpacing"].valueAs<vec3f>();
 
-                                         // wedge
-                                         0.f,
-                                         0.f,
-                                         0.f,
-                                         1.f,
-                                         0.f,
-                                         1.f,
+  // define vertex positions
+  std::vector<vec3f> vertices = {// hexahedron
+      {-hSize + h.x, -hSize + h.y, hSize + h.z}, // bottom quad
+      {hSize + h.x, -hSize + h.y, hSize + h.z},
+      {hSize + h.x, -hSize + h.y, -hSize + h.z},
+      {-hSize + h.x, -hSize + h.y, -hSize + h.z},
+      {-hSize + h.x, hSize + h.y, hSize + h.z}, // top quad
+      {hSize + h.x, hSize + h.y, hSize + h.z},
+      {hSize + h.x, hSize + h.y, -hSize + h.z},
+      {-hSize + h.x, hSize + h.y, -hSize + h.z},
 
-                                         // tetrahedron
-                                         1.f,
-                                         0.f,
-                                         1.f,
-                                         0.f,
+      // wedge
+      {-wSize + w.x, -wSize + w.y, wSize + w.z}, // botom triangle
+      {wSize + w.x, -wSize + w.y, 0.f + w.z},
+      {-wSize + w.x, -wSize + w.y, -wSize + w.z},
+      {-wSize + w.x, wSize + w.y, wSize + w.z}, // top triangle
+      {wSize + w.x, wSize + w.y, 0.f + w.z},
+      {-wSize + w.x, wSize + w.y, -wSize + w.z},
 
-                                         // pyramid
-                                         0.f,
-                                         1.f,
-                                         1.f,
-                                         0.f,
-                                         0.f};
+      // tetrahedron
+      {-tSize + t.x, -tSize + t.y, tSize + t.z},
+      {tSize + t.x, -tSize + t.y, 0.f + t.z},
+      {-tSize + t.x, -tSize + t.y, -tSize + t.z},
+      {-tSize + t.x, tSize + t.y, 0.f + t.z},
 
-      // define vertex indices for both shared and separate case
-      std::vector<uint32_t> indicesSharedVert = {// hexahedron
-                                                 0,
-                                                 1,
-                                                 2,
-                                                 3,
-                                                 4,
-                                                 5,
-                                                 6,
-                                                 7,
+      // pyramid
+      {-pSize + p.x, -pSize + p.y, pSize + p.z},
+      {pSize + p.x, -pSize + p.y, pSize + p.z},
+      {pSize + p.x, -pSize + p.y, -pSize + p.z},
+      {-pSize + p.x, -pSize + p.y, -pSize + p.z},
+      {pSize + p.x, pSize + p.y, 0.f + p.z}};
 
-                                                 // wedge
-                                                 1,
-                                                 9,
-                                                 2,
-                                                 5,
-                                                 12,
-                                                 6,
+  // define per-vertex values
+  std::vector<float> vertexValues = {
+      // hexahedron
+      0.f,
+      0.f,
+      0.f,
+      0.f,
+      0.f,
+      1.f,
+      1.f,
+      0.f,
 
-                                                 // tetrahedron
-                                                 5,
-                                                 12,
-                                                 6,
-                                                 17,
+      // wedge
+      0.f,
+      0.f,
+      0.f,
+      1.f,
+      0.f,
+      1.f,
 
-                                                 // pyramid
-                                                 4,
-                                                 5,
-                                                 6,
-                                                 7,
-                                                 17};
+      // tetrahedron
+      1.f,
+      0.f,
+      1.f,
+      0.f,
+
+      // pyramid
+      0.f,
+      1.f,
+      1.f,
+      0.f,
+      0.f};
+
+  // define vertex indices for both shared and separate case
+  std::vector<uint32_t> indicesSharedVert = {
+      // hexahedron
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+
+      // wedge
+      1,
+      9,
+      2,
+      5,
+      12,
+      6,
+
+      // tetrahedron
+      5,
+      12,
+      6,
+      17,
+
+      // pyramid
+      4,
+      5,
+      6,
+      7,
+      17};
 
       std::vector<uint32_t> &indices = indicesSharedVert;
 
-      // define cell offsets in indices array
-      std::vector<uint32_t> cells = {0, 8, 14, 18};
+  // define cell offsets in indices array
+  std::vector<uint32_t> cells = {0, 8, 14, 18};
 
-      // define cell types
-      std::vector<uint8_t> cellTypes = {
-          OSP_HEXAHEDRON, OSP_WEDGE, OSP_TETRAHEDRON, OSP_PYRAMID};
+  // define cell types
+  std::vector<uint8_t> cellTypes = {
+      OSP_HEXAHEDRON, OSP_WEDGE, OSP_TETRAHEDRON, OSP_PYRAMID};
 
-      auto &tf     = createChild("transferFunction", "transfer_function_jet");
-      auto &volume = tf.createChild("volume", "volume_unstructured");
+  auto &volume = tf.createChild("unstructured_volume", "volume_unstructured");
 
-      // set data objects for volume object
-      volume["vertex.position"] = (cpp::CopiedData)vertices;
-      volume["index"]           = (cpp::CopiedData)indices;
-      volume["cell.index"]         = (cpp::CopiedData)cells;
-      volume["vertex.data"]        = (cpp::CopiedData)vertexValues;
-      volume["cell.type"]          = (cpp::CopiedData)cellTypes;
+  const auto minmax =
+      std::minmax_element(begin(vertexValues), end(vertexValues));
+  auto valueRange = range1f(*std::get<0>(minmax), *std::get<1>(minmax));
+  volume["valueRange"] = valueRange;
+  tf["valueRange"] = valueRange.toVec2();
 
-    }
-  }  // namespace sg
-}  // namespace ospray
+  // set data objects for volume object
+  volume["vertex.position"] = (cpp::CopiedData)vertices;
+  volume["index"] = (cpp::CopiedData)indices;
+  volume["cell.index"] = (cpp::CopiedData)cells;
+  volume["vertex.data"] = (cpp::CopiedData)vertexValues;
+  volume["cell.type"] = (cpp::CopiedData)cellTypes;
+}
+} // namespace sg
+} // namespace ospray

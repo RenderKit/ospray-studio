@@ -76,16 +76,36 @@ namespace ospray {
     return properties.children;
   }
 
-  bool Node::hasChild(const std::string &name) const
+ bool Node::hasChild(const std::string &name) const
   {
     auto &c = properties.children;
     if (c.contains(name))
       return true;
 
-    std::string name_lower = utility::lowerCase(name);
+    auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
+      return n.first == name;
+    });
+
+    return itr != properties.children.end();
+  }
+
+  bool Node::hasChildOfSubType(const std::string &subType) const
+  {
+    auto &c = properties.children;
 
     auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
-      return utility::lowerCase(n.first) == name_lower;
+      return n.second->subType() == subType;
+    });
+
+    return itr != properties.children.end();
+  }
+
+    bool Node::hasChildOfType(NodeType type) const
+  {
+    auto &c = properties.children;
+
+    auto itr = std::find_if(c.cbegin(), c.cend(), [&](const NodeLink &n) {
+      return n.second->type() == type;
     });
 
     return itr != properties.children.end();
@@ -97,10 +117,8 @@ namespace ospray {
     if (c.contains(name))
       return *c[name];
 
-    std::string name_lower = utility::lowerCase(name);
-
     auto itr = std::find_if(c.begin(), c.end(), [&](const NodeLink &n) {
-      return utility::lowerCase(n.first) == name_lower;
+      return n.first == name;
     });
 
     if (itr == properties.children.cend()) {
@@ -110,6 +128,30 @@ namespace ospray {
     } else {
       return *itr->second;
     }
+  }
+
+  const std::vector<NodePtr> Node::childrenOfSubType(const std::string &subType)
+  {
+    auto &props = properties.children;
+    std::vector<NodePtr> childrenOfType;
+
+    for (auto &p : props) {
+      if (p.second->subType() == subType)
+        childrenOfType.push_back(p.second);
+    }
+    return childrenOfType;
+  }
+
+  const std::vector<NodePtr> Node::childrenOfType(NodeType type)
+  {
+    auto &props = properties.children;
+    std::vector<NodePtr> childrenOfType;
+
+    for (auto &p : props) {
+      if (p.second->type() == type)
+        childrenOfType.push_back(p.second);
+    }
+    return childrenOfType;
   }
 
   Node &Node::operator[](const std::string &c)
@@ -216,13 +258,7 @@ namespace ospray {
     commit();
     traverse<RenderScene>();
   }
-
-  void Node::render(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap)
-  {
-    commit();
-    traverse<RenderScene>(geomIdMap, instanceIdMap);
-  }
-
+  
   box3f Node::bounds()
   {
     GetBounds visitor;
@@ -274,6 +310,16 @@ namespace ospray {
   void Node::setSGOnly()
   {
     properties.sgOnly = true;
+  }
+
+  bool Node::sgNoUI() const
+  {
+    return properties.sgNoUI;
+  }
+
+  void Node::setSGNoUI()
+  {
+    properties.sgNoUI = true;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -414,7 +460,7 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(UIntNode, uint32_t);
   OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
   OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
-  OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec4i);
+  OSP_REGISTER_SG_NODE_NAME(Vec4iNode, vec4i);
   OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
   OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
   OSP_REGISTER_SG_NODE_NAME(Box3iNode, box3i);

@@ -129,10 +129,20 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
       n = createNode(j["name"], j["subType"], j["value"].get<Any>());
     }
 
+    if (j.contains("sgOnly") && j["sgOnly"].get<bool>())
+      n->setSGOnly();
+
+    if (j.contains("minMax")) {
+      auto minMax = j["minMax"].get<std::vector<Any>>();
+      n->setMinMax(minMax[0], minMax[1]);
+    }
+
     // JSON doesn't distinguish between uint8_t and integer.  Convert it, if
     // the subType calls for an uchar.
-    if (j["subType"] == "uchar")
+    if (j["subType"] == "uchar") {
       n->setValue(uint8_t(n->valueAs<int>()));
+      n->setMinMax(uint8_t(n->minAs<int>()), uint8_t(n->maxAs<int>()));
+    }
 
   } else {
     n = createNode(j["name"], j["subType"]);
@@ -149,12 +159,6 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
         auto child = createNodeFromJSON(jChild);
         if (!child)
           continue;
-        if (jChild.contains("sgOnly") && jChild["sgOnly"].get<bool>())
-          child->setSGOnly();
-        if (jChild.contains("minMax")) {
-          auto minMax = jChild["minMax"].get<std::vector<Any>>();
-          child->setMinMax(minMax[0], minMax[1]);
-        }
         if (n->type() == NodeType::LIGHTS)
           n->nodeAs<LightsManager>()->addLight(child);
         else if (n->type() == NodeType::MATERIAL)

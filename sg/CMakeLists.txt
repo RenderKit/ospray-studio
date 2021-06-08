@@ -5,13 +5,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ## OpenImageIO support ##
 
-option(ENABLE_OPENIMAGEIO "Enable OpenImageIO support" ON)
-
+option(ENABLE_OPENIMAGEIO "Enable OpenImageIO support" OFF)
 if(ENABLE_OPENIMAGEIO)
-  find_package(OpenImageIO REQUIRED)
-  if (NOT OpenImageIO_FOUND)
-    message(STATUS "OpenImageIO not found. Using stb_image instead.")
-  endif()
+  include(oiio)
 else()
   message(STATUS "Building without OpenImageIO support. Using stb_image instead.")
 endif()
@@ -19,7 +15,6 @@ endif()
 ## OpenVDB support ##
 
 option(ENABLE_OPENVDB "Enable OpenVDB support" OFF)
-
 if(ENABLE_OPENVDB)
   # Monitor <PackageName>_ROOT variables, as this mechanism is used a lot in OpenVDB.
   if(POLICY CMP0074)
@@ -37,11 +32,11 @@ endif()
 
 ## OpenEXR support ##
 
-option(ENABLE_EXR "Enable EXR format image writing" ON)
+option(ENABLE_EXR "Enable EXR format image writing" OFF)
 if (ENABLE_EXR)
-  find_package(OpenEXR REQUIRED)
+  include(openexr)
 else()
-  message(STATUS "Building without OpenVDB support.")
+  message(STATUS "Building without OpenEXR support.")
 endif()
 
 ## Build Library ##
@@ -66,6 +61,7 @@ add_library(ospray_sg SHARED
   fb/FrameBuffer.cpp
 
   generator/Generator.cpp
+  generator/ParticleVol.cpp
   generator/RandomSpheres.cpp
   generator/TutorialScene.cpp
   generator/TutorialSceneML.cpp
@@ -78,9 +74,11 @@ add_library(ospray_sg SHARED
   importer/OBJ.cpp
   importer/OBJ/tiny_obj_loader_impl.cpp
   importer/glTF.cpp
+  importer/PCD.cpp
   importer/glTF/tiny_gltf_impl.cpp
   importer/glTF/gltf_types.cpp
   importer/raw.cpp
+  importer/particleVolume.cpp
   importer/vdb.cpp
 
   renderer/Material.cpp
@@ -120,11 +118,9 @@ add_library(ospray_sg SHARED
   scene/transfer_function/Jet.cpp
   scene/transfer_function/TransferFunction.cpp
 
-  scene/volume/Structured.cpp
-  scene/volume/Unstructured.cpp
-  scene/volume/StructuredSpherical.cpp
   scene/volume/Vdb.cpp
   scene/volume/Volume.cpp
+  scene/volume/ParticleVolume.cpp
   scene/volume/RawFileStructuredVolume.cpp
 
   scene/lights/Light.cpp
@@ -140,6 +136,8 @@ add_library(ospray_sg SHARED
   texture/Texture.cpp
   texture/Texture2D.cpp
   texture/TextureVolume.cpp
+
+  ${OSPRAY_STUDIO_RESOURCE_FILE}
   )
 
 target_compile_definitions(ospray_sg PUBLIC OSPRAY_CPP_RKCOMMON_TYPES)
@@ -154,6 +152,8 @@ PRIVATE
   tiny_obj_loader
   tiny_gltf
 )
+
+_target_strip_and_sign(ospray_sg)
 
 install(TARGETS ospray_sg
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

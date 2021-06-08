@@ -132,14 +132,17 @@ namespace ospray {
               (char *)((uint32_t *)flippedGeomData),
               sizeof(uint32_t) * 1,
               size.x * sizeof(uint32_t)));
+      std::cout << "saving Geometric-Ids to layer : 'objectId'"
+                << std::endl;
       exrFb.insert("id",
           Imf::Slice(IMF::UINT,
               (char *)((uint32_t *)flippedInstData),
               sizeof(uint32_t) * 1,
               size.x * sizeof(uint32_t)));
+      std::cout << "saving Instance-Ids to layer : 'id'" << std::endl;
     }
 
-    if(_worldPosition != nullptr) {
+    if (_worldPosition != nullptr) {
       exrHeader.channels().insert("worldPosition.X", Imf::Channel(IMF::FLOAT));
       exrHeader.channels().insert("worldPosition.Y", Imf::Channel(IMF::FLOAT));
       exrHeader.channels().insert("worldPosition.Z", Imf::Channel(IMF::FLOAT));
@@ -148,13 +151,15 @@ namespace ospray {
       exrFb.insert("worldPosition.X", makeSlice(flippedWorldPosition, 0, 3));
       exrFb.insert("worldPosition.Y", makeSlice(flippedWorldPosition, 1, 3));
       exrFb.insert("worldPosition.Z", makeSlice(flippedWorldPosition, 2, 3));
+      std::cout << "saving World-Positions to layer : 'worldPosition'"
+                << std::endl;
     }
 
     Imf::OutputFile exrFile(file.c_str(), exrHeader);
     exrFile.setFrameBuffer(exrFb);
     exrFile.writePixels(size.y);
 
-    std::cout << "Saved to " << file << std::endl;
+    std::cout << "EXR Saved to " << file << std::endl;
 
     for (auto ptr : flippedBuffers)
       free(ptr.second);

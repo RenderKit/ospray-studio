@@ -3,11 +3,13 @@
 
 #pragma once
 
-#include "../Node.h"
-#include "../renderer/MaterialRegistry.h"
-#include "../scene/Transform.h"
-#include "../scene/geometry/Geometry.h"
-#include "../scene/lights/Light.h"
+#include "sg/Node.h"
+#include "sg/renderer/MaterialRegistry.h"
+#include "sg/scene/Transform.h"
+#include "sg/scene/geometry/Geometry.h"
+#include "sg/scene/lights/Light.h"
+#include "sg/camera/Camera.h"
+#include "app/ArcballCamera.h"
 // std
 #include <stack>
 
@@ -17,7 +19,7 @@ namespace ospray {
   struct RenderScene : public Visitor
   {
     RenderScene();
-    RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap);
+    RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
     void postChildren(Node &node, TraversalContext &) override;
@@ -27,9 +29,10 @@ namespace ospray {
     void createGeometry(Node &node);
     void createVolume(Node &node);
     void addGeometriesToGroup();
-    void createInstanceFromGroup();
+    void createInstanceFromGroup(Node &node);
     void placeInstancesInWorld();
     void setLightParams(Node &node);
+    void setCameraParams(Node &node);
 
     // Data //
 
@@ -56,9 +59,11 @@ namespace ospray {
     std::stack<cpp::TransferFunction> tfns;
     std::string instanceId{""};
     std::string geomId{""};
-    bool useCustomIds{false};
     GeomIdMap *g{nullptr};
     InstanceIdMap *in{nullptr};
+    affine3f *camXfm{nullptr};
+    int camId{0};
+    std::shared_ptr<CameraState> cs;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -68,11 +73,13 @@ namespace ospray {
     xfms.emplace(math::one);
   }
 
-  inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap)
+  inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId)
   {
     xfms.emplace(math::one);
     g = &geomIdMap;
     in = &instanceIdMap;
+    camXfm = cameraToWorld;
+    camId = cId;
   }
 
   inline bool RenderScene::operator()(Node &node, TraversalContext &)
@@ -82,8 +89,6 @@ namespace ospray {
     switch (node.type()) {
     case NodeType::WORLD:
       world = node.valueAs<cpp::World>();
-      // XXX Can this be set only when in navMode?
-      world.setParam("dynamicScene", true);
       break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
@@ -107,12 +112,16 @@ namespace ospray {
       auto xfmNode = node.nodeAs<Transform>();
       xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
       xfms.push(xfmNode->accumulatedXfm);
-      // special Ids overwrite all id writing implementations
-      if (node.hasChild("instanceID") && !useCustomIds){
-        instanceId = node.child("instanceId").valueAs<std::string>();
-        if (node.hasChild("useCustomIds"))
-          useCustomIds = true;
+
+      if (node.hasChildOfSubType("camera_perspective")
+          || node.hasChildOfSubType("camera_orthographic")) {
+        cs = std::make_shared<CameraState>();
+        cs->useCameraToWorld = true;
+        cs->cameraToWorld = xfm;
       }
+
+      if (node.hasChild("instanceId"))
+        instanceId = node.child("instanceId").valueAs<std::string>();
       if (node.hasChild("geomId"))
         geomId = node.child("geomId").valueAs<std::string>();
       break;
@@ -120,6 +129,16 @@ namespace ospray {
     case NodeType::LIGHT:
       setLightParams(node);
       break;
+    case NodeType::CAMERA: {
+      bool useCameraXfm{false};
+      if (node.hasChild("cameraId"))
+        useCameraXfm = camId == node.child("cameraId").valueAs<int>();
+      if (camXfm && useCameraXfm) {
+        auto &outputCamXfm = *camXfm;
+        outputCamXfm = outputCamXfm * xfms.top();
+      }
+      setCameraParams(node);
+    } break;
     default:
       break;
     }
@@ -131,7 +150,6 @@ namespace ospray {
   {
     switch (node.type()) {
     case NodeType::WORLD:
-      createInstanceFromGroup();
       placeInstancesInWorld();
       world.commit();
       break;
@@ -142,24 +160,13 @@ namespace ospray {
       tfns.pop();
       break;
     case NodeType::TRANSFORM:
-      createInstanceFromGroup();
+      createInstanceFromGroup(node);
       xfms.pop();
       if (node.hasChild("instanceID")) {
-        if (useCustomIds) {
-          if (node.hasChild("useCustomIds")){
-            instanceId = "";
-            useCustomIds = false;
-          }
-        } else
           instanceId = "";
       }
       if (node.hasChild("geomId"))
         geomId = "";
-      break;
-    case NodeType::MATERIAL_REFERENCE:
-      break;
-    case NodeType::LIGHT:
-      // world.commit();
       break;
     default:
       // Nothing
@@ -177,12 +184,14 @@ namespace ospray {
     if (geomNode->skin) {
       auto &joints = geomNode->skin->joints;
       auto &inverseBindMatrices = geomNode->skin->inverseBindMatrices;
+      const size_t weightsPerVertex = geomNode->weightsPerVertex;
+      size_t weightIdx = 0;
       for (size_t i = 0; i < geomNode->positions.size(); ++i) { // XXX parallel
         affine3f xfm{zero};
-        for (size_t j = 0; j < 4; ++j) {
-          const int idx = geomNode->joints[i][j];
+        for (size_t j = 0; j < weightsPerVertex; ++j, ++weightIdx) {
+          const int idx = geomNode->joints[weightIdx];
           xfm = xfm
-              + geomNode->weights[i][j]
+              + geomNode->weights[weightIdx]
                   * joints[idx]->nodeAs<Transform>()->accumulatedXfm
                   * inverseBindMatrices[idx];
         }
@@ -213,17 +222,24 @@ namespace ospray {
       if (node["material"].valueIsType<cpp::CopiedData>())
         model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
       else
-        model.setParam("material", node["material"].valueAs<unsigned int>());
+        model.setParam("material",
+            cpp::CopiedData(std::vector<uint32_t>{
+                node["material"].valueAs<unsigned int>()}));
     } else {
       if (current.materials.size() != 0) {
-        model.setParam("material", *current.materials.begin());
+        model.setParam("material", cpp::CopiedData(*current.materials.begin()));
         current.materials.clear();
       } else
-        model.setParam("material", materialIDs.top());
+        model.setParam("material", cpp::CopiedData(std::vector<uint32_t>{0}));
     }
 
     if (node.hasChild("color")) {
-      model.setParam("color", node["color"].valueAs<cpp::CopiedData>());
+      if (node["color"].valueIsType<cpp::CopiedData>())
+        model.setParam("color", node["color"].valueAs<cpp::CopiedData>());
+      else
+        model.setParam("color",
+            cpp::CopiedData(std::vector<vec4f>{
+                node["color"].valueAs<vec4f>()}));
     }
 
     model.commit();
@@ -240,7 +256,7 @@ namespace ospray {
 
     auto &vol = node.valueAs<cpp::Volume>();
     cpp::VolumetricModel model(vol);
-    if (node.hasChild("transferFunction")) {
+    if (node.hasChildOfType(sg::NodeType::TRANSFER_FUNCTION)) {
       model.setParam("transferFunction",
                      node["transferFunction"].valueAs<cpp::TransferFunction>());
     } else
@@ -279,7 +295,7 @@ namespace ospray {
       current.volumes.push_back(model);
   }
 
-  inline void RenderScene::createInstanceFromGroup()
+  inline void RenderScene::createInstanceFromGroup(Node &node)
   {
     #if defined(DEBUG)
     std::cout << "number of geometries : " << current.geometries.size()
@@ -291,6 +307,9 @@ namespace ospray {
       return;
 
     cpp::Group group;
+    group.setParam("dynamicScene", node.child("dynamicScene").valueAs<bool>());
+    group.setParam("compactMode", node.child("compactMode").valueAs<bool>());
+    group.setParam("robustMode", node.child("robustMode").valueAs<bool>());
 
     if (!current.geometries.empty())
       group.setParam("geometry", cpp::CopiedData(current.geometries));
@@ -306,9 +325,6 @@ namespace ospray {
     current.volumes.clear();
     current.clippingGeometries.clear();
 
-    // XXX Can this be set only when in navMode?
-    group.setParam("dynamicScene", true);
-
     group.commit();
 
     cpp::Instance inst(group);
@@ -318,8 +334,9 @@ namespace ospray {
 
     if (in != nullptr && !instanceId.empty()) {
       auto ospInstance = inst.handle();
-      in->insert(InstanceIdMap::value_type(ospInstance, instanceId));
+      in->insert(InstanceIdMap::value_type(ospInstance, std::make_pair(instanceId, xfms.top())));
     }
+    
     #if defined(DEBUG)
     std::cout << "number of instances : " << instances.size() << std::endl;
     #endif
@@ -346,6 +363,16 @@ namespace ospray {
     }
     auto lightNode = node.nodeAs<sg::Light>();
     lightNode->initOrientation(propMap);
+  }
+
+  inline void RenderScene::setCameraParams(Node &node)
+  {
+    auto camera = node.nodeAs<sg::Camera>();
+    if (cs != nullptr) {
+      camera->setState(cs);
+      if (node.parents().front()->child("animateCamera").valueAs<bool>())
+        camera->animate = true;
+    }
   }
 
   inline void RenderScene::placeInstancesInWorld()

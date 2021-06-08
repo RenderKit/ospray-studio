@@ -13,6 +13,10 @@ AnimationWidget::AnimationWidget(
   animationManager->update(time);
 }
 
+AnimationWidget::~AnimationWidget() {
+  animationManager.reset();
+}
+
 void AnimationWidget::update()
 {
   auto &timeRange = animationManager->getTimeRange();

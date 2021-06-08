@@ -16,6 +16,9 @@ struct OSPSG_INTERFACE Generator : public Node
 
   NodeType type() const override;
 
+  virtual void preCommit() override;
+  virtual void postCommit() override;
+
   virtual void generateData();
 
   inline void setMaterialRegistry(

@@ -11,8 +11,8 @@ RKCOMMON_VER="devel"
 set -e
 
 # Versions if not set by CI (standalone run)
-OSPRAY_VER=${OSPRAY_VER:-"2.5.0"}
-RKCOMMON_VER=${RKCOMMON_VER:-"1.6.0"}
+OSPRAY_VER=${OSPRAY_VER:-"2.6.0"}
+RKCOMMON_VER=${RKCOMMON_VER:-"1.6.1"}
 GLFW_VER=${GLFW_VER:-"3.3.2"}
 
 # Pull OSPRay and RKCommon releases from github
@@ -33,35 +33,34 @@ cmake --version
 
 # XXX Can macOS and Windows cache OSPRay and RKCommon on /NAS ???
 
-if [ ! -d ${OSPRAY_DIR} ]; then
-  echo "Fetching OSPRay release ${OSPRAY_VER}"
-  wget --no-verbose ${OSPRAY_LINK}
-  unzip -q ${OSPRAY_ZIP}
-  rm ${OSPRAY_ZIP}
-else
-  echo "OSPRay release exists"
-fi
+# if [ ! -d ${OSPRAY_DIR} ]; then
+#   echo "Fetching OSPRay release ${OSPRAY_VER}"
+#   wget --no-verbose ${OSPRAY_LINK}
+#   unzip -q ${OSPRAY_ZIP}
+#   rm ${OSPRAY_ZIP}
+# else
+#   echo "OSPRay release exists"
+# fi
 
-if [ ! -d ${RKCOMMON_DIR} ]; then
-  echo "Fetching RKCommon release ${RKCOMMON_VER}"
-  wget --no-verbose ${RKCOMMON_LINK}
-  unzip -q ${RKCOMMON_ZIP}
-  rm ${RKCOMMON_ZIP}
-  cd ${RKCOMMON_DIR}
-  # Need to build RKCommon
-  echo "Building RKCommon"
-  mkdir build && cd build
-  cmake ..  -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTING=OFF
-  make -j install
-  cd .. && rm -rf build
-else
-  echo "RKCommon release exists"
-fi
+# if [ ! -d ${RKCOMMON_DIR} ]; then
+#   echo "Fetching RKCommon release ${RKCOMMON_VER}"
+#   wget --no-verbose ${RKCOMMON_LINK}
+#   unzip -q ${RKCOMMON_ZIP}
+#   rm ${RKCOMMON_ZIP}
+#   cd ${RKCOMMON_DIR}
+#   # Need to build RKCommon
+#   echo "Building RKCommon"
+#   mkdir build && cd build
+#   cmake ..  -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTING=OFF
+#   make -j install
+#   cd .. && rm -rf build
+# else
+#   echo "RKCommon release exists"
+# fi
 
 popd
 
-CMAKE_PREFIX_PATH="${PWD}/${RKCOMMON_DIR}/install;${PWD}/${OSPRAY_DIR}"
+# CMAKE_PREFIX_PATH="${PWD}/${RKCOMMON_DIR}/install;${PWD}/${OSPRAY_DIR}"
 cmake .. -DCMAKE_INSTALL_PREFIX=install \
-  -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} \
   -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
 make -j install

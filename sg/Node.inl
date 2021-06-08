@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -113,6 +113,16 @@ namespace ospray {
       data->properties.name = name;
       data->properties.subType = "Data";
       add(data);
+    }
+  }
+
+  inline void Node::createChildData(std::string name, std::shared_ptr<Data> data)
+  {
+    if (data) {
+      auto node = std::static_pointer_cast<Node>(data);
+      node->properties.name = name;
+      node->properties.subType = "Data";
+      add(node);
     }
   }
 
@@ -263,7 +273,8 @@ namespace ospray {
   inline void OSPNode<HANDLE_T, TYPE>::preCommit()
   {
     for (auto &c : children()) {
-      if (c.second->type() == NodeType::PARAMETER)
+      if (c.second->type() == NodeType::PARAMETER ||
+          c.second->type() == NodeType::TEXTURE)
         if (!c.second->sgOnly())
           c.second->setOSPRayParam(c.first, handle().handle());
     }

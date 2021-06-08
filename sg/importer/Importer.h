@@ -3,13 +3,16 @@
 
 #pragma once
 
-#include "../Node.h"
-#include "rkcommon/os/FileName.h"
+// sg
+#include "sg/Node.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/Animation.h"
 #include "sg/texture/Texture2D.h"
+#include "sg/scene/volume/Volume.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
 
-#include "../../app/ospStudio.h"
+#include "app/ospStudio.h"
 
 namespace ospray {
 namespace sg {
@@ -17,12 +20,12 @@ namespace sg {
 // map of asset Titles and corresponding original importer nodes
 typedef std::map<std::string, NodePtr> AssetsCatalogue;
 
-typedef struct {
-  vec3i dimensions;
-  vec3f gridSpacing{0.02f};
-  vec3f gridOrigin{-1.f};
-  int voxelType;
-} VolumeParams;
+enum InstanceConfiguration {
+    STATIC = 0,
+    DYNAMIC= 1,
+    COMPACT = 2,
+    ROBUST = 3     
+};
 
 struct OSPSG_INTERFACE Importer : public Node
 {
@@ -55,15 +58,19 @@ struct OSPSG_INTERFACE Importer : public Node
     importCameras = true;
   }
 
+  inline std::vector<NodePtr> *getCameraList()
+  {
+    return cameras;
+  }
+
   inline void setAnimationList(std::vector<sg::Animation> &_animations)
   {
     animations = &_animations;
   }
 
-  inline void setVolumeParams(VolumeParams *_p)
+  inline std::vector<sg::Animation> *getAnimationList()
   {
-    p = _p;
-    hasVolumeParams = true;
+    return animations;
   }
 
   inline void setLightsManager(NodePtr _lightsManager)
@@ -71,23 +78,38 @@ struct OSPSG_INTERFACE Importer : public Node
     lightsManager = _lightsManager;
   }
 
-  inline VolumeParams* setDefaultParams(bool structured) {
-    if (structured) {
-      defaultParams.voxelType = int(OSP_FLOAT);
-      defaultParams.dimensions = vec3i(18, 25, 18);
-      defaultParams.gridOrigin = vec3f(-1.f);
-      defaultParams.gridSpacing = vec3f(2.f / 100);
-    } else {
-      defaultParams.voxelType = int(OSP_FLOAT);
-      defaultParams.dimensions = vec3i(180, 180, 180);
-      defaultParams.gridOrigin = vec3f(0);
-      defaultParams.gridSpacing = vec3f(1, 1, 1);
-    }
-    return &defaultParams;
+  inline NodePtr getLightsManager()
+  {
+    return lightsManager;
   }
 
-  VolumeParams defaultParams;
-  bool hasVolumeParams{false};
+  inline void setFb(sg::FrameBuffer &_fb)
+  {
+    fb = &_fb;
+  }
+
+  inline sg::FrameBuffer *getFb()
+  {
+    return fb;
+  }
+
+  inline void setVolumeParams(NodePtr vp) {
+    volumeParams = vp;
+  }
+
+  inline NodePtr getVolumeParams() {
+    return volumeParams;
+  }
+
+  inline void setInstanceConfiguration(InstanceConfiguration _ic) {
+    ic = _ic;
+  }
+
+  inline InstanceConfiguration getInstanceConfiguration() {
+    return ic;
+  }
+
+  float pointSize{0.0f};
 
  protected:
   rkcommon::FileName fileName;
@@ -95,8 +117,10 @@ struct OSPSG_INTERFACE Importer : public Node
   std::vector<NodePtr> *cameras = nullptr;
   std::vector<sg::Animation> *animations = nullptr;
   bool importCameras{false};
-  VolumeParams *p{nullptr};
+  NodePtr volumeParams;
   NodePtr lightsManager;
+  sg::FrameBuffer *fb{nullptr};
+  InstanceConfiguration ic{STATIC};
 };
 
 // global assets catalogue
@@ -148,13 +172,12 @@ inline std::shared_ptr<Importer> getImporter(
 
   } else {
     auto importNode = createNodeAs<Importer>(nodeName, importer);
-    if(importer == "importer_raw" && !importNode->hasVolumeParams) {
-      std::cout
-        << "Loading volumes with default volume parameters ..."
-        << std::endl;
+    if (importer == "importer_raw") {
+      std::cout << "Loading volumes with default volume parameters ..."
+                << std::endl;
       auto volumeFile = fnd->first;
       bool structured = (volumeFile == "structured") || (volumeFile == "raw");
-      auto vp = importNode->setDefaultParams(structured);
+      auto vp = std::make_shared<VolumeParams>(structured);
       importNode->setVolumeParams(vp);
     }
     importNode->setFileName(fileName);

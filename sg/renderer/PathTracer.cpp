@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Renderer.h"
@@ -10,7 +10,6 @@ struct OSPSG_INTERFACE PathTracer : public Renderer
 {
   PathTracer();
   virtual ~PathTracer() override = default;
-  void preCommit() override;
 };
 
 OSP_REGISTER_SG_NODE_NAME(PathTracer, renderer_pathtracer);
@@ -35,21 +34,14 @@ PathTracer::PathTracer() : Renderer("pathtracer")
       "bool",
       "whether geometries with an emissive material illuminate the scene",
       true);
+  createChild("backgroundRefraction",
+      "bool",
+      "allow for alpha blending even if background is seen through refractive objects like glass",
+      false);
 
   child("lightSamples").setMinMax(-1, 1000);
   child("roulettePathLength").setMinMax(0, 1000);
   child("maxContribution").setMinMax(0.f, 1e6f);
-}
-
-void PathTracer::preCommit()
-{
-  Renderer::preCommit();
-
-  auto &renderer = handle();
-  if (hasChild("map_backplate")) {
-    auto &cppTex = child("map_backplate").valueAs<cpp::Texture>();
-    renderer.setParam("map_backplate", cppTex);
-  }
 }
 
 } // namespace sg

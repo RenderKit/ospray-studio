@@ -2,119 +2,117 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "LightsManager.h"
-#include "../../sg/renderer/Renderer.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-    OSP_REGISTER_SG_NODE_NAME(LightsManager, lights);
+OSP_REGISTER_SG_NODE_NAME(LightsManager, lights);
 
-    LightsManager::LightsManager()
-    {}
+LightsManager::LightsManager()
+{
+  addLight("default-ambient", "ambient");
+}
 
-    NodeType LightsManager::type() const
-    {
-      return NodeType::LIGHTS;
-    }
+NodeType LightsManager::type() const
+{
+  return NodeType::LIGHTS;
+}
 
-    bool LightsManager::lightExists(std::string name)
-    {
-      auto found = std::find(lightNames.begin(), lightNames.end(), name);
-      return (found != lightNames.end());
-    }
+bool LightsManager::lightExists(std::string name)
+{
+  auto found = std::find(lightNames.begin(), lightNames.end(), name);
+  return (found != lightNames.end());
+}
 
-    bool LightsManager::addLight(std::string name, std::string lightType)
-    {
-      if (name == "" || lightExists(name))
-        return false;
+// Add a light node (main entry)
+bool LightsManager::addLight(NodePtr light)
+{
+  if (lightExists(light->name()))
+    return false;
 
-      lightNames.push_back(name);
-      createChild(name, lightType);
-      return true;
-    }
+  // remove default light
+  if (hasChild("default-ambient") && rmDefaultLight)
+    removeLight("default-ambient");
 
-    bool LightsManager::addLight(NodePtr light)
-    {
-      if (lightExists(light->name()))
-        return false;
+  // When adding HDRI or sunSky, set background color to black.
+  // It's otherwise confusing.  The user can still adjust it afterward.
+  if (light->subType() == "hdri" || light->subType() == "sunSky") {
+    auto &frame = parents().front();
+    auto &renderer = frame->childAs<sg::Renderer>("renderer");
+    renderer["backgroundColor"] = rgba(vec3f(0.f), 1.f); // black, opaque
+  }
 
-      lightNames.push_back(light->name());
-      add(light);
-      return true;
-    }
+  lightNames.push_back(light->name());
+  add(light);
+  return true;
+}
 
-    void LightsManager::addLights(std::vector<NodePtr> &lights)
-    {
-      for (auto &l : lights) {
-        if (lightExists(l->name()))
-          continue;
+// Add a vector of lights nodes at once (helper)
+void LightsManager::addLights(std::vector<NodePtr> &lights)
+{
+  for (auto &l : lights)
+    addLight(l);
+}
 
-        lightNames.push_back(l->name());
-        add(l);
-      }
-    }
+// Add light by name and type (helper)
+bool LightsManager::addLight(std::string name, std::string lightType)
+{
+  return name == "" ? false : addLight(createNode(name, lightType));
+}
 
-    bool LightsManager::removeLight(std::string name)
-    {
-      if (name == "" || !lightExists(name))
-        return false;
+bool LightsManager::removeLight(std::string name)
+{
+  if (name == "" || !lightExists(name))
+    return false;
 
-      remove(name);
-      auto found = std::find(lightNames.begin(), lightNames.end(), name);
-      lightNames.erase(found);
+  remove(name);
+  auto found = std::find(lightNames.begin(), lightNames.end(), name);
+  lightNames.erase(found);
 
-      return true;
-    }
+  return true;
+}
 
-    void LightsManager::clear()
-    {
-      // removeLight modifies the lightNames vector, make a copy.
-      auto tempNames = lightNames;
-      for (auto &name : tempNames) {
-        removeLight(name);
-      }
-    }
+void LightsManager::clear()
+{
+  // removeLight modifies the lightNames vector, make a copy.
+  auto tempNames = lightNames;
+  for (auto &name : tempNames) {
+    removeLight(name);
+  }
 
-    void LightsManager::preCommit()
-    {
-      cppLightObjects.clear();
+  // Re-add the default-ambient light and gray background, when clearing lights
+  addLight("default-ambient", "ambient");
+  auto &frame = parents().front();
+  auto &renderer = frame->childAs<sg::Renderer>("renderer");
+  renderer["backgroundColor"] = rgba(vec3f(0.1f), 1.f); // Near black
+}
 
-      for (auto &name : lightNames) {
-        auto &l = child(name);
-        if (l.subType() == "hdri" && currentWorld) {
-          auto &frame = currentWorld->parents().front();
-          auto &renderer = frame->childAs<sg::Renderer>("renderer");
-          renderer["backgroundColor"] = vec4f(vec3f(0.f), 1.f); // black, opaque
-        }
+void LightsManager::preCommit()
+{
+  cppLightObjects.clear();
 
-        cppLightObjects.emplace_back(l.valueAs<cpp::Light>());
-      }
-    }
+  for (auto &name : lightNames)
+    cppLightObjects.emplace_back(child(name).valueAs<cpp::Light>());
+}
 
-    void LightsManager::postCommit()
-    {
-    }
+void LightsManager::postCommit()
+{
+  auto &frame = parents().front();
+  auto &world = frame->childAs<sg::World>("world");
 
-    void LightsManager::updateWorld(World &world)
-    {
-      if (lightNames.empty()) {
-        addLight("default-ambient", "ambient");
-      } else if (children().size() > 1 && hasChild("default-ambient")
-          && rmDefaultLight) {
-        // remove default light
-        removeLight("default-ambient");
-      }
-      currentWorld = &world;
-      // Commit lightsManager changes then apply lightObjects on the world.
-      commit();
+  updateWorld(world);
+}
 
-      if (!cppLightObjects.empty())
-        world.handle().setParam("light", cpp::CopiedData(cppLightObjects));
-      else
-        world.handle().removeParam("light");
+// On a change of world or lightsManager, set the new lights list on the world
+void LightsManager::updateWorld(World &world)
+{
+  if (!cppLightObjects.empty())
+    world.handle().setParam("light", cpp::CopiedData(cppLightObjects));
+  else
+    world.handle().removeParam("light");
 
-      world.handle().commit();
-    }
+  world.handle().commit();
+}
 
-  } // namespace sg
-}  // namespace ospray
+} // namespace sg
+} // namespace ospray

@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -6,6 +6,7 @@
 #include "tiny_obj_loader.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
+#include "../scene/geometry/Geometry.h"
 
 namespace ospray {
   namespace sg {
@@ -128,8 +129,12 @@ namespace ospray {
         std::cout << "... found " << numTriangles << " triangles "
                   << "and " << numQuads << " quads.\n";
 
-        if (!err.empty()) {
+        if (!warn.empty()) {
           std::cerr << "#ospsg: obj parsing warning(s)...\n"
+                    << warn << std::endl;
+        }
+        if (!err.empty()) {
+          std::cerr << "#ospsg: obj parsing errors(s)...\n"
                     << err << std::endl;
         }
         return retval;
@@ -208,11 +213,11 @@ namespace ospray {
           } else {
             rkcommon::utility::Any paramValue;
             parseParameterString(paramValueStr, paramType, paramValue);
-            // Principled::thin is the only 'bool' material parameter
-            // but, needs to be treated with a "bool" paramType
+            // Principled::thin is the only non-float material parameter and
+            // needs to be converted to a "bool" paramType, imported as a float
             if (paramName == "thin") {
               paramType = "bool";
-              paramValue = paramValue == 0 ? false : true;
+              paramValue = (paramValue.get<float>() == 0.f) ? false : true;
             } else if ((paramName.find("Color") != std::string::npos
                            || paramName.find("color") != std::string::npos)
                 && paramType == "vec3f") {
@@ -304,7 +309,7 @@ namespace ospray {
     if (materialNodes.empty())
       materialNodes.emplace_back(createNode("default", "obj"));
 
-    size_t baseMaterialOffset = materialRegistry->children().size();
+    size_t baseMaterialOffset = materialRegistry->baseMaterialOffSet();
 
     for (auto m : materialNodes)
       materialRegistry->add(m);
@@ -320,15 +325,16 @@ namespace ospray {
       // (points, lines, curves and surfaces)
       if (numSrcIndices == 0)
         continue;
-
-      std::vector<vec3f> v;
-      std::vector<vec4ui> vi;
-      std::vector<vec3f> vn;
-      std::vector<vec2f> vt;
-
+      
+      auto name = std::to_string(shapeId++) + '_' + shape.name;
+      auto mesh = createNodeAs<Geometry>(name, "geometry_triangles");
+      auto &v = mesh->positions;
       v.reserve(numSrcIndices);
+      auto &vi = mesh->quad_vi;
       vi.reserve(numSrcIndices);
+      auto &vn = mesh->normals;
       vn.reserve(numSrcIndices);
+      auto &vt = mesh->vt;
       vt.reserve(numSrcIndices);
 
       // OSPRay doesn't support separate arrays for vertex, normal & texcoord
@@ -358,25 +364,23 @@ namespace ospray {
         if (!attrib.texcoords.empty() && idx.texcoord_index != -1)
           vt.emplace_back(&attrib.texcoords[idx.texcoord_index * 2]);
       }
-
-      auto name = std::to_string(shapeId++) + '_' + shape.name;
-
-      auto &mesh = rootNode->createChild(name, "geometry_triangles");
-
-      std::vector<uint32_t> mIDs(shape.mesh.material_ids.size());
+      auto &mIDs = mesh->mIDs;
+      mIDs.resize(shape.mesh.material_ids.size());
       std::transform(shape.mesh.material_ids.begin(),
-                     shape.mesh.material_ids.end(),
-                     mIDs.begin(),
-                     [&](int i) { return i + baseMaterialOffset; });
-      mesh.createChildData("material", mIDs);
-      mesh.child("material").setSGOnly();
+          shape.mesh.material_ids.end(),
+          mIDs.begin(),
+          [&](int i) { return i + baseMaterialOffset; });
+      mesh->createChildData("material", mIDs, true);
+      mesh->child("material").setSGOnly();
 
-      mesh.createChildData("vertex.position", v);
-      mesh.createChildData("index", vi);
+      mesh->createChildData("vertex.position", v, true);
+      mesh->createChildData("index", vi, true);
       if (!vn.empty())
-        mesh.createChildData("vertex.normal", vn);
+        mesh->createChildData("vertex.normal", vn, true);
       if (!vt.empty())
-        mesh.createChildData("vertex.texcoord", vt);
+        mesh->createChildData("vertex.texcoord", vt, true);
+
+      rootNode->add(mesh);
     }
 
     // Finally, add node hierarchy to importer parent

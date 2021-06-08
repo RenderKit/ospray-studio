@@ -58,11 +58,14 @@ WaveletVolume::WaveletVolume()
   parameters.createChild("dimensions", "vec3i", vec3i(128));
   parameters.createChild("gridOrigin", "vec3f", vec3f(-1.f));
   parameters.createChild("gridSpacing", "vec3f", vec3f(2.f / 100));
+
+  auto &xfm = createChild("xfm", "transform");
 }
 
 void WaveletVolume::generateData()
 {
-  remove("wavelet");
+  auto &xfm = child("xfm");
+  auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
 
   // Create voxel data
 
@@ -90,13 +93,19 @@ void WaveletVolume::generateData()
   });
 
   // Create sg subtree
-  auto &tf = createChild("transferFunction", "transfer_function_jet");
   auto &volume = tf.createChild("wavelet", "structuredRegular");
   volume.createChild("voxelType") = int(OSP_FLOAT);
   volume.createChild("gridOrigin") = gridOrigin;
   volume.createChild("gridSpacing") = gridSpacing;
-  volume.createChild("dimensions") = dimensions;
   volume.createChildData("data", dimensions, 0, voxels.data());
+
+  const auto minmax = std::minmax_element(begin(voxels), end(voxels));
+  auto valueRange = range1f(*std::get<0>(minmax), *std::get<1>(minmax));
+  volume["valueRange"] = valueRange;
+  // Although cell values lie outside (0, 1), leave the default transfer
+  // function range.  It's an interesting image.
+  tf["valueRange"] = vec2f(0.f, 1.f);
+
 }
 
 } // namespace sg

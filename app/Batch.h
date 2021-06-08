@@ -12,9 +12,9 @@
 #include "sg/renderer/MaterialRegistry.h"
 // Plugin
 #include <chrono>
-#include "AnimationManager.h"
 #include "PluginManager.h"
 #include "sg/scene/Animation.h"
+#include "sg/importer/Importer.h"
 
 using namespace rkcommon::math;
 using namespace ospray;
@@ -30,12 +30,15 @@ class BatchContext : public StudioContext
   void start() override;
   bool parseCommandLine() override;
   void importFiles(sg::NodePtr world) override;
+  void refreshRenderer();
   void refreshScene(bool resetCam) override;
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void render();
   void renderFrame();
   void renderAnimation();
+  bool refreshCamera(int cameraIdx, bool resetArcball = false);
+  // NodePtr world;
 
  protected:
   PluginManager pluginManager;
@@ -46,6 +49,7 @@ class BatchContext : public StudioContext
   std::string optImageName       = "ospBatch";
   vec2i optImageSize             = {1024, 768};
   int optSPP                     = 32;
+  float optVariance              = 0.f; // varianceThreshold
   int optPF                      = -1; // use default
   int optDenoiser                = 0;
   bool optGridEnable             = false;
@@ -67,9 +71,22 @@ class BatchContext : public StudioContext
   range1i framesRange{0, 0};
   void printHelp() override;
   int cameraDef{0};
-
-  std::shared_ptr<AnimationManager> animationManager{nullptr};
+  range1i cameraRange{0, 0};
+  bool useCameraRange{false};
 
   // list of cameras imported with the scene definition
   std::vector<sg::NodePtr> cameras;
+  std::string cameraId{""};
+
+  std::vector<CameraState> cameraStack;
+
+  //camera animation
+  sg::NodePtr selectedSceneCamera;
+
+  //Volume parameters
+  sg::NodePtr volumeParams;
+
+  // scene/instance configuration params
+  std::string sceneConfig{""};
+  std::string instanceConfig{""};
 };

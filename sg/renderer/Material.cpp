@@ -1,8 +1,7 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Material.h"
-#include "sg/texture/Texture2D.h"
 
 namespace ospray {
   namespace sg {
@@ -10,6 +9,7 @@ namespace ospray {
   Material::Material(std::string t) : matType(t)
   {
     createChild("handles");
+    child("handles").setSGNoUI();
   }
 
   NodeType Material::type() const

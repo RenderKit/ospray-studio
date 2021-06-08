@@ -100,6 +100,7 @@ class MainWindow : public StudioContext
   void motion(const vec2f &position);
   void keyboardMotion();
   void mouseButton(const vec2f &position);
+  void mouseWheel(const vec2f &scroll);
   void display();
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
@@ -109,6 +110,7 @@ class MainWindow : public StudioContext
   void addPTMaterials();
 
   void saveCurrentFrame();
+  void centerOnEyePos();
   void pickCenterOfRotation(float x, float y);
   void pushLookMark();
   void popLookMark();
@@ -121,7 +123,8 @@ class MainWindow : public StudioContext
   void buildMainMenuPlugins();
 
   void buildWindows();
-  void buildWindowPreferences();
+  void buildWindowRendererEditor();
+  void buildWindowFrameBufferEditor();
   void buildWindowKeyframes();
   void buildWindowSnapshots();
   void buildWindowLightEditor();
@@ -136,16 +139,20 @@ class MainWindow : public StudioContext
   void printHelp() override;
 
   std::vector<CameraState> cameraStack;
+  sg::NodePtr g_selectedSceneCamera;
 
   //Volume parameters
-  sg::VolumeParams vp;
-  bool useVolumeParams{false};
+  sg::NodePtr volumeParams;
+
+  float pointSize{0.05f};
 
   // Plugins //
   std::vector<std::unique_ptr<Panel>> pluginPanels;
   PluginManager pluginManager;
 
   // imgui window visibility toggles
+  bool showRendererEditor{false};
+  bool showFrameBufferEditor{false};
   bool showKeyframes{false};
   bool showSnapshots{false};
   bool showLightEditor{false};
@@ -162,7 +169,6 @@ class MainWindow : public StudioContext
   bool screenshotDepth{false};
   bool screenshotNormal{false};
   bool screenshotLayers{false};
-  bool screenshotMetaData{false};
 
   // Option to always show a gamma corrected display to user.  Native sRGB
   // buffer is untouched, linear buffers are displayed as sRGB.
@@ -215,10 +221,17 @@ class MainWindow : public StudioContext
   // auto rotation speed, 1=0.1% window width mouse movement, 100=10%
   int autorotateSpeed{1};
 
+  // Camera motion controls
+  float maxMoveSpeed{1.f};
+  float fineControl{0.2f};
+  float preFPVZoom{0.f};
+
   // format used by glTexImage2D, as determined at context creation time
   GLenum gl_rgb_format;
   GLenum gl_rgba_format;
 
   std::shared_ptr<AnimationWidget> animationWidget{nullptr};
-  std::shared_ptr<AnimationManager> animationManager{nullptr};
+
+  std::string sceneConfig{""};
+  std::string instanceConfig{""};
 };

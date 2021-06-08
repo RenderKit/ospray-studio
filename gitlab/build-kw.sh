@@ -1,5 +1,5 @@
 #!/bin/bash -x
-## Copyright 2009-2020 Intel Corporation
+## Copyright 2009-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 KW_SERVER_PATH=$KW_PATH/server
@@ -8,26 +8,26 @@ export KLOCWORK_LTOKEN=/tmp/ltoken
 
 echo "$KW_SERVER_IP;$KW_SERVER_PORT;$KW_USER;$KW_LTOKEN" > $KLOCWORK_LTOKEN
 
+mkdir -p $CI_PROJECT_DIR/klocwork
+log_file=$CI_PROJECT_DIR/klocwork/build.log
+
 set -e
 dpkg --add-architecture i386
 apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev libtinfo5:i386 -y
 if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
 then
-    cd /tmp
-    git clone http://gitlab-ci-token:${CI_JOB_TOKEN}@$CI_SERVER_HOST/renderkit/ospray.git ospray-$OSPRAY_VER
-    cd ospray-$OSPRAY_VER/ && mkdir build && cd build && cmake ../scripts/superbuild -DBUILD_OIDN=ON && cmake --build .
-    cp -r /tmp/ospray-$OSPRAY_VER $CACHE_DIR/
+  build.sh
 fi
 
 cd $CI_PROJECT_DIR
 mkdir build && cd build
-export ospray_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray/lib/cmake/ospray-$OSPRAY_VER
-export rkcommon_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/rkcommon/lib/cmake/rkcommon-$RKCOMMON_VER
+export CMAKE_PREFIX_PATH="$CACHE_DIR/ospray-$OSPRAY_VER/build/install"
 export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
 cmake -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
 
-$KW_CLIENT_PATH/bin/kwinject make -j8
-$KW_SERVER_PATH/bin/kwbuildproject --url http://$KW_SERVER_IP:$KW_SERVER_PORT/$KW_PROJECT_NAME --tables-directory $CI_PROJECT_DIR/kw_tables kwinject.out
-$KW_SERVER_PATH/bin/kwadmin --url http://$KW_SERVER_IP:$KW_SERVER_PORT/ load --force --name build-$CI_JOB_ID $KW_PROJECT_NAME $CI_PROJECT_DIR/kw_tables
-echo "build-$CI_JOB_ID" > $CI_PROJECT_DIR/kw_build_number
+$KW_CLIENT_PATH/bin/kwinject make -j8 | tee -a $log_file
+$KW_SERVER_PATH/bin/kwbuildproject --url http://$KW_SERVER_IP:$KW_SERVER_PORT/$KW_PROJECT_NAME --tables-directory $CI_PROJECT_DIR/kw_tables kwinject.out | tee -a $log_file
+$KW_SERVER_PATH/bin/kwadmin --url http://$KW_SERVER_IP:$KW_SERVER_PORT/ load --force --name build-$CI_JOB_ID $KW_PROJECT_NAME $CI_PROJECT_DIR/kw_tables | tee -a $log_file
 
+# Store kw build name for check status later
+echo "build-$CI_JOB_ID" > $CI_PROJECT_DIR/klocwork/build_name

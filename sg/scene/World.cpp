@@ -1,9 +1,9 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "World.h"
-#include "../visitors/RenderScene.h"
-#include "../fb/FrameBuffer.h"
+#include "sg/fb/FrameBuffer.h"
+#include "sg/visitors/RenderScene.h"
 
 namespace ospray {
 namespace sg {
@@ -11,24 +11,28 @@ namespace sg {
 World::World()
 {
   setHandle(cpp::World());
-  createChild("saveMetaData", "bool", false);
+  createChild(
+      "dynamicScene", "bool", "faster BVH build, slower ray traversal", false);
+  createChild("compactMode",
+      "bool",
+      "tell Embree to use a more compact BVH in memory by trading ray traversal performance",
+      false);
+  createChild("robustMode",
+      "bool",
+      "tell Embree to enable more robust ray intersection code paths(slightly slower)",
+      false);
 }
 
 void World::preCommit()
 {
+  for (auto &c : children())
+    if (c.second->type() == NodeType::PARAMETER)
+      c.second->setOSPRayParam(c.first, valueAs<cpp::World>().handle());
 }
 
 void World::postCommit()
 {
-  if (child("saveMetaData").valueAs<bool>()){
-    auto &frame = parents().front();
-    auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-    auto &geomIdmap = fb.ge;
-    auto &instanceIdmap = fb.in;
-    traverse<RenderScene>(geomIdmap, instanceIdmap);
-  }
-  else
-    traverse<RenderScene>();
+  traverse<RenderScene>();
 }
 
 OSP_REGISTER_SG_NODE_NAME(World, world);

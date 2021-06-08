@@ -19,6 +19,7 @@
 // ospray
 #include "ospray/ospray_cpp.h"
 #include "ospray/ospray_cpp/ext/rkcommon.h"
+#include "ospray/SDK/common/OSPCommon.h"
 // ospray_sg
 #include "version.h"
 #include "NodeType.h"
@@ -62,7 +63,7 @@ namespace sg {
   struct Data;
 
   typedef std::unordered_map<OSPGeometricModel, std::string> GeomIdMap;
-  typedef std::unordered_map<OSPInstance, std::string> InstanceIdMap;
+  typedef std::unordered_map<OSPInstance, std::pair<std::string, affine3f>> InstanceIdMap;
 
   struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
   {
@@ -127,7 +128,14 @@ namespace sg {
 
     bool hasChild(const std::string &name) const;
 
+    bool hasChildOfSubType(const std::string &subType) const;
+    bool hasChildOfType(NodeType type) const;
+
     Node &child(const std::string &name);
+
+    const std::vector<NodePtr> childrenOfSubType(const std::string &subType);
+    const std::vector<NodePtr> childrenOfType(NodeType type);
+    
     Node &operator[](const std::string &c);
 
     template <typename NODE_T>
@@ -166,6 +174,8 @@ namespace sg {
     template <typename... Args>
     void createChildData(std::string name, Args &&... args);
 
+    void createChildData(std::string name, std::shared_ptr<Data> data);
+
     // Public method for self or any children modified
     inline bool isModified()
     {
@@ -185,7 +195,6 @@ namespace sg {
 
     void commit();
     void render();
-    void render(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap);
 
     box3f bounds();
 
@@ -215,6 +224,10 @@ namespace sg {
     // Nodes that are used internally to the SG and invalid for OSPRay
     bool sgOnly() const;
     void setSGOnly();
+
+    // Nodes that should not be shown in the UI 
+    bool sgNoUI() const;
+    void setSGNoUI();
 
    protected:
     virtual void preCommit();
@@ -250,10 +263,13 @@ namespace sg {
       Any value;
       // vectors allows using length to determine if min/max is set
       std::vector<Any> minMax;
-      bool readOnly;
 
+      // prevent user adjustment to this Node *via the UI*
+      bool readOnly;
       // Nodes that are used internally to the SG and invalid for OSPRay
       bool sgOnly{false};
+      // Nodes that should not be shown in the UI 
+      bool sgNoUI{false};
 
       FlatMap<std::string, NodePtr> children;
       std::vector<Node *> parents;

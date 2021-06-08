@@ -28,8 +28,10 @@ struct Plugin
   // Create an instance of each panel, the parameter passed in the is the
   // current application context
   virtual PanelList createPanels(std::shared_ptr<StudioContext> _context) = 0;
+  virtual void mainMethod(std::shared_ptr<StudioContext> _context);
 
   std::string name() const;
+  bool hasMainMethod{false};
 
  protected:
   Plugin(const std::string &pluginName);
@@ -44,6 +46,9 @@ inline std::string Plugin::name() const
 {
   return pluginName;
 }
+
+inline void Plugin::mainMethod(std::shared_ptr<StudioContext> _context)
+{}
 
 inline Plugin::Plugin(const std::string &_name) : pluginName(_name) {}
 

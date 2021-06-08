@@ -1,4 +1,4 @@
-// Copyright 2017-2020 Intel Corporation
+// Copyright 2017-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -61,6 +61,9 @@ class CameraState
   AffineSpace3f centerTranslation, translation;
   quaternionf rotation;
 
+  AffineSpace3f cameraToWorld;
+  bool useCameraToWorld{false};
+
  protected:
   friend ArcballCamera;
 
@@ -102,6 +105,7 @@ class ArcballCamera
   void rotate(const vec2f &from, const vec2f &to);
   void constrainedRotate(const vec2f &from, const vec2f &to, int axis /* 0 = x, 1 = y, 2 = z, otherwise none*/);
   void zoom(float amount);
+  void dolly(float amount);
   void pan(const vec2f &delta);
 
   vec3f eyePos() const;
@@ -111,9 +115,11 @@ class ArcballCamera
   vec3f lookDir() const;
   vec3f upDir() const;
 
+  float getZoomLevel();
+  void setZoomLevel(float zoomLevel);
+
   void setRotation(quaternionf);
   void setState(const CameraState &state);
-  void setZoomSpeed(float speed);
   CameraState getState() const;
 
   void updateWindowSize(const vec2i &windowSize);
@@ -125,7 +131,7 @@ class ArcballCamera
   // Project the point in [-1, 1] screen space onto the arcball sphere
   quaternionf screenToArcball(const vec2f &p);
 
-  float zoomSpeed;
+  float worldDiag;  // length of the world bounds diagonal
   vec2f invWindowSize;
   AffineSpace3f centerTranslation, translation, cameraToWorld;
   quaternionf rotation;

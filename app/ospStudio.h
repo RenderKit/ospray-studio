@@ -15,6 +15,7 @@
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/lights/LightsManager.h"
 // studio app
+#include "AnimationManager.h"
 #include "ArcballCamera.h"
 // ospcommon
 #include "rkcommon/common.h"
@@ -61,17 +62,17 @@ class StudioCommon
 };
 
 // abstract base class for all Studio modes
-// ALOK: should be merged with StudioCommon above
+// XXX: should be merged with StudioCommon above
 class StudioContext : public std::enable_shared_from_this<StudioContext>
 {
  public:
-  StudioContext(StudioCommon &_common)
-    :studioCommon(_common)
+  StudioContext(StudioCommon &_common) : studioCommon(_common)
   {
     frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
-    baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
-        "baseMaterialRegistry", "materialRegistry");
-    lightsManager = sg::createNodeAs<sg::LightsManager>("lights", "lights");
+
+    // baseMaterialRegistry and lightsManager are owned by the Frame
+    baseMaterialRegistry = frame->baseMaterialRegistry;
+    lightsManager = frame->lightsManager;
   }
 
   virtual ~StudioContext() {}
@@ -89,11 +90,14 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
   std::shared_ptr<sg::LightsManager> lightsManager;
+  std::shared_ptr<AnimationManager> animationManager{nullptr};
 
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
 
   int defaultMaterialIdx = 0;
+
+  std::string outputFilename{""};
 
  protected:
   virtual void printHelp()
@@ -106,8 +110,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   StudioCommon &studioCommon;
 };
 
-inline OSPError initializeOSPRay(
-    int &argc, const char **argv)
+inline OSPError initializeOSPRay(int &argc, const char **argv)
 {
   // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
   // e.g. "--osp:debug"

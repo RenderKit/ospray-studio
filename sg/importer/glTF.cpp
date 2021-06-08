@@ -44,10 +44,21 @@ namespace ospray {
 
   struct GLTFData
   {
-    GLTFData(NodePtr rootNode, const FileName &fileName, std::shared_ptr<sg::MaterialRegistry> _materialRegistry)
-        : fileName(fileName), rootNode(rootNode), materialRegistry(_materialRegistry)
-    {
-    }
+    GLTFData(NodePtr rootNode,
+        const FileName &fileName,
+        std::shared_ptr<sg::MaterialRegistry> _materialRegistry,
+        std::vector<NodePtr> *_cameras,
+        sg::FrameBuffer *_fb,
+        NodePtr _currentImporter,
+        InstanceConfiguration _ic)
+        : fileName(fileName),
+          rootNode(rootNode),
+          materialRegistry(_materialRegistry),
+          cameras(_cameras),
+          fb(_fb),
+          currentImporter(_currentImporter),
+          ic(_ic)
+    {}
 
    public:
     const FileName &fileName;
@@ -57,7 +68,7 @@ namespace ospray {
     void createSkins();
     void finalizeSkins();
     void createGeometries();
-    void createCameras(std::vector<NodePtr> &cameras);
+    void createCameras();
     void createLights();
     void buildScene();
     void loadNodeInfo(const int nid, NodePtr sgNode);
@@ -67,9 +78,13 @@ namespace ospray {
     std::vector<NodePtr> lights;
 
    private:
+    InstanceConfiguration ic;
+    NodePtr currentImporter;
     NodePtr rootNode;
+    sg::FrameBuffer *fb{nullptr};
+    std::vector<NodePtr> *cameras{nullptr};
     std::vector<SkinPtr> skins;
-    std::vector<NodePtr> ospMeshes;
+    std::vector<std::vector<NodePtr>> ospMeshes;
     std::shared_ptr<sg::MaterialRegistry> materialRegistry;
     std::vector<NodePtr> sceneNodes; // lookup table glTF:nodeID -> NodePtr
 
@@ -239,7 +254,6 @@ namespace ospray {
     auto node = n.extensions.find("BIT_node_info")->second;
     auto &nodeId = node.Get("id").Get<std::string>();
     sgNode->createChild("instanceId", "string", nodeId);
-    sgNode->createChild("useCustomIds", "bool", true);
 
     if (refTitle.empty())
       return;
@@ -259,6 +273,29 @@ namespace ospray {
         std::static_pointer_cast<sg::Importer>(sg::getImporter(sgNode, file));
     if (importer) {
       importer->setMaterialRegistry(materialRegistry);
+      auto parentImporter = currentImporter->nodeAs<sg::Importer>();
+
+      auto cameraList = parentImporter->getCameraList();
+      if (cameraList)
+        importer->setCameraList(*cameraList);
+
+      auto animationList = parentImporter->getAnimationList();
+      if (animationList)
+        importer->setAnimationList(*animationList);
+
+      auto lightsManager = parentImporter->getLightsManager();
+      importer->setLightsManager(lightsManager);
+
+      auto fb = parentImporter->getFb();
+      if (fb)
+        importer->setFb(*fb);
+
+      auto &pointSize = parentImporter->pointSize;
+      importer->pointSize = pointSize;
+
+      auto instanceConfig = parentImporter->getInstanceConfiguration();
+      importer->setInstanceConfiguration(instanceConfig);
+
       importer->importScene();
     }
   }
@@ -319,26 +356,30 @@ namespace ospray {
     ospMaterials.reserve(model.materials.size() + 1);
 
     // "default" material for glTF '-1' index (no material)
-    ospMaterials.emplace_back(createNode("default", "obj"));
+    ospMaterials.emplace_back(createNode(fileName.name() + ":default", "obj"));
 
     // Create materials (also sets textures to material params)
     for (const auto &material : model.materials) {
       ospMaterials.push_back(createOSPMaterial(material));
     }
 
-    baseMaterialOffset = materialRegistry->children().size();
+    baseMaterialOffset = materialRegistry->baseMaterialOffSet();
     for (auto m : ospMaterials)
       materialRegistry->add(m);
   }
 
-  void GLTFData::createCameras(std::vector<NodePtr> &cameras)
+  void GLTFData::createCameras()
   {
-    cameras.reserve(model.cameras.size());
+    cameras->reserve(model.cameras.size());
+    NodePtr sgCamera;
+
     for (auto &m : model.cameras) {
       static auto nCamera = 0;
-      auto cameraName = "camera_" + std::to_string(nCamera++);
+      auto cameraName = m.name;
+      if(cameraName == "")
+       cameraName = "camera_" + std::to_string(nCamera);
       if (m.type == "perspective") {
-        auto sgCamera = createNode(cameraName, "camera_perspective");
+        sgCamera = createNode(cameraName, "camera_perspective");
 
         // convert radians to degrees for vertical FOV
         float fovy = (float)m.perspective.yfov * (180.f / (float)pi);
@@ -357,19 +398,63 @@ namespace ospray {
           sgCamera->createChild("apertureRadius",
                                 "float",
                                 (float)m.perspective.extras.Get("apertureRadius").GetNumberAsDouble());
-
-        cameras.push_back(sgCamera);
       } else {
-        auto sgCamera = createNode(cameraName, "camera_orthographic");
+        sgCamera = createNode(cameraName, "camera_orthographic");
         sgCamera->createChild("height", "float", (float)m.orthographic.ymag);
 
         // calculate orthographic aspect with horizontal and vertical maginifications
         float aspect = (float)m.orthographic.xmag / m.orthographic.ymag;
         sgCamera->createChild("aspect", "float", aspect);
         sgCamera->createChild("nearClip", "float", (float)m.orthographic.znear);
-
-        cameras.push_back(sgCamera);
       }
+
+      // check if camera has EXT_cameras_sensor
+      if (m.extensions.find("EXT_cameras_sensor") != m.extensions.end()
+          && sgCamera->subType() == "camera_perspective") {
+        auto ext = m.extensions["EXT_cameras_sensor"];
+        float len_x, len_y{0.f};
+
+        if (ext.Has("imageSensor")) {
+          auto imageSensor = ext.Get("imageSensor");
+          auto pixels = imageSensor.Get("pixels").Get<tinygltf::Value::Array>();
+          auto pixelSize =
+              imageSensor.Get("pixelSize").Get<tinygltf::Value::Array>();
+          int x = pixels[0].Get<int>();
+          int y = pixels[1].Get<int>();
+          fb->child("size").setValue(vec2i(x, y));
+          len_x = x * (float)pixelSize[0].Get<double>();
+          len_y = y * (float)pixelSize[1].Get<double>();
+          sgCamera->child("aspect").setValue(len_x / len_y);
+        }
+
+        if (ext.Has("lens")) {
+          auto lens = ext.Get("lens");
+          float chamberConstant = (float)lens.Get("focalLength").Get<double>();
+          float fovy = atan(len_y / (2 * chamberConstant)) * 360.f / (float)pi;
+          sgCamera->child("fovy").setValue(fovy);
+
+          float apertureRadius =
+              (float)lens.Get("apertureRadius").Get<double>();
+          sgCamera->child("apertureRadius").setValue(apertureRadius);
+
+          float focusDistance = (float)lens.Get("focusDistance").Get<double>();
+          sgCamera->child("focusDistance").setValue(focusDistance);
+          
+          auto centerPointShift =
+              lens.Get("centerPointShift").Get<tinygltf::Value::Array>();
+          float x_shift = (float)centerPointShift[0].Get<double>();
+          float y_shift = (float)centerPointShift[1].Get<double>();
+          vec2f imageStart = vec2f(x_shift, y_shift)
+              + sgCamera->child("imageStart").valueAs<vec2f>();
+          vec2f imageEnd = vec2f(x_shift, y_shift)
+              + sgCamera->child("imageEnd").valueAs<vec2f>();
+          sgCamera->child("imageStart").setValue(imageStart);
+          sgCamera->child("imageEnd").setValue(imageEnd);
+        }
+      }
+      sgCamera->createChild("cameraId", "int", ++nCamera);
+      sgCamera->child("cameraId").setSGOnly();
+      cameras->push_back(sgCamera);
     }
   }
 
@@ -413,22 +498,18 @@ namespace ospray {
     // DEBUG << "Create Geometries\n";
 
     ospMeshes.reserve(model.meshes.size());
-    for (auto &m : model.meshes) {  // -> Model
+    for (auto &m : model.meshes) {
       static auto nModel = 0;
-      auto modelName     = m.name + "_" + pad(std::to_string(nModel++));
+      auto modelName = m.name + "_" + pad(std::to_string(nModel++));
+      std::vector<NodePtr> mesh_subsets;
 
-      // XXX Is there a better way to represent this "group" than a transform
-      // node?
-      auto ospModel =
-          createNode(modelName + "_model", "transform"); // Model "group"
-      // DEBUG << pad("", '.', 3) << "mesh." + modelName << "\n";
-
-      for (auto &prim : m.primitives) {  // -> TriangleMesh
-        // Create per 'primitive' geometry
-        ospModel->add(createOSPMesh(modelName, prim));
+      for (auto &prim : m.primitives) {
+        static auto nSubset = 0;
+        modelName = modelName + "_" + pad(std::to_string(nSubset++));
+        auto mesh = createOSPMesh(modelName, prim);
+        mesh_subsets.push_back(mesh);
       }
-
-      ospMeshes.push_back(ospModel);
+      ospMeshes.push_back(mesh_subsets);
     }
   }
 
@@ -489,6 +570,9 @@ namespace ospray {
 
         track->target =
             sceneNodes[c.target_node]->child(c.target_path).shared_from_this();
+        
+        if(sceneNodes[c.target_node]->hasChild("animateCamera"))
+          sceneNodes[c.target_node]->child("animateCamera").setValue(true);
 
         Accessor<float> time(inputAcc, model);
         track->times.reserve(time.size());
@@ -532,20 +616,20 @@ namespace ospray {
     // attach (skinned) meshes to correct transform node
     size_t nIdx = 0;
     for (auto n : model.nodes) {
-      if (n.mesh != -1) {
+      if (n.mesh != -1 && sceneNodes[nIdx]) {
         auto &ospMesh = ospMeshes[n.mesh];
         auto &targetNode = sceneNodes[nIdx];
         if (n.skin != -1) {
           if (model.skins[n.skin].skeleton != -1)
             targetNode = sceneNodes[model.skins[n.skin].skeleton];
-          for (auto &prim : ospMesh->children())
-            if (prim.second->type() == NodeType::GEOMETRY) {
-              const auto &geom = prim.second->nodeAs<Geometry>();
-              geom->skin = skins[n.skin];
-              geom->skeletonRoot = targetNode;
-            }
+          for (auto &m : ospMesh) {
+            const auto &geom = m->nodeAs<Geometry>();
+            geom->skin = skins[n.skin];
+            geom->skeletonRoot = targetNode;
+          }
         }
-        targetNode->add(ospMesh);
+        for (auto &m : ospMesh)
+          targetNode->add(m);
       }
       nIdx++;
     }
@@ -563,14 +647,30 @@ namespace ospray {
     auto nodeName = n.name + "_" + pad(std::to_string(nNode++));
     // DEBUG << pad("", '.', 3 * level) << "..node." + nodeName << "\n";
     // DEBUG << pad("", '.', 3 * level) << "....xfm\n";
+
     auto newXfm =
         createNode(nodeName + "_xfm_" + std::to_string(level), "transform");
+    if (ic == 1)
+      newXfm->child("dynamicScene").setValue(true);
+    else if (ic == 2)
+      newXfm->child("compactMode").setValue(true);
+    else if (ic ==3)
+      newXfm->child("robustMode").setValue(true);
+
     sceneNodes[nid] = newXfm;
     sgNode->add(newXfm);
     applyNodeTransform(newXfm, n);
-    sgNode = newXfm;
 
-    sgNode->createChild("instanceId", "string", sgNode->name());
+    // create child animate camera for all camera nodes added to scene hierarchy,
+    // bool value is set during createAnimation when appropriate target xfm is found
+    if(n.camera != -1 && cameras != nullptr) {
+      auto &listCameras = *cameras;
+      auto &camera = listCameras[n.camera];
+      newXfm->add(camera);
+      newXfm->createChild("animateCamera", "bool", false);
+    }
+
+    sgNode = newXfm;
 
     // while parsing assets from BIT-TS look for BIT_asset_info to add to
     // assetCatalogue
@@ -635,16 +735,30 @@ namespace ospray {
       //     << model.materials[prim.material].alphaMode << ")\n";
     }
 
-    // XXX: Create node types based on actual accessor types
-    std::vector<vec3ui> vi;  // XXX support both 3i and 4i OSPRay 2?
-    std::vector<vec4f> vc;
-    std::vector<vec2f> vt;
+    std::shared_ptr<Geometry> ospGeom = nullptr;
+
+    // create appropriate Geometry node
+    if (prim.mode == TINYGLTF_MODE_TRIANGLES) 
+      ospGeom =
+          createNodeAs<Geometry>(primName + "_object", "geometry_triangles");
+    else if (prim.mode == TINYGLTF_MODE_POINTS) {
+      // points as spheres
+      ospGeom =
+          createNodeAs<Geometry>(primName + "_object", "geometry_spheres");
+    } else {
+      ERROR << "Unsupported primitive mode! File must contain only "
+        "triangles or points\n";
+      throw std::runtime_error(
+          "Unsupported primitive mode! Only triangles are supported");
+    }
+
 
 #if 1  // XXX: Generalize these with full component support!!!
        // In : 1,2,3,4 ubyte, ubyte(N), ushort, ushort(N), uint, float
        // Out:   2,3,4 int, float
 
     if (prim.indices >  -1) {
+      auto &vi = ospGeom->vi;
       // Indices: scalar ubyte/ushort/uint
       if (model.accessors[prim.indices].componentType ==
           TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
@@ -681,6 +795,7 @@ namespace ospray {
     // accessor->normalized
     auto fnd = prim.attributes.find("COLOR_0");
     if (fnd != prim.attributes.end()) {
+      auto &vc = ospGeom->vc;
       auto col_attrib = fnd->second;
       if (model.accessors[col_attrib].componentType ==
           TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
@@ -729,6 +844,7 @@ namespace ospray {
     // textures.  Only supporting TEXCOORD_0
     fnd = prim.attributes.find("TEXCOORD_0");
     if (fnd != prim.attributes.end()) {
+      auto &vt = ospGeom->vt;
       Accessor<vec2f> uv_accessor(model.accessors[fnd->second], model);
       vt.reserve(uv_accessor.size());
       for (size_t i = 0; i < uv_accessor.size(); ++i)
@@ -744,24 +860,14 @@ namespace ospray {
 #endif
 #endif
 
-    // XXX Handle this gracefully!
-    // XXX GLTF 2.0 spec supports
-    // POINTS
-    // LINES LINE_LOOP LINE_STRIP
-    // TRIANGLES TRIANGLE_STRIP TRIANGLE_FAN
-    // XXX There's code in gltf-loader.cc for convertedToTriangleList
-    std::shared_ptr<Geometry> ospGeom = nullptr;
-
     // Add attribute arrays to mesh
-    if (prim.mode == TINYGLTF_MODE_TRIANGLES) {
-      ospGeom =
-          createNodeAs<Geometry>(primName + "_object", "geometry_triangles");
-
+    if (ospGeom->subType() == "geometry_triangles") {
       // Positions: vec3f
       Accessor<vec3f> pos_accessor(
           model.accessors[prim.attributes["POSITION"]], model);
-      ospGeom->skinnedPositions.reserve(pos_accessor.size());
-      for (size_t i = 0; i < pos_accessor.size(); ++i)
+      const auto vertices = pos_accessor.size();
+      ospGeom->skinnedPositions.reserve(vertices);
+      for (size_t i = 0; i < vertices; ++i)
         ospGeom->skinnedPositions.emplace_back(pos_accessor[i]);
       ospGeom->createChildData(
           "vertex.position", ospGeom->skinnedPositions, true);
@@ -770,102 +876,116 @@ namespace ospray {
       fnd = prim.attributes.find("NORMAL");
       if (fnd != prim.attributes.end()) {
         Accessor<vec3f> normal_accessor(model.accessors[fnd->second], model);
-        ospGeom->skinnedNormals.reserve(normal_accessor.size());
-        for (size_t i = 0; i < normal_accessor.size(); ++i)
-          ospGeom->skinnedNormals.emplace_back(normal_accessor[i]);
-        ospGeom->createChildData(
-            "vertex.normal", ospGeom->skinnedNormals, true);
+        if (vertices == normal_accessor.size()) {
+          ospGeom->skinnedNormals.reserve(vertices);
+          for (size_t i = 0; i < vertices; ++i)
+            ospGeom->skinnedNormals.emplace_back(normal_accessor[i]);
+          ospGeom->createChildData(
+              "vertex.normal", ospGeom->skinnedNormals, true);
+        } else
+          WARN << "mismatching NORMAL size\n";
       }
 
-      ospGeom->createChildData("index", vi);
-      if (!vc.empty())
-        ospGeom->createChildData("vertex.color", vc);
-      if (!vt.empty())
-        ospGeom->createChildData("vertex.texcoord", vt);
+      ospGeom->createChildData("index", ospGeom->vi, true);
+      if (vertices == ospGeom->vc.size())
+        ospGeom->createChildData("vertex.color", ospGeom->vc, true);
+      else if (!ospGeom->vc.empty())
+        WARN << "mismatching COLOR_0 size\n";
+      if (vertices == ospGeom->vt.size())
+        ospGeom->createChildData("vertex.texcoord", ospGeom->vt, true);
+      else if (!ospGeom->vt.empty())
+        WARN << "mismatching TEXCOORD_0 size\n";
 
       // skinning, XXX for now only for triangles
-      const auto fndj = prim.attributes.find("JOINTS_0");
-      const auto fndw = prim.attributes.find("WEIGHTS_0");
-      if (fndj != prim.attributes.end() && fndw != prim.attributes.end()) {
-        ospGeom->positions = ospGeom->skinnedPositions;
-        ospGeom->normals = ospGeom->skinnedNormals;
+      ospGeom->weightsPerVertex = 0;
+      int stride = 0;
+      for (int set = 2; set >= 0; set--) {
+        auto fndj = prim.attributes.find("JOINTS_" + std::to_string(set));
+        auto fndw = prim.attributes.find("WEIGHTS_" + std::to_string(set));
+        if (fndj == prim.attributes.end() || fndw == prim.attributes.end())
+          continue;
+        if (ospGeom->weightsPerVertex == 0) { // init only for largest found set
+          stride = set + 1;
+          ospGeom->weightsPerVertex = stride * 4;
+          ospGeom->joints.resize(vertices * ospGeom->weightsPerVertex);
+          ospGeom->weights.resize(vertices * ospGeom->weightsPerVertex);
+          ospGeom->positions = ospGeom->skinnedPositions;
+          ospGeom->normals = ospGeom->skinnedNormals;
+        }
         auto &joints = model.accessors[fndj->second];
+        if (vertices != joints.count) {
+          WARN << "mismatching JOINTS_" << set << " size\n";
+          continue;
+        }
+        vec4us *geomJoints = (vec4us *)ospGeom->joints.data() + set;
         bool isVec4 = joints.type == TINYGLTF_TYPE_VEC4;
         if (isVec4
             && joints.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
           Accessor<vec4uc> joint(joints, model);
           for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->joints.emplace_back(joint[i]);
+            geomJoints[i * stride] = joint[i];
         } else if (isVec4
             && joints.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
           Accessor<vec4us> joint(joints, model);
           for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->joints.emplace_back(joint[i]);
-        } else {
-          WARN << "invalid JOINTS_0\n";
-          ospGeom->joints.resize(joints.count);
-        }
+            geomJoints[i * stride] = joint[i];
+        } else
+          WARN << "invalid JOINTS_" << set << std::endl;
 
         auto &weights = model.accessors[fndw->second];
+        if (vertices != weights.count) {
+          WARN << "mismatching WEIGHTS_" << set << " size\n";
+          continue;
+        }
+        vec4f *geomWeights = (vec4f *)ospGeom->weights.data() + set;
         isVec4 = weights.type == TINYGLTF_TYPE_VEC4;
         if (isVec4
             && weights.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-          Accessor<vec4uc> joint(weights, model);
-          for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->weights.emplace_back(joint[i]);
+          Accessor<vec4uc> weight(weights, model);
+          for (size_t i = 0; i < weight.size(); ++i)
+            geomWeights[i * stride] = weight[i] / 255.0f;
         } else if (isVec4
             && weights.componentType
                 == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-          Accessor<vec4us> joint(weights, model);
-          for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->weights.emplace_back(joint[i]);
+          Accessor<vec4us> weight(weights, model);
+          for (size_t i = 0; i < weight.size(); ++i)
+            geomWeights[i * stride] = weight[i] / 65535.0f;
         } else if (isVec4
             && weights.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
-          Accessor<vec4f> joint(weights, model);
-          for (size_t i = 0; i < joint.size(); ++i)
-            ospGeom->weights.emplace_back(joint[i]);
-        } else {
-          WARN << "invalid WEIGHTS_0\n";
-          ospGeom->weights.resize(weights.count);
-        }
+          Accessor<vec4f> weight(weights, model);
+          for (size_t i = 0; i < weight.size(); ++i)
+            geomWeights[i * stride] = weight[i];
+        } else
+          WARN << "invalid WEIGHTS_" << set << std::endl;
       }
-    } else if (prim.mode == TINYGLTF_MODE_POINTS) {
-      // points as spheres
-      ospGeom =
-          createNodeAs<Geometry>(primName + "_object", "geometry_spheres");
+    } else if (ospGeom->subType() == "geometry_spheres") {
 
       // Positions: vec3f
       Accessor<vec3f> pos_accessor(
           model.accessors[prim.attributes["POSITION"]], model);
-      ospGeom->positions.reserve(pos_accessor.size());
+      ospGeom->skinnedPositions.reserve(pos_accessor.size());
       for (size_t i = 0; i < pos_accessor.size(); ++i)
-        ospGeom->positions.emplace_back(pos_accessor[i]);
-      ospGeom->createChildData("sphere.position", ospGeom->positions, true);
+        ospGeom->skinnedPositions.emplace_back(pos_accessor[i]);
+      ospGeom->createChildData("sphere.position", ospGeom->skinnedPositions, true);
 
       // glTF doesn't specify point radius.
       ospGeom->createChild("radius", "float", 0.005f);
 
-      if (!vc.empty()) {
-        ospGeom->createChildData("color", vc);
+      if (!ospGeom->vc.empty()) {
+        ospGeom->createChildData("color", ospGeom->vc, true);
         // color will be added to the geometric model, it is not directly part
         // of the spheres primitive
         ospGeom->child("color").setSGOnly();
       }
-      if (!vt.empty())
-        ospGeom->createChildData("sphere.texcoord", vt);
-    } else {
-      ERROR << "Unsupported primitive mode! File must contain only "
-        "triangles or points\n";
-      throw std::runtime_error(
-          "Unsupported primitive mode! Only triangles are supported");
-      // continue;
+      if (!ospGeom->vt.empty())
+        ospGeom->createChildData("sphere.texcoord", ospGeom->vt, true);
     }
 
     if (ospGeom) {
       // add one for default, "no material" material
       auto materialID = prim.material + 1 + baseMaterialOffset;
-      std::vector<uint32_t> mIDs(ospGeom->skinnedPositions.size(), materialID);
-      ospGeom->createChildData("material", mIDs);
+      ospGeom->mIDs.resize(ospGeom->skinnedPositions.size(), materialID);
+      ospGeom->createChildData("material", ospGeom->mIDs, true);
       ospGeom->child("material").setSGOnly();
     }
 
@@ -893,26 +1013,30 @@ namespace ospray {
 
     // We can emulate a constant colored emissive texture
     // XXX this is a workaround
-    auto constColor = true;
+    auto constColor = false;
     if (emissiveColor != vec3f(0.f) && mat.emissiveTexture.index != -1) {
       const auto &tex = model.textures[mat.emissiveTexture.index];
       const auto &img = model.images[tex.source];
-      const auto *data = img.image.data();
+      if (img.image.size() > 0) {
+        constColor = true;
+        const auto *data = img.image.data();
 
-      const vec3f color0 = vec3f(data[0], data[1], data[2]);
-      auto i = 1;
-      WARN << "Material emissiveTexture #" << mat.emissiveTexture.index;
-      WARN << std::endl;
-      WARN << "   color0 : " << color0 << std::endl;
-      while (constColor && (i < img.width * img.height)) {
-        const vec3f color =
+        const vec3f color0 = vec3f(data[0], data[1], data[2]);
+        auto i = 1;
+        WARN << "Material emissiveTexture #" << mat.emissiveTexture.index;
+        WARN << std::endl;
+        WARN << "   color0 : " << color0 << std::endl;
+        while (constColor && (i < img.width * img.height)) {
+          const vec3f color =
             vec3f(data[4 * i + 0], data[4 * i + 1], data[4 * i + 2]);
-        if (color0 != color) {
-          WARN << "   color @ " << i << " : " << color << std::endl;
-          WARN << "   !!! non constant color, skipping emissive" << std::endl;
-          constColor = false;
+          if (color0 != color) {
+            WARN << "   color @ " << i << " : " << color << std::endl;
+            WARN << "   !!! non constant color, skipping emissive" << std::endl;
+            constColor = false;
+            break;
+          }
+          i++;
         }
-        i++;
       }
     }
 
@@ -1408,22 +1532,23 @@ namespace ospray {
     std::string baseName = fileName.name() + "_rootXfm";
     auto rootNode = createNode(baseName, "transform");
 
-    GLTFData gltf(rootNode, fileName, materialRegistry);
+    GLTFData gltf(rootNode, fileName, materialRegistry, cameras, fb, shared_from_this(), ic);
 
     if (!gltf.parseAsset())
       return;
 
     gltf.createMaterials();
     gltf.createLights();
+
+    if (importCameras)
+      gltf.createCameras();
+
     gltf.createSkins();
     gltf.createGeometries(); // needs skins
     gltf.buildScene();
     gltf.finalizeSkins(); // needs nodes / buildScene
     if (animations)
       gltf.createAnimations(*animations);
-    if (importCameras)
-      gltf.createCameras(*cameras);
-
     if (gltf.lights.size() != 0) {
       auto lightsMan = std::static_pointer_cast<sg::LightsManager>(lightsManager);
       lightsMan->addLights(gltf.lights);

@@ -370,6 +370,72 @@ inline bool generateWidget_affine3f(const std::string &, Node &node)
   return false;
 }
 
+inline bool generateWidget_range1i(const std::string &title, Node &node)
+{
+  range1i v = node.valueAs<range1i>();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s",
+        (node.name() + ": " + std::to_string(v.lower) + ", "
+            + std::to_string(v.upper))
+            .c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  if (node.hasMinMax()) {
+    const int min = node.minAs<int>();
+    const int max = node.maxAs<int>();
+    const float speed = (max - min) / 100.f;
+    if (ImGui::DragIntRange2(
+            title.c_str(), &v.lower, &v.upper, speed, min, max)) {
+      node.setValue(v);
+      return true;
+    }
+  } else {
+    if (ImGui::DragIntRange2(title.c_str(), &v.lower, &v.upper)) {
+      node.setValue(v);
+      return true;
+    }
+  }
+
+  nodeTooltip(node);
+  return false;
+}
+
+inline bool generateWidget_range1f(const std::string &title, Node &node)
+{
+  range1f v = node.valueAs<range1f>();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s",
+        (node.name() + ": " + std::to_string(v.lower) + ", "
+            + std::to_string(v.upper))
+            .c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  if (node.hasMinMax()) {
+    const float min = node.minAs<float>();
+    const float max = node.maxAs<float>();
+    const float speed = (max - min) / 100.f;
+    if (ImGui::DragFloatRange2(
+            title.c_str(), &v.lower, &v.upper, speed, min, max)) {
+      node.setValue(v);
+      return true;
+    }
+  } else {
+    if (ImGui::DragFloatRange2(title.c_str(), &v.lower, &v.upper)) {
+      node.setValue(v);
+      return true;
+    }
+  }
+
+  nodeTooltip(node);
+  return false;
+}
+
 inline bool generateWidget_string(const std::string &, Node &node)
 {
   std::string s = node.valueAs<std::string>();
@@ -392,6 +458,8 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"rgb", generateWidget_rgb},
     {"rgba", generateWidget_rgba},
     {"affine3f", generateWidget_affine3f},
+    {"range1i", generateWidget_range1i},
+    {"range1f", generateWidget_range1f},
     {"string", generateWidget_string},
 };
 
@@ -404,6 +472,10 @@ inline GenerateImGuiWidgets::GenerateImGuiWidgets(TreeState state, bool &u)
 inline bool GenerateImGuiWidgets::operator()(Node &node, TraversalContext &ctx)
 {
   std::string widgetName = node.name();
+
+  // Skip any nodes set to not show in the UI, and don't process children
+  if (node.sgNoUI())
+    return false;
 
   auto generator = widgetGenerators[node.subType()];
 

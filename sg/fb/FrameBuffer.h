@@ -12,26 +12,18 @@ namespace ospray {
       : public OSPNode<cpp::FrameBuffer, NodeType::FRAME_BUFFER>
   {
     FrameBuffer();
-    ~FrameBuffer() override;
 
     NodeType type() const override;
 
     const void *map(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmap(const void *mem);
     float variance();
-    uint32_t *instData{nullptr};
-    uint32_t *geomData{nullptr};
-    float *worldPosData{nullptr};
-
-    GeomIdMap ge;
-    InstanceIdMap in;
 
     void resetAccumulation();
     void updateDenoiser(bool enabled);
     void updateToneMapper(bool enabled);
     void updateImageOperations();
     void saveFrame(std::string filename, int flags);
-    void pickFrame(std::string filename);
 
     inline bool isFloatFormat()
     {

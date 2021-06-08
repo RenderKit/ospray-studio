@@ -1,23 +1,36 @@
-#!/bin/bash -x
-## Copyright 2015-2020 Intel Corporation
+#!/bin/bash -ex
+## Copyright 2015-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
-set -e
-apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev -y
-if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
+PACKAGE=false
+if [[ $# -gt 0 ]]
 then
-    cd /tmp
-    git clone http://gitlab-ci-token:${CI_JOB_TOKEN}@$CI_SERVER_HOST/renderkit/ospray.git ospray-$OSPRAY_VER
-    cd ospray-$OSPRAY_VER/
-    git checkout tags/"v${OSPRAY_VER}"
-    mkdir build && cd build && cmake ../scripts/superbuild -DBUILD_OIDN=ON && cmake --build .
-    cp -r /tmp/ospray-$OSPRAY_VER $CACHE_DIR/
+    if [[ "$1" == "package" ]]
+    then
+        PACKAGE=true
+    fi
 fi
 
-cd $CI_PROJECT_DIR
-mkdir build && cd build
-export ospray_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray/lib/cmake/ospray-$OSPRAY_VER
-export rkcommon_DIR=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/rkcommon/lib/cmake/rkcommon-$RKCOMMON_VER
-export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
-cmake -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
-make -j
+cmake --version
+
+mkdir -p build && cd build
+
+if [[ "$PACKAGE" == true ]]
+then
+    cmake -L \
+        -D ENABLE_OPENIMAGEIO=OFF \
+        -D ENABLE_OPENVDB=OFF \
+        -D ENABLE_EXR=OFF \
+        -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_LINUX \
+        ..
+    cmake --build . --parallel --config Release
+    cpack -B "${PWD}/package" -V
+else
+    cmake -L \
+        -D CMAKE_INSTALL_PREFIX=install \
+        -D ENABLE_OPENIMAGEIO=OFF \
+        -D ENABLE_OPENVDB=OFF \
+        -D ENABLE_EXR=OFF \
+        ..
+    cmake --build . --parallel --config Release --target install
+fi
