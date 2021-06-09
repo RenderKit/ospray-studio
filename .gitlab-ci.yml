@@ -213,6 +213,10 @@ release-macos:
     name: ospray_studio
     paths:
       - build-macos/package/ospray_studio*
+  only:
+    - master
+    - /^release-.*$/
+    - devel
 
 scan-bdba-bin:
   stage: scan
@@ -227,6 +231,10 @@ scan-bdba-bin:
     paths:
       - ospray_studio*.pdf
       - ospray_studio*.csv
+  only:
+    - master
+    - /^release-.*$/
+    - devel
 
 av:
   stage: scan
@@ -237,4 +245,8 @@ av:
     - freshclam | tee -a /tmp/av_scan.log
     - clamscan -va --max-filesize=512M --max-scansize=2048M --alert-broken --alert-exceeds-max build*/package/ospray_studio* | tee -a /tmp/av_scan.log
     - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID av /tmp/av_scan.log
+  only:
+    - master
+    - /^release-.*$/
+    - devel
 
