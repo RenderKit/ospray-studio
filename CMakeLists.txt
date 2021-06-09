@@ -1,13 +1,9 @@
 ## Copyright 2009-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
-cmake_policy(SET CMP0048 NEW) # required for project version after 3.18.3
-project(ospray_studio VERSION 0.7.0 LANGUAGES CXX)
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.15)
 
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW) # since 3.12
-endif()
+project(ospray_studio VERSION 0.7.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
@@ -20,6 +16,16 @@ set (CMAKE_CXX_STANDARD 14 CACHE STRING
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 message (STATUS "This build is for C++${CMAKE_CXX_STANDARD}")
+
+# option(OSPSTUDIO_USE_CXX11_ABI "Use the 2011 C++ standard ABI" OFF)
+# mark_as_advanced(OSPSTUDIO_USE_CXX11_ABI)
+# if(NOT OSPSTUDIO_USE_CXX11_ABI)
+#   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#     # Currently, OSPRay is compiled with C++11, so we have ensure a compatible ABI when using gcc
+#     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+#     message (STATUS "...with ${CMAKE_CXX_FLAGS}")
+#   endif()
+# endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -38,16 +44,26 @@ else()
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CONFIGURATION_TYPES})
 endif()
 
-## resources / copyright ##
+## globals
 set(OSPRAY_STUDIO_RESOURCE_FILE "${PROJECT_SOURCE_DIR}/resources/ospray_studio.rc")
+if(APPLE)
+  ## ensures that build-time executables contain install-time rpaths, ensuring
+  ## they are identical from a code-signing POV
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+endif()
+
+list(APPEND CMAKE_MODULE_PATH
+  ${PROJECT_SOURCE_DIR}/cmake
+)
+include(functions)
 
 ## Find dependencies ##
 
 set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL 2 REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(rkcommon 1.6.0 REQUIRED)
-find_package(ospray 2.5.0 REQUIRED)
+
+include(glfw)
+include(ospray)
 
 ## Build application ##
 
@@ -58,15 +74,11 @@ add_subdirectory(sg)
 
 ## make pysg module optional
 
-option(USE_PYSG "Enable PYSG module" OFF)
+option(USE_PYSG "Enable PYSG module" ON)
 
 if(USE_PYSG)
-  find_package(pybind11 REQUIRED)
-  if (NOT pybind11_FOUND)
-    message(STATUS "pybind11 not found. Please install pybind11.")
-  else()
+  include(cmake/pybind11.cmake)
   add_subdirectory(pysg)
-  endif()
 endif()
 
 option(BUILD_APPS "Build OSPRay Studio Apps" ON)
@@ -82,3 +94,8 @@ option(BUILD_PLUGINS "Build plugins subtree" OFF)
 if (BUILD_APPS AND BUILD_PLUGINS)
   add_subdirectory(plugins)
 endif()
+
+
+include(package)
+# must be last
+include(CPack)

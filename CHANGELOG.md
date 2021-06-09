@@ -1,7 +1,32 @@
 Version History
 ---------------
 
-### Changes in OSPRay Studio 0.6.0 (alpha)
+### Changes in OSPRay Studio v0.7.0
+
+-   Compatible with OSPRay release v2.6.x
+
+-   Add SceneGraph python bindings
+    Access to scene graph concepts from python3 environment
+    Simple examples provided
+
+-   Expose support for OSPRay / Open VKL Particle Volume primitives
+
+-   Add PCD (Point Cloud Data) file importer - ascii and binary formats
+
+-   Transfer function and isosurface enhancements provide more control over volume visualizations
+
+-   Support OSPRay's varianceThreshold for adaptive accumulation
+
+-   glTF and camera animation improvements
+
+-   UI improvments
+    Camera manipulator dolly and focal distance/depth-of-field
+    Quick select common frame sizes
+    Denoiser can be enabled/disabled without resetting accumulation
+
+-   Add UI parameters to demo scene generators for better interactivity
+
+### Changes in OSPRay Studio v0.6.0 (alpha)
 
 -   Second alpha, compatible with OSPRay release v2.5.x
 
@@ -37,6 +62,6 @@ Version History
     Implement an AssetsCatalogue to avoid re-importing assets, simply instance
     Import raw structured and spherical files with specific volume nodes
 
-### OSPRay Studio 0.5.0 (alpha)
+### OSPRay Studio v0.5.0 (alpha)
 
 -   Initial public alpha release, compatible with OSPRay release v2.4.x

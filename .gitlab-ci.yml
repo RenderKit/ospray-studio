@@ -3,8 +3,8 @@
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  OSPRAY_VER: "2.5.0"
-  RKCOMMON_VER: "1.6.0"
+  OSPRAY_VER: "2.6.0"
+  RKCOMMON_VER: "1.6.1"
 
 stages:
   - build
@@ -31,7 +31,7 @@ source-protex-scan:
 ########
 build-ubuntu18.04:
   extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
   script:
     - gitlab/build.sh
   artifacts:
@@ -39,8 +39,8 @@ build-ubuntu18.04:
     paths:
       - build/
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 build-osx-clang:
   stage: build
@@ -52,69 +52,70 @@ build-osx-clang:
     paths:
       - build-macos/
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 build-windows-msvc15:
   stage: build
   tags: [win, msvc15]
   script:
-    - gitlab\win.ps1 "Visual Studio 15 2017 Win64" "v141" "Release"
+    - gitlab\win.ps1
   artifacts:
     name: ospray-studio
     paths:
       - build-win/
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 build-kw:
   extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
   script:
     - gitlab/build-kw.sh
   artifacts:
     paths:
-      - klockwork/*
+      - klocwork/*
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 test-run-ubuntu18.04:
   stage: test
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
   needs: [build-ubuntu18.04]
   tags: [docker]
   script:
     - gitlab/run.sh
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 test-kw:
-  stage: test
+  stage: scan
   tags: [docker]
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
   needs: [build-kw]
   script:
-    - gitlab/test-kw.sh
+    - gitlab/kw-check-issues.sh
   allow_failure: true
   only:
-    refs:
-      - master, release-0.6.x
+    - master
+    - /^release-.*$/
 
 ########
 # Transitional phases, only works against devel branch dependencies
 ########
+
 build-ubuntu18.04-dev:
   extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
   script:
     - gitlab/build-dev.sh
   artifacts:
     name: ospray-studio
     paths:
-      - build/
+      - build
 
 build-osx-clang-dev:
   stage: build
@@ -124,21 +125,21 @@ build-osx-clang-dev:
   artifacts:
     name: ospray-studio
     paths:
-      - build-macos/
+      - build-macos
 
 build-windows-msvc15-dev:
   stage: build
   tags: [win, msvc15]
   script:
-    - gitlab\win-dev.ps1 "Visual Studio 15 2017 Win64" "v141" "Release"
+    - gitlab\win-dev.ps1
   artifacts:
     name: ospray-studio
     paths:
-      - build-win/
+      - build-win
 
 build-kw-dev:
   extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
   script:
     - gitlab/build-kw-dev.sh
   artifacts:
@@ -168,7 +169,7 @@ kw-gen-report:
 
 test-run-ubuntu18.04-dev:
   stage: test
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
   needs: [build-ubuntu18.04-dev]
   tags: [docker]
   script:
@@ -176,53 +177,42 @@ test-run-ubuntu18.04-dev:
 
 release-linux:
   stage: release
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
-  needs: [build-ubuntu18.04-dev]
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
+  dependencies: []
   tags: [docker]
   script:
-    - apt-get install zip -y
-    - export RELEASE_DIRECTORY=ospray_studio_release_lin
-    - mkdir $RELEASE_DIRECTORY
-    - cp build/ospStudio $RELEASE_DIRECTORY/
-    - cp build/libospray_sg.so $RELEASE_DIRECTORY/
-    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+   - gitlab/build.sh package
   artifacts:
+    name: ospray_studio
     paths:
-      - ospray_studio_release_lin.zip
-
+      - build/package/ospray_studio*
 
 release-windows:
   stage: release
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
-  needs: [build-windows-msvc15-dev]
-  tags: [docker]
+  dependencies: []
+  tags:
+    - msvc15
+    - win
   script:
-    - apt-get install zip -y
-    - export RELEASE_DIRECTORY=ospray_studio_release_win
-    - mkdir $RELEASE_DIRECTORY
-    - cp build-win/Release/ospStudio.exe $RELEASE_DIRECTORY/
-    - cp build-win/Release/ospray_sg.dll $RELEASE_DIRECTORY/
-    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+    - gitlab\win.ps1 package
   artifacts:
+    name: ospray_studio
     paths:
-      - ospray_studio_release_win.zip
+      - build-win/package/ospray_studio*
 
 release-macos:
   stage: release
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04
-  needs: [build-osx-clang-dev]
-  tags: [docker]
+  dependencies: []
+  tags:
+    - osx
+    - clang
+    - sign
   script:
-    - apt-get install zip -y
-    - export RELEASE_DIRECTORY=ospray_studio_release_macos
-    - mkdir $RELEASE_DIRECTORY
-    - cp build-macos/ospStudio $RELEASE_DIRECTORY/
-    - cp build-macos/libospray_sg.dylib $RELEASE_DIRECTORY/
-    - zip -r $RELEASE_DIRECTORY.zip $RELEASE_DIRECTORY
+   - gitlab/macos.sh package
   artifacts:
+    name: ospray_studio
     paths:
-      - ospray_studio_release_macos.zip
-
+      - build-macos/package/ospray_studio*
 
 scan-bdba-bin:
   stage: scan
@@ -230,13 +220,13 @@ scan-bdba-bin:
   tags: [docker]
   needs: [release-linux, release-windows, release-macos]
   script:
-    - gitlab/bdba.sh "ospray_studio_release_*"
-    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio_release_*.pdf"
-    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio_release_*.csv"
+    - gitlab/bdba.sh "build*/package/ospray_studio*"
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio*.pdf"
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio*.csv"
   artifacts:
     paths:
-      - ospray_studio_release_*.pdf
-      - ospray_studio_release_*.csv
+      - ospray_studio*.pdf
+      - ospray_studio*.csv
 
 av:
   stage: scan
@@ -245,6 +235,6 @@ av:
   needs: [release-linux, release-windows, release-macos]
   script:
     - freshclam | tee -a /tmp/av_scan.log
-    - clamscan -va --max-filesize=512M --max-scansize=2048M --alert-broken --alert-exceeds-max ospray_studio_release_* | tee -a /tmp/av_scan.log
+    - clamscan -va --max-filesize=512M --max-scansize=2048M --alert-broken --alert-exceeds-max build*/package/ospray_studio* | tee -a /tmp/av_scan.log
     - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID av /tmp/av_scan.log
 
