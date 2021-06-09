@@ -1,6 +1,6 @@
 # OSPRay Studio
 
-This is release v0.7.0 of Intel® OSPRay Studio. It is released under the
+This is release v0.8.0 (devel) of Intel® OSPRay Studio. It is released under the
 Apache 2.0 license.
 
 See [what's
