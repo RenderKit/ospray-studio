@@ -40,11 +40,10 @@ void TimeSeriesWindow::start()
   // doing this outside constructor to ensure shared_from_this()
   // can wrap a valid weak_ptr (in constructor, not guaranteed)
 
-  auto newPluginPanels =
-      pluginManager.getAllPanelsFromPlugins(shared_from_this());
-  std::move(newPluginPanels.begin(),
-            newPluginPanels.end(),
-            std::back_inserter(pluginPanels));
+  pluginManager.main(shared_from_this(), &pluginPanels);
+  // std::move(newPluginPanels.begin(),
+  //           newPluginPanels.end(),
+  //           std::back_inserter(pluginPanels));
 
   parseCommandLine();
 

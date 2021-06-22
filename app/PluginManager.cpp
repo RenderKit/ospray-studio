@@ -59,25 +59,17 @@ void PluginManager::removeAllPlugins()
   plugins.clear();
 }
 
-PanelList PluginManager::getAllPanelsFromPlugins(
-    std::shared_ptr<StudioContext> _context) const
+void PluginManager::main(
+    std::shared_ptr<StudioContext> ctx, PanelList *_allPanels) const
 {
-  PanelList allPanels;
-
+  auto &allPanels = *_allPanels;
   for (auto &plugin : plugins) {
-    auto panels = plugin.instance->createPanels(_context);
-    std::move(panels.begin(), panels.end(), std::back_inserter(allPanels));
+    plugin.instance->mainMethod(ctx);
+    if (!plugin.instance->panels.empty()) {
+      auto &pluginPanels = plugin.instance->panels;
+      std::move(pluginPanels.begin(), pluginPanels.end(), std::back_inserter(allPanels));
+    }
   }
-
-  return allPanels;
-}
-
-void PluginManager::callMainMethod(
-    std::shared_ptr<StudioContext> _context) const
-{
-  for (auto &plugin : plugins)
-    if (plugin.instance->hasMainMethod)
-      plugin.instance->mainMethod(_context);
 }
 
 } // namespace ospray

@@ -66,13 +66,14 @@ class StudioCommon
 class StudioContext : public std::enable_shared_from_this<StudioContext>
 {
  public:
-  StudioContext(StudioCommon &_common) : studioCommon(_common)
+  StudioContext(StudioCommon &_common, StudioMode _mode) : studioCommon(_common)
   {
     frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
     // baseMaterialRegistry and lightsManager are owned by the Frame
     baseMaterialRegistry = frame->baseMaterialRegistry;
     lightsManager = frame->lightsManager;
+    mode = _mode;
   }
 
   virtual ~StudioContext() {}
@@ -98,6 +99,8 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   int defaultMaterialIdx = 0;
 
   std::string outputFilename{""};
+
+  StudioMode mode;
 
  protected:
   virtual void printHelp()

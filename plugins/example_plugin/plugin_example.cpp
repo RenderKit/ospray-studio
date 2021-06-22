@@ -15,11 +15,13 @@ struct PluginExample : public Plugin
 {
   PluginExample() : Plugin("Example") {}
 
-  PanelList createPanels(std::shared_ptr<StudioContext> _context) override
+  void mainMethod(std::shared_ptr<StudioContext> ctx) override
   {
-    PanelList panels;
-    panels.emplace_back(new PanelExample(_context));
-    return panels;
+    if (ctx->mode == StudioMode::GUI)
+      panels.emplace_back(new PanelExample(ctx));
+    else
+      std::cout << "Plugin functionality unavailable in Batch mode .."
+                << std::endl;
   }
 };
 

@@ -18,7 +18,7 @@
 static bool resetFileId = false;
 
 BatchContext::BatchContext(StudioCommon &_common)
-    : StudioContext(_common), optImageSize(_common.defaultSize)
+    : StudioContext(_common, StudioMode::BATCH), optImageSize(_common.defaultSize)
 {
   frame->child("scaleNav").setValue(1.f);
 }
@@ -449,7 +449,7 @@ void BatchContext::renderFrame()
   frame->saveFrame(filename, screenshotFlags);
   if (saveMetaData) {
     this->outputFilename = filename;
-    pluginManager.callMainMethod(shared_from_this());
+    pluginManager.main(shared_from_this());
   }
 }
 
