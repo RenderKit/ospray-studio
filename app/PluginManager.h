@@ -21,6 +21,14 @@ struct PluginManager
   // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
   void main(std::shared_ptr<StudioContext> ctx, PanelList *panels = nullptr) const;
 
+  bool hasPlugin(const std::string &pluginName)
+  {
+    for (auto &p : plugins)
+      if (p.instance->name() == pluginName)
+        return true;
+    return false;
+  }
+
  private:
   // Helper types //
   struct LoadedPlugin
