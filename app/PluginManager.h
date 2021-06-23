@@ -29,7 +29,6 @@ struct PluginManager
     return false;
   }
 
- private:
   // Helper types //
   struct LoadedPlugin
   {
@@ -37,6 +36,16 @@ struct PluginManager
     bool active{true};
   };
 
+  LoadedPlugin *getPlugin(std::string &pluginName)
+  {
+    for (auto &l : plugins)
+      if (l.instance->name() == pluginName)
+        return &l;
+
+    return nullptr;
+  }
+
+ private:
   // Helper functions //
 
   void addPlugin(std::unique_ptr<Plugin> plugin);
