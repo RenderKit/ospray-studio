@@ -19,7 +19,7 @@ struct PluginManager
   void removeAllPlugins();
 
   // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
-  void main(std::shared_ptr<StudioContext> ctx, PanelList *panels = nullptr) const;
+  void main(std::shared_ptr<StudioContext> ctx, PanelList *allPanels = nullptr) const;
 
   bool hasPlugin(const std::string &pluginName)
   {

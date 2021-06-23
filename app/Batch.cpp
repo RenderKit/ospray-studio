@@ -443,10 +443,10 @@ void BatchContext::renderFrame()
       | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
 
   frame->saveFrame(filename, screenshotFlags);
-  if (saveMetaData) {
-    this->outputFilename = filename;
-    pluginManager.main(shared_from_this());
-  }
+
+  this->outputFilename = filename;
+  
+  pluginManager.main(shared_from_this());
 }
 
 void BatchContext::renderAnimation()
