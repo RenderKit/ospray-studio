@@ -494,6 +494,7 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
   // map size calculation starting at dataId
   std::size_t mapSize = offset + dataId;
 
+  auto numChannels = pcdData.hData.fields.size();
   int stride = 0;
   for (auto f : pcdData.hData.fields)
     stride += f.size * f.count;
