@@ -38,12 +38,6 @@ class BatchContext : public StudioContext
   void renderFrame();
   void renderAnimation();
   bool refreshCamera(int cameraIdx, bool resetArcball = false);
-  // NodePtr world;
-
- protected:
-  PluginManager pluginManager;
-  NodePtr importedModels;
-
   std::string optRendererTypeStr = "pathtracer";
   std::string optCameraTypeStr   = "perspective";
   std::string optImageName       = "ospBatch";
@@ -54,6 +48,11 @@ class BatchContext : public StudioContext
   int optDenoiser                = 0;
   bool optGridEnable             = false;
   vec3i optGridSize              = {1, 1, 1};
+
+ protected:
+  PluginManager pluginManager;
+  NodePtr importedModels;
+
   // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
   int optStereoMode               = 0;
   float optInterpupillaryDistance = 0.0635f;
