@@ -6,6 +6,12 @@ cmake_minimum_required(VERSION 3.15)
 project(ospray_studio VERSION 0.8.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
+include(ProcessorCount)
+
+ProcessorCount(PROCESSOR_COUNT)
+set(NUM_BUILD_JOBS ${PROCESSOR_COUNT} CACHE STRING "Number of build jobs '-j <n>'")
+
+set(DEFAULT_BUILD_COMMAND cmake --build . --config release -j ${NUM_BUILD_JOBS})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
