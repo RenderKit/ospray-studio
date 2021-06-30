@@ -13,10 +13,9 @@
 #include "sg/renderer/MaterialRegistry.h"
 // std
 #include <functional>
-// Plugin
-#include "PluginManager.h"
 
 #include "widgets/AnimationWidget.h"
+#include "PluginManager.h"
 #include "sg/importer/Importer.h"
 
 using namespace rkcommon::math;
@@ -148,7 +147,6 @@ class MainWindow : public StudioContext
 
   // Plugins //
   std::vector<std::unique_ptr<Panel>> pluginPanels;
-  PluginManager pluginManager;
 
   // imgui window visibility toggles
   bool showRendererEditor{false};

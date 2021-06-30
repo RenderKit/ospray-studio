@@ -14,23 +14,24 @@
 #include "rkcommon/utility/SaveImage.h"
 // json
 #include "sg/JSONDefs.h"
+#include "PluginManager.h"
 
 static bool resetFileId = false;
 
 BatchContext::BatchContext(StudioCommon &_common)
-    : StudioContext(_common, StudioMode::BATCH), optImageSize(_common.defaultSize)
+    : StudioContext(_common, StudioMode::BATCH)
 {
   frame->child("scaleNav").setValue(1.f);
+  pluginManager = std::make_shared<PluginManager>();
 }
 
 void BatchContext::start()
 {
   std::cerr << "Batch mode\n";
 
-  // load plugins //
-
+  // load plugins 
   for (auto &p : studioCommon.pluginsToLoad)
-    pluginManager.loadPlugin(p);
+    pluginManager->loadPlugin(p);
 
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
@@ -446,7 +447,7 @@ void BatchContext::renderFrame()
 
   this->outputFilename = filename;
   
-  pluginManager.main(shared_from_this());
+  pluginManager->main(shared_from_this());
 }
 
 void BatchContext::renderAnimation()

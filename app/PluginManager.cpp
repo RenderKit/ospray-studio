@@ -5,8 +5,6 @@
 
 #include <iterator>
 
-namespace ospray {
-
 void PluginManager::loadPlugin(const std::string &name)
 {
   std::cout << "...attempting to load plugin '" << name << "'\n";
@@ -59,6 +57,23 @@ void PluginManager::removeAllPlugins()
   plugins.clear();
 }
 
+bool PluginManager::hasPlugin(const std::string &pluginName)
+{
+  for (auto &p : plugins)
+    if (p.instance->name() == pluginName)
+      return true;
+  return false;
+}
+
+LoadedPlugin* PluginManager::getPlugin(std::string &pluginName)
+{
+  for (auto &l : plugins)
+    if (l.instance->name() == pluginName)
+      return &l;
+
+  return nullptr;
+}
+
 void PluginManager::main(
     std::shared_ptr<StudioContext> ctx, PanelList *allPanels) const
 {
@@ -74,4 +89,20 @@ void PluginManager::main(
     }
 }
 
-} // namespace ospray
+void PluginManager::mainPlugin(std::shared_ptr<StudioContext> ctx,
+    std::string &pluginName,
+    PanelList *allPanels) const
+{
+  if (!plugins.empty())
+    for (auto &plugin : plugins) {
+      if (plugin.instance->name() == pluginName) {
+        plugin.instance->mainMethod(ctx);
+        if (!plugin.instance->panels.empty() && allPanels) {
+          auto &pluginPanels = plugin.instance->panels;
+          std::move(pluginPanels.begin(),
+              pluginPanels.end(),
+              std::back_inserter(*allPanels));
+        }
+      }
+    }
+}

@@ -41,6 +41,7 @@
 #include "widgets/TransferFunctionWidget.h"
 
 using namespace ospray_studio;
+using namespace ospray;
 
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -154,6 +155,7 @@ MainWindow *MainWindow::activeWindow = nullptr;
 MainWindow::MainWindow(StudioCommon &_common)
     : StudioContext(_common, StudioMode::GUI), windowSize(_common.defaultSize), scene("")
 {
+  pluginManager = std::make_shared<PluginManager>();
   if (activeWindow != nullptr) {
     throw std::runtime_error("Cannot create more than one MainWindow!");
   }
@@ -396,7 +398,7 @@ MainWindow::~MainWindow()
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
   glfwTerminate();
-  pluginManager.removeAllPlugins();
+  pluginManager->removeAllPlugins();
   g_sceneCameras.clear();
   sg::clearAssets();
 }
@@ -406,15 +408,14 @@ void MainWindow::start()
   std::cerr << "GUI mode\n";
 
   // load plugins //
-
   for (auto &p : studioCommon.pluginsToLoad)
-    pluginManager.loadPlugin(p);
+    pluginManager->loadPlugin(p);
 
   // create panels //
   // doing this outside constructor to ensure shared_from_this()
   // can wrap a valid weak_ptr (in constructor, not guaranteed)
 
-  pluginManager.main(shared_from_this(), &pluginPanels);
+  pluginManager->main(shared_from_this(), &pluginPanels);
   // std::move(newPluginPanels.begin(),
   //     newPluginPanels.end(),
   //     std::back_inserter(pluginPanels));

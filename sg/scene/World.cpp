@@ -32,7 +32,7 @@ void World::preCommit()
 
 void World::postCommit()
 {
-  traverse<RenderScene>();
+  // traverse<RenderScene>();
 }
 
 OSP_REGISTER_SG_NODE_NAME(World, world);
