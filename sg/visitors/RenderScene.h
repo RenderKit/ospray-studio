@@ -19,6 +19,7 @@ namespace ospray {
   struct RenderScene : public Visitor
   {
     RenderScene();
+    ~RenderScene();
     RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
@@ -50,7 +51,8 @@ namespace ospray {
     cpp::World world;
     std::vector<cpp::Instance> instances;
     // string identifier associated with a geometry
-    std::map<std::string, cpp::Group> groups;
+    std::vector<cpp::Group> groups;
+    int groupIndex{0};
     std::stack<affine3f> xfms;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
@@ -68,6 +70,11 @@ namespace ospray {
   inline RenderScene::RenderScene()
   {
     xfms.emplace(math::one);
+  }
+
+  inline RenderScene::~RenderScene()
+  {
+    groups.clear();
   }
 
   inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId)
@@ -173,8 +180,13 @@ namespace ospray {
 
   inline void RenderScene::createGeometry(Node &node)
   {
-    if (!node.child("visible").valueAs<bool>() || groups.find(node.name()) != groups.end())
+    if (!node.child("visible").valueAs<bool>())
       return;
+    if (node.hasChild("groupIndex")) {
+      auto idx = node.child("groupIndex").valueAs<int>();
+      if (idx < groups.size())
+        return;
+    }
 
     // skinning
     auto geomNode = node.nodeAs<Geometry>();
@@ -249,13 +261,21 @@ namespace ospray {
           "clippingGeometry", cpp::CopiedData(model));
 
     group.commit();
-    groups.insert(std::make_pair(node.name(), group));
+    groups.push_back(group);
+    node.createChild("groupIndex", "int", groupIndex);
+    node.child("groupIndex").setSGOnly();
+    groupIndex++;
   }
 
   inline void RenderScene::createVolume(Node &node)
   {
-    if (!node.child("visible").valueAs<bool>() || groups.find(node.name()) != groups.end())
+    if (!node.child("visible").valueAs<bool>())
       return;
+    if (node.hasChild("groupIndex")) {
+      auto idx = node.child("groupIndex").valueAs<int>();
+      if (idx < groups.size())
+        return;
+    }
 
     auto &vol = node.valueAs<cpp::Volume>();
     cpp::VolumetricModel model(vol);
@@ -299,7 +319,10 @@ namespace ospray {
       group.setParam("volume", cpp::CopiedData(model));
 
       group.commit();
-      groups.insert(std::make_pair(node.name(), group));
+      groups.push_back(group);
+      node.createChild("groupIndex", "int", groupIndex);
+      node.child("groupIndex").setSGOnly();
+      groupIndex++;
     }
   }
 
@@ -309,15 +332,12 @@ namespace ospray {
     std::cout << "number of geometries : " << current.geometries.size()
               << std::endl;
     #endif
-
-    std::string geomIdentifier{""};
     if (node.hasChildOfType(NodeType::GEOMETRY)) {
       auto &geomChildren = node.childrenOfType(NodeType::GEOMETRY);
 
       for (auto geom : geomChildren) {
-        geomIdentifier = geom->name();
-        if (!geomIdentifier.empty()
-            && groups.find(geomIdentifier) != groups.end()) {
+        auto geomIdentifier = geom->child("groupIndex").valueAs<int>();
+        if (geomIdentifier < groups.size()) {
           auto &group = groups[geomIdentifier];
           group.setParam(
               "dynamicScene", node.child("dynamicScene").valueAs<bool>());
@@ -337,33 +357,33 @@ namespace ospray {
                 ospInstance, std::make_pair(instanceId, xfms.top())));
           }
         }
-        geomIdentifier = "";
       }
     }
 
-    std::string volumeIdentifier{""};
     if (node.hasChildOfType(NodeType::VOLUME)) {
       auto &volChildren = node.childrenOfType(NodeType::VOLUME);
       for (auto vol : volChildren) {
-        volumeIdentifier = vol->name();
-        auto &group = groups[volumeIdentifier];
-        group.setParam(
-            "dynamicScene", node.child("dynamicScene").valueAs<bool>());
-        group.setParam(
-            "compactMode", node.child("compactMode").valueAs<bool>());
-        group.setParam("robustMode", node.child("robustMode").valueAs<bool>());
+        auto volumeIdentifier = vol->child("groupIndex").valueAs<int>();
+        if (volumeIdentifier < groups.size()) {
+          auto &group = groups[volumeIdentifier];
+          group.setParam(
+              "dynamicScene", node.child("dynamicScene").valueAs<bool>());
+          group.setParam(
+              "compactMode", node.child("compactMode").valueAs<bool>());
+          group.setParam(
+              "robustMode", node.child("robustMode").valueAs<bool>());
 
-        cpp::Instance inst(group);
-        inst.setParam("xfm", xfms.top());
-        inst.commit();
-        instances.push_back(inst);
+          cpp::Instance inst(group);
+          inst.setParam("xfm", xfms.top());
+          inst.commit();
+          instances.push_back(inst);
 
-        if (in != nullptr && !instanceId.empty()) {
-          auto ospInstance = inst.handle();
-          in->insert(InstanceIdMap::value_type(
-              ospInstance, std::make_pair(instanceId, xfms.top())));
+          if (in != nullptr && !instanceId.empty()) {
+            auto ospInstance = inst.handle();
+            in->insert(InstanceIdMap::value_type(
+                ospInstance, std::make_pair(instanceId, xfms.top())));
+          }
         }
-        volumeIdentifier = "";
       }
     }
     if (node.hasChildOfType(NodeType::TRANSFER_FUNCTION)) {
@@ -371,25 +391,25 @@ namespace ospray {
       for (auto tfn : tfnChildren) {
         auto volChildren = tfn->childrenOfType(NodeType::VOLUME);
         for (auto vol : volChildren) {
-          volumeIdentifier = vol->name();
-        auto &group = groups[volumeIdentifier];
-        group.setParam(
-            "dynamicScene", node.child("dynamicScene").valueAs<bool>());
-        group.setParam(
-            "compactMode", node.child("compactMode").valueAs<bool>());
-        group.setParam("robustMode", node.child("robustMode").valueAs<bool>());
+          auto volumeIdentifier = vol->child("groupIndex").valueAs<int>();
+          auto &group = groups[volumeIdentifier];
+          group.setParam(
+              "dynamicScene", node.child("dynamicScene").valueAs<bool>());
+          group.setParam(
+              "compactMode", node.child("compactMode").valueAs<bool>());
+          group.setParam(
+              "robustMode", node.child("robustMode").valueAs<bool>());
 
-        cpp::Instance inst(group);
-        inst.setParam("xfm", xfms.top());
-        inst.commit();
-        instances.push_back(inst);
+          cpp::Instance inst(group);
+          inst.setParam("xfm", xfms.top());
+          inst.commit();
+          instances.push_back(inst);
 
-        if (in != nullptr && !instanceId.empty()) {
-          auto ospInstance = inst.handle();
-          in->insert(InstanceIdMap::value_type(
-              ospInstance, std::make_pair(instanceId, xfms.top())));
-        }
-        volumeIdentifier = "";
+          if (in != nullptr && !instanceId.empty()) {
+            auto ospInstance = inst.handle();
+            in->insert(InstanceIdMap::value_type(
+                ospInstance, std::make_pair(instanceId, xfms.top())));
+          }
         }
       }
     }
