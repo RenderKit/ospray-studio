@@ -47,11 +47,11 @@ struct PANEL_INTERFACE Panel
       : context(_context), currentName(_name)
   {}
   std::shared_ptr<StudioContext> context;
+  bool show = false;
 
  private:
   // Properties //
 
-  bool show = false;
   std::string currentName{"<unnamed panel>"};
 };
 

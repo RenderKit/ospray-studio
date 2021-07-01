@@ -1565,11 +1565,9 @@ void MainWindow::buildMainMenuView()
 void MainWindow::buildMainMenuPlugins()
 {
   if (!pluginPanels.empty() && ImGui::BeginMenu("Plugins")) {
-    for (auto &p : pluginPanels) {
-      bool show = p->isShown();
-      if (ImGui::Checkbox(p->name().c_str(), &show))
-        p->toggleShown();
-    }
+    for (auto &p : pluginPanels)
+      if (ImGui::MenuItem(p->name().c_str()))
+        p->setShown(true);
 
     ImGui::EndMenu();
   }
