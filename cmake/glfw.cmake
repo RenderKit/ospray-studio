@@ -8,7 +8,7 @@ message(STATUS "Looking for glfw...")
 find_package(glfw3 QUIET)
 
 if(NOT DEFINED GLFW_VERSION)
-    set(GLFW_VERSION 3.3.4)
+    set(GLFW_VERSION 3.2.1)
 endif()
 
 if(glfw3_FOUND)

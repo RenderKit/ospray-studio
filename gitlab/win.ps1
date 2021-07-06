@@ -11,6 +11,8 @@ if ($args.Length -gt 0) {
   }
 }
 
+Set-Variable THREADS $env:NUMBER_OF_PROCESSORS
+
 cmake --version
 
 mkdir -Force build-win
@@ -23,7 +25,7 @@ if ($PACKAGE -eq "ON") {
     -D ENABLE_EXR=OFF `
     -D OSPSTUDIO_SIGN_FILE=$env:SIGN_FILE_WINDOWS `
     ..
-  cmake --build . --parallel --config Release
+  cmake --build . --parallel $THREADS --config Release
   cpack -B "${PWD}/package" -V
   cpack -G ZIP -B "${PWD}/package" -V
 } else {
@@ -33,7 +35,7 @@ if ($PACKAGE -eq "ON") {
     -D ENABLE_OPENVDB=OFF `
     -D ENABLE_EXR=OFF `
     ..
-  cmake --build . --parallel --config Release --target install
+  cmake --build . --parallel $THREADS --config Release --target install
 }
 
 exit $LASTEXITCODE

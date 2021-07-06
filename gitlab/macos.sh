@@ -11,6 +11,8 @@ then
     fi
 fi
 
+THREADS=`sysctl -n hw.logicalcpu`
+
 cmake --version
 
 mkdir -p build-macos && cd build-macos
@@ -23,7 +25,7 @@ then
         -D ENABLE_EXR=OFF \
         -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_MAC \
         ..
-    cmake --build . --parallel --config Release
+    cmake --build . --parallel $THREADS --config Release
     cpack -G ZIP -B "${PWD}/package" -V
 
     cmake -L \
@@ -35,7 +37,7 @@ then
         -D ENABLE_EXR=OFF \
         -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_MAC \
         ..
-    cmake --build . --parallel --config Release
+    cmake --build . --parallel $THREADS --config Release
     cpack -B "${PWD}/package" -V
 
     $SIGN_FILE_MAC -o runtime package/ospray_studio-*pkg
@@ -47,5 +49,5 @@ else
         -D ENABLE_OPENVDB=OFF \
         -D ENABLE_EXR=OFF \
         ..
-    cmake --build . --parallel --config Release --target install
+    cmake --build . --parallel $THREADS --config Release --target install
 fi
