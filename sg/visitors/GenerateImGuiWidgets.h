@@ -280,6 +280,37 @@ inline bool generateWidget_vec3f(const std::string &title, Node &node)
   return false;
 }
 
+inline bool generateWidget_vec4f(const std::string &title, Node &node)
+{
+  vec4f v = node.valueAs<vec4f>();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s",
+        (node.name() + ": " + std::to_string(v.x) + ", " + std::to_string(v.y)
+            + ", " + std::to_string(v.z))
+            .c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  if (node.hasMinMax()) {
+    const float min = node.minAs<float>();
+    const float max = node.maxAs<float>();
+    if (ImGui::SliderFloat4(title.c_str(), v, min, max)) {
+      node.setValue(v);
+      return true;
+    }
+  } else {
+    if (ImGui::DragFloat4(title.c_str(), v)) {
+      node.setValue(v);
+      return true;
+    }
+  }
+
+  nodeTooltip(node);
+  return false;
+}
+
 inline bool generateWidget_rgb(const std::string &title, Node &node)
 {
   vec3f v = node.valueAs<vec3f>();
