@@ -25,8 +25,7 @@
 using namespace ospray;
 using namespace rkcommon::math;
 
-class PluginManager;
-
+class PluginManager; 
 enum class StudioMode
 {
   GUI,

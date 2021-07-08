@@ -7,8 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "../ospStudio.h"
-
 #ifndef PANEL_INTERFACE
   #ifdef _WIN32
     #define PANEL_INTERFACE __declspec(dllexport)

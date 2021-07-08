@@ -5,11 +5,10 @@
 
 #include "Plugin.h"
 
-using namespace ospray;
   // Helper types //
   struct LoadedPlugin
   {
-    std::unique_ptr<Plugin> instance;
+    std::unique_ptr<ospray::Plugin> instance;
     bool active{true};
   };
 
@@ -25,10 +24,10 @@ class PluginManager
 
   // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
   void main(
-      std::shared_ptr<StudioContext> ctx, PanelList *allPanels = nullptr) const;
+      std::shared_ptr<StudioContext> ctx, ospray::PanelList *allPanels = nullptr) const;
   void mainPlugin(std::shared_ptr<StudioContext> ctx,
     std::string &pluginName,
-    PanelList *allPanels = nullptr) const;
+    ospray::PanelList *allPanels = nullptr) const;
   bool hasPlugin(const std::string &pluginName);
 
   LoadedPlugin *getPlugin(std::string &pluginName);
@@ -36,7 +35,7 @@ class PluginManager
  private:
   // Helper functions //
 
-  void addPlugin(std::unique_ptr<Plugin> plugin);
+  void addPlugin(std::unique_ptr<ospray::Plugin> plugin);
 
   // Data //
 
