@@ -2485,16 +2485,18 @@ void MainWindow::buildWindowTransformEditor()
         "%lu %s", results.size(), (results.size() == 1 ? "result" : "results"));
 
     // paginate results
-    if (ImGui::ArrowButton("##prevPage", ImGuiDir_Left))
-      currentPage = std::max(1, currentPage - 1);
-    ImGui::SameLine();
-    ImGui::Text("page");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(20.f);
-    ImGui::InputInt(paginateLabel.c_str(), &currentPage, 0);
-    ImGui::SameLine();
-    if (ImGui::ArrowButton("##nextPage", ImGuiDir_Right))
-      currentPage = std::min(numPages, currentPage + 1);
+    if (numPages > 1) {
+      if (ImGui::ArrowButton("##prevPage", ImGuiDir_Left))
+        currentPage = std::max(1, currentPage - 1);
+      ImGui::SameLine();
+      ImGui::Text("page");
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(20.f);
+      ImGui::InputInt(paginateLabel.c_str(), &currentPage, 0);
+      ImGui::SameLine();
+      if (ImGui::ArrowButton("##nextPage", ImGuiDir_Right))
+        currentPage = std::min(numPages, currentPage + 1);
+    }
   }
 
   ImGui::BeginChild(
