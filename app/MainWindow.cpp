@@ -2415,7 +2415,9 @@ void MainWindow::buildWindowTransformEditor()
   static char searchTerm[1024] = "";
   static bool searched = false;
   static std::vector<sg::Node *> results;
-  static const int numItemsPerPage = 100;
+  static const char* numItemsOpt[4]{"10", "25", "50", "100"};
+  static int numItemsInd = 3; // index to above
+  static int numItemsPerPage = 100;
   static int numPages = 0;
   static int currentPage = 1;
   static std::string paginateLabel = "";
@@ -2496,6 +2498,20 @@ void MainWindow::buildWindowTransformEditor()
       ImGui::SameLine();
       if (ImGui::ArrowButton("##nextPage", ImGuiDir_Right))
         currentPage = std::min(numPages, currentPage + 1);
+      ImGui::SameLine(0.0f, ImGui::GetFontSize() * 2.f);
+      ImGui::SetNextItemWidth(5.f * ImGui::GetFontSize());
+      if (ImGui::BeginCombo("results per page", numItemsOpt[numItemsInd])) {
+        for (int i = 0; i < 4; i++) {
+          const bool selected = (numItemsInd == i);
+          if (ImGui::Selectable(numItemsOpt[i], selected)) {
+            numItemsInd = i;
+            numItemsPerPage = std::atoi(numItemsOpt[numItemsInd]);
+          }
+          if (selected)
+            ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+      }
     }
   }
 
