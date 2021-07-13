@@ -332,8 +332,11 @@ namespace ospray {
       } else
         newLight = createNode(lightName, l.type);
 
-      auto lightColor =
-          vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
+      // Color is optional, default:[1.0,1.0,1.0]
+      auto lightColor = vec3f(1.f);
+      if (!l.color.empty())
+        lightColor =
+            vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
       newLight->createChild("color", "vec3f", lightColor);
 
       if (l.intensity)
