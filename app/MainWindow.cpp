@@ -2506,6 +2506,9 @@ void MainWindow::buildWindowTransformEditor()
           if (ImGui::Selectable(numItemsOpt[i], selected)) {
             numItemsInd = i;
             numItemsPerPage = std::atoi(numItemsOpt[numItemsInd]);
+            numPages = results.size() / numItemsPerPage;
+            numPages += results.size() % numItemsPerPage == 0 ? 0 : 1;
+            paginateLabel = "of " + std::to_string(numPages) + "##currentPage";
           }
           if (selected)
             ImGui::SetItemDefaultFocus();
