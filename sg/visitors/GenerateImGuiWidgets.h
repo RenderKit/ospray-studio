@@ -352,15 +352,15 @@ inline bool generateWidget_affine3f(const std::string &, Node &node)
   }
 
   ImGui::Text("%s", "linear space");
-  if (ImGui::DragFloat3("l.vx", a.l.vx) || ImGui::DragFloat3("l.vy", a.l.vy)
-      || ImGui::DragFloat3("l.vz", a.l.vz)) {
+  if (ImGui::DragFloat3("l.vx [vec3f]", a.l.vx) || ImGui::DragFloat3("l.vy [vec3f]", a.l.vy)
+      || ImGui::DragFloat3("l.vz [vec3f]", a.l.vz)) {
     node.setValue(a);
     nodeTooltip(node);
     return true;
   }
 
   ImGui::Text("%s", "affine space");
-  if (ImGui::DragFloat3("p", a.p)) {
+  if (ImGui::DragFloat3("p [vec3f]", a.p)) {
     node.setValue(a);
     nodeTooltip(node);
     return true;
@@ -451,7 +451,7 @@ inline bool generateWidget_quaternionf(const std::string &title, Node &node)
   }
 
   vec4f v(q.r, q.i, q.j, q.k);
-  if (ImGui::DragFloat4("q", v)) {
+  if (ImGui::DragFloat4(title.c_str(), v)) {
     q = quaternionf(v.x, vec3f(v.y, v.z, v.w));
     node.setValue(q);
     nodeTooltip(node);
@@ -532,7 +532,6 @@ inline bool GenerateImGuiWidgets::operator()(Node &node, TraversalContext &ctx)
     }
   } else {
     // there is no generator for this type
-    widgetName += ": " + node.subType();
     ImGui::Text("%s", widgetName.c_str());
     nodeTooltip(node);
   }
