@@ -471,7 +471,7 @@ inline GenerateImGuiWidgets::GenerateImGuiWidgets(TreeState state, bool &u)
 
 inline bool GenerateImGuiWidgets::operator()(Node &node, TraversalContext &ctx)
 {
-  std::string widgetName = node.name();
+  std::string widgetName = node.name() + " [" + node.subType() + "]";
 
   // Skip any nodes set to not show in the UI, and don't process children
   if (node.sgNoUI())
