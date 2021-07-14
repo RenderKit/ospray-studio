@@ -2412,9 +2412,12 @@ void MainWindow::buildWindowTransformEditor()
     return;
   }
 
+  typedef sg::NodeType NT;
+
   static char searchTerm[1024] = "";
   static bool searched = false;
   static std::vector<sg::Node *> results;
+  static std::vector<NT> searchTypes{NT::TRANSFORM, NT::GEOMETRY, NT::VOLUME};
   static const char* numItemsOpt[4]{"10", "25", "50", "100"};
   static int numItemsInd = 1; // index to above
   static int numItemsPerPage = 25;
@@ -2432,8 +2435,8 @@ void MainWindow::buildWindowTransformEditor()
     if (std::string(searchTerm).size() > 0) {
       searched = true;
       results.clear();
-      frame->traverse<sg::Search>(
-          std::string(searchTerm), sg::NodeType::GEOMETRY, results);
+      for (auto nt : searchTypes)
+        frame->traverse<sg::Search>(std::string(searchTerm), nt, results);
       numPages = results.size() / numItemsPerPage;
       numPages += results.size() % numItemsPerPage == 0 ? 0 : 1;
       paginateLabel = "of " + std::to_string(numPages) + "##currentPage";

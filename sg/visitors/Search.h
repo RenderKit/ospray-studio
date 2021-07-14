@@ -32,8 +32,10 @@ namespace ospray {
     inline bool Search::operator()(Node &node, TraversalContext &)
     {
       if (type == NodeType::GENERIC || node.type() == type)
-        if (node.name().find(term) != std::string::npos)
+        if (node.name().find(term) != std::string::npos) {
           results.push_back(&node);
+          return false;
+        }
       return true;
     }
   }  // namespace sg
