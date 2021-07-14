@@ -91,7 +91,10 @@ build-centos7:
     - source $SPACK_SETUP_ENV
     - module load cmake/3.15.2
     - module load gcc/5.4.0
-    - export CXXFLAGS="-static-libstdc++ -fPIC"
+    - module load intel/2020.1
+    - export CC=icc
+    - export CXX=icpc
+    - export CXXFLAGS="-static-intel -static-libstdc++ -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
     - gitlab/build.sh
 
 build-ubuntu18.04:
@@ -248,7 +251,10 @@ release-centos7:
     - source $SPACK_SETUP_ENV
     - module load cmake/3.15.2
     - module load gcc/5.4.0
-    - export CXXFLAGS="-static-libstdc++ -fPIC"
+    - module load intel/2020.1
+    - export CC=icc
+    - export CXX=icpc
+    - export CXXFLAGS="-static-intel -static-libstdc++ -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
     - gitlab/build.sh package
 
 release-windows:

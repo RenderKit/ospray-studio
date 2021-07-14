@@ -141,6 +141,7 @@ add_library(ospray_sg SHARED
   )
 
 target_compile_definitions(ospray_sg PUBLIC OSPRAY_CPP_RKCOMMON_TYPES)
+target_compile_features(ospray_sg PUBLIC cxx_generic_lambdas)
 
 target_link_libraries(ospray_sg
 PUBLIC
