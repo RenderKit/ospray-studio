@@ -2493,7 +2493,8 @@ void MainWindow::buildWindowTransformEditor()
     ImGui::Text("page");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(20.f);
-    ImGui::InputInt(paginateLabel.c_str(), &currentPage, 0);
+    if (ImGui::InputInt(paginateLabel.c_str(), &currentPage, 0))
+      currentPage = std::min(std::max(currentPage, 1), numPages);
     ImGui::SameLine();
     if (ImGui::ArrowButton("##nextPage", ImGuiDir_Right))
       currentPage = std::min(numPages, currentPage + 1);
