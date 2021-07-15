@@ -1,253 +1,294 @@
 // Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-#include "stb_image.h"
-
-#ifdef USE_OPENIMAGEIO
-#include <OpenImageIO/imageio.h>
-OIIO_NAMESPACE_USING
-#endif
-
 #include "Texture2D.h"
-
-#include "rkcommon/memory/malloc.h"
-
-// XXX Fix texture cache
+#include <sstream>
+#include "stb_image.h"
 
 namespace ospray {
   namespace sg {
 
   // static helper functions //////////////////////////////////////////////////
-
-#ifdef USE_OPENIMAGEIO
+ 
+  //
+  // Generic
+  //
   template <typename T>
-  void generateOIIOTex(std::vector<T> &imageData,
-                      const size_t stride,
-                      int height)
+  void Texture2D::createDataNodeType_internal()
   {
-      // flip image (because OSPRay's textures have the origin at the lower
-      // left corner)
-      unsigned char *data = (unsigned char *)imageData.data();
-      for (int y = 0; y < height / 2; y++) {
-        unsigned char *src  = &data[y * stride];
-        unsigned char *dest = &data[(height - 1 - y) * stride];
-        for (size_t x = 0; x < stride; x++)
-          std::swap(src[x], dest[x]);
-      }
+    if (components == 1)
+      createDataNodeVec_internal<T>();
+    else if (components == 2)
+      createDataNodeVec_internal<T, 2>();
+    else if (components == 3)
+      createDataNodeVec_internal<T, 3>();
+    else if (components == 4)
+      createDataNodeVec_internal<T, 4>();
+    else
+      std::cerr << "#osp:sg: INVALID number of texture components "
+                << components << std::endl;
+  }
+  template <typename T, int N>
+  void Texture2D::createDataNodeVec_internal()
+  {
+    using vecT = vec_t<T, N>;
+    // If texture doesn't use all channels(4), setup a strided-data access
+    if (colorChannel < 4) {
+      createChildData("data",
+          size, // numItems
+          sizeof(vecT) * vec2ul(1, size.x), // byteStride
+          (T *)texelData + colorChannel);
+    } else // RGBA
+      createChildData("data", size, vec2ul(0, 0), (vecT *)texelData);
+  }
+  template <typename T>
+  void Texture2D::createDataNodeVec_internal()
+  {
+    createChildData("data", size, vec2ul(0, 0), (T *)texelData);
   }
 
-  void createOIIOTexData(NodePtr texNode,
-                         const std::string &fileName,
-                         bool preferLinear  = false,
-                         bool nearestFilter = false)
+  OSPTextureFormat Texture2D::osprayTextureFormat()
+  {
+    if (depth == 1) {
+      if (components == 1)
+        return preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
+      if (components == 2)
+        return preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
+      if (components == 3)
+        return preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
+      if (components == 4)
+        return preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
+    } else if (depth == 2) {
+      if (components == 1)
+        return OSP_TEXTURE_R16;
+      if (components == 2)
+        return OSP_TEXTURE_RA16;
+      if (components == 3)
+        return OSP_TEXTURE_RGB16;
+      if (components == 4)
+        return OSP_TEXTURE_RGBA16;
+    } else if (depth == 4) {
+      if (components == 1)
+        return OSP_TEXTURE_R32F;
+      if (components == 3)
+        return OSP_TEXTURE_RGB32F;
+      if (components == 4)
+        return OSP_TEXTURE_RGBA32F;
+    }
+
+    std::cerr << "#osp:sg: INVALID format " << depth << ":" << components
+      << std::endl;
+    return OSP_TEXTURE_FORMAT_INVALID;
+  }
+
+#ifdef USE_OPENIMAGEIO
+  //
+  // OpenImageIO
+  //
+  OIIO_NAMESPACE_USING
+  template <typename T>
+  void Texture2D::loadTexture_OIIO_readFile(std::unique_ptr<ImageInput> &in)
+  {
+    const ImageSpec &spec = in->spec();
+    const auto typeDesc = spec.format.elementtype();
+
+    std::vector<T> data(size.x * size.y * components);
+    T *start = data.data() + (flip ? (size.y - 1) * size.x * components : 0);
+    const size_t stride = (flip ? -1 : 1) * size.x * sizeof(T) * components;
+
+    bool success =
+        in->read_image(typeDesc, start, AutoStride, stride, AutoStride);
+    if (success) {
+      texelData = (void *)data.data();
+      createDataNode();
+    }
+  }
+
+  void Texture2D::loadTexture_OIIO(const std::string &fileName)
   {
     auto in = ImageInput::open(fileName.c_str());
-    if (!in) {
-      std::cerr << "#osp:sg: OpenImageIO failed to load texture ' " << fileName
-                << "'" << std::endl;
-      // reset();
-    } else {
+    if (in) {
       const ImageSpec &spec = in->spec();
-      vec2i size;
-      int channels, depth;
-      size.x                = spec.width;
-      size.y                = spec.height;
-      channels              = spec.nchannels;
-      const bool hdr        = spec.format.size() > 1;
-      depth                 = hdr ? 4 : 1;
-      const size_t stride   = size.x * channels * depth;
-      unsigned int dataSize = stride * size.y;
+      const auto typeDesc = spec.format.elementtype();
+
+      size = vec2ul(spec.width, spec.height);
+      components = spec.nchannels;
+      depth = spec.format.size();
 
       if (depth == 1) {
-        switch (channels) {
-        case 1: {
-          auto ospTexFormat = preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
-
-          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                               : OSP_TEXTURE_FILTER_BILINEAR);
-          texNode->createChild("format", "int", (int)ospTexFormat);
-          texNode->createChild("filter", "int", texFilter);
-          std::vector<unsigned char> data(dataSize);
-          in->read_image(TypeDesc::UINT8, data.data());
-
-          generateOIIOTex<unsigned char>(data, stride, size.y);
-          texNode->createChildData("data", data, vec2ul(size.x, size.y));
-          break;
-        }
-        case 2: {
-          auto ospTexFormat = preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
-          auto texFilter    = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                               : OSP_TEXTURE_FILTER_BILINEAR);
-          texNode->createChild("format", "int", (int)ospTexFormat);
-          texNode->createChild("filter", "int", texFilter);
-          std::vector<vec2uc> data(dataSize);
-          in->read_image(TypeDesc::UINT8, data.data());
-
-          generateOIIOTex<vec2uc>(data, stride, size.y);
-          texNode->createChildData("data", data, vec2ul(size.x, size.y));
-          break;
-        }
-        case 3: {
-          auto ospTexFormat =
-              preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
-          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                               : OSP_TEXTURE_FILTER_BILINEAR);
-          texNode->createChild("format", "int", (int)ospTexFormat);
-          texNode->createChild("filter", "int", texFilter);
-          std::vector<vec3uc> data(dataSize);
-          in->read_image(TypeDesc::UINT8, data.data());
-
-          generateOIIOTex<vec3uc>(data, stride, size.y);
-          texNode->createChildData("data", data, vec2ul(size.x, size.y));
-          break;
-        }
-        case 4: {
-          auto ospTexFormat =
-              preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
-          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                               : OSP_TEXTURE_FILTER_BILINEAR);
-          texNode->createChild("format", "int", (int)ospTexFormat);
-          texNode->createChild("filter", "int", texFilter);
-          std::vector<vec4uc> data(dataSize);
-          in->read_image(TypeDesc::UINT8, data.data());
-
-          generateOIIOTex<vec4uc>(data, stride, size.y);
-          texNode->createChildData("data", data, vec2ul(size.x, size.y));
-          break;
-        }
-        default:
-          std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << channels
-                    << std::endl;
-          break;
-        }
+        loadTexture_OIIO_readFile<uint8_t>(in);
+      } else if (depth == 2) {
+        loadTexture_OIIO_readFile<uint16_t>(in);
       } else if (depth == 4) {
-        switch (channels) {
-        case 1: {
-          auto ospTexFormat = OSP_TEXTURE_R32F;
-          auto texFilter    = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                               : OSP_TEXTURE_FILTER_BILINEAR);
-          texNode->createChild("format", "int", (int)ospTexFormat);
-          texNode->createChild("filter", "int", texFilter);
-          std::vector<float> data(dataSize);
-          in->read_image(TypeDesc::FLOAT, data.data());
-
-          generateOIIOTex<float>(data, stride, size.y);
-          texNode->createChildData("data", data, vec2ul(size.x, size.y));
-          break;
-        }
-        case 3: {
-          auto ospTexFormat = OSP_TEXTURE_RGB32F;
-          auto texFilter    = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                               : OSP_TEXTURE_FILTER_BILINEAR);
-          texNode->createChild("format", "int", (int)ospTexFormat);
-          texNode->createChild("filter", "int", texFilter);
-          std::vector<vec3f> data(dataSize);
-          in->read_image(TypeDesc::FLOAT, data.data());
-
-          generateOIIOTex<vec3f>(data, stride, size.y);
-          texNode->createChildData("data", data, vec2ul(size.x, size.y));
-          break;
-        }
-        case 4: {
-          auto ospTexFormat = OSP_TEXTURE_RGBA32F;
-          auto texFilter    = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                               : OSP_TEXTURE_FILTER_BILINEAR);
-          texNode->createChild("format", "int", (int)ospTexFormat);
-          texNode->createChild("filter", "int", texFilter);
-          std::vector<vec4f> data(dataSize);
-          in->read_image(TypeDesc::FLOAT, data.data());
-
-          generateOIIOTex<vec4f>(data, stride, size.y);
-          texNode->createChildData("data", data, vec2ul(size.x, size.y));
-          break;
-        }
-        default:
-          std::cerr << "#osp:sg: INVALID FORMAT " << depth << ":" << channels
-                    << std::endl;
-          break;
-        }
-      }
+        loadTexture_OIIO_readFile<float>(in);
+      } else
+        std::cerr << "#osp:sg: INVALID Texture depth " << depth << std::endl;
 
       in->close();
 #if OIIO_VERSION < 10903 && OIIO_VERSION > 10603
       ImageInput::destroy(in);
 #endif
     }
+
+    if (!hasChild("data")) {
+      std::cerr << "#osp:sg: OpenImageIO failed to load texture '" << fileName
+        << "'" << std::endl;
+    }
+  }
+
+#else
+  //
+  // PFM
+  //
+  void Texture2D::loadTexture_PFM_readFile(FILE *file, float scaleFactor)
+  {
+    std::vector<float> data(size.x * size.y * components);
+    const size_t dataSize = data.size() * sizeof(float);
+
+    int rc = fread(data.data(), dataSize, 1, file);
+    if (rc) {
+      // Scale texels by scale factor
+      std::transform(data.begin(), data.end(), data.begin(), [&](float v) {
+        return v * scaleFactor;
+      });
+
+      texelData = (void *)data.data();
+      createDataNode();
+    }
+  }
+
+  void Texture2D::loadTexture_PFM(const std::string &fileName)
+  {
+    FILE *file = nullptr;
+    try {
+      // Note: the PFM file specification does not support comments thus we
+      // don't skip any http://netpbm.sourceforge.net/doc/pfm.html
+      int rc = 0;
+      file = fopen(fileName.c_str(), "rb");
+      if (!file) {
+        throw std::runtime_error(
+            "#ospray_sg: could not open texture file '" + fileName + "'.");
+      }
+      // read format specifier:
+      // PF: color floating point image
+      // Pf: grayscale floating point image
+      char format[2] = {0};
+      if (fscanf(file, "%c%c\n", &format[0], &format[1]) != 2)
+        throw std::runtime_error("could not fscanf");
+
+      if (format[0] != 'P' || (format[1] != 'F' && format[1] != 'f')) {
+        throw std::runtime_error(
+            "#ospray_sg: invalid pfm texture file, header is not PF or "
+            "Pf");
+      }
+
+      components = 3;
+      if (format[1] == 'f') {
+        components = 1;
+      }
+
+      // read width and height
+      int width = -1;
+      int height = -1;
+      rc = fscanf(file, "%i %i\n", &width, &height);
+      if (rc != 2) {
+        throw std::runtime_error(
+                "#ospray_sg: could not parse width and height in PF PFM file "
+                "'" +
+                fileName +
+                "'. "
+                "Please report this bug at ospray.github.io, and include named "
+                "file to reproduce the error.");
+      }
+
+      // read scale factor/endiannes
+      float scaleEndian = 0.0;
+      rc = fscanf(file, "%f\n", &scaleEndian);
+
+      if (rc != 1) {
+        throw std::runtime_error(
+                "#ospray_sg: could not parse scale factor/endianness in PF "
+                "PFM file '" +
+                fileName +
+                "'. "
+                "Please report this bug at ospray.github.io, and include named "
+                "file to reproduce the error.");
+      }
+      if (scaleEndian == 0.0) {
+        throw std::runtime_error(
+            "#ospray_sg: scale factor/endianness in PF PFM file can not be 0");
+      }
+      if (scaleEndian > 0.0) {
+        throw std::runtime_error(
+                "#ospray_sg: could not parse PF PFM file '" + fileName +
+                "': currently supporting only little endian formats"
+                "Please report this bug at ospray.github.io, and include named "
+                "file to reproduce the error.");
+      }
+
+      float scaleFactor = std::abs(scaleEndian);
+      size = vec2ul(width, height);
+      depth = 4; // pfm is always float
+
+      loadTexture_PFM_readFile(file, scaleFactor);
+
+      if (!hasChild("data"))
+        std::cerr << "#osp:sg: INVALID FORMAT PFM " << components << std::endl;
+
+    } catch (const std::runtime_error &e) {
+      std::cerr << "#osp:sg: INVALID PFM" << std::endl;
+      std::cerr << e.what() << std::endl;
+    }
+
+    if (file)
+      fclose(file);
+
+    if (!hasChild("data")) {
+      std::cerr << "#osp:sg: PFM failed to load texture '" << fileName << "'"
+        << std::endl;
+    }
+  }
+
+  //
+  // STBi
+  //
+  void Texture2D::loadTexture_STBi(const std::string &fileName)
+  {
+    stbi_set_flip_vertically_on_load(flip);
+
+    const bool isHDR = stbi_is_hdr(fileName.c_str());
+    const bool is16b = stbi_is_16_bit(fileName.c_str());
+
+    void *pixels = nullptr;
+    int width, height;
+    if (isHDR)
+      pixels =
+          (void *)stbi_loadf(fileName.c_str(), &width, &height, &components, 0);
+    else if (is16b)
+      pixels = (void *)stbi_load_16(
+          fileName.c_str(), &width, &height, &components, 0);
+    else
+      pixels =
+          (void *)stbi_load(fileName.c_str(), &width, &height, &components, 0);
+
+    size = vec2ul(width, height);
+    depth = isHDR ? 4 : is16b ? 2 : 1;
+
+    if (pixels) {
+      texelData = pixels;
+      createDataNode();
+      stbi_image_free(pixels); // XXX allow Texture2D class to manage lifetime
+    }
+
+    if (!hasChild("data")) {
+      std::cerr << "#osp:sg: STB_image failed to load texture '" + fileName
+              + "'"
+                << std::endl;
+      std::cerr << "#osp:sg: Rebuilding OSPRay Studio with OpenImageIO "
+                << "support may fix this error." << std::endl;
+    }
   }
 #endif
-
-  template <typename T>
-  void generatePPMTex(std::vector<T> &data,
-                      unsigned int dataSize,
-                      int height,
-                      int width,
-                      int channels,
-                      const std::string filename)
-  {
-    unsigned char *texels = (unsigned char *)data.data();
-    for (int y = 0; y < height / 2; y++)
-      for (int x = 0; x < width * channels; x++) {
-        unsigned int a = (y * width * channels) + x;
-        unsigned int b = ((height - 1 - y) * width * channels) + x;
-        if (a >= dataSize || b >= dataSize) {
-          throw std::runtime_error(
-              "#osp:minisg: could not parse P6 PPM file '" + filename +
-              "': buffer overflow.");
-        }
-        std::swap(texels[a], texels[b]);
-      }
-  }
-
-  template <typename T>
-  void generatePFMTex(std::vector<T> &data,
-                      unsigned int dataSize,
-                      int height,
-                      int width,
-                      int numChannels,
-                      float scaleFactor)
-  {
-    float *texels = (float *)data.data();
-    for (int y = 0; y < height / 2; ++y) {
-      for (int x = 0; x < width * numChannels; ++x) {
-        // Scale the pixels by the scale factor
-        texels[y * width * numChannels + x] =
-            texels[y * width * numChannels + x] * scaleFactor;
-        texels[(height - 1 - y) * width * numChannels + x] =
-            texels[(height - 1 - y) * width * numChannels + x] * scaleFactor;
-        std::swap(texels[y * width * numChannels + x],
-                  texels[(height - 1 - y) * width * numChannels + x]);
-      }
-    }
-  }
-
-  template <typename T>
-  void generateTex(std::vector<T> &data,
-                   unsigned int dataSize,
-                   int height,
-                   int width,
-                   int channels,
-                   unsigned char *pixels,
-                   bool hdr)
-  {
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        if (hdr) {
-          const float *pixel = &((float *)pixels)[(y * width + x) * channels];
-          float *dst         = &(
-              (float *)data.data())[(x + (height - 1 - y) * width) * channels];
-          for (int i = 0; i < channels; i++)
-            *dst++ = pixel[i];
-        } else {
-          const unsigned char *pixel = &pixels[(y * width + x) * channels];
-          unsigned char *dst =
-              &((unsigned char *)
-                    data.data())[((height - 1 - y) * width + x) * channels];
-          for (int i = 0; i < channels; i++)
-            *dst++ = pixel[i];
-        }
-      }
-    }
-  }
 
   // Texture2D definitions ////////////////////////////////////////////////////
 
@@ -258,315 +299,59 @@ namespace ospray {
   }
 
   void Texture2D::load(const FileName &_fileName,
-      const bool preferLinear,
-      const bool nearestFilter)
+      const bool _preferLinear,
+      const bool _nearestFilter,
+      const int _colorChannel)
   {
     fileName = _fileName;
-    const std::string baseFileName = _fileName.base();
+    const std::string displayName = _fileName.base();
+
+    bool isUDIM = checkUDIM(fileName);
+    // Check whether this is a UDIM tile set
+    if (isUDIM) {
+      std::cout << "!!!!!!!! texture load UDIM !!!!!!!" << std::endl;
+    }
 
     std::shared_ptr<Texture2D> newTexNode = nullptr;
 
+    // XXX Cache can't be used for single channel textures, yet
     // Check the cache before creating a new texture
-    if (textureCache.find(fileName) != textureCache.end()) {
+    if (_colorChannel == 4
+        && textureCache.find(fileName) != textureCache.end()) {
       newTexNode = textureCache[fileName];
     } else {
-
       newTexNode = createNodeAs<sg::Texture2D>(fileName, "texture_2d");
 
+      newTexNode->preferLinear = _preferLinear;
+      newTexNode->nearestFilter = _nearestFilter;
+      newTexNode->colorChannel = _colorChannel;
+      newTexNode->flip = flip;
+
 #ifdef USE_OPENIMAGEIO
-      createOIIOTexData(newTexNode,
-          fileName,
-          preferLinear,
-          nearestFilter);
-
+      newTexNode->loadTexture_OIIO(fileName);
 #else
-      const std::string ext = _fileName.ext();
-
-      if (ext == "ppm") {
-        try {
-          int rc, peekchar;
-
-          // open file
-          FILE *file = fopen(fileName.c_str(), "rb");
-          if (!file) {
-            throw std::runtime_error("#ospray_sg: could not open texture file '" +
-                fileName + "'.");
-          }
-
-          const int LINESZ = 10000;
-          char lineBuf[LINESZ + 1];
-
-          // read format specifier:
-          int format = 0;
-          rc         = fscanf(file, "P%i\n", &format);
-          if (format != 6) {
-            throw std::runtime_error(
-                "#ospray_sg: can currently load only binary P6 subformats for "
-                "PPM texture files. "
-                "Please report this bug at ospray.github.io.");
-          }
-
-          // skip all comment lines
-          peekchar = getc(file);
-          while (peekchar == '#') {
-            auto tmp = fgets(lineBuf, LINESZ, file);
-            (void)tmp;
-            peekchar = getc(file);
-          }
-          ungetc(peekchar, file);
-
-          // read width and height from first non-comment line
-          int width = -1, height = -1;
-          rc = fscanf(file, "%i %i\n", &width, &height);
-          if (rc != 2) {
-            throw std::runtime_error(
-                "#ospray_sg: could not parse width and height in P6 PPM file "
-                "'" +
-                fileName +
-                "'. "
-                "Please report this bug at ospray.github.io, and include named "
-                "file to reproduce the error.");
-          }
-
-          // skip all comment lines
-          peekchar = getc(file);
-          while (peekchar == '#') {
-            auto tmp = fgets(lineBuf, LINESZ, file);
-            (void)tmp;
-            peekchar = getc(file);
-          }
-          ungetc(peekchar, file);
-
-          // read maxval
-          int maxVal = -1;
-          rc         = fscanf(file, "%i", &maxVal);
-          peekchar   = getc(file);
-
-          if (rc != 1) {
-            throw std::runtime_error(
-                "#ospray_sg: could not parse maxval in P6 PPM file '" +
-                fileName +
-                "'. "
-                "Please report this bug at ospray.github.io, and include named "
-                "file to reproduce the error.");
-          }
-
-          if (maxVal != 255) {
-            throw std::runtime_error(
-                "#ospray_sg: could not parse P6 PPM file '" + fileName +
-                "': currently supporting only maxVal=255 formats."
-                "Please report this bug at ospray.github.io, and include named "
-                "file to reproduce the error.");
-          }
-
-          int channels = 3;
-          int depth    = 1;
-
-          unsigned int dataSize = width * height * channels * depth;
-
-          // flip in y, because OSPRay's textures have the origin at the lower
-          // left corner
-
-          if (channels == 1) {
-            std::vector<unsigned char> data(dataSize);
-            rc = fread(data.data(), dataSize, 1, file);
-            generatePPMTex<unsigned char>(data, dataSize, height, width, channels, fileName);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 2) {
-            std::vector<vec2uc> data(dataSize);
-            rc = fread(data.data(), dataSize, 1, file);
-            generatePPMTex<vec2uc>(data, dataSize, height, width, channels, fileName);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 3) {
-            std::vector<vec3uc> data(dataSize);
-            rc = fread(data.data(), dataSize, 1, file);
-            generatePPMTex<vec3uc>(data, dataSize, height, width, channels, fileName);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 4) {
-            std::vector<vec4uc> data(dataSize);
-            rc = fread(data.data(), dataSize, 1, file);
-            generatePPMTex<vec4uc>(data, dataSize, height, width, channels, fileName);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          }
-
-          auto texFormat = (int)(osprayTextureFormat(depth, channels, preferLinear));
-          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-              : OSP_TEXTURE_FILTER_BILINEAR);
-          newTexNode->createChild("format", "int", texFormat);
-          newTexNode->createChild("filter", "int", texFilter);
-
-        } catch (const std::runtime_error &e) {
-          std::cerr << e.what() << std::endl;
-          // reset();
-        }
-
-      } else if (ext == "pfm") {
-        try {
-          // Note: the PFM file specification does not support comments thus we
-          // don't skip any http://netpbm.sourceforge.net/doc/pfm.html
-          int rc     = 0;
-          FILE *file = fopen(fileName.c_str(), "rb");
-          if (!file) {
-            throw std::runtime_error("#ospray_sg: could not open texture file '" +
-                fileName + "'.");
-          }
-          // read format specifier:
-          // PF: color floating point image
-          // Pf: grayscale floating point image
-          char format[2] = {0};
-          if (fscanf(file, "%c%c\n", &format[0], &format[1]) != 2)
-            throw std::runtime_error("could not fscanf");
-
-          if (format[0] != 'P' || (format[1] != 'F' && format[1] != 'f')) {
-            throw std::runtime_error(
-                "#ospray_sg: invalid pfm texture file, header is not PF or "
-                "Pf");
-          }
-
-          int numChannels = 3;
-          if (format[1] == 'f') {
-            numChannels = 1;
-          }
-
-          // read width and height
-          int width  = -1;
-          int height = -1;
-          rc         = fscanf(file, "%i %i\n", &width, &height);
-          if (rc != 2) {
-            throw std::runtime_error(
-                "#ospray_sg: could not parse width and height in PF PFM file "
-                "'" +
-                fileName +
-                "'. "
-                "Please report this bug at ospray.github.io, and include named "
-                "file to reproduce the error.");
-          }
-
-          // read scale factor/endiannes
-          float scaleEndian = 0.0;
-          rc                = fscanf(file, "%f\n", &scaleEndian);
-
-          if (rc != 1) {
-            throw std::runtime_error(
-                "#ospray_sg: could not parse scale factor/endianness in PF "
-                "PFM file '" +
-                fileName +
-                "'. "
-                "Please report this bug at ospray.github.io, and include named "
-                "file to reproduce the error.");
-          }
-          if (scaleEndian == 0.0) {
-            throw std::runtime_error(
-                "#ospray_sg: scale factor/endianness in PF PFM file can not "
-                "be 0");
-          }
-          if (scaleEndian > 0.0) {
-            throw std::runtime_error(
-                "#ospray_sg: could not parse PF PFM file '" + fileName +
-                "': currently supporting only little endian formats"
-                "Please report this bug at ospray.github.io, and include named "
-                "file to reproduce the error.");
-          }
-          float scaleFactor = std::abs(scaleEndian);
-
-          vec2i size;
-          size.x        = width;
-          size.y        = height;
-          int channels  = numChannels;
-          int depth     = sizeof(float);
-
-          unsigned int dataSize = size.x * size.y * channels * depth;
-
-          if (channels == 1) {
-            std::vector<float> data(dataSize);
-            rc = fread(data.data(), dataSize, 1, file);
-            generatePFMTex<float>(data, dataSize, height, width, channels, scaleFactor);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 2) {
-            std::vector<vec2f> data(dataSize);
-            rc = fread(data.data(), dataSize, 1, file);
-            generatePFMTex<vec2f>(data, dataSize, height, width, channels, scaleFactor);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 3) {
-            std::vector<vec3f> data(dataSize);
-            rc = fread(data.data(), dataSize, 1, file);
-            generatePFMTex<vec3f>(data, dataSize, height, width, channels, scaleFactor);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 4) {
-            std::vector<vec4f> data(dataSize);
-            rc = fread(data.data(), dataSize, 1, file);
-            generatePFMTex<vec4f>(data, dataSize, height, width, channels, scaleFactor);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          }
-
-          auto texFormat = (int)(osprayTextureFormat(depth, channels, preferLinear));
-          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-              : OSP_TEXTURE_FILTER_BILINEAR);
-          newTexNode->createChild("format", "int", texFormat);
-          newTexNode->createChild("filter", "int", texFilter);
-        } catch (const std::runtime_error &e) {
-          std::cerr << e.what() << std::endl;
-          // reset();
-        }
-
-      } else {
-        int width, height, n;
-        const bool hdr        = stbi_is_hdr(fileName.c_str());
-        unsigned char *pixels = nullptr;
-        if (hdr)
-          pixels = (unsigned char *)stbi_loadf(
-              fileName.c_str(), &width, &height, &n, 0);
-        else
-          pixels = stbi_load(fileName.c_str(), &width, &height, &n, 0);
-
-
-        vec2i size;
-        size.x        = width;
-        size.y        = height;
-        int channels  = n;
-        int depth     = hdr ? 4 : 1;
-
-        if (!pixels) {
-          std::cerr << "#osp:sg: STB_image failed to load texture '" + fileName
-                  + "'" << std::endl;
-
-          std::cerr << "#osp:sg: Rebuilding OSPRay Studio with OpenImageIO "
-                    << "support may fix this error." << std::endl;
-          // reset();
-        } else {
-          unsigned int dataSize = size.x * size.y * channels * depth;
-          if (channels == 1) {
-            std::vector<unsigned char> data(dataSize);
-            generateTex<unsigned char>(data, dataSize, height, width, channels, pixels, hdr);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 2) {
-            std::vector<vec2uc> data(dataSize);
-            generateTex<vec2uc>(data, dataSize, height, width, channels, pixels, hdr);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 3) {
-            std::vector<vec3uc> data(dataSize);
-            generateTex<vec3uc>(data, dataSize, height, width, channels, pixels, hdr);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          } else if (channels == 4) {
-            std::vector<vec4uc> data(dataSize);
-            generateTex<vec4uc>(data, dataSize, height, width, channels, pixels, hdr);
-            newTexNode->createChildData("data", data, vec2ul(width, height));
-          }
-
-          auto texFormat =
-            (int)(osprayTextureFormat(depth, channels, preferLinear));
-          auto texFilter = (int)(nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-              : OSP_TEXTURE_FILTER_BILINEAR);
-          newTexNode->createChild("format", "int", texFormat);
-          newTexNode->createChild("filter", "int", texFilter);
-        }
-      }
+      if (_fileName.ext() == "pfm")
+        newTexNode->loadTexture_PFM(fileName);
+      else
+        newTexNode->loadTexture_STBi(fileName);
 #endif
 
       // If the load was successful, add texture node to cache and populate
       // object
       if (newTexNode->hasChild("data")) {
-        newTexNode->createChild("filename", "string", baseFileName);
+        newTexNode->child("data").setSGNoUI();
+
+        // If not using all channels, set used components to 1
+        if (_colorChannel < 4)
+          newTexNode->components = 1;
+        auto ospTexFormat = newTexNode->osprayTextureFormat();
+        auto texFilter = _nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                       : OSP_TEXTURE_FILTER_BILINEAR;
+
+        newTexNode->createChild("format", "int", (int)ospTexFormat);
+        newTexNode->createChild("filter", "int", (int)texFilter);
+
+        newTexNode->createChild("filename", "string", displayName);
         newTexNode->child("filename").setSGOnly();
 
         newTexNode->child("format").setMinMax(
@@ -585,9 +370,92 @@ namespace ospray {
     }
 
     // Populate the parent node with texture parameters
-    if (newTexNode)
+    if (newTexNode) {
+      size = newTexNode->size;
+      components = newTexNode->components;
+      depth = newTexNode->depth;
+      preferLinear = _preferLinear;
+      nearestFilter = _nearestFilter;
+      colorChannel = _colorChannel;
+
       for (auto &c : newTexNode->children())
         add(c.second);
+    }
+  }
+
+  void Texture2D::load(void *memory,
+      const bool _preferLinear,
+      const bool _nearestFilter,
+      const int _colorChannel)
+  {
+    std::stringstream ss;
+    ss << "memory: " << std::hex << memory;
+    const std::string displayName = ss.str();
+
+    std::shared_ptr<Texture2D> newTexNode =
+        createNodeAs<sg::Texture2D>(fileName, "texture_2d");
+
+    newTexNode->preferLinear = _preferLinear;
+    newTexNode->nearestFilter = _nearestFilter;
+    newTexNode->colorChannel = _colorChannel;
+    newTexNode->flip = false;
+
+    newTexNode->size = size;
+    newTexNode->components = components;
+    newTexNode->depth = depth;
+
+    newTexNode->texelData = (void *)memory;
+    newTexNode->createDataNode();
+
+    if (newTexNode->hasChild("data")) {
+      newTexNode->child("data").setSGNoUI();
+
+      // If not using all channels, set used components to 1
+      if (_colorChannel < 4)
+        newTexNode->components = 1;
+      auto ospTexFormat = newTexNode->osprayTextureFormat();
+      auto texFilter = _nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+        : OSP_TEXTURE_FILTER_BILINEAR;
+
+      newTexNode->createChild("format", "int", (int)ospTexFormat);
+      newTexNode->createChild("filter", "int", (int)texFilter);
+
+      newTexNode->createChild("filename", "string", displayName);
+      newTexNode->child("filename").setSGOnly();
+
+      newTexNode->child("format").setMinMax(
+          (int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
+      newTexNode->child("filter").setMinMax(
+          (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+
+    } else {
+      // The load must have failed, don't keep the node.
+      std::cout << "Failed texture " << newTexNode->name()
+        << " removing newTexNode" << std::endl;
+      remove(newTexNode);
+      newTexNode = nullptr;
+    }
+
+    // Populate the parent node with texture parameters
+    if (newTexNode) {
+      preferLinear = _preferLinear;
+      nearestFilter = _nearestFilter;
+      colorChannel = _colorChannel;
+
+      for (auto &c : newTexNode->children())
+        add(c.second);
+    }
+  }
+
+  // XXX: This is where the actual load work should happen, not in load
+  void Texture2D::preCommit()
+  {
+    Texture::preCommit();
+  }
+
+  void Texture2D::postCommit()
+  {
+    Texture::postCommit();
   }
 
   OSP_REGISTER_SG_NODE_NAME(Texture2D, texture_2d);

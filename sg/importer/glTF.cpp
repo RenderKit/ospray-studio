@@ -1368,96 +1368,59 @@ namespace ospray {
     }
     auto texName = img.name + "_" + pad(std::to_string(nTex++)) + "_tex";
 
-    // DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
-    // DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
-    // DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
-    // DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
-    // DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
-    // DEBUG << pad("", '.', 9) << "image bits: " << img.bits << "\n";
-    // if (img.uri.length() < 256)  // The uri can be a stream of data!
-    //  DEBUG << pad("", '.', 9) << "image uri: " << img.uri << "\n";
-    // DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView <<
-    // "\n"; DEBUG << pad("", '.', 9) << "image data: " << img.image.size() <<
-    // "\n";
+    DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
+    DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
+    DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
+    DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
+    DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
+    DEBUG << pad("", '.', 9) << "image bits: " << img.bits << "\n";
+    if (img.uri.length() < 256)  // The uri can be a stream of data!
+     DEBUG << pad("", '.', 9) << "image uri: " << img.uri << "\n";
+    DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView << "\n";
+    DEBUG << pad("", '.', 9) << "image data: " << img.image.size() << "\n";
 
-    // XXX Only handle pre-loaded images for now
-    if (img.image.empty()) {
-      ERROR << "!!! no texture data!  Need to load it !!!\n";
-      return nullptr;
+    DEBUG << pad("", '.', 9) << "texParam: " << texParam << "\n";
+    DEBUG << pad("", '.', 9) << "colorChannel: " << colorChannel << "\n";
+
+    // If texture name (uri) is a UDIM set, ignore tiny_gltf loaded image and
+    // reload as udim tiles
+    if (checkUDIM(fileName.path() + img.uri)) {
+      img.image.clear();
     }
 
-    auto ospTexNode = createNode(texParam, "texture_2d");
-    auto &ospTex    = *ospTexNode->nodeAs<Texture2D>();
-
-    ospTex.size.x = img.width;
-    ospTex.size.y = img.height;
-    ospTex.components = img.component;
-    ospTex.depth =
-        img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
-
-    // XXX handle different number of components!!!!
-    if (!ospTex.depth)
-      ERROR << "Not handled texel depth: " << img.bits << std::endl;
-    if (ospTex.components != 4)
-      ERROR << "Not yet handled number of components: " << ospTex.components
-            << std::endl;
-
-    auto texFormat =
-        osprayTextureFormat(ospTex.depth, ospTex.components, preferLinear);
-
-    // If texture doesn't use all channels(4), setup a strided-data access
-    if (colorChannel < 4) {
-      // Only 1 channel, colorChannel(0-3) determines which component is used
-      texFormat = osprayTextureFormat(ospTex.depth, 1, preferLinear);
-      if (ospTex.depth == 4) {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            sizeof(vec4f) * vec2ul(1, img.width), // byteStride
-            (float *)img.image.data() + colorChannel);
-      } else if (ospTex.depth == 2) {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            sizeof(vec4us) * vec2ul(1, img.width), // byteStride
-            (uint16_t *)img.image.data() + colorChannel);
-      } else {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            sizeof(vec4uc) * vec2ul(1, img.width), // byteStride
-            (uint8_t *)img.image.data() + colorChannel);
-      }
-    } else {
-      // RGBA
-      if (ospTex.depth == 4) {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            vec2ul(0, 0), // byteStride
-            (vec4f *)img.image.data());
-      } else if (ospTex.depth == 2) {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            vec2ul(0, 0), // byteStride
-            (vec4us *)img.image.data());
-      } else {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            vec2ul(0, 0), // byteStride
-            (vec4uc *)img.image.data());
-      }
-    }
-
-    ospTex.createChild("format", "int", (int)texFormat);
-    ospTex.child("format").setMinMax(
-        (int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
+    NodePtr ospTexNode = createNode(texParam, "texture_2d");
+    auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
 
     // XXX Check sampler wrap/clamp modes!!!
-    auto texFilter =
-        (tex.sampler != -1 && model.samplers[tex.sampler].magFilter ==
-                                  TINYGLTF_TEXTURE_FILTER_NEAREST)
-            ? OSP_TEXTURE_FILTER_NEAREST
-            : OSP_TEXTURE_FILTER_BILINEAR;
-    ospTex.createChild("filter", "int", (int)texFilter);
-    ospTex.child("filter").setMinMax(
-        (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+    bool nearestFilter = (tex.sampler != -1
+        && model.samplers[tex.sampler].magFilter
+            == TINYGLTF_TEXTURE_FILTER_NEAREST);
+
+    // Pre-loaded texture image (loaded by tinygltf)
+    if (!img.image.empty()) {
+      ospTex.size = vec2ul(img.width, img.height);
+      ospTex.components = img.component;
+      ospTex.depth =
+        img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
+
+      ospTex.load(img.image.data(),
+          preferLinear,
+          nearestFilter,
+          colorChannel);
+
+    } else {
+      // Load texture from file (external uri or udim tiles)
+      ERROR << "Need to load texture manually" << std::endl; // XXX
+
+      // glTF textures are not vertically flipped
+      ospTex.flip = false;
+
+      // use same path as gltf scene file
+      ospTex.load(fileName.path() + img.uri,
+          preferLinear,
+          nearestFilter,
+          colorChannel);
+    }
 
     return ospTexNode;
   }
