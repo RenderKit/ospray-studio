@@ -141,8 +141,11 @@ bool SearchWidget::isOneOf(NT inNodeType, std::vector<NT> &nodeTypes)
 
 void SearchWidget::addCustomAction(std::string title,
     std::function<void(std::vector<ospray::sg::Node *> &)> searchOp,
-    std::function<void()> displayOp)
+    std::function<void()> displayOp,
+    bool sameLine)
 {
+  if (sameLine)
+    ImGui::SameLine();
   if (ImGui::Button(title.c_str())) {
     if (searched)
       searchOp(results);

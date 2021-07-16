@@ -40,7 +40,8 @@ class SearchWidget
 
   void addCustomAction(std::string title,
       std::function<void(std::vector<ospray::sg::Node *> &)> searchOp,
-      std::function<void()> displayOp);
+      std::function<void()> displayOp,
+      bool sameLine=false);
 
  private:
   void search();

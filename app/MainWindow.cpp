@@ -2439,7 +2439,7 @@ void MainWindow::buildWindowTransformEditor()
 
   searchWidget.addSearchBarUI();
   searchWidget.addCustomAction("show all", showResults, showAll);
-  searchWidget.addCustomAction("hide all", hideResults, hideAll);
+  searchWidget.addCustomAction("hide all", hideResults, hideAll, true);
   searchWidget.addSearchResultsUI();
 
   ImGui::End();
