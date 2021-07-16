@@ -22,9 +22,8 @@ namespace ospray {
 
     // Inlined definitions ////////////////////////////////////////////////////
 
-    Search::Search(const std::string &s,
-                   const NodeType nt,
-                   std::vector<Node *> &v)
+    inline Search::Search(
+        const std::string &s, const NodeType nt, std::vector<Node *> &v)
         : type(nt), term(s), results(v)
     {
     }

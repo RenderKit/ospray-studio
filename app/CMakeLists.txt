@@ -40,6 +40,7 @@ add_library(ospray_ui STATIC
   widgets/TransferFunctionWidget.cpp
   widgets/FileBrowserWidget.cpp
   widgets/AnimationWidget.cpp
+  widgets/SearchWidget.cpp
 )
 
 target_link_libraries(ospray_ui
