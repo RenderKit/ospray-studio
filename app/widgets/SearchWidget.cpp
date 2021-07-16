@@ -139,7 +139,7 @@ bool SearchWidget::isOneOf(NT inNodeType, std::vector<NT> &nodeTypes)
   return false;
 }
 
-void SearchWidget::addCustomAction(std::string &title,
+void SearchWidget::addCustomAction(std::string title,
     std::function<void()> displayOp,
     std::function<void(std::vector<ospray::sg::Node *> &)> searchOp)
 {

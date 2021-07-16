@@ -2173,10 +2173,23 @@ void MainWindow::buildWindowMaterialEditor()
     return;
   }
 
-  std::vector<sg::NodeType> types{sg::NodeType::MATERIAL};
+  static std::vector<sg::NodeType> types{sg::NodeType::MATERIAL};
   static SearchWidget searchWidget(*baseMaterialRegistry, types, types);
 
   searchWidget.addSearchBarUI();
+
+  // testing custom actions
+  auto displayOp = [&]() {
+    std::cout << "do something here" << std::endl;
+  };
+  auto searchOp = [&](std::vector<sg::Node *> &data) {
+    for (auto nodeStar : data) {
+      std::cout << "search " << nodeStar->name() << std::endl;
+    }
+  };
+  std::string buttonTitle("test");
+  searchWidget.addCustomAction(buttonTitle, displayOp, searchOp);
+
   searchWidget.addSearchResultsUI();
 
   ImGui::End();
@@ -2417,143 +2430,30 @@ void MainWindow::buildWindowTransformEditor()
 
   typedef sg::NodeType NT;
 
-  static char searchTerm[1024] = "";
-  static bool searched = false;
-  static std::vector<sg::Node *> results;
+  auto &warudo = frame->child("world");
+  auto showResults = [](std::vector<sg::Node *> &results) {
+    for (auto result : results)
+      result->child("visible").setValue(true);
+  };
+  auto showAll = [&]() {
+    warudo.traverse<sg::SetParamByNode>(NT::GEOMETRY, "visible", true);
+  };
+  auto hideResults = [](std::vector<sg::Node *> &results) {
+    for (auto result : results)
+      result->child("visible").setValue(false);
+  };
+  auto hideAll = [&]() {
+    warudo.traverse<sg::SetParamByNode>(NT::GEOMETRY, "visible", false);
+  };
+
   static std::vector<NT> searchTypes{NT::TRANSFORM, NT::GEOMETRY, NT::VOLUME};
-  static const char* numItemsOpt[4]{"10", "25", "50", "100"};
-  static int numItemsInd = 1; // index to above
-  static int numItemsPerPage = 25;
-  static int numPages = 0;
-  static int currentPage = 1;
-  static std::string paginateLabel = "";
+  static std::vector<NT> displayTypes{NT::GENERATOR, NT::IMPORTER, NT::TRANSFORM};
+  static SearchWidget searchWidget(warudo, searchTypes, displayTypes);
 
-  auto doClear = [&]() {
-    searched = false;
-    results.clear();
-    searchTerm[0] = '\0';
-    numPages = 0;
-  };
-  auto doSearch = [&]() {
-    if (std::string(searchTerm).size() > 0) {
-      searched = true;
-      results.clear();
-      for (auto nt : searchTypes)
-        frame->traverse<sg::Search>(std::string(searchTerm), nt, results);
-      numPages = results.size() / numItemsPerPage;
-      numPages += results.size() % numItemsPerPage == 0 ? 0 : 1;
-      paginateLabel = "of " + std::to_string(numPages) + "##currentPage";
-      currentPage = 1;
-    } else {
-      doClear();
-    }
-  };
-
-  if (ImGui::InputTextWithHint("##findTransformEditor",
-          "search...",
-          searchTerm,
-          1024,
-          ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_AutoSelectAll
-              | ImGuiInputTextFlags_EnterReturnsTrue)) {
-    doSearch();
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("find")) {
-    doSearch();
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("clear")) {
-    doClear();
-  }
-
-  if (ImGui::Button("show all")) {
-    if (searched) {
-      for (auto result : results)
-        result->child("visible").setValue(true);
-    } else {
-      frame->child("world").traverse<sg::SetParamByNode>(
-          sg::NodeType::GEOMETRY, "visible", true);
-    }
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button("hide all")) {
-    if (searched) {
-      for (auto result : results)
-        result->child("visible").setValue(false);
-    } else {
-      frame->child("world").traverse<sg::SetParamByNode>(
-          sg::NodeType::GEOMETRY, "visible", false);
-    }
-  }
-
-  if (searched) {
-    ImGui::SameLine();
-    ImGui::Text(
-        "%lu %s", results.size(), (results.size() == 1 ? "result" : "results"));
-
-    // paginate results
-    if (ImGui::ArrowButton("##prevPage", ImGuiDir_Left))
-      currentPage = std::max(1, currentPage - 1);
-    ImGui::SameLine();
-    ImGui::Text("page");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(20.f);
-    if (ImGui::InputInt(paginateLabel.c_str(), &currentPage, 0))
-      currentPage = std::min(std::max(currentPage, 1), numPages);
-    ImGui::SameLine();
-    if (ImGui::ArrowButton("##nextPage", ImGuiDir_Right))
-      currentPage = std::min(numPages, currentPage + 1);
-    ImGui::SameLine(0.0f, ImGui::GetFontSize() * 2.f);
-    ImGui::SetNextItemWidth(5.f * ImGui::GetFontSize());
-    if (ImGui::BeginCombo("results per page", numItemsOpt[numItemsInd])) {
-      for (int i = 0; i < 4; i++) {
-        const bool selected = (numItemsInd == i);
-        if (ImGui::Selectable(numItemsOpt[i], selected)) {
-          numItemsInd = i;
-          numItemsPerPage = std::atoi(numItemsOpt[numItemsInd]);
-          numPages = results.size() / numItemsPerPage;
-          numPages += results.size() % numItemsPerPage == 0 ? 0 : 1;
-          currentPage = std::min(currentPage, numPages);
-          paginateLabel = "of " + std::to_string(numPages) + "##currentPage";
-        }
-        if (selected)
-          ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
-    }
-  }
-
-  ImGui::BeginChild(
-      "geometry", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
-  bool userUpdated = false;
-  if (searched) {
-    for (int i = (currentPage - 1) * numItemsPerPage;
-         i < std::min((int)results.size(), currentPage * numItemsPerPage);
-         i++) {
-      results[i]->traverse<sg::GenerateImGuiWidgets>(
-          sg::TreeState::ALLCLOSED, userUpdated);
-      // Don't continue traversing
-      if (userUpdated) {
-        results[i]->commit();
-        break;
-      }
-    }
-  } else {
-    for (auto &node : frame->child("world").children()) {
-      if (node.second->type() == sg::NodeType::GENERATOR
-          || node.second->type() == sg::NodeType::IMPORTER
-          || node.second->type() == sg::NodeType::TRANSFORM) {
-        node.second->traverse<sg::GenerateImGuiWidgets>(
-            sg::TreeState::ROOTOPEN, userUpdated);
-        // Don't continue traversing
-        if (userUpdated) {
-          break;
-        }
-      }
-    }
-  }
-  ImGui::EndChild();
+  searchWidget.addSearchBarUI();
+  searchWidget.addCustomAction("show all", showAll, showResults);
+  searchWidget.addCustomAction("hide all", hideAll, hideResults);
+  searchWidget.addSearchResultsUI();
 
   ImGui::End();
 }

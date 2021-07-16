@@ -38,7 +38,7 @@ class SearchWidget
   void addSearchBarUI();
   void addSearchResultsUI();
 
-  void addCustomAction(std::string &title,
+  void addCustomAction(std::string title,
       std::function<void()> displayOp,
       std::function<void(std::vector<ospray::sg::Node *> &)> searchOp);
 
