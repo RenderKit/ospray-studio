@@ -40,6 +40,8 @@
 #include "widgets/FileBrowserWidget.h"
 #include "widgets/SearchWidget.h"
 #include "widgets/TransferFunctionWidget.h"
+#include "widgets/PieMenu.h"
+#include "widgets/Guizmo.h"
 
 using namespace ospray_studio;
 using namespace ospray;
@@ -371,8 +373,14 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   ImGui::CreateContext();
 
+  // Enable context for ImGui experimental viewports
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
   ImGui_ImplGlfw_InitForOpenGL(glfwWindow, true);
   ImGui_ImplOpenGL2_Init();
+
+  // Disable active viewports until users enables toggled in view menu
+  ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
 
   // set initial OpenGL state
   glEnable(GL_TEXTURE_2D);
@@ -890,6 +898,14 @@ void MainWindow::display()
     ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_IsSRGB;
   } else {
     ImGui::EndFrame();
+  }
+
+  // Update and Render additional Platform Windows
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    GLFWwindow *backup_current_context = glfwGetCurrentContext();
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+    glfwMakeContextCurrent(backup_current_context);
   }
 
   // swap buffers
@@ -1435,6 +1451,7 @@ void MainWindow::buildMainMenuEdit()
 void MainWindow::buildMainMenuView()
 {
   static bool showFileBrowser = false;
+  static bool guizmoOn = false;
   if (ImGui::BeginMenu("View")) {
     // Camera stuff ////////////////////////////////////////////////////
 
@@ -1534,6 +1551,7 @@ void MainWindow::buildMainMenuView()
     ImGui::Separator();
 
     // UI options //////////////////////////////////////////////////////
+    ImGui::Text("ui options");
 
     ImGui::Checkbox("Show tooltips", &g_ShowTooltips);
     if (g_ShowTooltips) {
@@ -1542,8 +1560,46 @@ void MainWindow::buildMainMenuView()
       ImGui::DragInt("delay", &g_TooltipDelay, 50, 0, 1000, "%d ms");
     }
 
+#if 1 // XXX example new features that need to be integrated
+    ImGui::Separator();
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::CheckboxFlags(
+        "DockingEnable", &io.ConfigFlags, ImGuiConfigFlags_DockingEnable);
+    sg::showTooltip("[experimental] Menu docking");
+    ImGui::CheckboxFlags(
+        "ViewportsEnable", &io.ConfigFlags, ImGuiConfigFlags_ViewportsEnable);
+    sg::showTooltip("[experimental] Mind blowing multi-viewports support");
+
+    ImGui::Checkbox("Guizmo", &guizmoOn);
+
+    ImGui::Text("...right-click to open pie menu...");
+    pieMenu();
+#endif
+
     ImGui::EndMenu();
   }
+
+#if 1 // Guizmo shows outsize menu windo
+  if (guizmoOn) {
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration
+      | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings
+      | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav
+      | ImGuiWindowFlags_NoMove;
+    ImGui::SetNextWindowBgAlpha(0.75f);
+
+    // Bottom right corner
+    ImVec2 window_pos(ImGui::GetIO().DisplaySize.x,
+        ImGui::GetIO().DisplaySize.y);
+    ImVec2 window_pos_pivot(1.f, 1.f);
+    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+
+    if (ImGui::Begin("###guizmo", &guizmoOn, flags)) {
+      guizmo();
+      ImGui::End();
+    }
+  }
+#endif
 
   // Leave the fileBrowser open until file is selected
   if (showFileBrowser) {

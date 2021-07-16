@@ -41,12 +41,15 @@ add_library(ospray_ui STATIC
   widgets/FileBrowserWidget.cpp
   widgets/AnimationWidget.cpp
   widgets/SearchWidget.cpp
+  widgets/Guizmo.cpp
+  widgets/PieMenu.cpp
 )
 
 target_link_libraries(ospray_ui
   ospray_sg
   imgui
   imguiFileDialog
+  imGuIZMO 
   json
   ${OPENGL_LIBRARIES}
   glfw

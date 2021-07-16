@@ -354,13 +354,7 @@ _wopendir(
     const wchar_t *dirname)
 {
     _WDIR *dirp;
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    /* Desktop */
     DWORD n;
-#else
-    /* WinRT */
-    size_t n;
-#endif
     wchar_t *p;
 
     /* Must have directory name */
