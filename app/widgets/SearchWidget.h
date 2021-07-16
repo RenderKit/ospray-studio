@@ -39,8 +39,8 @@ class SearchWidget
   void addSearchResultsUI();
 
   void addCustomAction(std::string title,
-      std::function<void()> displayOp,
-      std::function<void(std::vector<ospray::sg::Node *> &)> searchOp);
+      std::function<void(std::vector<ospray::sg::Node *> &)> searchOp,
+      std::function<void()> displayOp);
 
  private:
   void search();
@@ -65,4 +65,3 @@ class SearchWidget
   std::vector<NT> &displayTypes;
   ospray::sg::Node &root;
 };
-

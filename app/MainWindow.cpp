@@ -2177,19 +2177,6 @@ void MainWindow::buildWindowMaterialEditor()
   static SearchWidget searchWidget(*baseMaterialRegistry, types, types);
 
   searchWidget.addSearchBarUI();
-
-  // testing custom actions
-  auto displayOp = [&]() {
-    std::cout << "do something here" << std::endl;
-  };
-  auto searchOp = [&](std::vector<sg::Node *> &data) {
-    for (auto nodeStar : data) {
-      std::cout << "search " << nodeStar->name() << std::endl;
-    }
-  };
-  std::string buttonTitle("test");
-  searchWidget.addCustomAction(buttonTitle, displayOp, searchOp);
-
   searchWidget.addSearchResultsUI();
 
   ImGui::End();
@@ -2451,8 +2438,8 @@ void MainWindow::buildWindowTransformEditor()
   static SearchWidget searchWidget(warudo, searchTypes, displayTypes);
 
   searchWidget.addSearchBarUI();
-  searchWidget.addCustomAction("show all", showAll, showResults);
-  searchWidget.addCustomAction("hide all", hideAll, hideResults);
+  searchWidget.addCustomAction("show all", showResults, showAll);
+  searchWidget.addCustomAction("hide all", hideResults, hideAll);
   searchWidget.addSearchResultsUI();
 
   ImGui::End();
