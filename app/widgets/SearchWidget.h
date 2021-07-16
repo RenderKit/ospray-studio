@@ -12,6 +12,22 @@
 using NT = ospray::sg::NodeType;
 using NP = ospray::sg::NodePtr;
 
+/* SearchWidget
+ * This class implements a search box and results list UI. The results list
+ * works in two ways.
+ *
+ * When there is no search term, the list is in "display" mode (i.e. `searched`
+ * is false), and it lists the appropriate nodes under `root` based on
+ * `displayTypes`.
+ *
+ * If a search has been performed (`search` is true), then the list is in
+ * "search" mode and lists the contents of `results`. The search itself is
+ * limited to node types in `searchTypes`.
+ *
+ * Custom actions allow for actions on either displayed or searched nodes (e.g.
+ * toggle visibility).
+ */
+
 class SearchWidget
 {
  public:
@@ -21,7 +37,10 @@ class SearchWidget
 
   void addSearchBarUI();
   void addSearchResultsUI();
-  // add action item?
+
+  void addCustomAction(std::string &title,
+      std::function<void()> displayOp,
+      std::function<void(std::vector<ospray::sg::Node *> &)> searchOp);
 
  private:
   void search();

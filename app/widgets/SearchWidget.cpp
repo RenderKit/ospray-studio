@@ -3,8 +3,8 @@
 
 #include "SearchWidget.h"
 
-#include "sg/visitors/Search.h"
 #include "sg/visitors/GenerateImGuiWidgets.h"
+#include "sg/visitors/Search.h"
 
 #include <imgui.h>
 
@@ -60,29 +60,6 @@ void SearchWidget::addSearchBarUI()
   if (ImGui::Button("clear")) {
     clear();
   }
-
-  /* action items?
-  if (ImGui::Button("show all")) {
-    if (searched) {
-      for (auto result : results)
-        result->child("visible").setValue(true);
-    } else {
-      frame->child("world").traverse<sg::SetParamByNode>(
-          NT::GEOMETRY, "visible", true);
-    }
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button("hide all")) {
-    if (searched) {
-      for (auto result : results)
-        result->child("visible").setValue(false);
-    } else {
-      frame->child("world").traverse<sg::SetParamByNode>(
-          NT::GEOMETRY, "visible", false);
-    }
-  }
-  */
 }
 
 void SearchWidget::addSearchResultsUI()
@@ -160,4 +137,16 @@ bool SearchWidget::isOneOf(NT inNodeType, std::vector<NT> &nodeTypes)
     if (nt == inNodeType)
       return true;
   return false;
+}
+
+void SearchWidget::addCustomAction(std::string &title,
+    std::function<void()> displayOp,
+    std::function<void(std::vector<ospray::sg::Node *> &)> searchOp)
+{
+  if (ImGui::Button(title.c_str())) {
+    if (searched)
+      searchOp(results);
+    else
+      displayOp();
+  }
 }
