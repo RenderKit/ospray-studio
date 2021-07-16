@@ -6,8 +6,8 @@
 #include "sg/Node.h"
 #include "sg/NodeType.h"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 using NT = ospray::sg::NodeType;
 using NP = ospray::sg::NodePtr;
@@ -39,6 +39,9 @@ class SearchWidget
   std::string paginateLabel{""};
 
   std::vector<ospray::sg::Node *> results;
+  // These must be references since they contain OSPRay objects.
+  // The widget will be destructed *after* ospShutdown and if it
+  // contains sg nodes it will trigger warnings on exit
   std::vector<NT> &searchTypes;
   std::vector<NT> &displayTypes;
   ospray::sg::Node &root;
