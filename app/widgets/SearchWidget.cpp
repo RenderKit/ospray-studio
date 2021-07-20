@@ -111,10 +111,8 @@ void SearchWidget::addSearchResultsUI()
       results[i]->traverse<ospray::sg::GenerateImGuiWidgets>(
           ospray::sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
-      if (userUpdated) {
-        results[i]->commit();
+      if (userUpdated)
         break;
-      }
     }
   } else {
     for (auto &node : root.children()) {
@@ -122,9 +120,8 @@ void SearchWidget::addSearchResultsUI()
         node.second->traverse<ospray::sg::GenerateImGuiWidgets>(
             ospray::sg::TreeState::ROOTOPEN, userUpdated);
         // Don't continue traversing
-        if (userUpdated) {
+        if (userUpdated)
           break;
-        }
       }
     }
   }
