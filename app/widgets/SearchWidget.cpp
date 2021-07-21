@@ -108,8 +108,9 @@ void SearchWidget::addSearchResultsUI()
     for (int i = (currentPage - 1) * numItemsPerPage;
          i < std::min((int)results.size(), currentPage * numItemsPerPage);
          i++) {
-      results[i]->traverse<ospray::sg::GenerateImGuiWidgets>(
-          ospray::sg::TreeState::ALLCLOSED, userUpdated);
+      if (results[i])
+        results[i]->traverse<ospray::sg::GenerateImGuiWidgets>(
+            ospray::sg::TreeState::ALLCLOSED, userUpdated);
       // Don't continue traversing
       if (userUpdated)
         break;
@@ -137,7 +138,7 @@ bool SearchWidget::isOneOf(NT inNodeType, std::vector<NT> &nodeTypes)
 }
 
 void SearchWidget::addCustomAction(std::string title,
-    std::function<void(std::vector<ospray::sg::Node *> &)> searchOp,
+    std::function<void(std::vector<ospray::sg::NodePtr> &)> searchOp,
     std::function<void()> displayOp,
     bool sameLine)
 {

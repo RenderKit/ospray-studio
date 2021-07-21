@@ -2417,13 +2417,13 @@ void MainWindow::buildWindowTransformEditor()
 
   typedef sg::NodeType NT;
 
-  auto toggleSearch = [&](std::vector<sg::Node *> &results, bool visible) {
+  auto toggleSearch = [&](std::vector<sg::NodePtr> &results, bool visible) {
     for (auto result : results)
       if (result->hasChild("visible"))
         result->child("visible").setValue(visible);
   };
-  auto showSearch = [&](std::vector<sg::Node *> &r) { toggleSearch(r, true); };
-  auto hideSearch = [&](std::vector<sg::Node *> &r) { toggleSearch(r, false); };
+  auto showSearch = [&](std::vector<sg::NodePtr> &r) { toggleSearch(r, true); };
+  auto hideSearch = [&](std::vector<sg::NodePtr> &r) { toggleSearch(r, false); };
 
   auto &warudo = frame->child("world");
   auto toggleDisplay = [&](bool visible) {

@@ -39,7 +39,7 @@ class SearchWidget
   void addSearchResultsUI();
 
   void addCustomAction(std::string title,
-      std::function<void(std::vector<ospray::sg::Node *> &)> searchOp,
+      std::function<void(std::vector<ospray::sg::NodePtr> &)> searchOp,
       std::function<void()> displayOp,
       bool sameLine=false);
 
@@ -58,7 +58,7 @@ class SearchWidget
   int currentPage{1};
   std::string paginateLabel{""};
 
-  std::vector<ospray::sg::Node *> results;
+  std::vector<ospray::sg::NodePtr> results;
   // These must be references since they contain OSPRay objects.
   // The widget will be destructed *after* ospShutdown and if it
   // contains sg nodes it will trigger warnings on exit
