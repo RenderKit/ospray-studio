@@ -2173,11 +2173,12 @@ void MainWindow::buildWindowMaterialEditor()
     return;
   }
 
+  auto &world = frame->child("world");
   static std::vector<sg::NodeType> types{sg::NodeType::MATERIAL};
-  static SearchWidget searchWidget(*baseMaterialRegistry, types, types);
+  static SearchWidget searchWidget(types, types);
 
-  searchWidget.addSearchBarUI();
-  searchWidget.addSearchResultsUI();
+  searchWidget.addSearchBarUI(world);
+  searchWidget.addSearchResultsUI(world);
 
   ImGui::End();
 }
@@ -2434,12 +2435,12 @@ void MainWindow::buildWindowTransformEditor()
 
   static std::vector<NT> searchTypes{NT::TRANSFORM, NT::GEOMETRY, NT::VOLUME};
   static std::vector<NT> displayTypes{NT::GENERATOR, NT::IMPORTER, NT::TRANSFORM};
-  static SearchWidget searchWidget(warudo, searchTypes, displayTypes);
+  static SearchWidget searchWidget(searchTypes, displayTypes);
 
-  searchWidget.addSearchBarUI();
+  searchWidget.addSearchBarUI(warudo);
   searchWidget.addCustomAction("show all", showSearch, showDisplay);
   searchWidget.addCustomAction("hide all", hideSearch, hideDisplay, true);
-  searchWidget.addSearchResultsUI();
+  searchWidget.addSearchResultsUI(warudo);
 
   ImGui::End();
 }

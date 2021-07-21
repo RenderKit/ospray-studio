@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+using NR = ospray::sg::Node &;
 using NT = ospray::sg::NodeType;
 using NP = ospray::sg::NodePtr;
 
@@ -31,12 +32,10 @@ using NP = ospray::sg::NodePtr;
 class SearchWidget
 {
  public:
-  SearchWidget(ospray::sg::Node &_root,
-      std::vector<NT> &_searchTypes,
-      std::vector<NT> &_displayTypes);
+  SearchWidget(std::vector<NT> &_searchTypes, std::vector<NT> &_displayTypes);
 
-  void addSearchBarUI();
-  void addSearchResultsUI();
+  void addSearchBarUI(NR root);
+  void addSearchResultsUI(NR root);
 
   void addCustomAction(std::string title,
       std::function<void(std::vector<ospray::sg::NodePtr> &)> searchOp,
@@ -44,7 +43,7 @@ class SearchWidget
       bool sameLine=false);
 
  private:
-  void search();
+  void search(NR root);
   void clear();
   bool isOneOf(NT inNodeType, std::vector<NT> &nodeTypes);
 

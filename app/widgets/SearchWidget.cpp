@@ -8,10 +8,9 @@
 
 #include <imgui.h>
 
-SearchWidget::SearchWidget(ospray::sg::Node &_root,
-    std::vector<NT> &_searchTypes,
-    std::vector<NT> &_displayTypes)
-    : root(_root), searchTypes(_searchTypes), displayTypes(_displayTypes)
+SearchWidget::SearchWidget(
+    std::vector<NT> &_searchTypes, std::vector<NT> &_displayTypes)
+    : searchTypes(_searchTypes), displayTypes(_displayTypes)
 {}
 
 void SearchWidget::clear()
@@ -22,7 +21,7 @@ void SearchWidget::clear()
   numPages = 0;
 }
 
-void SearchWidget::search()
+void SearchWidget::search(NR root)
 {
   std::string searchStr(searchTerm);
 
@@ -42,7 +41,7 @@ void SearchWidget::search()
   currentPage = 1;
 }
 
-void SearchWidget::addSearchBarUI()
+void SearchWidget::addSearchBarUI(NR root)
 {
   if (ImGui::InputTextWithHint("##findTransformEditor",
           "search...",
@@ -50,11 +49,11 @@ void SearchWidget::addSearchBarUI()
           1024,
           ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_AutoSelectAll
               | ImGuiInputTextFlags_EnterReturnsTrue)) {
-    search();
+    search(root);
   }
   ImGui::SameLine();
   if (ImGui::Button("find")) {
-    search();
+    search(root);
   }
   ImGui::SameLine();
   if (ImGui::Button("clear")) {
@@ -62,7 +61,7 @@ void SearchWidget::addSearchBarUI()
   }
 }
 
-void SearchWidget::addSearchResultsUI()
+void SearchWidget::addSearchResultsUI(NR root)
 {
   if (searched) {
     ImGui::SameLine();
