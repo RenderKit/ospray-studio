@@ -10,6 +10,7 @@
 #include "sg/scene/lights/Light.h"
 #include "sg/camera/Camera.h"
 #include "app/ArcballCamera.h"
+#include "sg/scene/volume/Volume.h"
 // std
 #include <stack>
 
@@ -182,14 +183,12 @@ namespace ospray {
   {
     if (!node.child("visible").valueAs<bool>())
       return;
-    if (node.hasChild("groupIndex")) {
-      auto idx = node.child("groupIndex").valueAs<int>();
-      if (idx < groups.size())
-        return;
-    }
+
+    auto geomNode = node.nodeAs<Geometry>();
+    if (geomNode->groupIndex >= 0 && geomNode->groupIndex < groups.size())
+      return;
 
     // skinning
-    auto geomNode = node.nodeAs<Geometry>();
     if (geomNode->skin) {
       auto &joints = geomNode->skin->joints;
       auto &inverseBindMatrices = geomNode->skin->inverseBindMatrices;
@@ -262,8 +261,8 @@ namespace ospray {
 
     group.commit();
     groups.push_back(group);
-    node.createChild("groupIndex", "int", groupIndex);
-    node.child("groupIndex").setSGOnly();
+
+    geomNode->groupIndex = groupIndex;
     groupIndex++;
   }
 
@@ -271,11 +270,9 @@ namespace ospray {
   {
     if (!node.child("visible").valueAs<bool>())
       return;
-    if (node.hasChild("groupIndex")) {
-      auto idx = node.child("groupIndex").valueAs<int>();
-      if (idx < groups.size())
-        return;
-    }
+    auto volNode = node.nodeAs<sg::Volume>();
+    if (volNode->groupIndex >= 0 && volNode->groupIndex < groups.size())
+      return;
 
     auto &vol = node.valueAs<cpp::Volume>();
     cpp::VolumetricModel model(vol);
@@ -320,8 +317,7 @@ namespace ospray {
 
       group.commit();
       groups.push_back(group);
-      node.createChild("groupIndex", "int", groupIndex);
-      node.child("groupIndex").setSGOnly();
+      volNode->groupIndex = groupIndex;
       groupIndex++;
     }
   }
@@ -334,9 +330,9 @@ namespace ospray {
     #endif
     if (node.hasChildOfType(NodeType::GEOMETRY)) {
       auto &geomChildren = node.childrenOfType(NodeType::GEOMETRY);
-
       for (auto geom : geomChildren) {
-        auto geomIdentifier = geom->child("groupIndex").valueAs<int>();
+        auto geomNode = geom->nodeAs<Geometry>();
+        auto geomIdentifier = geomNode->groupIndex;
         if (geomIdentifier < groups.size()) {
           auto &group = groups[geomIdentifier];
           group.setParam(
@@ -363,7 +359,8 @@ namespace ospray {
     if (node.hasChildOfType(NodeType::VOLUME)) {
       auto &volChildren = node.childrenOfType(NodeType::VOLUME);
       for (auto vol : volChildren) {
-        auto volumeIdentifier = vol->child("groupIndex").valueAs<int>();
+        auto volNode = vol->nodeAs<Volume>();
+        auto volumeIdentifier = volNode->groupIndex;
         if (volumeIdentifier < groups.size()) {
           auto &group = groups[volumeIdentifier];
           group.setParam(
@@ -391,7 +388,8 @@ namespace ospray {
       for (auto tfn : tfnChildren) {
         auto volChildren = tfn->childrenOfType(NodeType::VOLUME);
         for (auto vol : volChildren) {
-          auto volumeIdentifier = vol->child("groupIndex").valueAs<int>();
+          auto volNode = vol->nodeAs<sg::Volume>();
+          auto volumeIdentifier = volNode->groupIndex;
           auto &group = groups[volumeIdentifier];
           group.setParam(
               "dynamicScene", node.child("dynamicScene").valueAs<bool>());

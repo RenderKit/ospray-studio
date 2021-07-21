@@ -38,6 +38,8 @@ namespace ospray {
     std::vector<vec4f> vc;
     std::vector<vec2f> vt;
     std::vector<uint32_t> mIDs;
+
+    int groupIndex{-1};
   };
 
   }  // namespace sg
