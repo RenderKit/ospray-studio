@@ -427,8 +427,8 @@ void MainWindow::start()
     cameraStack = j.get<std::vector<CameraState>>();
   }
 
-  parseCommandLine();
-  mainLoop();
+  if (parseCommandLine())
+    mainLoop();
 }
 
 MainWindow *MainWindow::getActiveWindow()
