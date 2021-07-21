@@ -43,6 +43,10 @@ void SearchWidget::search(NR root)
 
 void SearchWidget::addSearchBarUI(NR root)
 {
+  if (searched && lastRoot != &root)
+    clear();
+  lastRoot = &root;
+
   if (ImGui::InputTextWithHint("##findTransformEditor",
           "search...",
           searchTerm,
@@ -63,6 +67,10 @@ void SearchWidget::addSearchBarUI(NR root)
 
 void SearchWidget::addSearchResultsUI(NR root)
 {
+  if (searched && lastRoot != &root)
+    clear();
+  lastRoot = &root;
+
   if (searched) {
     ImGui::SameLine();
     ImGui::Text(

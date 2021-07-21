@@ -63,5 +63,5 @@ class SearchWidget
   // contains sg nodes it will trigger warnings on exit
   std::vector<NT> &searchTypes;
   std::vector<NT> &displayTypes;
-  ospray::sg::Node &root;
+  ospray::sg::Node *lastRoot;
 };
