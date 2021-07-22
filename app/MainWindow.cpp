@@ -2173,12 +2173,11 @@ void MainWindow::buildWindowMaterialEditor()
     return;
   }
 
-  auto &world = frame->child("world");
   static std::vector<sg::NodeType> types{sg::NodeType::MATERIAL};
   static SearchWidget searchWidget(types, types);
 
-  searchWidget.addSearchBarUI(world);
-  searchWidget.addSearchResultsUI(world);
+  searchWidget.addSearchBarUI(*baseMaterialRegistry);
+  searchWidget.addSearchResultsUI(*baseMaterialRegistry);
 
   ImGui::End();
 }
