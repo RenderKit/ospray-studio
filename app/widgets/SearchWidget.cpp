@@ -3,14 +3,13 @@
 
 #include "SearchWidget.h"
 
-#include "sg/visitors/GenerateImGuiWidgets.h"
 #include "sg/visitors/Search.h"
 
 #include <imgui.h>
 
 SearchWidget::SearchWidget(
-    std::vector<NT> &_searchTypes, std::vector<NT> &_displayTypes)
-    : searchTypes(_searchTypes), displayTypes(_displayTypes)
+    std::vector<NT> &_searchTypes, std::vector<NT> &_displayTypes, TS ts)
+    : searchTypes(_searchTypes), displayTypes(_displayTypes), displayState(ts)
 {}
 
 void SearchWidget::clear()
@@ -126,7 +125,7 @@ void SearchWidget::addSearchResultsUI(NR root)
     for (auto &node : root.children()) {
       if (isOneOf(node.second->type(), displayTypes)) {
         node.second->traverse<ospray::sg::GenerateImGuiWidgets>(
-            ospray::sg::TreeState::ROOTOPEN, userUpdated);
+            displayState, userUpdated);
         // Don't continue traversing
         if (userUpdated)
           break;

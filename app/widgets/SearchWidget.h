@@ -5,6 +5,7 @@
 
 #include "sg/Node.h"
 #include "sg/NodeType.h"
+#include "sg/visitors/GenerateImGuiWidgets.h" // TreeState
 
 #include <string>
 #include <vector>
@@ -12,6 +13,7 @@
 using NR = ospray::sg::Node &;
 using NT = ospray::sg::NodeType;
 using NP = ospray::sg::NodePtr;
+using TS = ospray::sg::TreeState;
 
 /* SearchWidget
  * This class implements a search box and results list UI. The results list
@@ -32,7 +34,9 @@ using NP = ospray::sg::NodePtr;
 class SearchWidget
 {
  public:
-  SearchWidget(std::vector<NT> &_searchTypes, std::vector<NT> &_displayTypes);
+  SearchWidget(std::vector<NT> &_searchTypes,
+      std::vector<NT> &_displayTypes,
+      TS ts = TS::ROOTOPEN);
 
   void addSearchBarUI(NR root);
   void addSearchResultsUI(NR root);
@@ -40,7 +44,7 @@ class SearchWidget
   void addCustomAction(std::string title,
       std::function<void(std::vector<ospray::sg::NodePtr> &)> searchOp,
       std::function<void()> displayOp,
-      bool sameLine=false);
+      bool sameLine = false);
 
  private:
   void search(NR root);
@@ -56,6 +60,8 @@ class SearchWidget
   int numPages{0};
   int currentPage{1};
   std::string paginateLabel{""};
+
+  TS displayState;
 
   std::vector<ospray::sg::NodePtr> results;
   // These must be references since they contain OSPRay objects.

@@ -2174,7 +2174,7 @@ void MainWindow::buildWindowMaterialEditor()
   }
 
   static std::vector<sg::NodeType> types{sg::NodeType::MATERIAL};
-  static SearchWidget searchWidget(types, types);
+  static SearchWidget searchWidget(types, types, sg::TreeState::ALLCLOSED);
 
   searchWidget.addSearchBarUI(*baseMaterialRegistry);
   searchWidget.addSearchResultsUI(*baseMaterialRegistry);
