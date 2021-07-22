@@ -301,30 +301,14 @@ namespace ospray {
     if (node.hasChild("maxPathDepth"))
       model.setParam("maxPathDepth", node["maxPathDepth"].valueAs<int>());
     model.commit();
-    if (setTextureVolume) {
-      auto &tex = *current.textures.begin();
-      tex.setParam("volume", model);
-      tex.commit();
 
-      // fix the following by allowing material registry communication and,
-      // adding a material directly in the material registry
-      // whose material reference can be added to the geometry
-      cpp::Material texmaterial("scivis", "obj");
-      texmaterial.setParam("map_kd", tex);
-      texmaterial.commit();
-      current.materials.push_back(texmaterial);
+    cpp::Group group;
+    group.setParam("volume", cpp::CopiedData(model));
 
-      current.textures.clear();
-      setTextureVolume = false;
-    } else {
-      cpp::Group group;
-      group.setParam("volume", cpp::CopiedData(model));
-
-      group.commit();
-      groups.push_back(group);
-      volNode->groupIndex = groupIndex;
-      groupIndex++;
-    }
+    group.commit();
+    groups.push_back(group);
+    volNode->groupIndex = groupIndex;
+    groupIndex++;
   }
 
   inline void RenderScene::createInstanceFromGroup(Node &node)
