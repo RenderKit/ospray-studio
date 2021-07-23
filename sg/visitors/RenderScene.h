@@ -181,10 +181,12 @@ namespace ospray {
 
   inline void RenderScene::createGeometry(Node &node)
   {
-    if (!node.child("visible").valueAs<bool>())
-      return;
-
     auto geomNode = node.nodeAs<Geometry>();
+    if (!node.child("visible").valueAs<bool>()) {
+      geomNode->groupIndex = -1;
+      return;
+    }
+
     if (geomNode->groupIndex >= 0 && geomNode->groupIndex < groups.size())
       return;
 
@@ -268,9 +270,12 @@ namespace ospray {
 
   inline void RenderScene::createVolume(Node &node)
   {
-    if (!node.child("visible").valueAs<bool>())
-      return;
     auto volNode = node.nodeAs<sg::Volume>();
+    if (!node.child("visible").valueAs<bool>()) {
+      volNode->groupIndex = -1;
+      return;
+    }
+
     if (volNode->groupIndex >= 0 && volNode->groupIndex < groups.size())
       return;
 
@@ -333,7 +338,7 @@ namespace ospray {
       for (auto geom : geomChildren) {
         auto geomNode = geom->nodeAs<Geometry>();
         auto geomIdentifier = geomNode->groupIndex;
-        if (geomIdentifier < groups.size()) {
+        if (geomIdentifier >= 0 && geomIdentifier < groups.size()) {
           auto &group = groups[geomIdentifier];
           group.setParam(
               "dynamicScene", node.child("dynamicScene").valueAs<bool>());
@@ -361,7 +366,7 @@ namespace ospray {
       for (auto vol : volChildren) {
         auto volNode = vol->nodeAs<Volume>();
         auto volumeIdentifier = volNode->groupIndex;
-        if (volumeIdentifier < groups.size()) {
+        if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
           auto &group = groups[volumeIdentifier];
           group.setParam(
               "dynamicScene", node.child("dynamicScene").valueAs<bool>());
@@ -390,23 +395,25 @@ namespace ospray {
         for (auto vol : volChildren) {
           auto volNode = vol->nodeAs<sg::Volume>();
           auto volumeIdentifier = volNode->groupIndex;
-          auto &group = groups[volumeIdentifier];
-          group.setParam(
-              "dynamicScene", node.child("dynamicScene").valueAs<bool>());
-          group.setParam(
-              "compactMode", node.child("compactMode").valueAs<bool>());
-          group.setParam(
-              "robustMode", node.child("robustMode").valueAs<bool>());
+          if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
+            auto &group = groups[volumeIdentifier];
+            group.setParam(
+                "dynamicScene", node.child("dynamicScene").valueAs<bool>());
+            group.setParam(
+                "compactMode", node.child("compactMode").valueAs<bool>());
+            group.setParam(
+                "robustMode", node.child("robustMode").valueAs<bool>());
 
-          cpp::Instance inst(group);
-          inst.setParam("xfm", xfms.top());
-          inst.commit();
-          instances.push_back(inst);
+            cpp::Instance inst(group);
+            inst.setParam("xfm", xfms.top());
+            inst.commit();
+            instances.push_back(inst);
 
-          if (in != nullptr && !instanceId.empty()) {
-            auto ospInstance = inst.handle();
-            in->insert(InstanceIdMap::value_type(
-                ospInstance, std::make_pair(instanceId, xfms.top())));
+            if (in != nullptr && !instanceId.empty()) {
+              auto ospInstance = inst.handle();
+              in->insert(InstanceIdMap::value_type(
+                  ospInstance, std::make_pair(instanceId, xfms.top())));
+            }
           }
         }
       }
