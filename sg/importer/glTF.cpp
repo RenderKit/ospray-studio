@@ -247,9 +247,9 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   const tinygltf::Node &n = model.nodes[nid];
 
   auto assetObj = n.extensions.find("BIT_asset_info")->second;
-  auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
+  // auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
   // auto &assetId = asset.Get("id").Get<std::string>();
-  auto assetTitle = asset.Get("title").Get<std::string>();
+  auto assetTitle = assetObj.Get("title").Get<std::string>();
 
   auto refLink = n.extensions.find("BIT_reference_link")->second;
   auto &refId = refLink.Get("id").Get<std::string>();

@@ -21,7 +21,12 @@ namespace ospray {
   {
     RenderScene();
     ~RenderScene();
-    RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId);
+    RenderScene(GeomIdMap &geomIdMap,
+        InstanceIdMap &instanceIdMap,
+        affine3f *cameraToWorld,
+        std::vector<NodePtr> &instanceXfms,
+        std::vector<std::tuple<std::string, box3f, affine3f>> &_groupBBoxes,
+        int cId);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
     void postChildren(Node &node, TraversalContext &) override;
@@ -66,6 +71,9 @@ namespace ospray {
     affine3f *camXfm{nullptr};
     int camId{0};
     std::shared_ptr<CameraState> cs;
+    std::vector<NodePtr> *instanceXfms{nullptr};
+    std::vector<std::tuple<std::string, box3f, affine3f>> *groupBBoxes{nullptr};
+    box3f currentInstBBox{empty};
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -82,7 +90,12 @@ namespace ospray {
     groups.clear();
   }
 
-  inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId)
+  inline RenderScene::RenderScene(GeomIdMap &geomIdMap,
+      InstanceIdMap &instanceIdMap,
+      affine3f *cameraToWorld,
+      std::vector<NodePtr> &_instanceXfms,
+      std::vector<std::tuple<std::string, box3f, affine3f>> &_groupBBoxes,
+      int cId)
   {
     xfms.emplace(math::one);
     endXfms.emplace(math::one);
@@ -91,6 +104,8 @@ namespace ospray {
     in = &instanceIdMap;
     camXfm = cameraToWorld;
     camId = cId;
+    instanceXfms = &_instanceXfms;
+    groupBBoxes = &_groupBBoxes;
   }
 
   inline bool RenderScene::operator()(Node &node, TraversalContext &)
@@ -235,11 +250,16 @@ namespace ospray {
         affine3f xfm{zero};
         for (size_t j = 0; j < weightsPerVertex; ++j, ++weightIdx) {
           const int idx = geomNode->joints[weightIdx];
+          // skinning matrix
           xfm = xfm
               + geomNode->weights[weightIdx]
                   * joints[idx]->nodeAs<Transform>()->accumulatedXfm
                   * inverseBindMatrices[idx];
         }
+        // from gltf docu:
+        // final joint matrix = globalTransformOfNodeThatTheMeshIsAttachedTo^-1 * 
+        //                         globalTransformOfJointNode(j) *
+        //                         inverseBindMatrixForJoint(j)
         xfm = rcp(geomNode->skeletonRoot->nodeAs<Transform>()->accumulatedXfm)
             * xfm;
         geomNode->skinnedPositions[i] = xfmPoint(xfm, geomNode->positions[i]);
@@ -350,9 +370,21 @@ namespace ospray {
         auto geomIdentifier = geomNode->groupIndex;
         if (geomIdentifier >= 0 && geomIdentifier < groups.size()) {
           auto &group = groups[geomIdentifier];
+          if (groupBBoxes && !node.hasChild("instanceId")) {
+            auto box = group.getBounds<box3f>();
+            affine3f xfm =  affine3f::scale(node.child("scale").valueAs<vec3f>());
+            xfm.p = node.child("translation").valueAs<vec3f>();
+            auto xfmdBox = xfmBounds(xfm, box);
+            currentInstBBox.extend(xfmdBox);
+          }
           setInstance(group);
         }
       }
+    }
+
+    if (groupBBoxes && node.hasChild("instanceId")) {
+      groupBBoxes->push_back(std::make_tuple(node.name(), currentInstBBox, xfms.top()));
+      currentInstBBox = empty;
     }
 
     if (node.hasChildOfType(NodeType::VOLUME)) {

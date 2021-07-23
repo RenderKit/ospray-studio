@@ -10,6 +10,12 @@ namespace ospray {
     {
       Curves();
       virtual ~Curves() override = default;
+
+      std::vector<vec4f> endpoints;
+      std::vector<uint32_t> indices;
+      std::vector<vec4f> colors;
+      std::vector<uint32_t> mID;
+      float radius{0.05f};
     };
 
     OSP_REGISTER_SG_NODE_NAME(Curves, geometry_curves);

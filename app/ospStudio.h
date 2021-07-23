@@ -150,6 +150,11 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::string optInstanceConfig{""};
 
   StudioCommon &studioCommon;
+
+  bool showPoseBBox{false};
+  bool showInstBBox{false};
+  bool showInstBBoxFrame{false};
+
  protected:
   bool sgScene{false}; // whether we are loading a scene file
 
