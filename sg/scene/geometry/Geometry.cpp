@@ -11,9 +11,11 @@ namespace ospray {
     setValue(cpp::Geometry(osp_type));
     createChild("isClipping", "bool", false);
     createChild("visible", "bool", true);
+    createChild("invertNormals", "bool", false);
 
     child("isClipping").setSGOnly();
     child("visible").setSGOnly();
+    child("invertNormals").setSGOnly();
   }
 
   }  // namespace sg

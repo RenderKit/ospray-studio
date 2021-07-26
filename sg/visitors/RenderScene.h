@@ -252,6 +252,11 @@ namespace ospray {
                 node["color"].valueAs<vec4f>()}));
     }
 
+    if (node.hasChild("invertNormals")) {
+      bool val = node.child("invertNormals").valueAs<bool>();
+      model.setParam("invertNormals", val);
+    }
+
     model.commit();
     cpp::Group group;
 
