@@ -108,7 +108,7 @@ namespace ospray {
   void Texture2D::loadTexture_OIIO_readFile(std::unique_ptr<ImageInput> &in)
   {
     const ImageSpec &spec = in->spec();
-    const auto typeDesc = spec.format.elementtype();
+    const auto typeDesc = TypeDescFromC<T>::value();
 
     std::shared_ptr<void> data(
         new T[params.size.product() * params.components]);
@@ -136,6 +136,15 @@ namespace ospray {
       params.size = vec2ul(spec.width, spec.height);
       params.components = spec.nchannels;
       params.depth = spec.format.size();
+
+      // This has only been seen on the Bentley .exr 16-bit textures so far.
+      // But, it is a more general problem.
+      // For now, just load 16-bit texture as uchar.
+      // XXX 16-bit and 32-bit images might be sampled as sRGB?
+      // Isn't colorspace separate from bit depth, 16/32-bit sRGB should exist?
+      // Shouldn't OSPRay have formats for these?
+      if (params.depth == 2 && !params.preferLinear)
+        params.depth = 1;
 
       if (params.depth == 1)
         loadTexture_OIIO_readFile<uint8_t>(in);
