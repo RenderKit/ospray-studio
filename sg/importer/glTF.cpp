@@ -1384,9 +1384,8 @@ namespace ospray {
 
     // If texture name (uri) is a UDIM set, ignore tiny_gltf loaded image and
     // reload as udim tiles
-    if (checkUDIM(fileName.path() + img.uri)) {
+    if (checkUDIM(fileName.path() + img.uri))
       img.image.clear();
-    }
 
     NodePtr ospTexNode = createNode(texParam, "texture_2d");
     auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
@@ -1398,22 +1397,19 @@ namespace ospray {
 
     // Pre-loaded texture image (loaded by tinygltf)
     if (!img.image.empty()) {
-      ospTex.size = vec2ul(img.width, img.height);
-      ospTex.components = img.component;
-      ospTex.depth =
+      ospTex.params.size = vec2ul(img.width, img.height);
+      ospTex.params.components = img.component;
+      ospTex.params.depth =
         img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
 
-      ospTex.load(img.image.data(),
+      ospTex.load((void *)img.image.data(),
           preferLinear,
           nearestFilter,
           colorChannel);
 
     } else {
       // Load texture from file (external uri or udim tiles)
-      ERROR << "Need to load texture manually" << std::endl; // XXX
-
-      // glTF textures are not vertically flipped
-      ospTex.flip = false;
+      ospTex.params.flip = false; // glTF textures are not vertically flipped
 
       // use same path as gltf scene file
       ospTex.load(fileName.path() + img.uri,

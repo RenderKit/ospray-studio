@@ -3,6 +3,8 @@
 
 #include "Texture2D.h"
 #include <sstream>
+#include "rkcommon/memory/malloc.h"
+
 #include "stb_image.h"
 
 namespace ospray {
@@ -13,71 +15,87 @@ namespace ospray {
   //
   // Generic
   //
+  // Create the childData node given all other texture params
+  inline void Texture2D::createDataNode()
+  {
+    if (params.depth == 1)
+      createDataNodeType_internal<uint8_t>();
+    else if (params.depth == 2)
+      createDataNodeType_internal<uint16_t>();
+    else if (params.depth == 4)
+      createDataNodeType_internal<float>();
+    else
+      std::cerr << "#osp:sg: INVALID Texture depth " << params.depth
+                << std::endl;
+  }
+
   template <typename T>
   void Texture2D::createDataNodeType_internal()
   {
-    if (components == 1)
+    if (params.components == 1)
       createDataNodeVec_internal<T>();
-    else if (components == 2)
+    else if (params.components == 2)
       createDataNodeVec_internal<T, 2>();
-    else if (components == 3)
+    else if (params.components == 3)
       createDataNodeVec_internal<T, 3>();
-    else if (components == 4)
+    else if (params.components == 4)
       createDataNodeVec_internal<T, 4>();
     else
       std::cerr << "#osp:sg: INVALID number of texture components "
-                << components << std::endl;
+                << params.components << std::endl;
   }
   template <typename T, int N>
   void Texture2D::createDataNodeVec_internal()
   {
     using vecT = vec_t<T, N>;
     // If texture doesn't use all channels(4), setup a strided-data access
-    if (colorChannel < 4) {
+    if (params.colorChannel < 4) {
       createChildData("data",
-          size, // numItems
-          sizeof(vecT) * vec2ul(1, size.x), // byteStride
-          (T *)texelData + colorChannel);
+          params.size, // numItems
+          sizeof(vecT) * vec2ul(1, params.size.x), // byteStride
+          (T *)texelData.get() + params.colorChannel, true);
     } else // RGBA
-      createChildData("data", size, vec2ul(0, 0), (vecT *)texelData);
+      createChildData(
+          "data", params.size, vec2ul(0, 0), (vecT *)texelData.get(), true);
   }
   template <typename T>
   void Texture2D::createDataNodeVec_internal()
   {
-    createChildData("data", size, vec2ul(0, 0), (T *)texelData);
+    createChildData(
+        "data", params.size, vec2ul(0, 0), (T *)texelData.get(), true);
   }
 
   OSPTextureFormat Texture2D::osprayTextureFormat()
   {
-    if (depth == 1) {
-      if (components == 1)
-        return preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
-      if (components == 2)
-        return preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
-      if (components == 3)
-        return preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
-      if (components == 4)
-        return preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
-    } else if (depth == 2) {
-      if (components == 1)
+    if (params.depth == 1) {
+      if (params.components == 1)
+        return params.preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
+      if (params.components == 2)
+        return params.preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
+      if (params.components == 3)
+        return params.preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
+      if (params.components == 4)
+        return params.preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
+    } else if (params.depth == 2) {
+      if (params.components == 1)
         return OSP_TEXTURE_R16;
-      if (components == 2)
+      if (params.components == 2)
         return OSP_TEXTURE_RA16;
-      if (components == 3)
+      if (params.components == 3)
         return OSP_TEXTURE_RGB16;
-      if (components == 4)
+      if (params.components == 4)
         return OSP_TEXTURE_RGBA16;
-    } else if (depth == 4) {
-      if (components == 1)
+    } else if (params.depth == 4) {
+      if (params.components == 1)
         return OSP_TEXTURE_R32F;
-      if (components == 3)
+      if (params.components == 3)
         return OSP_TEXTURE_RGB32F;
-      if (components == 4)
+      if (params.components == 4)
         return OSP_TEXTURE_RGBA32F;
     }
 
-    std::cerr << "#osp:sg: INVALID format " << depth << ":" << components
-      << std::endl;
+    std::cerr << "#osp:sg: INVALID format " << params.depth << ":"
+              << params.components << std::endl;
     return OSP_TEXTURE_FORMAT_INVALID;
   }
 
@@ -92,15 +110,19 @@ namespace ospray {
     const ImageSpec &spec = in->spec();
     const auto typeDesc = spec.format.elementtype();
 
-    std::vector<T> data(size.x * size.y * components);
-    T *start = data.data() + (flip ? (size.y - 1) * size.x * components : 0);
-    const size_t stride = (flip ? -1 : 1) * size.x * sizeof(T) * components;
+    std::shared_ptr<void> data(
+        new T[params.size.product() * params.components]);
+    T *start = (T *)data.get()
+        + (params.flip ? (params.size.y - 1) * params.size.x * params.components
+                       : 0);
+    const long int stride =
+        (params.flip ? -1 : 1) * params.size.x * sizeof(T) * params.components;
 
     bool success =
         in->read_image(typeDesc, start, AutoStride, stride, AutoStride);
     if (success) {
-      texelData = (void *)data.data();
-      createDataNode();
+      // Move shared_ptr ownership
+      texelData = data;
     }
   }
 
@@ -111,18 +133,19 @@ namespace ospray {
       const ImageSpec &spec = in->spec();
       const auto typeDesc = spec.format.elementtype();
 
-      size = vec2ul(spec.width, spec.height);
-      components = spec.nchannels;
-      depth = spec.format.size();
+      params.size = vec2ul(spec.width, spec.height);
+      params.components = spec.nchannels;
+      params.depth = spec.format.size();
 
-      if (depth == 1) {
+      if (params.depth == 1)
         loadTexture_OIIO_readFile<uint8_t>(in);
-      } else if (depth == 2) {
+      else if (params.depth == 2)
         loadTexture_OIIO_readFile<uint16_t>(in);
-      } else if (depth == 4) {
+      else if (params.depth == 4)
         loadTexture_OIIO_readFile<float>(in);
-      } else
-        std::cerr << "#osp:sg: INVALID Texture depth " << depth << std::endl;
+      else
+        std::cerr << "#osp:sg: INVALID Texture depth " << params.depth
+                  << std::endl;
 
       in->close();
 #if OIIO_VERSION < 10903 && OIIO_VERSION > 10603
@@ -130,7 +153,7 @@ namespace ospray {
 #endif
     }
 
-    if (!hasChild("data")) {
+    if (!texelData.get()) {
       std::cerr << "#osp:sg: OpenImageIO failed to load texture '" << fileName
         << "'" << std::endl;
     }
@@ -142,18 +165,18 @@ namespace ospray {
   //
   void Texture2D::loadTexture_PFM_readFile(FILE *file, float scaleFactor)
   {
-    std::vector<float> data(size.x * size.y * components);
-    const size_t dataSize = data.size() * sizeof(float);
+    size_t size = params.size.product() * params.components;
+    std::shared_ptr<void> data = (new float[size]);
+    const size_t dataSize = sizeof(size)*sizeof(float);
 
-    int rc = fread(data.data(), dataSize, 1, file);
+    int rc = fread(data.get(), dataSize, 1, file);
     if (rc) {
       // Scale texels by scale factor
-      std::transform(data.begin(), data.end(), data.begin(), [&](float v) {
-        return v * scaleFactor;
-      });
+      for (size_t i = 0; i < params.size.product(); i++)
+        data.get()[i] *= scaleFactor;
 
-      texelData = (void *)data.data();
-      createDataNode();
+      // Move shared_ptr ownership
+      texelData = std::make_shared<void>(data);
     }
   }
 
@@ -182,16 +205,16 @@ namespace ospray {
             "Pf");
       }
 
-      components = 3;
+      params.components = 3;
       if (format[1] == 'f') {
-        components = 1;
+        params.components = 1;
       }
 
       // read width and height
       int width = -1;
       int height = -1;
       rc = fscanf(file, "%i %i\n", &width, &height);
-      if (rc != 2) {
+      if (rc != 2 || width < 0 || height < 0) {
         throw std::runtime_error(
                 "#ospray_sg: could not parse width and height in PF PFM file "
                 "'" +
@@ -227,13 +250,14 @@ namespace ospray {
       }
 
       float scaleFactor = std::abs(scaleEndian);
-      size = vec2ul(width, height);
-      depth = 4; // pfm is always float
+      params.size = vec2ul(width, height);
+      params.depth = 4; // pfm is always float
 
       loadTexture_PFM_readFile(file, scaleFactor);
 
-      if (!hasChild("data"))
-        std::cerr << "#osp:sg: INVALID FORMAT PFM " << components << std::endl;
+      if (!texelData.get())
+        std::cerr << "#osp:sg: INVALID FORMAT PFM " << params.components
+                  << std::endl;
 
     } catch (const std::runtime_error &e) {
       std::cerr << "#osp:sg: INVALID PFM" << std::endl;
@@ -243,7 +267,7 @@ namespace ospray {
     if (file)
       fclose(file);
 
-    if (!hasChild("data")) {
+    if (!texelData.get()) {
       std::cerr << "#osp:sg: PFM failed to load texture '" << fileName << "'"
         << std::endl;
     }
@@ -254,33 +278,37 @@ namespace ospray {
   //
   void Texture2D::loadTexture_STBi(const std::string &fileName)
   {
-    stbi_set_flip_vertically_on_load(flip);
+    stbi_set_flip_vertically_on_load(params.flip);
 
     const bool isHDR = stbi_is_hdr(fileName.c_str());
     const bool is16b = stbi_is_16_bit(fileName.c_str());
 
-    void *pixels = nullptr;
+    void *texels{nullptr};
     int width, height;
     if (isHDR)
-      pixels =
-          (void *)stbi_loadf(fileName.c_str(), &width, &height, &components, 0);
+      texels = (void *)stbi_loadf(
+          fileName.c_str(), &width, &height, &params.components, 0);
     else if (is16b)
-      pixels = (void *)stbi_load_16(
-          fileName.c_str(), &width, &height, &components, 0);
+      texels = (void *)stbi_load_16(
+          fileName.c_str(), &width, &height, &params.components, 0);
     else
-      pixels =
-          (void *)stbi_load(fileName.c_str(), &width, &height, &components, 0);
+      texels = (void *)stbi_load(
+          fileName.c_str(), &width, &height, &params.components, 0);
 
-    size = vec2ul(width, height);
-    depth = isHDR ? 4 : is16b ? 2 : 1;
+    params.size = vec2ul(width, height);
+    params.depth = isHDR ? 4 : is16b ? 2 : 1;
 
-    if (pixels) {
-      texelData = pixels;
-      createDataNode();
-      stbi_image_free(pixels); // XXX allow Texture2D class to manage lifetime
+    if (texels) {
+      // XXX stbi uses malloc/free override these with our alignedMalloc/Free
+      // (and implement a realloc?) to prevent this memcpy?
+      size_t size = params.size.product() * params.components * params.depth;
+      std::shared_ptr<void> data (new uint8_t[size]);
+      memcpy(data.get(), texels, size);
+      texelData = std::make_shared<void>(data);
+      stbi_image_free(texels);
     }
 
-    if (!hasChild("data")) {
+    if (!texelData.get()) {
       std::cerr << "#osp:sg: STB_image failed to load texture '" + fileName
               + "'"
                 << std::endl;
@@ -290,12 +318,70 @@ namespace ospray {
   }
 #endif
 
-  // Texture2D definitions ////////////////////////////////////////////////////
-
-  Texture2D::Texture2D() : Texture("texture2d") {}
-  Texture2D::~Texture2D()
+  void Texture2D::loadUDIM_tiles(const FileName &fileName)
   {
-    textureCache.erase(fileName);
+    std::cout << "!!!!!!!! texture load UDIM !!!!!!!" << std::endl; // XXX
+    std::string fullName = fileName.str();
+
+    // Scan for extent of tiles.
+    // create a separate node for each file,
+    // build all texture tiles into the original node and hand that back
+    // delete all tiles
+
+#ifdef USE_OPENIMAGEIO
+    loadTexture_OIIO(fileName);
+#else
+    if (fileName.ext() == "pfm")
+      loadTexture_PFM(fileName);
+    else
+      loadTexture_STBi(fileName);
+#endif
+
+#if 0
+  // Find the position of the tile number in the fileName
+  auto found = fullName.rfind("1001");
+  if (found == std::string::npos) {
+    std::cerr << "!!! BAD NEWS.... not a UDIM !!!" << std::emdl;
+    return;
+  }
+
+#if 1 // extract into a find_udim_files() return vector of valid files
+  // Strip off the "1001" and continue searching for other tiles
+  // by checking existing files of the correct names.
+  // This will work for most any *1001* naming scheme.
+  std::string lFileName = fullName.substr(0, found);
+  std::string rFileName = fullName.substr(found + 4);
+
+  std::cout << "isUDIM... pattern " << lFileName << "*" << rFileName
+            << std::endl;
+
+  int vdim = 0;
+  int udim = 0;
+  for (int v = 0; v < 10 && udim == 0; v++)
+    for (int u = 0; u < 10; u++) {
+      std::string tileNum = std::to_string(1001 + v * 10 + u);
+      std::string checkName = lFileName + tileNum + rFileName;
+      std::cout << "isUDIM... " << checkName << std::endl;
+      std::ifstream f(checkName.c_str());
+      // Exit loop on first missing tile-filename.
+      if (!f.good()) {
+        std::cout << "isUDIM... missing " << checkName << std::endl;
+        vdim = v;
+        udim = v == 0 ? u : 10;
+        break;
+      }
+      std::cout << "isUDIM... found " << checkName << std::endl;
+    }
+#endif
+
+  if (vdim > 0 || udim > 1)
+    isUDIM = true;
+
+  std::cout << "isUDIM... (" << isUDIM << ") " << vdim << ":" << udim
+            << std::endl;
+
+  return isUDIM;
+#endif
   }
 
   void Texture2D::load(const FileName &_fileName,
@@ -304,82 +390,42 @@ namespace ospray {
       const int _colorChannel)
   {
     fileName = _fileName;
-    const std::string displayName = _fileName.base();
 
-    bool isUDIM = checkUDIM(fileName);
-    // Check whether this is a UDIM tile set
-    if (isUDIM) {
-      std::cout << "!!!!!!!! texture load UDIM !!!!!!!" << std::endl;
-    }
-
-    std::shared_ptr<Texture2D> newTexNode = nullptr;
-
-    // XXX Cache can't be used for single channel textures, yet
     // Check the cache before creating a new texture
+    // XXX doesn't yet work to cache textures using different channels
     if (_colorChannel == 4
         && textureCache.find(fileName) != textureCache.end()) {
-      newTexNode = textureCache[fileName];
+      std::shared_ptr<Texture2D> cache = textureCache[fileName].lock();
+      if (cache) {
+        params = cache->params;
+        // Copy shared_ptr ownership
+        texelData = cache->texelData;
+      }
     } else {
-      newTexNode = createNodeAs<sg::Texture2D>(fileName, "texture_2d");
-
-      newTexNode->preferLinear = _preferLinear;
-      newTexNode->nearestFilter = _nearestFilter;
-      newTexNode->colorChannel = _colorChannel;
-      newTexNode->flip = flip;
-
-#ifdef USE_OPENIMAGEIO
-      newTexNode->loadTexture_OIIO(fileName);
-#else
-      if (_fileName.ext() == "pfm")
-        newTexNode->loadTexture_PFM(fileName);
-      else
-        newTexNode->loadTexture_STBi(fileName);
-#endif
-
-      // If the load was successful, add texture node to cache and populate
-      // object
-      if (newTexNode->hasChild("data")) {
-        newTexNode->child("data").setSGNoUI();
-
-        // If not using all channels, set used components to 1
-        if (_colorChannel < 4)
-          newTexNode->components = 1;
-        auto ospTexFormat = newTexNode->osprayTextureFormat();
-        auto texFilter = _nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                       : OSP_TEXTURE_FILTER_BILINEAR;
-
-        newTexNode->createChild("format", "int", (int)ospTexFormat);
-        newTexNode->createChild("filter", "int", (int)texFilter);
-
-        newTexNode->createChild("filename", "string", displayName);
-        newTexNode->child("filename").setSGOnly();
-
-        newTexNode->child("format").setMinMax(
-            (int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
-        newTexNode->child("filter").setMinMax(
-            (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
-
-        textureCache[fileName] = newTexNode;
+      // Check whether this is a UDIM tile set
+      if (checkUDIM(fileName)) {
+        loadUDIM_tiles(fileName);
       } else {
-        // The load must have failed, don't keep the node.
-        std::cout << "Failed texture " << newTexNode->name()
-                  << " removing newTexNode" << std::endl;
-        remove(newTexNode);
-        newTexNode = nullptr;
+#ifdef USE_OPENIMAGEIO
+        loadTexture_OIIO(fileName);
+#else
+        if (_fileName.ext() == "pfm")
+          loadTexture_PFM(fileName);
+        else
+          loadTexture_STBi(fileName);
+#endif
+      }
+
+      // Add this texture to the cache
+      if (texelData.get()) {
+        textureCache[fileName] = this->nodeAs<Texture2D>();
       }
     }
 
-    // Populate the parent node with texture parameters
-    if (newTexNode) {
-      size = newTexNode->size;
-      components = newTexNode->components;
-      depth = newTexNode->depth;
-      preferLinear = _preferLinear;
-      nearestFilter = _nearestFilter;
-      colorChannel = _colorChannel;
-
-      for (auto &c : newTexNode->children())
-        add(c.second);
+    if (texelData.get()) {
+      params.preferLinear = _preferLinear;
+      params.nearestFilter = _nearestFilter;
+      params.colorChannel = _colorChannel;
     }
   }
 
@@ -390,66 +436,75 @@ namespace ospray {
   {
     std::stringstream ss;
     ss << "memory: " << std::hex << memory;
-    const std::string displayName = ss.str();
+    fileName = ss.str();
 
-    std::shared_ptr<Texture2D> newTexNode =
-        createNodeAs<sg::Texture2D>(fileName, "texture_2d");
-
-    newTexNode->preferLinear = _preferLinear;
-    newTexNode->nearestFilter = _nearestFilter;
-    newTexNode->colorChannel = _colorChannel;
-    newTexNode->flip = false;
-
-    newTexNode->size = size;
-    newTexNode->components = components;
-    newTexNode->depth = depth;
-
-    newTexNode->texelData = (void *)memory;
-    newTexNode->createDataNode();
-
-    if (newTexNode->hasChild("data")) {
-      newTexNode->child("data").setSGNoUI();
-
-      // If not using all channels, set used components to 1
-      if (_colorChannel < 4)
-        newTexNode->components = 1;
-      auto ospTexFormat = newTexNode->osprayTextureFormat();
-      auto texFilter = _nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-        : OSP_TEXTURE_FILTER_BILINEAR;
-
-      newTexNode->createChild("format", "int", (int)ospTexFormat);
-      newTexNode->createChild("filter", "int", (int)texFilter);
-
-      newTexNode->createChild("filename", "string", displayName);
-      newTexNode->child("filename").setSGOnly();
-
-      newTexNode->child("format").setMinMax(
-          (int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
-      newTexNode->child("filter").setMinMax(
-          (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
-
+    // Check the cache before creating a new texture
+    // XXX doesn't yet work to cache textures using different channels
+    if (_colorChannel == 4
+        && textureCache.find(fileName) != textureCache.end()) {
+      std::shared_ptr<Texture2D> cache = textureCache[fileName].lock();
+      if (cache) {
+        params = cache->params;
+        // Copy shared_ptr ownership
+        texelData = cache->texelData;
+      }
     } else {
-      // The load must have failed, don't keep the node.
-      std::cout << "Failed texture " << newTexNode->name()
-        << " removing newTexNode" << std::endl;
-      remove(newTexNode);
-      newTexNode = nullptr;
+      if (memory) {
+        size_t size = params.size.product() * params.components * params.depth;
+        std::shared_ptr<void> data (new uint8_t[size]);
+        memcpy(data.get(), memory, size);
+        // Move shared_ptr ownership
+        texelData = data;
+
+        // Add this texture to the cache
+        textureCache[fileName] = this->nodeAs<Texture2D>();
+      }
     }
 
-    // Populate the parent node with texture parameters
-    if (newTexNode) {
-      preferLinear = _preferLinear;
-      nearestFilter = _nearestFilter;
-      colorChannel = _colorChannel;
-
-      for (auto &c : newTexNode->children())
-        add(c.second);
+    if (texelData.get()) {
+      params.preferLinear = _preferLinear;
+      params.nearestFilter = _nearestFilter;
+      params.colorChannel = _colorChannel;
     }
   }
 
-  // XXX: This is where the actual load work should happen, not in load
+  // Texture2D definitions ////////////////////////////////////////////////////
+
+  Texture2D::Texture2D() : Texture("texture2d") {}
+  Texture2D::~Texture2D()
+  {
+    auto num = textureCache.erase(fileName);
+  }
+
   void Texture2D::preCommit()
   {
+    if (texelData.get())
+      createDataNode();
+
+    // If the load was successful, populate children
+    if (hasChild("data")) {
+      child("data").setSGNoUI();
+
+      // If not using all channels, set used components to 1 for texture format
+      if (params.colorChannel < 4)
+        params.components = 1;
+      auto ospTexFormat = osprayTextureFormat();
+      auto texFilter = params.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+        : OSP_TEXTURE_FILTER_BILINEAR;
+
+      createChild("format", "int", (int)ospTexFormat);
+      createChild("filter", "int", (int)texFilter);
+
+      createChild("filename", "string", fileName);
+      child("filename").setSGOnly();
+
+      child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
+      child("filter").setMinMax(
+          (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+    } else
+      std::cout << "Failed texture " << fileName << std::endl;
+
+    // make sure to call base-class precommit
     Texture::preCommit();
   }
 
@@ -460,7 +515,7 @@ namespace ospray {
 
   OSP_REGISTER_SG_NODE_NAME(Texture2D, texture_2d);
 
-  std::map<std::string, std::shared_ptr<Texture2D>> Texture2D::textureCache;
+  std::map<std::string, std::weak_ptr<Texture2D>> Texture2D::textureCache;
 
   }  // namespace sg
 } // namespace ospray

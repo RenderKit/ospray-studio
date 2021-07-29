@@ -39,30 +39,19 @@ struct OSPSG_INTERFACE Texture2D : public Texture
 
   std::string fileName;
 
-  vec2ul size{-1}; //! texture size, in pixels
-  int components{0};
-  int depth{0};  // bytes per texel
-  bool preferLinear{false};
-  bool nearestFilter{false};
-  int colorChannel{4};   // sampled channel R(0), G(1), B(2), A(3), all(4)
-  bool flip{true}; // flip texture data vertically
-
-  // Create the childData node given all other texture params
-  inline void createDataNode()
-  {
-    if (depth == 1)
-      createDataNodeType_internal<uint8_t>();
-    else if (depth == 2)
-      createDataNodeType_internal<uint16_t>();
-    else if (depth == 4)
-      createDataNodeType_internal<float>();
-    else
-      std::cerr << "#osp:sg: INVALID Texture depth " << depth << std::endl;
-  }
+  struct {
+    vec2ul size{-1}; //! texture size, in pixels
+    int components{0};
+    int depth{0};  // bytes per texel
+    bool preferLinear{false};
+    bool nearestFilter{false};
+    int colorChannel{4};   // sampled channel R(0), G(1), B(2), A(3), all(4)
+    bool flip{true}; // flip texture data vertically when loading from file
+  } params;
 
  private:
-  void *texelData{nullptr}; // XXX make this shared, avoid the copy data
-  static std::map<std::string, std::shared_ptr<Texture2D>> textureCache;
+  std::shared_ptr<void> texelData;
+  static std::map<std::string, std::weak_ptr<Texture2D>> textureCache;
 
 #ifdef USE_OPENIMAGEIO
   void loadTexture_OIIO(const std::string &fileName);
@@ -74,7 +63,10 @@ struct OSPSG_INTERFACE Texture2D : public Texture
   void loadTexture_PFM_readFile(FILE *file, float scaleFactor);
 #endif
 
+  void loadUDIM_tiles(const FileName &_fileName);
+
   // Internal helpers
+  inline void createDataNode();
   template <typename T>
   void createDataNodeType_internal();
   template <typename T, int N>
