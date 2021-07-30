@@ -175,17 +175,18 @@ namespace ospray {
   void Texture2D::loadTexture_PFM_readFile(FILE *file, float scaleFactor)
   {
     size_t size = params.size.product() * params.components;
-    std::shared_ptr<void> data = (new float[size]);
+    std::shared_ptr<void> data (new float[size]);
     const size_t dataSize = sizeof(size)*sizeof(float);
 
     int rc = fread(data.get(), dataSize, 1, file);
     if (rc) {
       // Scale texels by scale factor
+      float *texels = (float *)data.get();
       for (size_t i = 0; i < params.size.product(); i++)
-        data.get()[i] *= scaleFactor;
+        texels[i] *= scaleFactor;
 
       // Move shared_ptr ownership
-      texelData = std::make_shared<void>(data);
+      texelData = data;
     }
   }
 
@@ -313,7 +314,7 @@ namespace ospray {
       size_t size = params.size.product() * params.components * params.depth;
       std::shared_ptr<void> data (new uint8_t[size]);
       memcpy(data.get(), texels, size);
-      texelData = std::make_shared<void>(data);
+      texelData = data;
       stbi_image_free(texels);
     }
 
