@@ -11,10 +11,10 @@
 #include "glTF/buffer_view.h"
 #include "glTF/gltf_types.h"
 
-#include "../scene/geometry/Geometry.h"
-#include "../visitors/PrintNodes.h"
-#include "../texture/Texture2D.h"
-#include "../scene/Transform.h"
+#include "sg/scene/geometry/Geometry.h"
+#include "sg/visitors/PrintNodes.h"
+#include "sg/texture/Texture2D.h"
+#include "sg/scene/Transform.h"
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
@@ -96,7 +96,9 @@ namespace ospray {
 
     void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
 
-    void loadKeyframeOutput(std::vector<vec3f> &ts, std::vector<affine3f> &kfOutput, std::string &propertyName);
+    void loadKeyframeOutput(std::vector<vec3f> &ts,
+        std::vector<affine3f> &kfOutput,
+        std::string &propertyName);
 
     void visitNode(NodePtr sgNode,
         const int nid,
@@ -1025,8 +1027,7 @@ namespace ospray {
 
         const vec3f color0 = vec3f(data[0], data[1], data[2]);
         auto i = 1;
-        WARN << "Material emissiveTexture #" << mat.emissiveTexture.index;
-        WARN << std::endl;
+        WARN << "Material emissiveTexture #" << mat.emissiveTexture.index << std::endl;
         WARN << "   color0 : " << color0 << std::endl;
         while (constColor && (i < img.width * img.height)) {
           const vec3f color =
@@ -1368,6 +1369,7 @@ namespace ospray {
     }
     auto texName = img.name + "_" + pad(std::to_string(nTex++)) + "_tex";
 
+#if 0
     DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
     DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
     DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
@@ -1381,11 +1383,7 @@ namespace ospray {
 
     DEBUG << pad("", '.', 9) << "texParam: " << texParam << "\n";
     DEBUG << pad("", '.', 9) << "colorChannel: " << colorChannel << "\n";
-
-    // If texture name (uri) is a UDIM set, ignore tiny_gltf loaded image and
-    // reload as udim tiles
-    if (checkUDIM(fileName.path() + img.uri))
-      img.image.clear();
+#endif
 
     NodePtr ospTexNode = createNode(texParam, "texture_2d");
     auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
@@ -1394,6 +1392,11 @@ namespace ospray {
     bool nearestFilter = (tex.sampler != -1
         && model.samplers[tex.sampler].magFilter
             == TINYGLTF_TEXTURE_FILTER_NEAREST);
+
+    // If texture name (uri) is a UDIM set, ignore tiny_gltf loaded image and
+    // reload from file as udim tiles
+    if (ospTex.checkForUDIM(fileName.path() + img.uri))
+      img.image.clear();
 
     // Pre-loaded texture image (loaded by tinygltf)
     if (!img.image.empty()) {
@@ -1435,7 +1438,7 @@ namespace ospray {
     auto ospTexNode = createOSPTexture(
         texParam, model.textures[texIndex], colorChannel, preferLinear);
     if (ospTexNode) {
-      //auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
+      auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
       //DEBUG << pad("", '.', 3) << "        .setChild: " << texParam << "= "
       //     << ospTex.name() << "\n";
       // DEBUG << pad("", '.', 3) << "            "
@@ -1443,6 +1446,7 @@ namespace ospray {
       //     << " preferLinear: " << preferLinear << "\n";
 
       // Texture extensions
+      // XXX This is wrong.  The extension hangs off the material, as all others
       const auto &exts = model.textures[texIndex].extensions;
       if (exts.find("KHR_texture_transform") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_transform
@@ -1456,7 +1460,7 @@ namespace ospray {
               params.Get("offset").Get<tinygltf::Value::Array>();
           offset = vec2f(ov[0].Get<double>(), ov[1].Get<double>());
         }
-        ospTexNode->createChild("translation", "vec2f") = offset;
+        ospMat->createChild(texParam + ".translation", "vec2f") = offset;
 
         // rotation: Rotate the UVs by this many radians counter-clockwise
         // around the origin. This is equivalent to a similar rotation of the
@@ -1465,7 +1469,7 @@ namespace ospray {
         if (params.Has("rotation")) {
           rotation = (float)params.Get("rotation").Get<double>();
         }
-        ospMat->createChild("rotation", "float") = rotation;
+        ospMat->createChild(texParam + ".rotation", "float") = rotation;
 
         // scale: The scale factor applied to the components of the UV
         // coordinates. default:[1.0, 1.0]
@@ -1475,11 +1479,30 @@ namespace ospray {
               params.Get("scale").Get<tinygltf::Value::Array>();
           offset = vec2f(sv[0].Get<double>(), sv[1].Get<double>());
         }
-        ospTexNode->createChild("scale", "vec2f") = scale;
+        ospMat->createChild(texParam + ".scale", "vec2f") = scale;
 
         // texCoord: Overrides the textureInfo texCoord value if supplied, and
         // if this extension is supported.
         // XXX not sure what, if anything, to do about this one.
+      }
+
+      // If texture is UDIM, set appropriate scale/translation
+      if (ospTex.hasUDIM()) {
+        auto scale = ospTex.getUDIM_scale();
+        auto translation = ospTex.getUDIM_translation();
+        auto paramName = texParam + ".scale";
+        if (!ospMat->hasChild(paramName))
+          ospMat->createChild(paramName, "vec2f", scale);
+        else
+          ospMat->child(paramName) =
+              ospMat->child(paramName).valueAs<vec2f>() * scale;
+
+        paramName = texParam + ".translation";
+        if (!ospMat->hasChild(paramName))
+          ospMat->createChild(paramName, "vec2f", translation);
+        else
+          ospMat->child(paramName) =
+              ospMat->child(paramName).valueAs<vec2f>() + translation;
       }
 
       ospMat->add(ospTexNode);
