@@ -44,7 +44,7 @@ void ParticleVolumeImporter::importScene()
   particleVolume->load(fileName);
   volumeImport = particleVolume;
 
-  auto tf = createNode("transferFunction", "transfer_function_jet");
+  auto tf = createNode("transferFunction", "transfer_function_turbo");
   auto valueRange = volumeImport->child("valueRange").valueAs<range1f>();
   tf->child("valueRange") = valueRange.toVec2();
   volumeImport->add(tf);

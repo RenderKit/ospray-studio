@@ -92,7 +92,7 @@ void ParticleVol::generateData()
   });
 
   auto &xfm = child("xfm");
-  auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
+  auto &tf = xfm.createChild("transferFunction", "transfer_function_turbo");
   tf["valueRange"] = vec2f(0.f, weightRange.upper);
 
   auto &pvol = tf.createChild("pvol", "volume_particle");

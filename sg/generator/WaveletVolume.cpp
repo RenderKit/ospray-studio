@@ -65,7 +65,7 @@ WaveletVolume::WaveletVolume()
 void WaveletVolume::generateData()
 {
   auto &xfm = child("xfm");
-  auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
+  auto &tf = xfm.createChild("transferFunction", "transfer_function_turbo");
 
   // Create voxel data
 
