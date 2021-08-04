@@ -171,6 +171,7 @@ void TransferFunctionWidget::loadDefaultMaps()
 
   // sequential
   tfnsNodes.push_back(createNode("turbo", "transfer_function_turbo"));
+  tfnsNodes.push_back(createNode("grayscale", "transfer_function_grayscale"));
   // diverging
   tfnsNodes.push_back(createNode("coolToWarm", "transfer_function_coolToWarm"));
   tfnsNodes.push_back(createNode("iceFire", "transfer_function_iceFire"));

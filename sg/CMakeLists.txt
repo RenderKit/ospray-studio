@@ -114,8 +114,6 @@ add_library(ospray_sg SHARED
   scene/geometry/Triangles.cpp
   scene/geometry/Curves.cpp
 
-  scene/transfer_function/Cloud.cpp
-  scene/transfer_function/Jet.cpp
   scene/transfer_function/TransferFunction.cpp
   scene/transfer_function/Diverging.cpp
   scene/transfer_function/Perceptual.cpp

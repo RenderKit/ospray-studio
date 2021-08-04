@@ -35,5 +35,27 @@ Turbo::Turbo() : TransferFunction("piecewiseLinear")
   createChildData("opacity", opacities);
 }
 
+// Grayscale /////////////////////////////////////////////////////////////////
+
+struct OSPSG_INTERFACE Grayscale : public TransferFunction
+{
+  Grayscale();
+  virtual ~Grayscale() override = default;
+};
+
+OSP_REGISTER_SG_NODE_NAME(Grayscale, transfer_function_grayscale);
+
+Grayscale::Grayscale() : TransferFunction("piecewiseLinear")
+{
+  colors.clear();
+  colors.emplace_back(0.000, 0.000, 0.000);
+  colors.emplace_back(1.000, 1.000, 1.000);
+
+  initOpacities();
+
+  createChildData("color", colors);
+  createChildData("opacity", opacities);
 }
-}
+
+} // namespace sg
+} // namespace ospray
