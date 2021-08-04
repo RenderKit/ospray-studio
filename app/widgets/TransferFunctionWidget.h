@@ -61,6 +61,7 @@ class TransferFunctionWidget
       transferFunctionUpdatedCallback{nullptr};
 
   // all available transfer functions
+  std::vector<ospray::sg::NodePtr> tfnsNodes;
   std::vector<std::string> tfnsNames;
   std::vector<std::vector<ColorPoint>> tfnsColorPoints;
   std::vector<std::vector<OpacityPoint>> tfnsOpacityPoints;

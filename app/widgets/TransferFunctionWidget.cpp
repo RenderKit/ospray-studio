@@ -167,341 +167,53 @@ std::vector<vec4f> TransferFunctionWidget::getSampledColorsAndOpacities(
 
 void TransferFunctionWidget::loadDefaultMaps()
 {
-  // same opacities for all maps
-  std::vector<OpacityPoint> opacities;
+  using namespace ospray::sg;
 
+  // sequential
+  tfnsNodes.push_back(createNode("turbo", "transfer_function_turbo"));
+  // diverging
+  tfnsNodes.push_back(createNode("coolToWarm", "transfer_function_coolToWarm"));
+  tfnsNodes.push_back(createNode("iceFire", "transfer_function_iceFire"));
+  // perceptually uniform
+  tfnsNodes.push_back(createNode("viridis", "transfer_function_viridis"));
+  tfnsNodes.push_back(createNode("magma", "transfer_function_magma"));
+  tfnsNodes.push_back(createNode("plasma", "transfer_function_plasma"));
+  tfnsNodes.push_back(createNode("inferno", "transfer_function_inferno"));
+
+  std::vector<ColorPoint> colors;
+  std::vector<OpacityPoint> opacities;
+  
+  // Original (this gets replaced by the volume's attached transfer function)
   opacities.emplace_back(0.f, 0.f);
   opacities.emplace_back(1.f, 1.f);
-
-  // Original (this gets replaced by the volumes's attached transfer function)
-  std::vector<ColorPoint> colors;
-
   colors.emplace_back(0.0f, 0.f, 0.f, 0.f);
   colors.emplace_back(1.0f, 1.f, 1.f, 1.f);
-
   tfnsColorPoints.push_back(colors);
   tfnsOpacityPoints.push_back(opacities);
-
   tfnsEditable.push_back(true);
   tfnsNames.push_back("Original");
 
-  // Jet
-  colors.clear();
-
-  colors.emplace_back(0.0f, 0.f, 0.f, 1.f);
-  colors.emplace_back(0.3f, 0.f, 1.f, 1.f);
-  colors.emplace_back(0.6f, 1.f, 1.f, 0.f);
-  colors.emplace_back(1.0f, 1.f, 0.f, 0.f);
-
-  tfnsColorPoints.push_back(colors);
-  tfnsOpacityPoints.push_back(opacities);
-
-  tfnsEditable.push_back(true);
-  tfnsNames.push_back("Jet");
-
-  // Ice Fire
-  colors.clear();
-
-  float spacing = 1.f / 16;
-
-  colors.emplace_back(0 * spacing, 0, 0, 0);
-  colors.emplace_back(1 * spacing, 0, 0.120394, 0.302678);
-  colors.emplace_back(2 * spacing, 0, 0.216587, 0.524575);
-  colors.emplace_back(3 * spacing, 0.0552529, 0.345022, 0.659495);
-  colors.emplace_back(4 * spacing, 0.128054, 0.492592, 0.720287);
-  colors.emplace_back(5 * spacing, 0.188952, 0.641306, 0.792096);
-  colors.emplace_back(6 * spacing, 0.327672, 0.784939, 0.873426);
-  colors.emplace_back(7 * spacing, 0.60824, 0.892164, 0.935546);
-  colors.emplace_back(8 * spacing, 0.881376, 0.912184, 0.818097);
-  colors.emplace_back(9 * spacing, 0.9514, 0.835615, 0.449271);
-  colors.emplace_back(10 * spacing, 0.904479, 0.690486, 0);
-  colors.emplace_back(11 * spacing, 0.854063, 0.510857, 0);
-  colors.emplace_back(12 * spacing, 0.777096, 0.330175, 0.000885023);
-  colors.emplace_back(13 * spacing, 0.672862, 0.139086, 0.00270085);
-  colors.emplace_back(14 * spacing, 0.508812, 0, 0);
-  colors.emplace_back(15 * spacing, 0.299413, 0.000366217, 0.000549325);
-
-  colors.emplace_back(1.f, 0.0157473, 0.00332647, 0);
-
-  tfnsColorPoints.push_back(colors);
-  tfnsOpacityPoints.push_back(opacities);
-
-  tfnsEditable.push_back(true);
-  tfnsNames.push_back("Ice Fire");
-
-  // Grayscale
-  colors.clear();
-
-  colors.emplace_back(0.f, 1.f, 1.f, 1.f);
-  colors.emplace_back(1.f, 1.f, 1.f, 1.f);
-
-  tfnsColorPoints.push_back(colors);
-  tfnsOpacityPoints.push_back(opacities);
-
-  tfnsEditable.push_back(true);
-  tfnsNames.push_back("Grayscale");
-
-  // Rho
-  colors.clear();
-
-  colors.emplace_back(0 * spacing, 0.286275, 0.0, 0.415686);
-  colors.emplace_back(
-      1 * spacing, 0.38273000000000001, 0.0019680000000000001, 0.441276);
-  colors.emplace_back(2 * spacing,
-                      0.47923100000000002,
-                      0.0039220000000000001,
-                      0.46677400000000002);
-  colors.emplace_back(
-      3 * spacing, 0.581592, 0.0039220000000000001, 0.48055399999999998);
-  colors.emplace_back(4 * spacing,
-                      0.68379900000000005,
-                      0.0054900000000000001,
-                      0.49488700000000002);
-  colors.emplace_back(
-      5 * spacing, 0.77631700000000003, 0.105882, 0.54409799999999997);
-  colors.emplace_back(
-      6 * spacing, 0.86786600000000003, 0.206321, 0.59261799999999998);
-  colors.emplace_back(7 * spacing,
-                      0.91904699999999995,
-                      0.30868099999999998,
-                      0.61230300000000004);
-  colors.emplace_back(8 * spacing,
-                      0.96881200000000001,
-                      0.41122599999999998,
-                      0.63260300000000003);
-  colors.emplace_back(9 * spacing,
-                      0.97471699999999994,
-                      0.51949299999999998,
-                      0.67197200000000001);
-  colors.emplace_back(
-      10 * spacing, 0.98054600000000003, 0.62645099999999998, 0.71065);
-  colors.emplace_back(
-      11 * spacing, 0.984483, 0.70125300000000002, 0.73230300000000004);
-  colors.emplace_back(12 * spacing,
-                      0.98832799999999998,
-                      0.77503999999999995,
-                      0.75561699999999998);
-  colors.emplace_back(13 * spacing,
-                      0.99029599999999995,
-                      0.82818899999999995,
-                      0.81270299999999995);
-  colors.emplace_back(14 * spacing, 0.99237200000000003, 0.880907, 0.869035);
-  colors.emplace_back(
-      15 * spacing, 0.996309, 0.92618199999999995, 0.91234099999999996);
-  colors.emplace_back(
-      16 * spacing, 1.0, 0.96862700000000002, 0.95294100000000004);
-
-  tfnsColorPoints.push_back(colors);
-  tfnsOpacityPoints.push_back(opacities);
-
-  tfnsEditable.push_back(true);
-  tfnsNames.push_back("Rho");
-
-  // Er
-  colors.clear();
-
-  spacing = 1.f / 44.f;
-
-  colors.emplace_back(0 * spacing, 0.34902, 0.0, 0.129412);
-
-  colors.emplace_back(
-      1 * spacing, 0.40000000000000002, 0.0039215700000000001, 0.101961);
-
-  colors.emplace_back(
-      2 * spacing, 0.47058800000000001, 0.0156863, 0.090196100000000001);
-
-  colors.emplace_back(
-      3 * spacing, 0.54901999999999995, 0.027451, 0.070588200000000004);
-
-  colors.emplace_back(4 * spacing,
-                      0.61960800000000005,
-                      0.062745099999999998,
-                      0.043137300000000003);
-
-  colors.emplace_back(5 * spacing,
-                      0.69019600000000003,
-                      0.12548999999999999,
-                      0.062745099999999998);
-
-  colors.emplace_back(6 * spacing,
-                      0.74117599999999995,
-                      0.18431400000000001,
-                      0.074509800000000001);
-
-  colors.emplace_back(7 * spacing,
-                      0.78823500000000002,
-                      0.26666699999999999,
-                      0.094117599999999996);
-
-  colors.emplace_back(8 * spacing,
-                      0.81176499999999996,
-                      0.34509800000000002,
-                      0.11372500000000001);
-
-  colors.emplace_back(9 * spacing,
-                      0.83137300000000003,
-                      0.41176499999999999,
-                      0.13333300000000001);
-
-  colors.emplace_back(
-      10 * spacing, 0.85097999999999996, 0.47450999999999999, 0.145098);
-
-  colors.emplace_back(
-      11 * spacing, 0.87058800000000003, 0.54901999999999995, 0.156863);
-
-  colors.emplace_back(
-      12 * spacing, 0.87843099999999996, 0.61960800000000005, 0.168627);
-
-  colors.emplace_back(
-      13 * spacing, 0.89019599999999999, 0.65882399999999997, 0.196078);
-
-  colors.emplace_back(
-      14 * spacing, 0.90980399999999995, 0.71764700000000003, 0.235294);
-
-  colors.emplace_back(15 * spacing,
-                      0.92941200000000002,
-                      0.77647100000000002,
-                      0.27843099999999998);
-
-  colors.emplace_back(16 * spacing,
-                      0.94901999999999997,
-                      0.82352899999999996,
-                      0.32156899999999999);
-
-  colors.emplace_back(17 * spacing,
-                      0.96862700000000002,
-                      0.87451000000000001,
-                      0.40784300000000001);
-
-  colors.emplace_back(18 * spacing,
-                      0.98039200000000004,
-                      0.91764699999999999,
-                      0.50980400000000003);
-
-  colors.emplace_back(19 * spacing,
-                      0.98823499999999997,
-                      0.95686300000000002,
-                      0.64313699999999996);
-
-  colors.emplace_back(20 * spacing,
-                      0.99215699999999996,
-                      0.96470599999999995,
-                      0.71372500000000005);
-
-  colors.emplace_back(21 * spacing,
-                      0.98823499999999997,
-                      0.98039200000000004,
-                      0.87058800000000003);
-
-  colors.emplace_back(22 * spacing, 1.0, 1.0, 1.0);
-
-  colors.emplace_back(23 * spacing,
-                      0.91372500000000001,
-                      0.98823499999999997,
-                      0.93725499999999995);
-
-  colors.emplace_back(24 * spacing,
-                      0.82745100000000005,
-                      0.98039200000000004,
-                      0.88627500000000003);
-
-  colors.emplace_back(
-      25 * spacing, 0.764706, 0.98039200000000004, 0.86666699999999997);
-
-  colors.emplace_back(26 * spacing,
-                      0.65882399999999997,
-                      0.98039200000000004,
-                      0.84313700000000003);
-
-  colors.emplace_back(27 * spacing,
-                      0.57254899999999997,
-                      0.96470599999999995,
-                      0.83529399999999998);
-
-  colors.emplace_back(28 * spacing,
-                      0.42352899999999999,
-                      0.94117600000000001,
-                      0.87451000000000001);
-
-  colors.emplace_back(29 * spacing,
-                      0.26274500000000001,
-                      0.90196100000000001,
-                      0.86274499999999998);
-
-  colors.emplace_back(30 * spacing,
-                      0.070588200000000004,
-                      0.85490200000000005,
-                      0.87058800000000003);
-
-  colors.emplace_back(31 * spacing,
-                      0.050980400000000002,
-                      0.80000000000000004,
-                      0.85097999999999996);
-
-  colors.emplace_back(32 * spacing,
-                      0.023529399999999999,
-                      0.70980399999999999,
-                      0.83137300000000003);
-
-  colors.emplace_back(33 * spacing,
-                      0.031372499999999998,
-                      0.61568599999999996,
-                      0.81176499999999996);
-
-  colors.emplace_back(34 * spacing,
-                      0.031372499999999998,
-                      0.53725500000000004,
-                      0.78823500000000002);
-
-  colors.emplace_back(
-      35 * spacing, 0.039215699999999999, 0.466667, 0.76862699999999995);
-
-  colors.emplace_back(36 * spacing,
-                      0.050980400000000002,
-                      0.39607799999999999,
-                      0.74117599999999995);
-
-  colors.emplace_back(37 * spacing,
-                      0.054901999999999999,
-                      0.31764700000000001,
-                      0.70980399999999999);
-
-  colors.emplace_back(38 * spacing,
-                      0.054901999999999999,
-                      0.24313699999999999,
-                      0.67843100000000001);
-
-  colors.emplace_back(39 * spacing,
-                      0.043137300000000003,
-                      0.16470599999999999,
-                      0.63921600000000001);
-
-  colors.emplace_back(40 * spacing,
-                      0.031372499999999998,
-                      0.098039200000000007,
-                      0.59999999999999998);
-
-  colors.emplace_back(41 * spacing,
-                      0.039215699999999999,
-                      0.039215699999999999,
-                      0.56078399999999995);
-
-  colors.emplace_back(
-      42 * spacing, 0.105882, 0.050980400000000002, 0.50980400000000003);
-
-  colors.emplace_back(43 * spacing,
-                      0.11372500000000001,
-                      0.023529399999999999,
-                      0.45097999999999999);
-
-  colors.emplace_back(
-      44 * spacing, 0.12548999999999999, 0.0, 0.38039200000000001);
-
-  tfnsColorPoints.push_back(colors);
-  tfnsOpacityPoints.push_back(opacities);
-
-  tfnsEditable.push_back(true);
-  tfnsNames.push_back("Er");
+  // Translate all nodes to vectors
+  for (auto tfp : tfnsNodes) {
+    auto &tfo = *tfp->nodeAs<TransferFunction>();
+    colors.clear();
+    opacities.clear();
+    auto numSteps = tfo.colors.size();
+    for (int i = 0; i < numSteps; i++) {
+      auto color = tfo.colors[i];
+      auto opacity = tfo.opacities[i];
+      float position = float(i) / (numSteps - 1);
+      colors.emplace_back(position, color.x, color.y, color.z);
+      opacities.emplace_back(position, opacity);
+    }
+    tfnsColorPoints.push_back(colors);
+    tfnsOpacityPoints.push_back(opacities);
+    tfnsEditable.push_back(true);
+    tfnsNames.push_back(tfp->name());
+  }
+
+  // to avoid shutdown warnings
+  tfnsNodes.clear();
 }
 
 void TransferFunctionWidget::setMap(int selection)

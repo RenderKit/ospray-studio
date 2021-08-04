@@ -6,7 +6,7 @@
 namespace ospray {
 namespace sg {
 
-// Viridis /////////////////////////////////////////////////////////////////////////
+// Viridis ///////////////////////////////////////////////////////////////////
 
 struct OSPSG_INTERFACE Viridis : public TransferFunction
 {
@@ -35,7 +35,7 @@ Viridis::Viridis() : TransferFunction("piecewiseLinear")
   createChildData("opacity", opacities);
 }
 
-// Plasma //////////////////////////////////////////////////////////////////////////
+// Plasma ////////////////////////////////////////////////////////////////////
 
 struct OSPSG_INTERFACE Plasma : public TransferFunction
 {
@@ -64,5 +64,62 @@ Plasma::Plasma() : TransferFunction("piecewiseLinear")
   createChildData("opacity", opacities);
 }
 
+// Magma /////////////////////////////////////////////////////////////////////
+
+struct OSPSG_INTERFACE Magma : public TransferFunction
+{
+  Magma();
+  virtual ~Magma() override = default;
+};
+
+OSP_REGISTER_SG_NODE_NAME(Magma, transfer_function_magma);
+
+Magma::Magma() : TransferFunction("piecewiseLinear")
+{
+  colors.clear();
+  colors.emplace_back(0.001, 0.000, 0.014);
+  colors.emplace_back(0.113, 0.065, 0.277);
+  colors.emplace_back(0.317, 0.072, 0.485);
+  colors.emplace_back(0.513, 0.148, 0.508);
+  colors.emplace_back(0.716, 0.215, 0.475);
+  colors.emplace_back(0.904, 0.320, 0.388);
+  colors.emplace_back(0.987, 0.536, 0.382);
+  colors.emplace_back(0.997, 0.770, 0.535);
+  colors.emplace_back(0.987, 0.991, 0.750);
+
+  initOpacities();
+
+  createChildData("color", colors);
+  createChildData("opacity", opacities);
 }
+
+// Inferno ///////////////////////////////////////////////////////////////////
+
+struct OSPSG_INTERFACE Inferno : public TransferFunction
+{
+  Inferno();
+  virtual ~Inferno() override = default;
+};
+
+OSP_REGISTER_SG_NODE_NAME(Inferno, transfer_function_inferno);
+
+Inferno::Inferno() : TransferFunction("piecewiseLinear")
+{
+  colors.clear();
+  colors.emplace_back(0.001, 0.000, 0.014);
+  colors.emplace_back(0.129, 0.047, 0.291);
+  colors.emplace_back(0.342, 0.062, 0.429);
+  colors.emplace_back(0.541, 0.135, 0.415);
+  colors.emplace_back(0.736, 0.216, 0.330);
+  colors.emplace_back(0.894, 0.353, 0.194);
+  colors.emplace_back(0.978, 0.558, 0.035);
+  colors.emplace_back(0.975, 0.798, 0.206);
+  colors.emplace_back(0.988, 0.998, 0.645);
+
+  initOpacities();
+
+  createChildData("color", colors);
+  createChildData("opacity", opacities);
 }
+} // namespace sg
+} // namespace ospray

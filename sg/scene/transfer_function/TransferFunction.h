@@ -17,7 +17,7 @@ struct OSPSG_INTERFACE TransferFunction
   std::vector<vec3f> colors;
   std::vector<float> opacities;
 
- private:
+ protected:
   inline void initOpacities()
   {
     // Initialize to a simple ramp

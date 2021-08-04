@@ -119,6 +119,7 @@ add_library(ospray_sg SHARED
   scene/transfer_function/TransferFunction.cpp
   scene/transfer_function/Diverging.cpp
   scene/transfer_function/Perceptual.cpp
+  scene/transfer_function/Sequential.cpp
 
   scene/volume/Vdb.cpp
   scene/volume/Volume.cpp
