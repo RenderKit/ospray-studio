@@ -59,6 +59,7 @@ target_link_libraries(ospStudio
   ospray_ui # Not all run modes should link against UI (ie batch).
   ospray_sg
   json
+  cli11
 )
 
 _target_strip_and_sign(ospStudio)

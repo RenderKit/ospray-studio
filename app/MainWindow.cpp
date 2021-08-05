@@ -43,6 +43,9 @@
 #include "widgets/PieMenu.h"
 #include "widgets/Guizmo.h"
 
+// CLI
+#include <CLI11.hpp>
+
 using namespace ospray_studio;
 using namespace ospray;
 
@@ -1076,6 +1079,9 @@ bool MainWindow::parseCommandLine()
 {
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
+
+  CLI::App app{"OSPRay Studio GUI"};
+
   volumeParams = std::make_shared<sg::VolumeParams>();
   for (int i = 1; i < ac; i++) {
     const auto arg = std::string(av[i]);
