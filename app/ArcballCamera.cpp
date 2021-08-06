@@ -99,7 +99,17 @@ vec3f ArcballCamera::lookDir() const
 
 vec3f ArcballCamera::upDir() const
 {
-  return xfmVector(cameraToWorld, vec3f(0, 1, 0));
+  return lockUpDir ? upVec : xfmVector(cameraToWorld, vec3f(0, 1, 0));
+}
+
+void ArcballCamera::setLockUpDir(bool locked)
+{
+  lockUpDir = locked;
+}
+
+void ArcballCamera::setUpDir(vec3f newDir)
+{
+  upVec = newDir;
 }
 
 void ArcballCamera::updateCamera()

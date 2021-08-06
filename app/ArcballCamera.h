@@ -125,6 +125,9 @@ class ArcballCamera
   void updateWindowSize(const vec2i &windowSize);
   void setNewWorldBounds(const box3f &worldBounds);
 
+  void setLockUpDir(bool locked);
+  void setUpDir(vec3f newDir);
+
  protected:
   void updateCamera();
 
@@ -135,7 +138,9 @@ class ArcballCamera
   vec2f invWindowSize;
   AffineSpace3f centerTranslation, translation, cameraToWorld;
   quaternionf rotation;
-  
+
+  bool lockUpDir{false};
+  vec3f upVec{0, 1, 0};
 };
 
 // Catmull-Rom quaternion interpolation

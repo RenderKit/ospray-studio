@@ -1462,6 +1462,26 @@ void MainWindow::buildMainMenuView()
           new ArcballCamera(frame->child("world").bounds(), windowSize));
       updateCamera();
     }
+
+    static bool lockUpDir = false;
+    if (ImGui::Checkbox("Lock UpDir", &lockUpDir))
+      arcballCamera->setLockUpDir(lockUpDir);
+
+    if (lockUpDir) {
+      ImGui::SameLine();
+      static int dir = 1;
+      static int _dir = -1;
+      ImGui::RadioButton("X##setUpDir", &dir, 0);
+      ImGui::SameLine();
+      ImGui::RadioButton("Y##setUpDir", &dir, 1);
+      ImGui::SameLine();
+      ImGui::RadioButton("Z##setUpDir", &dir, 2);
+      if (dir != _dir) {
+        arcballCamera->setUpDir(vec3f(dir == 0, dir == 1, dir == 2));
+        _dir = dir;
+      }
+    }
+
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
       showKeyframes = true;
     if (ImGui::MenuItem("Snapshots...", "", nullptr))
