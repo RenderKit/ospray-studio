@@ -1323,13 +1323,15 @@ namespace ospray {
         if (mat.emissiveTexture.index != -1) {
           const auto &tex = model.textures[mat.emissiveTexture.index];
           const auto &img = model.images[tex.source];
-          const auto *data = img.image.data();
-          const vec3f color0 = vec3f(data[0], data[1], data[2]);
-          WARN << "   name: " << img.name << std::endl;
-          WARN << "   img: (" << img.width << ", " << img.height << ")";
-          WARN << std::endl;
-          WARN << "   emulating with solid color : " << color0 << std::endl;
-          ospMat->child("color") = emissiveColor * (color0 / 255.f);
+          if (img.image.size() > 0) {
+            const auto *data = img.image.data();
+            const vec3f color0 = vec3f(data[0], data[1], data[2]);
+            WARN << "   name: " << img.name << std::endl;
+            WARN << "   img: (" << img.width << ", " << img.height << ")";
+            WARN << std::endl;
+            WARN << "   emulating with solid color : " << color0 << std::endl;
+            ospMat->child("color") = emissiveColor * (color0 / 255.f);
+          }
         }
       }
 
