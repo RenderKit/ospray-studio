@@ -14,6 +14,7 @@
 // std
 #include <functional>
 
+#include <map>
 #include "widgets/AnimationWidget.h"
 #include "PluginManager.h"
 #include "sg/importer/Importer.h"
@@ -44,6 +45,18 @@ enum class OSPRayRendererType
   AO,
   DEBUGGER,
   OTHER
+};
+
+static std::map<std::string, const char *> const guiCommandLineAliases = {
+  {"-pf", "--pixelfilter"},
+  {"-a", "--animate"},
+  {"-dim", "--dimensions"},
+  {"-gs", "--gridSpacing"},
+  {"-go", "--gridOrigin"},
+  {"-vt", "--voxelType"},
+  {"-sc", "--sceneConfig"},
+  {"-ic", "--instanceConfig"},
+  {"-ps", "--pointSize"},
 };
 
 class MainWindow : public StudioContext

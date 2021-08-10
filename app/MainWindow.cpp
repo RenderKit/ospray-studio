@@ -1080,77 +1080,125 @@ bool MainWindow::parseCommandLine()
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
 
-  CLI::App app{"OSPRay Studio GUI"};
+  for (int i=1; i<ac; ++i) {
+    std::string s = av[i];
+    auto it = guiCommandLineAliases.find(s);
+    if (it != guiCommandLineAliases.end()) {
+      av[i] = it->second;
+    }
+  }
 
   volumeParams = std::make_shared<sg::VolumeParams>();
-  for (int i = 1; i < ac; i++) {
-    const auto arg = std::string(av[i]);
-    if (arg.rfind("-", 0) != 0) {
-      filesToImport.push_back(arg);
-    } else if (arg == "-h" || arg == "--help") {
-      printHelp();
-      return false;
-    } else if (arg.rfind("--plugin:", 0) == 0) { // prefix match
-      ++i; // skip next argument
-      continue; // ignore because it will be parsed by plugins
-    } else if (arg == "-pf" || arg == "--pixelfilter") {
-      optPF = max(0, atoi(av[i + 1]));
-      rkcommon::removeArgs(ac, av, i, 2);
-      --i;
-    } else if (arg == "--animate" || arg == "-a") {
-      animate = true;
-    } else if (arg == "--dimensions" || arg == "-dim") {
-      const std::string dimX(av[++i]);
-      const std::string dimY(av[++i]);
-      const std::string dimZ(av[++i]);
-      auto dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
-      volumeParams->createChild("dimensions", "vec3i", dimensions);
-    } else if (arg == "--gridSpacing" || arg == "-gs") {
-      const std::string gridSpacingX(av[++i]);
-      const std::string gridSpacingY(av[++i]);
-      const std::string gridSpacingZ(av[++i]);
-      auto gridSpacing =
-          vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
-      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
-    } else if (arg == "--gridOrigin" || arg == "-go") {
-      const std::string gridOriginX(av[++i]);
-      const std::string gridOriginY(av[++i]);
-      const std::string gridOriginZ(av[++i]);
-      auto gridOrigin =
-          vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
-      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
-    } else if (arg == "--voxelType" || arg == "-vt") {
-      auto voxelTypeStr = std::string(av[++i]);
-      auto it           = sg::volumeVoxelType.find(voxelTypeStr);
-      if (it != sg::volumeVoxelType.end()) {
-        auto voxelType = it->second;
-        volumeParams->createChild("voxelType", "int", (int)voxelType);
-      } else {
-        throw std::runtime_error("improper -voxelType format requested");
-      }
-    } else if (arg == "--sceneConfig" || arg == "-sc") {
-      // valid values are dynamic, compact and robust
-      const std::string sc(av[++i]);
-      sceneConfig = sc;
-    } else if (arg == "--instanceConfig" || arg == "-ic") {
-      // valid values are dynamic, compact and robust
-      const std::string ic(av[++i]);
-      instanceConfig = ic;
-    } else if (arg == "--2160p")
+
+  CLI::App app{"OSPRay Studio GUI"};
+  app.add_option(
+    "files",
+    filesToImport,
+    "The list of files to import"
+  );
+  app.add_option(
+    "--pixelfilter",
+    optPF,
+    "set default pixel filter (0=point, 1=box, 2=Gaussian, 3=Mitchell-Netravali, 4=Blackman-Harris)"
+  );
+  app.add_flag(
+    "--animate",
+    animate,
+    "enable loading glTF animations"
+  );
+  app.add_flag_function(
+    "--2160p",
+    [&](std::int64_t count) {
       glfwSetWindowSize(glfwWindow, 3840, 2160);
-    else if (arg == "--1440p")
+    },
+    "Set window/frame size to 3840x2160"
+  );
+  app.add_flag_function(
+    "--1440p",
+    [&](std::int64_t count) {
       glfwSetWindowSize(glfwWindow, 2560, 1440);
-    else if (arg == "--1080p")
+    },
+    "Set window/frame size to 2560x1440"
+  );
+  app.add_flag_function(
+    "--1080p",
+    [&](std::int64_t count) {
       glfwSetWindowSize(glfwWindow, 1920, 1080);
-    else if (arg == "--720p")
+    },
+    "Set window/frame size to 1920x1080"
+  );
+  app.add_flag_function(
+    "--720p",
+    [&](std::int64_t count) {
       glfwSetWindowSize(glfwWindow, 1280, 720);
-    else if (arg == "--540p")
+    },
+    "Set window/frame size to 1280x720"
+  );
+  app.add_flag_function(
+    "--540p",
+    [&](std::int64_t count) {
       glfwSetWindowSize(glfwWindow, 960, 540);
-    else if (arg == "--270p")
+    },
+    "Set window/frame size to 960x540"
+  );
+  app.add_flag_function(
+    "--270p",
+    [&](std::int64_t count) {
       glfwSetWindowSize(glfwWindow, 480, 270);
-    else if (arg == "--pointSize" || arg == "-ps")
-      pointSize = std::stof(av[++i]);
-  }
+    },
+    "Set window/frame size to 480x270"
+  );
+  app.add_option(
+    "--dimensions",
+    [&](const std::vector<std::string> val) {
+      auto dimensions = vec3i(std::stoi(val[0]), std::stoi(val[1]), std::stoi(val[2]));
+      volumeParams->createChild("dimensions", "vec3i", dimensions);
+      return true;
+    },
+    "Set the dimensions for imported volumes"
+  )->expected(3);
+  app.add_option(
+    "--gridSpacing",
+    [&](const std::vector<std::string> val) {
+      auto gridSpacing = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
+      return true;
+    },
+    "Set the grid spacing for imported volumes"
+  )->expected(3);
+  app.add_option(
+    "--gridOrigin",
+    [&](const std::vector<std::string> val) {
+      auto gridOrigin = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      volumeParams->createChild("gridSpacing", "vec3f", gridOrigin);
+      return true;
+    },
+    "Set the grid origin for imported volumes"
+  )->expected(3);
+  app.add_option_function<OSPDataType>(
+    "--voxelType",
+    [&](const OSPDataType &voxelType) {
+      volumeParams->createChild("voxelType", "int", (int)voxelType);
+    },
+    "Set the voxel type for imported volumes"
+  )->transform(CLI::CheckedTransformer(sg::volumeVoxelType));
+  app.add_option(
+    "--sceneConfig",
+    sceneConfig,
+    "Set the scene configuration (valid values: dynamic, compact, robust)"
+  )->check(CLI::IsMember({"dynamic", "compact", "robust"}));
+  app.add_option(
+    "--instanceConfig",
+    instanceConfig,
+    "Set the instance configuration (valid values: dynamic, compact, robust)"
+  )->check(CLI::IsMember({"dynamic", "compact", "robust"}));
+  app.add_option(
+    "--pointSize",
+    pointSize,
+    "Set the importer's point size"
+  );
+
+  app.parse(ac, av);
 
   if (!filesToImport.empty()) {
     std::cout << "Import files from cmd line" << std::endl;
