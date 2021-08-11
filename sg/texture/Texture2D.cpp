@@ -329,6 +329,11 @@ bool Texture2D::checkForUDIM(FileName filename)
   if (hasUDIM())
     return true;
 
+  // Make sure base file even exists
+  std::ifstream f(fullName.c_str());
+  if (!f.good())
+    return false;
+
   // See if base tile "1001" is in the filename. If not, it's not a UDIM.
   auto found = fullName.rfind("1001");
   if (found == std::string::npos)
