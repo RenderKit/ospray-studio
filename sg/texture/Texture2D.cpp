@@ -346,22 +346,27 @@ bool Texture2D::checkForUDIM(FileName filename)
   std::string lFileName = fullName.substr(0, found);
   std::string rFileName = fullName.substr(found + 4);
 
-  for (int v = 0; v < 10 && udim_params.dims.x == 0; v++)
-    for (int u = 0; u < 10; u++) {
-      std::string tileNum = std::to_string(1001 + v * 10 + u);
+  int vmax = 0;
+  int umax = 0;
+  for (int v = 1; v <= 10; v++)
+    for (int u = 1; u <= 10; u++) {
+      std::string tileNum = std::to_string(1000 + (v - 1) * 10 + u);
       std::string checkName = lFileName + tileNum + rFileName;
       std::ifstream f(checkName.c_str());
-      // Exit loop on first missing tile-filename.
-      if (!f.good()) {
-        udim_params.dims.y = v + 1;
-        udim_params.dims.x = v == 0 ? u : 10;
-        break;
+      if (f.good()) {
+        udimTile tile(checkName, vec2i(u - 1, v - 1));
+        udim_params.tiles.push_back(tile);
+        vmax = std::max(vmax, v);
+        umax = std::max(umax, u);
       }
-      udimTile tile(checkName, vec2i(u, v));
-      udim_params.tiles.push_back(tile);
     }
 
-  return udim_params.dims.x > 1;
+  if (umax > 1) {
+    udim_params.dims.y = vmax;
+    udim_params.dims.x = vmax > 1 ? 10 : umax;
+  }
+
+  return umax > 1;
 }
 
 void Texture2D::loadUDIM_tiles(const FileName &fileName)
@@ -404,8 +409,8 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
 
   // Lambda to copy work tile into atlas
   auto CopyTile = [&](vec2i origin) {
-    uint8_t *dest =
-        (uint8_t *)data.get() + origin.y * atlasStride + origin.x * tileStride;
+    uint8_t *dest = (uint8_t *)data.get() + origin.y * tileSize.y * atlasStride
+        + origin.x * tileStride;
     uint8_t *src = (uint8_t *)work->texelData.get();
     for (int y = 0; y < tileSize.y; y++)
       std::memcpy(dest + y * atlasStride, src + y * tileStride, tileStride);
