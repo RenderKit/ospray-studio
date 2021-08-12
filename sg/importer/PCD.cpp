@@ -352,7 +352,7 @@ int readPCDBodyAscii(const FileName &fileName, PCDData &pcdData)
             vec4f color{std::max(0.f, std::min(1.f, R)),
                 std::max(0.f, std::min(1.f, G)),
                 std::max(0.f, std::min(1.f, B)),
-                0.5f};
+                1.f};
             colors.push_back(color);
           } else
             colors.push_back(vec4f(0.5f)); // default gray color
@@ -700,12 +700,21 @@ void PCDImporter::importScene()
   rootNode->child("translation") = pcdData.hData.translation;
   rootNode->child("rotation") = pcdData.hData.quaternion;
 
-  materialRegistry->add(createNode("default-material-pcd", "obj"));
-  const std::vector<uint32_t> mID = {0};
-  pcdData.spheres->createChildData(
-      "material", mID); // This is a scenegraph parameter
-  pcdData.spheres->child("material").setSGOnly();
   pcdData.spheres->child("radius").setValue(pointSize);
+
+  const std::vector<uint32_t> mID = {materialRegistry->baseMaterialOffSet()};
+  pcdData.spheres->createChildData("material", mID);
+  pcdData.spheres->child("material").setSGOnly();
+
+  auto mat = createNode("default-material-pcd", "obj");
+  mat->createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
+  mat->createChild("ks", "rgb", "specular color", vec3f(0.f));
+  mat->createChild("ns", "float", "shininess [2-10e4]", 10.f);
+  mat->createChild("d", "float", "opacity [0-1]", 1.f);
+  mat->createChild("tf", "rgb", "transparency filter color", vec3f(0.f));
+  mat->child("ns").setMinMax(2.f, 10000.f);
+  mat->child("d").setMinMax(0.f, 1.f);
+  materialRegistry->add(mat);
 
   if (pcdData.spheres->hasChild("color"))
     pcdData.spheres->child("color").setSGOnly();
