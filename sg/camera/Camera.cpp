@@ -22,6 +22,8 @@ namespace ospray {
 
     createChild("lookAt", "vec3f", vec3f(1.f));
     child("lookAt").setSGOnly();
+
+    createChild("shutter", "range1f", range1f(0.0f, 1.f));
   }
 
   NodeType Camera::type() const

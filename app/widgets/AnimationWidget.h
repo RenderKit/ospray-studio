@@ -21,5 +21,6 @@ class AnimationWidget
   std::shared_ptr<AnimationManager> animationManager;
   std::chrono::time_point<std::chrono::system_clock> lastUpdated;
   float time{0.0f};
+  float shutter{0.0f};
   void update();
 };

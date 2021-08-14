@@ -55,6 +55,8 @@ namespace ospray {
     std::vector<cpp::Group> groups;
     int groupIndex{0};
     std::stack<affine3f> xfms;
+    std::stack<affine3f> endXfms;
+    std::stack<bool> xfmsDiverged;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
     std::string instanceId{""};
@@ -71,6 +73,8 @@ namespace ospray {
   inline RenderScene::RenderScene()
   {
     xfms.emplace(math::one);
+    endXfms.emplace(math::one);
+    xfmsDiverged.emplace(false);
   }
 
   inline RenderScene::~RenderScene()
@@ -81,6 +85,8 @@ namespace ospray {
   inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId)
   {
     xfms.emplace(math::one);
+    endXfms.emplace(math::one);
+    xfmsDiverged.emplace(false);
     g = &geomIdMap;
     in = &instanceIdMap;
     camXfm = cameraToWorld;
@@ -114,12 +120,37 @@ namespace ospray {
       break;
     case NodeType::TRANSFORM: {
       affine3f xfm =
-          affine3f::rotate(node.child("rotation").valueAs<quaternionf>())
-          * affine3f::scale(node.child("scale").valueAs<vec3f>());
+          affine3f::rotate(node.child("rotation").valueAs<quaternionf>());
+      affine3f endXfm = xfm;
+      bool diverged = false;
+      if (node.child("rotation").hasChild("endKey")) {
+        diverged = true;
+        endXfm = affine3f::rotate(
+            node.child("rotation").child("endKey").valueAs<quaternionf>());
+      }
+
+      const affine3f sxfm =
+          affine3f::scale(node.child("scale").valueAs<vec3f>());
+      xfm *= sxfm;
+      if (node.child("scale").hasChild("endKey")) {
+        diverged = true;
+        endXfm *= affine3f::scale(
+            node.child("scale").child("endKey").valueAs<vec3f>());
+      } else
+        endXfm *= sxfm;
+
       xfm.p = node.child("translation").valueAs<vec3f>();
+      if (node.child("translation").hasChild("endKey")) {
+        diverged = true;
+        endXfm.p = node.child("translation").child("endKey").valueAs<vec3f>();
+      } else
+        endXfm.p = xfm.p;
+
       auto xfmNode = node.nodeAs<Transform>();
       xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
       xfms.push(xfmNode->accumulatedXfm);
+      endXfms.push(endXfms.top() * endXfm * node.valueAs<affine3f>());
+      xfmsDiverged.push(xfmsDiverged.top() || diverged);
 
       if (node.hasChildOfSubType("camera_perspective")
           || node.hasChildOfSubType("camera_orthographic")) {
@@ -167,6 +198,8 @@ namespace ospray {
     case NodeType::TRANSFORM:
       createInstanceFromGroup(node);
       xfms.pop();
+      endXfms.pop();
+      xfmsDiverged.pop();
       if (node.hasChild("instanceID")) {
           instanceId = "";
       }
@@ -328,7 +361,13 @@ namespace ospray {
               "robustMode", node.child("robustMode").valueAs<bool>());
 
           cpp::Instance inst(group);
-          inst.setParam("xfm", xfms.top());
+          if (xfmsDiverged.top()) { // motion blur
+            std::vector<affine3f> motionXfms;
+            motionXfms.push_back(xfms.top());
+            motionXfms.push_back(endXfms.top());
+            inst.setParam("motion.transform", cpp::CopiedData(motionXfms));
+          } else
+            inst.setParam("transform", xfms.top());
           inst.commit();
           instances.push_back(inst);
 

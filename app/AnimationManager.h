@@ -12,7 +12,7 @@ using namespace rkcommon::math;
 class AnimationManager
 {
  public:
-  void update(float &time);
+  void update(const float time, const float shutter = 0.0f);
 
   range1f &getTimeRange()
   {

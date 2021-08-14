@@ -18,7 +18,7 @@ typedef enum
 struct OSPSG_INTERFACE AnimationTrackBase
 {
   virtual ~AnimationTrackBase() = default;
-  virtual void update(const float time) = 0;
+  virtual void update(const float time, const float shutter) = 0;
   virtual bool valid() = 0;
 
   InterpolationMode interpolation{InterpolationMode::STEP};
@@ -39,7 +39,7 @@ struct OSPSG_INTERFACE Animation
   range1f timeRange;
 
   void addTrack(AnimationTrackBase *);
-  void update(const float time);
+  void update(const float time, const float shutter);
 
  private:
   std::vector<AnimationTrackBase *> tracks;
@@ -50,10 +50,13 @@ template <typename VALUE_T>
 struct OSPSG_INTERFACE AnimationTrack : public AnimationTrackBase
 {
   ~AnimationTrack() override = default;
-  void update(const float time) override;
+  void update(const float time, const float shutter) override;
   bool valid() override;
 
   std::vector<VALUE_T> values;
+
+ private:
+  VALUE_T get(const float time);
 };
 
 } // namespace sg
