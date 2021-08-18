@@ -77,7 +77,8 @@ void ParticleVol::generateData()
   std::uniform_real_distribution<float> weightDistribution(
       weightRange.lower, weightRange.upper);
 
-  numParticles = std::max(1, numParticles);
+  // Less than 3 particle is interfering with the VKL intervalResolutionHint
+  numParticles = std::max(3, numParticles);
 
   position.resize(numParticles);
   radius.resize(numParticles);
