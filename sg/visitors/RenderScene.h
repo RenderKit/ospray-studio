@@ -182,6 +182,7 @@ namespace ospray {
   inline void RenderScene::createGeometry(Node &node)
   {
     auto geomNode = node.nodeAs<Geometry>();
+
     if (!node.child("visible").valueAs<bool>()) {
       geomNode->groupIndex = -1;
       return;
@@ -196,6 +197,7 @@ namespace ospray {
       auto &inverseBindMatrices = geomNode->skin->inverseBindMatrices;
       const size_t weightsPerVertex = geomNode->weightsPerVertex;
       size_t weightIdx = 0;
+
       for (size_t i = 0; i < geomNode->positions.size(); ++i) { // XXX parallel
         affine3f xfm{zero};
         for (size_t j = 0; j < weightsPerVertex; ++j, ++weightIdx) {
@@ -211,13 +213,13 @@ namespace ospray {
         if (geomNode->skinnedNormals.size())
           geomNode->skinnedNormals[i] = xfmNormal(xfm, geomNode->normals[i]);
       }
+
+      // Recommit the cpp::Group for skinned animation to take effect
+      geomNode->group->commit();
     }
 
-    auto geom = node.valueAs<cpp::Geometry>();
-    cpp::GeometricModel model(geom);
-    auto ospGeometricModel = model.handle();
-
     if (g != nullptr) {
+      auto ospGeometricModel = geomNode->model->handle();
       // if geometric Id was set by a parent transform node
       // this happens in very specific cases like BIT reference extensions
       if (!geomId.empty())
@@ -228,47 +230,7 @@ namespace ospray {
       }
     }
 
-    if (node.hasChild("material")) {
-      if (node["material"].valueIsType<cpp::CopiedData>())
-        model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
-      else
-        model.setParam("material",
-            cpp::CopiedData(std::vector<uint32_t>{
-                node["material"].valueAs<unsigned int>()}));
-    } else {
-      if (current.materials.size() != 0) {
-        model.setParam("material", cpp::CopiedData(*current.materials.begin()));
-        current.materials.clear();
-      } else
-        model.setParam("material", cpp::CopiedData(std::vector<uint32_t>{0}));
-    }
-
-    if (node.hasChild("color")) {
-      if (node["color"].valueIsType<cpp::CopiedData>())
-        model.setParam("color", node["color"].valueAs<cpp::CopiedData>());
-      else
-        model.setParam("color",
-            cpp::CopiedData(std::vector<vec4f>{
-                node["color"].valueAs<vec4f>()}));
-    }
-
-    if (node.hasChild("invertNormals")) {
-      bool val = node.child("invertNormals").valueAs<bool>();
-      model.setParam("invertNormals", val);
-    }
-
-    model.commit();
-    cpp::Group group;
-
-    if (!node.child("isClipping").valueAs<bool>())
-      group.setParam("geometry", cpp::CopiedData(model));
-    else
-      group.setParam(
-          "clippingGeometry", cpp::CopiedData(model));
-
-    group.commit();
-    groups.push_back(group);
-
+    groups.push_back(*geomNode->group);
     geomNode->groupIndex = groupIndex;
     groupIndex++;
   }
@@ -276,6 +238,7 @@ namespace ospray {
   inline void RenderScene::createVolume(Node &node)
   {
     auto volNode = node.nodeAs<sg::Volume>();
+
     if (!node.child("visible").valueAs<bool>()) {
       volNode->groupIndex = -1;
       return;
