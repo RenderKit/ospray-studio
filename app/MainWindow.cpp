@@ -1437,8 +1437,11 @@ void MainWindow::buildMainMenuEdit()
       sg::clearAssets();
 
       // Recreate MaterialRegistry, clearing old registry and all materials
+      // Then, add the new one to the frame and set the renderer type
       baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
           "baseMaterialRegistry", "materialRegistry");
+      frame->add(baseMaterialRegistry);
+      baseMaterialRegistry->updateRendererType();
 
       scene = "";
       refreshScene(true);
