@@ -318,6 +318,31 @@ namespace ospray {
     std::cout << "number of geometries : " << current.geometries.size()
               << std::endl;
     #endif
+
+    auto setInstance = [&](auto group) {
+      group.setParam(
+          "dynamicScene", node.child("dynamicScene").valueAs<bool>());
+      group.setParam("compactMode", node.child("compactMode").valueAs<bool>());
+      group.setParam("robustMode", node.child("robustMode").valueAs<bool>());
+
+      cpp::Instance inst(group);
+      if (xfmsDiverged.top()) { // motion blur
+        std::vector<affine3f> motionXfms;
+        motionXfms.push_back(xfms.top());
+        motionXfms.push_back(endXfms.top());
+        inst.setParam("motion.transform", cpp::CopiedData(motionXfms));
+      } else
+        inst.setParam("transform", xfms.top());
+      inst.commit();
+      instances.push_back(inst);
+
+      if (in != nullptr && !instanceId.empty()) {
+        auto ospInstance = inst.handle();
+        in->insert(InstanceIdMap::value_type(
+            ospInstance, std::make_pair(instanceId, xfms.top())));
+      }
+    };
+
     if (node.hasChildOfType(NodeType::GEOMETRY)) {
       auto &geomChildren = node.childrenOfType(NodeType::GEOMETRY);
       for (auto geom : geomChildren) {
@@ -325,23 +350,7 @@ namespace ospray {
         auto geomIdentifier = geomNode->groupIndex;
         if (geomIdentifier >= 0 && geomIdentifier < groups.size()) {
           auto &group = groups[geomIdentifier];
-          group.setParam(
-              "dynamicScene", node.child("dynamicScene").valueAs<bool>());
-          group.setParam(
-              "compactMode", node.child("compactMode").valueAs<bool>());
-          group.setParam(
-              "robustMode", node.child("robustMode").valueAs<bool>());
-
-          cpp::Instance inst(group);
-          inst.setParam("xfm", xfms.top());
-          inst.commit();
-          instances.push_back(inst);
-
-          if (in != nullptr && !instanceId.empty()) {
-            auto ospInstance = inst.handle();
-            in->insert(InstanceIdMap::value_type(
-                ospInstance, std::make_pair(instanceId, xfms.top())));
-          }
+          setInstance(group);
         }
       }
     }
@@ -353,32 +362,11 @@ namespace ospray {
         auto volumeIdentifier = volNode->groupIndex;
         if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
           auto &group = groups[volumeIdentifier];
-          group.setParam(
-              "dynamicScene", node.child("dynamicScene").valueAs<bool>());
-          group.setParam(
-              "compactMode", node.child("compactMode").valueAs<bool>());
-          group.setParam(
-              "robustMode", node.child("robustMode").valueAs<bool>());
-
-          cpp::Instance inst(group);
-          if (xfmsDiverged.top()) { // motion blur
-            std::vector<affine3f> motionXfms;
-            motionXfms.push_back(xfms.top());
-            motionXfms.push_back(endXfms.top());
-            inst.setParam("motion.transform", cpp::CopiedData(motionXfms));
-          } else
-            inst.setParam("transform", xfms.top());
-          inst.commit();
-          instances.push_back(inst);
-
-          if (in != nullptr && !instanceId.empty()) {
-            auto ospInstance = inst.handle();
-            in->insert(InstanceIdMap::value_type(
-                ospInstance, std::make_pair(instanceId, xfms.top())));
-          }
+          setInstance(group);
         }
       }
     }
+
     if (node.hasChildOfType(NodeType::TRANSFER_FUNCTION)) {
       auto &tfnChildren = node.childrenOfType(NodeType::TRANSFER_FUNCTION);
       for (auto tfn : tfnChildren) {
@@ -388,23 +376,7 @@ namespace ospray {
           auto volumeIdentifier = volNode->groupIndex;
           if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
             auto &group = groups[volumeIdentifier];
-            group.setParam(
-                "dynamicScene", node.child("dynamicScene").valueAs<bool>());
-            group.setParam(
-                "compactMode", node.child("compactMode").valueAs<bool>());
-            group.setParam(
-                "robustMode", node.child("robustMode").valueAs<bool>());
-
-            cpp::Instance inst(group);
-            inst.setParam("xfm", xfms.top());
-            inst.commit();
-            instances.push_back(inst);
-
-            if (in != nullptr && !instanceId.empty()) {
-              auto ospInstance = inst.handle();
-              in->insert(InstanceIdMap::value_type(
-                  ospInstance, std::make_pair(instanceId, xfms.top())));
-            }
+            setInstance(group);
           }
         }
       }
