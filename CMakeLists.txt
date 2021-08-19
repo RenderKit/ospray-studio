@@ -27,16 +27,6 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 message (STATUS "This build is for C++${CMAKE_CXX_STANDARD}")
 
-# option(OSPSTUDIO_USE_CXX11_ABI "Use the 2011 C++ standard ABI" OFF)
-# mark_as_advanced(OSPSTUDIO_USE_CXX11_ABI)
-# if(NOT OSPSTUDIO_USE_CXX11_ABI)
-#   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-#     # Currently, OSPRay is compiled with C++11, so we have ensure a compatible ABI when using gcc
-#     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
-#     message (STATUS "...with ${CMAKE_CXX_FLAGS}")
-#   endif()
-# endif()
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
@@ -54,7 +44,9 @@ else()
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CONFIGURATION_TYPES})
 endif()
 
-## globals
+## global options and variables
+option(OSPRAY_INSTALL "Install OSPRay libraries in addition to OSPRay Studio libraries / binaries" ON)
+
 set(OSPRAY_STUDIO_RESOURCE_FILE "${PROJECT_SOURCE_DIR}/resources/ospray_studio.rc")
 if(APPLE)
   ## ensures that build-time executables contain install-time rpaths, ensuring

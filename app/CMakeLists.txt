@@ -68,20 +68,22 @@ install(TARGETS ospStudio
   COMPONENT apps
 )
 
-get_target_property(OSPRAY_LIBNAME ospray::ospray IMPORTED_LOCATION_RELEASE)
+if(OSPRAY_INSTALL)
+  get_target_property(OSPRAY_LIBNAME ospray::ospray IMPORTED_LOCATION_RELEASE)
 
-string(REGEX MATCH "^.*/" _sharedlib_glob "${OSPRAY_LIBNAME}")
-string(APPEND _sharedlib_glob "*${CMAKE_SHARED_LIBRARY_SUFFIX}*")
-# message(STATUS "_sharedlib_glob: ${_sharedlib_glob}")
-file(GLOB _sharedlibs LIST_DIRECTORIES false "${_sharedlib_glob}")
-# message(STATUS "_sharedlibs: ${_sharedlibs}")
+  string(REGEX MATCH "^.*/" _sharedlib_glob "${OSPRAY_LIBNAME}")
+  string(APPEND _sharedlib_glob "*${CMAKE_SHARED_LIBRARY_SUFFIX}*")
+  # message(STATUS "_sharedlib_glob: ${_sharedlib_glob}")
+  file(GLOB _sharedlibs LIST_DIRECTORIES false "${_sharedlib_glob}")
+  # message(STATUS "_sharedlibs: ${_sharedlibs}")
 
-if(WIN32)
-  install(FILES
-    ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-else()
-  install(FILES
-    ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
+  if(WIN32)
+    install(FILES
+      ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+  else()
+    install(FILES
+      ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+  endif()
 endif()
