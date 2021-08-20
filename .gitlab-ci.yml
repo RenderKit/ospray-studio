@@ -5,6 +5,9 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   OSPRAY_VER: "2.6.0"
   RKCOMMON_VER: "1.6.1"
+  PYTHON_VERSION: "3.7.10"
+  PYTHON_ROOT_MACOS: "/NAS/packages/apps/python/$PYTHON_VERSION/macos"
+  PYTHON_ROOT_WINDOWS: "N:/packages/apps/python/3.7.9/windows" ## python-3.7.10 currently not installed for windows
 
 stages:
   - build
@@ -15,9 +18,11 @@ stages:
 .centos7:
   tags: [ build, docker, modules ]
   image: $DOCKER_REGISTRY/ospray/docker-images:centos7-mod
+  before_script:
+    - module load python/$PYTHON_VERSION
 
 .ubuntu18.04:
-  tags: [ build, docker ]
+  tags: [ build, docker, modules ]
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod
 
 .ubuntu20.04:
@@ -26,12 +31,18 @@ stages:
 
 .macos:
   tags: [ osx, clang ]
+  before_script:
+    - export Python3_ROOT=$PYTHON_ROOT_MACOS
 
 .macos-sign:
   tags: [ osx, clang, sign ]
+  before_script:
+    - export Python3_ROOT=$PYTHON_ROOT_MACOS
 
 .windows:
   tags: [ win, msvc15 ]
+  before_script:
+    - $env:Python3_ROOT = $PYTHON_ROOT_WINDOWS
 
 .linux-build-artifacts:
   artifacts:

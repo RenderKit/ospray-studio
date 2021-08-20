@@ -8,7 +8,7 @@ message(STATUS "Looking for OSPRay...")
 find_package(ospray QUIET)
 
 if(NOT DEFINED OSPRAY_VERSION)
-  set(OSPRAY_VERSION 2.6.0)
+  set(OSPRAY_VERSION 2.7.0)
 endif()
 
 if(ospray_FOUND)
