@@ -20,6 +20,8 @@ stages:
   image: $DOCKER_REGISTRY/ospray/docker-images:centos7-mod
   before_script:
     - module load python/$PYTHON_VERSION
+    - echo $Python3_ROOT
+    - ls $Python3_ROOT
 
 .ubuntu18.04:
   tags: [ build, docker, modules ]
@@ -33,16 +35,22 @@ stages:
   tags: [ osx, clang ]
   before_script:
     - export Python3_ROOT=$PYTHON_ROOT_MACOS
+    - echo $Python3_ROOT
+    - ls $Python3_ROOT
 
 .macos-sign:
   tags: [ osx, clang, sign ]
   before_script:
     - export Python3_ROOT=$PYTHON_ROOT_MACOS
+    - echo $Python3_ROOT
+    - ls $Python3_ROOT
 
 .windows:
   tags: [ win, msvc15 ]
   before_script:
     - $env:Python3_ROOT = $PYTHON_ROOT_WINDOWS
+    - echo $env:Python3_ROOT
+    - ls $env:Python3_ROOT
 
 .linux-build-artifacts:
   artifacts:
