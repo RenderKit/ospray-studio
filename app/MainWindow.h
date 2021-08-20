@@ -223,6 +223,7 @@ class MainWindow : public StudioContext
   float maxMoveSpeed{1.f};
   float fineControl{0.2f};
   float preFPVZoom{0.f};
+  affine3f lastCamXfm{one};
 
   // format used by glTexImage2D, as determined at context creation time
   GLenum gl_rgb_format;

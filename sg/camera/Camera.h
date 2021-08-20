@@ -3,32 +3,36 @@
 
 #pragma once
 
-#include "sg/Node.h"
 #include "app/ArcballCamera.h"
+#include "sg/Node.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE Camera : public OSPNode<cpp::Camera, NodeType::CAMERA>
+struct OSPSG_INTERFACE Camera : public OSPNode<cpp::Camera, NodeType::CAMERA>
+{
+  Camera(const std::string &type);
+  virtual ~Camera() override = default;
+
+  NodeType type() const override;
+
+  virtual void preCommit() override;
+
+  void setState(std::shared_ptr<CameraState> _cs)
   {
-    Camera(const std::string &type);
-    virtual ~Camera() override = default;
-
-    NodeType type() const override;
-
-    void setState(std::shared_ptr<CameraState> _cs) {
-      cs = _cs;
-    };
-
-    std::shared_ptr<CameraState> getState() {
-      return cs;
-    };
-
-    bool animate{false};
-
-   private:
-    std::shared_ptr<CameraState> cs;
+    cs = _cs;
   };
 
-  }  // namespace sg
+  std::shared_ptr<CameraState> getState()
+  {
+    return cs;
+  };
+
+  bool animate{false};
+
+ private:
+  std::shared_ptr<CameraState> cs;
+};
+
+} // namespace sg
 } // namespace ospray

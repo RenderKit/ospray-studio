@@ -128,6 +128,11 @@ class ArcballCamera
   void setLockUpDir(bool locked);
   void setUpDir(vec3f newDir);
 
+  affine3f getTransform()
+  {
+    return cameraToWorld;
+  }
+
  protected:
   void updateCamera();
 
