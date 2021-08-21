@@ -1,6 +1,31 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v0.8.0
+
+-   Compatible with OSPRay release v2.7.x
+-   GitHub release binaries are built with python bindings for Python 3.7
+ 
+-   Features/Improvments
+    -   Support for OSPRay's camera Motion Blur and Transformation Motion Blur for animated glTF scenes
+    -   Support for UDIM texture tiling workflow
+    -   New transfer functions and color maps for volume rendering
+    -   Much improved search widget for scene objects and materials
+    -   Large scene performance optimization
+    -   Added ImGui docking and viewport support (experimental)
+    -   Updated external 3rd party dependencies bringing in features and bug fixes
+    -   Modified OBJ importer to parse and use quads and triangles
+    -   Improved Arcball camera navigation with up-vector lock
+
+-   Bugs Fixes
+    -   Fixed materials after clearing scene
+    -   Fixed materials for PointCloudData (PCD)
+    -   Can no longer create a zero-dimension framebuffer
+    -   Fixed instancing node-naming to allow for for many identical instances
+    -   Fixed crash if optional glTF punctual light color was omitted
+    -   Fixed crash if isosuface geometry is used as clipping geometry when no other
+        geometries are in the scene
+
 ### Changes in OSPRay Studio v0.7.0
 
 -   Compatible with OSPRay release v2.6.x
