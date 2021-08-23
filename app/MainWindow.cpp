@@ -942,20 +942,7 @@ void MainWindow::display()
 
 void MainWindow::startNewOSPRayFrame()
 {
-  // UI responsiveness can be increased by knowing if we're in the middle of
-  // ImGui widget interaction.
-  ImGuiIO &io = ImGui::GetIO();
-  bool interacting = ImGui::IsAnyMouseDown()
-      && (io.WantCaptureMouse || io.WantCaptureKeyboard);
-
-  // If in the middle of UI interaction, back off on how frequently scene
-  // updates are committed.
-  // 10 is a good imperical number.  If necessary, make UI adjustable
-  static auto skipCount = 0;
-  if (interacting)
-    skipCount = skipCount > 0 ? skipCount - 1 : 10;
-
-  frame->startNewFrame(interacting && !!skipCount);
+  frame->startNewFrame();
 }
 
 void MainWindow::waitOnOSPRayFrame()
