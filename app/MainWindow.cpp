@@ -477,7 +477,6 @@ void MainWindow::mainLoop()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    glfwPollEvents();
     display();
 
     // Remove motion blur transform, it will be added again as necessary
@@ -488,6 +487,8 @@ void MainWindow::mainLoop()
       if (animationWidget && animationWidget->getShutter() == 0.f)
         camera["shutter"] = range1f(0.0f);
     }
+
+    glfwPollEvents();
   }
 
   waitOnOSPRayFrame();
