@@ -5,12 +5,16 @@
 
 #include "Plugin.h"
 
-#include "ospStudio.h"
+  // Helper types //
+  struct LoadedPlugin
+  {
+    std::unique_ptr<ospray::Plugin> instance;
+    bool active{true};
+  };
 
-namespace ospray {
-
-struct PluginManager
+class PluginManager
 {
+  public:
   PluginManager() = default;
   ~PluginManager() = default;
 
@@ -19,26 +23,21 @@ struct PluginManager
   void removeAllPlugins();
 
   // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
-  PanelList getAllPanelsFromPlugins(
-      std::shared_ptr<StudioContext> _context) const;
-  // use following function to invoke main method of a plugin
-  void callMainMethod(std::shared_ptr<StudioContext> _context) const;
+  void main(
+      std::shared_ptr<StudioContext> ctx, ospray::PanelList *allPanels = nullptr) const;
+  void mainPlugin(std::shared_ptr<StudioContext> ctx,
+    std::string &pluginName,
+    ospray::PanelList *allPanels = nullptr) const;
+  bool hasPlugin(const std::string &pluginName);
+
+  LoadedPlugin *getPlugin(std::string &pluginName);
 
  private:
-  // Helper types //
-  struct LoadedPlugin
-  {
-    std::unique_ptr<Plugin> instance;
-    bool active{true};
-  };
-
   // Helper functions //
 
-  void addPlugin(std::unique_ptr<Plugin> plugin);
+  void addPlugin(std::unique_ptr<ospray::Plugin> plugin);
 
   // Data //
 
   std::vector<LoadedPlugin> plugins;
 };
-
-} // namespace ospray

@@ -1,7 +1,9 @@
 # OSPRay Studio
 
-This is release v0.7.0 of Intel® OSPRay Studio. It is released under the
+This is release v0.8.0 of Intel® OSPRay Studio. It is released under the
 Apache 2.0 license.
+
+Visit http://www.ospray.org/ospray_studio for more information.
 
 See [what's
 new](https://github.com/ospray/ospray_studio/blob/master/CHANGELOG.md)
@@ -27,16 +29,15 @@ OSPRay Studio has the following required and optional dependencies.
 
 ### Required dependencies
 
--   [CMake](https://www.cmake.org) (v3.1+) and any C++14 compiler
--   Intel [OSPRay](https://www.github.com/ospray/ospray) (v2.6.0) and
+-   [CMake](https://www.cmake.org) (v3.15+) and any C++14 compiler
+-   Intel [OSPRay](https://www.github.com/ospray/ospray) (v2.7.0) and
     its dependencies - OSPRay Studio builds on top of OSPRay.
     Instructions on building OSPRay are provided
     [here](http://www.ospray.org/downloads.html#building-and-finding-ospray)
-    -   Intel [Open VKL](https://www.github.com/openvkl/openvkl)
-        (v0.13.0)
-    -   Intel [Embree](https://www.github.com/embree/embree) (v3.12.0 or newer)
+    -   Intel [Open VKL](https://www.github.com/openvkl/openvkl) (v1.0.0)
+    -   Intel [Embree](https://www.github.com/embree/embree) (v3.13.1 or newer)
     -   Intel oneAPI Rendering Toolkit common library
-        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.6.1)
+        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.7.0)
     -   Intel [Threading Building
         Blocks](https://www.threadingbuildingblocks.org/)
 -   OpenGL and [GLFW](https://www.glfw.org/) (v3.x) - for the windowing
@@ -44,9 +45,9 @@ OSPRay Studio has the following required and optional dependencies.
 
 ### Optional Dependencies
 
--   Intel [Open Image Denoise](https://openimagedenoise.github.io/) -
-    for denoising frames. To use with OSPRay Studio, OSPRay must be
-    built with `-DBUILD_OIDN=ON` in CMake
+-   Intel [Open Image Denoise](https://openimagedenoise.github.io/) - (v1.2.3 or
+    newer) for denoising frames. To use with OSPRay Studio, OSPRay must be built
+    with `-DBUILD_OIDN=ON` in CMake
 -   [OpenImageIO]() and [OpenEXR]() - to support images in a variety of
     file formats. Set `OPENIMAGEIO_ROOT` and `OPENEXR_ROOT` to the
     respective install directories to use these libraries

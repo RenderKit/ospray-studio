@@ -49,6 +49,18 @@ struct PCDData
   std::vector<float> fileData;
 };
 
+inline vec4f makeRandomColor(const int i)
+{
+  const int mx = 13 * 17 * 43;
+  const int my = 11 * 29;
+  const int mz = 7 * 23 * 63;
+  const uint32_t g = (i * (3 * 5 * 127) + 12312314);
+  return vec4f((g % mx) * (1.f / (mx - 1)),
+      (g % my) * (1.f / (my - 1)),
+      (g % mz) * (1.f / (mz - 1)),
+      1.0f);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // read ascii header
 
@@ -340,7 +352,7 @@ int readPCDBodyAscii(const FileName &fileName, PCDData &pcdData)
             vec4f color{std::max(0.f, std::min(1.f, R)),
                 std::max(0.f, std::min(1.f, G)),
                 std::max(0.f, std::min(1.f, B)),
-                0.5f};
+                1.f};
             colors.push_back(color);
           } else
             colors.push_back(vec4f(0.5f)); // default gray color
@@ -483,6 +495,10 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
   std::size_t mapSize = offset + dataId;
 
   auto numChannels = pcdData.hData.fields.size();
+  int stride = 0;
+  for (auto f : pcdData.hData.fields)
+    stride += f.size * f.count;
+  unsigned int totalSize = pcdData.hData.numPoints * stride;
 
   if (dataType == "binary_compressed") {
     // reset to end of header
@@ -510,9 +526,8 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
     }
     mapSize += compSize;
     mapSize += 8;
-  } else {
-    mapSize += pcdData.hData.height * pcdData.hData.width * numChannels * 4;
-  }
+  } else
+    mapSize += totalSize;
 
   // reset position to beginning of file
   file.seekg(0, std::ios::beg);
@@ -530,9 +545,6 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
   file.read(map, mapSize);
 
   file.close();
-
-  // hard coding totalSize for data in numChannel-fields of size float
-  unsigned int totalSize = pcdData.hData.numPoints * numChannels * 4;
 
   if (dataType == "binary_compressed") {
     // check compressed and uncompressed size
@@ -572,7 +584,7 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
           uncompSize);
       return (-1);
     }
-
+/*
     // Unpack data from SOA to AOS format
     std::vector<char *> pters(numChannels);
     std::size_t toff = 0;
@@ -580,7 +592,6 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
       pters[i] = &buf[toff];
       toff += 4 * pcdData.hData.width * pcdData.hData.height;
     }
-
     pcdData.fileData.resize(pcdData.hData.width * pcdData.hData.height * 4);
 
     for (auto i = 0; i < pcdData.hData.width * pcdData.hData.height; ++i) {
@@ -594,9 +605,9 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
         // k++;
       }
     }
+*/
   } else {
-    pcdData.fileData.resize(
-        pcdData.hData.width * pcdData.hData.height * numChannels);
+    pcdData.fileData.resize((totalSize+3)/4);
     if (totalSize <= mapSize)
       memcpy(&pcdData.fileData[0], &map[0] + dataId, totalSize);
   }
@@ -618,23 +629,31 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
 
     // has color and additional channels, however only one channel interpreted
     // as color atm
-    if (numChannels > 3) {
-      auto value = pcdData.fileData[i + startIndex + 3];
-      if (!isnan(value)) {
-        float H = value;
-        float R = std::fabs(H * 6.0f - 3.0f) - 1.0f;
-        float G = 2.0f - std::fabs(H * 6.0f - 2.0f);
-        float B = 2.0f - std::fabs(H * 6.0f - 4.0f);
+    vec4f color(0.f, 0.5f, 0.5f, 1.f);
+    if (numChannels > 4) {
+      if (pcdData.hData.fields[4].type == 'U') {
+        color = makeRandomColor(*(uint32_t *)&pcdData.fileData[i + 4]);
+        /*          color = vec4f(std::max(0.f, std::min(1.f, R)),
+                      std::max(0.f, std::min(1.f, G)),
+                      std::max(0.f, std::min(1.f, B)),
+                      0.5f);
+                      */
+      } else {
+        float value = pcdData.fileData[i + 4];
+        if (!isnan(value)) {
+          float H = value;
+          float R = std::fabs(H * 6.0f - 3.0f) - 1.0f;
+          float G = 2.0f - std::fabs(H * 6.0f - 2.0f);
+          float B = 2.0f - std::fabs(H * 6.0f - 4.0f);
 
-        vec4f color{std::max(0.f, std::min(1.f, R)),
-            std::max(0.f, std::min(1.f, G)),
-            std::max(0.f, std::min(1.f, B)),
-            0.5f};
-        colors.push_back(color);
-      } else
-        colors.push_back(vec4f(0.f, 0.5f, 0.5f, 1.f));
-    } else
-      colors.push_back(vec4f(0.f, 0.5f, 0.5f, 1.f));
+          color = vec4f(std::max(0.f, std::min(1.f, R)),
+              std::max(0.f, std::min(1.f, G)),
+              std::max(0.f, std::min(1.f, B)),
+              0.5f);
+        }
+      }
+    }
+    colors.push_back(color);
   }
 
   pcdData.spheres->createChildData("sphere.position", centers);
@@ -681,12 +700,21 @@ void PCDImporter::importScene()
   rootNode->child("translation") = pcdData.hData.translation;
   rootNode->child("rotation") = pcdData.hData.quaternion;
 
-  materialRegistry->add(createNode("default-material-pcd", "obj"));
-  const std::vector<uint32_t> mID = {0};
-  pcdData.spheres->createChildData(
-      "material", mID); // This is a scenegraph parameter
-  pcdData.spheres->child("material").setSGOnly();
   pcdData.spheres->child("radius").setValue(pointSize);
+
+  const std::vector<uint32_t> mID = {materialRegistry->baseMaterialOffSet()};
+  pcdData.spheres->createChildData("material", mID);
+  pcdData.spheres->child("material").setSGOnly();
+
+  auto mat = createNode("default-material-pcd", "obj");
+  mat->createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
+  mat->createChild("ks", "rgb", "specular color", vec3f(0.f));
+  mat->createChild("ns", "float", "shininess [2-10e4]", 10.f);
+  mat->createChild("d", "float", "opacity [0-1]", 1.f);
+  mat->createChild("tf", "rgb", "transparency filter color", vec3f(0.f));
+  mat->child("ns").setMinMax(2.f, 10000.f);
+  mat->child("d").setMinMax(0.f, 1.f);
+  materialRegistry->add(mat);
 
   if (pcdData.spheres->hasChild("color"))
     pcdData.spheres->child("color").setSGOnly();

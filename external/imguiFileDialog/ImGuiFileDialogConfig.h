@@ -2,7 +2,8 @@
 
 // uncomment and modify defines under for customize ImGuiFileDialog
 
-//#define USE_IMGUI_TABLES
+//#define MAX_FILE_DIALOG_NAME_BUFFER 1024
+//#define MAX_PATH_BUFFER_SIZE 1024
 
 //#define USE_EXPLORATION_BY_KEYS
 // this mapping by default is for GLFW but you can use another
@@ -21,7 +22,7 @@
 //#define FILTER_COMBO_WIDTH 120.0f
 // button widget use for compose path
 //#define IMGUI_PATH_BUTTON ImGui::Button
-// standar button
+// standard button
 //#define IMGUI_BUTTON ImGui::Button
 
 // locales string
@@ -35,18 +36,30 @@
 //#define linkEntryString "[LINK] "
 //#define fileEntryString "[FILE] "
 //#define fileNameString "File Name : "
+//#define dirNameString "Directory Path :"
 //#define buttonResetSearchString "Reset search"
 //#define buttonDriveString "Drives"
 //#define buttonResetPathString "Reset to current directory"
 //#define buttonCreateDirString "Create Directory"
+//#define OverWriteDialogTitleString "The file Already Exist !"
+//#define OverWriteDialogMessageString "Would you like to OverWrite it ?"
+//#define OverWriteDialogConfirmButtonString "Confirm"
+//#define OverWriteDialogCancelButtonString "Cancel"
+
+// DateTimeFormat
+// see strftime functionin <ctime> for customize
+// "%Y/%m/%d %H:%M" give 2021:01:22 11:47
+// "%Y/%m/%d %i:%M%p" give 2021:01:22 11:45PM
+//#define DateTimeFormat "%Y/%m/%d %i:%M%p"
 
 // theses icons will appear in table headers
 //#define USE_CUSTOM_SORTING_ICON
-//#define AscendingIcon "A|"
-//#define DescendingIcon "D|"
-//#define tableHeaderFilenameString "File name"
-//#define tableHeaderSizeString "Size"
-//#define tableHeaderDateString "Date"
+//#define tableHeaderAscendingIcon "A|"
+//#define tableHeaderDescendingIcon "D|"
+//#define tableHeaderFileNameString " File name"
+//#define tableHeaderFileTypeString " Type"
+//#define tableHeaderFileSizeString " Size"
+//#define tableHeaderFileDateTimeString " Date"
 
 //#define USE_BOOKMARK
 //#define bookmarkPaneWith 150.0f

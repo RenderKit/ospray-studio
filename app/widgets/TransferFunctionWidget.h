@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Intel Corporation
+// Copyright 2019-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -61,6 +61,7 @@ class TransferFunctionWidget
       transferFunctionUpdatedCallback{nullptr};
 
   // all available transfer functions
+  std::vector<ospray::sg::NodePtr> tfnsNodes;
   std::vector<std::string> tfnsNames;
   std::vector<std::vector<ColorPoint>> tfnsColorPoints;
   std::vector<std::vector<OpacityPoint>> tfnsOpacityPoints;

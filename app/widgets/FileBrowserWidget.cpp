@@ -9,6 +9,7 @@
 
 #include "FileBrowserWidget.h"
 
+using namespace IGFD;
 namespace ospray_studio {
 
 bool fileBrowser(FileList &fileList,
@@ -28,25 +29,25 @@ bool fileBrowser(FileList &fileList,
   ImVec2 minSize(maxSize.x * 0.5, maxSize.y * 0.5);
 
   // Allow multiple selections if requested (pass 0 as the vCountSelectionMax)
-  igfd::ImGuiFileDialog::Instance()->OpenModal(prompt.c_str(),
+  ImGuiFileDialog::Instance()->OpenModal(prompt.c_str(),
       prompt.c_str(),
       filters.c_str(),
       defaultPath,
       allowMultipleSelection ? 0 : 1);
 
-  if (igfd::ImGuiFileDialog::Instance()->FileDialog(prompt.c_str(),
+  if (ImGuiFileDialog::Instance()->Display(prompt.c_str(),
         ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
-    if (igfd::ImGuiFileDialog::Instance()->IsOk) {
-      auto selection = igfd::ImGuiFileDialog::Instance()->GetSelection();
+    if (ImGuiFileDialog::Instance()->IsOk()) {
+      auto selection = ImGuiFileDialog::Instance()->GetSelection();
       // selection: first: filename, second: full path
       for (auto &s : selection)
         fileList.push_back(s.second);
 
       // Change the default directory, so next time this opens it opens here.
-      defaultPath = igfd::ImGuiFileDialog::Instance()->GetCurrentPath();
+      defaultPath = ImGuiFileDialog::Instance()->GetCurrentPath();
     }
 
-    igfd::ImGuiFileDialog::Instance()->CloseDialog(prompt.c_str());
+    ImGuiFileDialog::Instance()->Close();
     close = true;
   }
 

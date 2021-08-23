@@ -5,8 +5,6 @@
 
 #include <iterator>
 
-namespace ospray {
-
 void PluginManager::loadPlugin(const std::string &name)
 {
   std::cout << "...attempting to load plugin '" << name << "'\n";
@@ -59,25 +57,52 @@ void PluginManager::removeAllPlugins()
   plugins.clear();
 }
 
-PanelList PluginManager::getAllPanelsFromPlugins(
-    std::shared_ptr<StudioContext> _context) const
+bool PluginManager::hasPlugin(const std::string &pluginName)
 {
-  PanelList allPanels;
-
-  for (auto &plugin : plugins) {
-    auto panels = plugin.instance->createPanels(_context);
-    std::move(panels.begin(), panels.end(), std::back_inserter(allPanels));
-  }
-
-  return allPanels;
+  for (auto &p : plugins)
+    if (p.instance->name() == pluginName)
+      return true;
+  return false;
 }
 
-void PluginManager::callMainMethod(
-    std::shared_ptr<StudioContext> _context) const
+LoadedPlugin* PluginManager::getPlugin(std::string &pluginName)
 {
-  for (auto &plugin : plugins)
-    if (plugin.instance->hasMainMethod)
-      plugin.instance->mainMethod(_context);
+  for (auto &l : plugins)
+    if (l.instance->name() == pluginName)
+      return &l;
+
+  return nullptr;
 }
 
-} // namespace ospray
+void PluginManager::main(
+    std::shared_ptr<StudioContext> ctx, PanelList *allPanels) const
+{
+  if (!plugins.empty())
+    for (auto &plugin : plugins) {
+      plugin.instance->mainMethod(ctx);
+      if (!plugin.instance->panels.empty() && allPanels) {
+        auto &pluginPanels = plugin.instance->panels;
+        std::move(pluginPanels.begin(),
+            pluginPanels.end(),
+            std::back_inserter(*allPanels));
+      }
+    }
+}
+
+void PluginManager::mainPlugin(std::shared_ptr<StudioContext> ctx,
+    std::string &pluginName,
+    PanelList *allPanels) const
+{
+  if (!plugins.empty())
+    for (auto &plugin : plugins) {
+      if (plugin.instance->name() == pluginName) {
+        plugin.instance->mainMethod(ctx);
+        if (!plugin.instance->panels.empty() && allPanels) {
+          auto &pluginPanels = plugin.instance->panels;
+          std::move(pluginPanels.begin(),
+              pluginPanels.end(),
+              std::back_inserter(*allPanels));
+        }
+      }
+    }
+}

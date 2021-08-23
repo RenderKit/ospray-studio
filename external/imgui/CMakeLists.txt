@@ -6,6 +6,8 @@ add_library(imgui ${libType}
   imgui.cpp
   imgui_draw.cpp
   imgui_widgets.cpp
+  imgui_tables.cpp
+  imgui_piemenu.cpp
 )
 
 target_include_directories(imgui

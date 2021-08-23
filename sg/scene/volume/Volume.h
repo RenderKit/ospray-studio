@@ -45,6 +45,8 @@ struct OSPSG_INTERFACE Volume : public OSPNode<cpp::Volume, NodeType::VOLUME>
   NodeType type() const override;
   virtual void load(const FileName &fileName);
 
+  int groupIndex{-1};
+
  private:
   bool fileLoaded{false};
 

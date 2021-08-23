@@ -25,6 +25,7 @@
 using namespace ospray;
 using namespace rkcommon::math;
 
+class PluginManager; 
 enum class StudioMode
 {
   GUI,
@@ -66,13 +67,15 @@ class StudioCommon
 class StudioContext : public std::enable_shared_from_this<StudioContext>
 {
  public:
-  StudioContext(StudioCommon &_common) : studioCommon(_common)
+  StudioContext(StudioCommon &_common, StudioMode _mode) : studioCommon(_common)
   {
     frame = sg::createNodeAs<sg::Frame>("main_frame", "frame");
 
     // baseMaterialRegistry and lightsManager are owned by the Frame
     baseMaterialRegistry = frame->baseMaterialRegistry;
     lightsManager = frame->lightsManager;
+    mode = _mode;
+    optImageSize = _common.defaultSize;
   }
 
   virtual ~StudioContext() {}
@@ -91,6 +94,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
   std::shared_ptr<sg::LightsManager> lightsManager;
   std::shared_ptr<AnimationManager> animationManager{nullptr};
+  std::shared_ptr<PluginManager> pluginManager;
 
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
@@ -98,6 +102,22 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   int defaultMaterialIdx = 0;
 
   std::string outputFilename{""};
+
+  StudioMode mode;
+
+  std::string optRendererTypeStr = "pathtracer";
+  std::string optCameraTypeStr   = "perspective";
+  std::string optImageName       = "ospBatch";
+  vec2i optImageSize;
+  int optSPP                     = 32;
+  float optVariance              = 0.f; // varianceThreshold
+  int optPF                      = -1; // use default
+  int optDenoiser                = 0;
+  bool optGridEnable             = false;
+  vec3i optGridSize              = {1, 1, 1};
+  // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
+  int optStereoMode               = 0;
+  float optInterpupillaryDistance = 0.0635f;
 
  protected:
   virtual void printHelp()

@@ -103,6 +103,8 @@ void FrameBuffer::updateHandle()
   }
 
   auto size = child("size").valueAs<vec2i>();
+  // Assure that neither dimension is 0.
+  size = vec2i(std::max(size.x, 1), std::max(size.y, 1));
   auto colorFormatStr = child("colorFormat").valueAs<std::string>();
 
   auto fb =

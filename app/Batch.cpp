@@ -14,23 +14,24 @@
 #include "rkcommon/utility/SaveImage.h"
 // json
 #include "sg/JSONDefs.h"
+#include "PluginManager.h"
 
 static bool resetFileId = false;
 
 BatchContext::BatchContext(StudioCommon &_common)
-    : StudioContext(_common), optImageSize(_common.defaultSize)
+    : StudioContext(_common, StudioMode::BATCH)
 {
   frame->child("scaleNav").setValue(1.f);
+  pluginManager = std::make_shared<PluginManager>();
 }
 
 void BatchContext::start()
 {
   std::cerr << "Batch mode\n";
 
-  // load plugins //
-
+  // load plugins 
   for (auto &p : studioCommon.pluginsToLoad)
-    pluginManager.loadPlugin(p);
+    pluginManager->loadPlugin(p);
 
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
@@ -366,12 +367,8 @@ void BatchContext::render()
   frame->child("windowSize") = optImageSize;
 
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
-
-  // If using the denoiser, set the framebuffer to allow it.
-  if (studioCommon.denoiserAvailable && optDenoiser) {
-    frameBuffer["floatFormat"] = true;
-    frameBuffer.commit();
-  }
+  frameBuffer["floatFormat"] = true;
+  frameBuffer.commit();
 
   frame->child("world").createChild("materialref", "reference_to_material", 0);
 
@@ -447,10 +444,10 @@ void BatchContext::renderFrame()
       | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
 
   frame->saveFrame(filename, screenshotFlags);
-  if (saveMetaData) {
-    this->outputFilename = filename;
-    pluginManager.callMainMethod(shared_from_this());
-  }
+
+  this->outputFilename = filename;
+  
+  pluginManager->main(shared_from_this());
 }
 
 void BatchContext::renderAnimation()

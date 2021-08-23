@@ -16,7 +16,12 @@ OSP_REGISTER_SG_NODE_NAME(Isosurfaces, geometry_isosurfaces);
 
 // Isosurfaces definitions ////////////////////////////////////////////////
 
-Isosurfaces::Isosurfaces() : Geometry("isosurface") {}
+Isosurfaces::Isosurfaces() : Geometry("isosurface")
+{
+  // Don't allow isosurfaces to be set as clipping geometry.  The result doesn't
+  // look correct and it may crash.
+  child("isClipping").setSGNoUI();
+}
 
 } // namespace sg
 } // namespace ospray

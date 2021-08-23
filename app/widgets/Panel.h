@@ -7,8 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "../ospStudio.h"
-
 #ifndef PANEL_INTERFACE
   #ifdef _WIN32
     #define PANEL_INTERFACE __declspec(dllexport)
@@ -47,11 +45,11 @@ struct PANEL_INTERFACE Panel
       : context(_context), currentName(_name)
   {}
   std::shared_ptr<StudioContext> context;
+  bool show = false;
 
  private:
   // Properties //
 
-  bool show = false;
   std::string currentName{"<unnamed panel>"};
 };
 

@@ -11,10 +11,10 @@
 #include "glTF/buffer_view.h"
 #include "glTF/gltf_types.h"
 
-#include "../scene/geometry/Geometry.h"
-#include "../visitors/PrintNodes.h"
-#include "../texture/Texture2D.h"
-#include "../scene/Transform.h"
+#include "sg/scene/geometry/Geometry.h"
+#include "sg/visitors/PrintNodes.h"
+#include "sg/texture/Texture2D.h"
+#include "sg/scene/Transform.h"
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
@@ -96,7 +96,9 @@ namespace ospray {
 
     void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
 
-    void loadKeyframeOutput(std::vector<vec3f> &ts, std::vector<affine3f> &kfOutput, std::string &propertyName);
+    void loadKeyframeOutput(std::vector<vec3f> &ts,
+        std::vector<affine3f> &kfOutput,
+        std::string &propertyName);
 
     void visitNode(NodePtr sgNode,
         const int nid,
@@ -332,8 +334,11 @@ namespace ospray {
       } else
         newLight = createNode(lightName, l.type);
 
-      auto lightColor =
-          vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
+      // Color is optional, default:[1.0,1.0,1.0]
+      auto lightColor = vec3f(1.f);
+      if (!l.color.empty())
+        lightColor =
+            vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
       newLight->createChild("color", "vec3f", lightColor);
 
       if (l.intensity)
@@ -1013,18 +1018,16 @@ namespace ospray {
 
     // We can emulate a constant colored emissive texture
     // XXX this is a workaround
-    auto constColor = false;
+    auto constColor = true;
     if (emissiveColor != vec3f(0.f) && mat.emissiveTexture.index != -1) {
       const auto &tex = model.textures[mat.emissiveTexture.index];
       const auto &img = model.images[tex.source];
       if (img.image.size() > 0) {
-        constColor = true;
         const auto *data = img.image.data();
 
         const vec3f color0 = vec3f(data[0], data[1], data[2]);
         auto i = 1;
-        WARN << "Material emissiveTexture #" << mat.emissiveTexture.index;
-        WARN << std::endl;
+        WARN << "Material emissiveTexture #" << mat.emissiveTexture.index << std::endl;
         WARN << "   color0 : " << color0 << std::endl;
         while (constColor && (i < img.width * img.height)) {
           const vec3f color =
@@ -1037,6 +1040,8 @@ namespace ospray {
           }
           i++;
         }
+        // Module the emissiveColor with the texture value.
+        emissiveColor *= color0;
       }
     }
 
@@ -1318,13 +1323,15 @@ namespace ospray {
         if (mat.emissiveTexture.index != -1) {
           const auto &tex = model.textures[mat.emissiveTexture.index];
           const auto &img = model.images[tex.source];
-          const auto *data = img.image.data();
-          const vec3f color0 = vec3f(data[0], data[1], data[2]);
-          WARN << "   name: " << img.name << std::endl;
-          WARN << "   img: (" << img.width << ", " << img.height << ")";
-          WARN << std::endl;
-          WARN << "   emulating with solid color : " << color0 << std::endl;
-          ospMat->child("color") = emissiveColor * (color0 / 255.f);
+          if (img.image.size() > 0) {
+            const auto *data = img.image.data();
+            const vec3f color0 = vec3f(data[0], data[1], data[2]);
+            WARN << "   name: " << img.name << std::endl;
+            WARN << "   img: (" << img.width << ", " << img.height << ")";
+            WARN << std::endl;
+            WARN << "   emulating with solid color : " << color0 << std::endl;
+            ospMat->child("color") = emissiveColor * (color0 / 255.f);
+          }
         }
       }
 
@@ -1364,96 +1371,57 @@ namespace ospray {
     }
     auto texName = img.name + "_" + pad(std::to_string(nTex++)) + "_tex";
 
-    // DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
-    // DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
-    // DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
-    // DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
-    // DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
-    // DEBUG << pad("", '.', 9) << "image bits: " << img.bits << "\n";
-    // if (img.uri.length() < 256)  // The uri can be a stream of data!
-    //  DEBUG << pad("", '.', 9) << "image uri: " << img.uri << "\n";
-    // DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView <<
-    // "\n"; DEBUG << pad("", '.', 9) << "image data: " << img.image.size() <<
-    // "\n";
+#if 0
+    DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
+    DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
+    DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
+    DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
+    DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
+    DEBUG << pad("", '.', 9) << "image bits: " << img.bits << "\n";
+    if (img.uri.length() < 256)  // The uri can be a stream of data!
+     DEBUG << pad("", '.', 9) << "image uri: " << img.uri << "\n";
+    DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView << "\n";
+    DEBUG << pad("", '.', 9) << "image data: " << img.image.size() << "\n";
 
-    // XXX Only handle pre-loaded images for now
-    if (img.image.empty()) {
-      ERROR << "!!! no texture data!  Need to load it !!!\n";
-      return nullptr;
-    }
+    DEBUG << pad("", '.', 9) << "texParam: " << texParam << "\n";
+    DEBUG << pad("", '.', 9) << "colorChannel: " << colorChannel << "\n";
+#endif
 
-    auto ospTexNode = createNode(texParam, "texture_2d");
-    auto &ospTex    = *ospTexNode->nodeAs<Texture2D>();
-
-    ospTex.size.x = img.width;
-    ospTex.size.y = img.height;
-    ospTex.components = img.component;
-    ospTex.depth =
-        img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
-
-    // XXX handle different number of components!!!!
-    if (!ospTex.depth)
-      ERROR << "Not handled texel depth: " << img.bits << std::endl;
-    if (ospTex.components != 4)
-      ERROR << "Not yet handled number of components: " << ospTex.components
-            << std::endl;
-
-    auto texFormat =
-        osprayTextureFormat(ospTex.depth, ospTex.components, preferLinear);
-
-    // If texture doesn't use all channels(4), setup a strided-data access
-    if (colorChannel < 4) {
-      // Only 1 channel, colorChannel(0-3) determines which component is used
-      texFormat = osprayTextureFormat(ospTex.depth, 1, preferLinear);
-      if (ospTex.depth == 4) {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            sizeof(vec4f) * vec2ul(1, img.width), // byteStride
-            (float *)img.image.data() + colorChannel);
-      } else if (ospTex.depth == 2) {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            sizeof(vec4us) * vec2ul(1, img.width), // byteStride
-            (uint16_t *)img.image.data() + colorChannel);
-      } else {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            sizeof(vec4uc) * vec2ul(1, img.width), // byteStride
-            (uint8_t *)img.image.data() + colorChannel);
-      }
-    } else {
-      // RGBA
-      if (ospTex.depth == 4) {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            vec2ul(0, 0), // byteStride
-            (vec4f *)img.image.data());
-      } else if (ospTex.depth == 2) {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            vec2ul(0, 0), // byteStride
-            (vec4us *)img.image.data());
-      } else {
-        ospTex.createChildData("data",
-            vec2ul(img.width, img.height), // numItems
-            vec2ul(0, 0), // byteStride
-            (vec4uc *)img.image.data());
-      }
-    }
-
-    ospTex.createChild("format", "int", (int)texFormat);
-    ospTex.child("format").setMinMax(
-        (int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
+    NodePtr ospTexNode = createNode(texParam, "texture_2d");
+    auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
 
     // XXX Check sampler wrap/clamp modes!!!
-    auto texFilter =
-        (tex.sampler != -1 && model.samplers[tex.sampler].magFilter ==
-                                  TINYGLTF_TEXTURE_FILTER_NEAREST)
-            ? OSP_TEXTURE_FILTER_NEAREST
-            : OSP_TEXTURE_FILTER_BILINEAR;
-    ospTex.createChild("filter", "int", (int)texFilter);
-    ospTex.child("filter").setMinMax(
-        (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+    bool nearestFilter = (tex.sampler != -1
+        && model.samplers[tex.sampler].magFilter
+            == TINYGLTF_TEXTURE_FILTER_NEAREST);
+
+    // If texture name (uri) is a UDIM set, ignore tiny_gltf loaded image and
+    // reload from file as udim tiles
+    if (ospTex.checkForUDIM(fileName.path() + img.uri))
+      img.image.clear();
+
+    // Pre-loaded texture image (loaded by tinygltf)
+    if (!img.image.empty()) {
+      ospTex.params.size = vec2ul(img.width, img.height);
+      ospTex.params.components = img.component;
+      ospTex.params.depth =
+        img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
+
+      ospTex.load((void *)img.image.data(),
+          preferLinear,
+          nearestFilter,
+          colorChannel);
+
+    } else {
+      // Load texture from file (external uri or udim tiles)
+      ospTex.params.flip = false; // glTF textures are not vertically flipped
+
+      // use same path as gltf scene file
+      ospTex.load(fileName.path() + img.uri,
+          preferLinear,
+          nearestFilter,
+          colorChannel);
+    }
 
     return ospTexNode;
   }
@@ -1472,7 +1440,7 @@ namespace ospray {
     auto ospTexNode = createOSPTexture(
         texParam, model.textures[texIndex], colorChannel, preferLinear);
     if (ospTexNode) {
-      //auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
+      auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
       //DEBUG << pad("", '.', 3) << "        .setChild: " << texParam << "= "
       //     << ospTex.name() << "\n";
       // DEBUG << pad("", '.', 3) << "            "
@@ -1480,6 +1448,7 @@ namespace ospray {
       //     << " preferLinear: " << preferLinear << "\n";
 
       // Texture extensions
+      // XXX This is wrong.  The extension hangs off the material, as all others
       const auto &exts = model.textures[texIndex].extensions;
       if (exts.find("KHR_texture_transform") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_transform
@@ -1493,7 +1462,7 @@ namespace ospray {
               params.Get("offset").Get<tinygltf::Value::Array>();
           offset = vec2f(ov[0].Get<double>(), ov[1].Get<double>());
         }
-        ospTexNode->createChild("translation", "vec2f") = offset;
+        ospMat->createChild(texParam + ".translation", "vec2f") = offset;
 
         // rotation: Rotate the UVs by this many radians counter-clockwise
         // around the origin. This is equivalent to a similar rotation of the
@@ -1502,7 +1471,7 @@ namespace ospray {
         if (params.Has("rotation")) {
           rotation = (float)params.Get("rotation").Get<double>();
         }
-        ospMat->createChild("rotation", "float") = rotation;
+        ospMat->createChild(texParam + ".rotation", "float") = rotation;
 
         // scale: The scale factor applied to the components of the UV
         // coordinates. default:[1.0, 1.0]
@@ -1512,11 +1481,30 @@ namespace ospray {
               params.Get("scale").Get<tinygltf::Value::Array>();
           offset = vec2f(sv[0].Get<double>(), sv[1].Get<double>());
         }
-        ospTexNode->createChild("scale", "vec2f") = scale;
+        ospMat->createChild(texParam + ".scale", "vec2f") = scale;
 
         // texCoord: Overrides the textureInfo texCoord value if supplied, and
         // if this extension is supported.
         // XXX not sure what, if anything, to do about this one.
+      }
+
+      // If texture is UDIM, set appropriate scale/translation
+      if (ospTex.hasUDIM()) {
+        auto scale = ospTex.getUDIM_scale();
+        auto translation = ospTex.getUDIM_translation();
+        auto paramName = texParam + ".scale";
+        if (!ospMat->hasChild(paramName))
+          ospMat->createChild(paramName, "vec2f", scale);
+        else
+          ospMat->child(paramName) =
+              ospMat->child(paramName).valueAs<vec2f>() * scale;
+
+        paramName = texParam + ".translation";
+        if (!ospMat->hasChild(paramName))
+          ospMat->createChild(paramName, "vec2f", translation);
+        else
+          ospMat->child(paramName) =
+              ospMat->child(paramName).valueAs<vec2f>() + translation;
       }
 
       ospMat->add(ospTexNode);

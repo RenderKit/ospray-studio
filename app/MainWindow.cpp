@@ -38,9 +38,13 @@
 #include <queue>
 // widgets
 #include "widgets/FileBrowserWidget.h"
+#include "widgets/SearchWidget.h"
 #include "widgets/TransferFunctionWidget.h"
+#include "widgets/PieMenu.h"
+#include "widgets/Guizmo.h"
 
 using namespace ospray_studio;
+using namespace ospray;
 
 static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -152,8 +156,9 @@ void error_callback(int error, const char *desc)
 MainWindow *MainWindow::activeWindow = nullptr;
 
 MainWindow::MainWindow(StudioCommon &_common)
-    : StudioContext(_common), windowSize(_common.defaultSize), scene("")
+    : StudioContext(_common, StudioMode::GUI), windowSize(_common.defaultSize), scene("")
 {
+  pluginManager = std::make_shared<PluginManager>();
   if (activeWindow != nullptr) {
     throw std::runtime_error("Cannot create more than one MainWindow!");
   }
@@ -368,8 +373,14 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   ImGui::CreateContext();
 
+  // Enable context for ImGui experimental viewports
+  ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
   ImGui_ImplGlfw_InitForOpenGL(glfwWindow, true);
   ImGui_ImplOpenGL2_Init();
+
+  // Disable active viewports until users enables toggled in view menu
+  ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
 
   // set initial OpenGL state
   glEnable(GL_TEXTURE_2D);
@@ -396,7 +407,7 @@ MainWindow::~MainWindow()
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
   glfwTerminate();
-  pluginManager.removeAllPlugins();
+  pluginManager->removeAllPlugins();
   g_sceneCameras.clear();
   sg::clearAssets();
 }
@@ -406,19 +417,17 @@ void MainWindow::start()
   std::cerr << "GUI mode\n";
 
   // load plugins //
-
   for (auto &p : studioCommon.pluginsToLoad)
-    pluginManager.loadPlugin(p);
+    pluginManager->loadPlugin(p);
 
   // create panels //
   // doing this outside constructor to ensure shared_from_this()
   // can wrap a valid weak_ptr (in constructor, not guaranteed)
 
-  auto newPluginPanels =
-      pluginManager.getAllPanelsFromPlugins(shared_from_this());
-  std::move(newPluginPanels.begin(),
-      newPluginPanels.end(),
-      std::back_inserter(pluginPanels));
+  pluginManager->main(shared_from_this(), &pluginPanels);
+  // std::move(newPluginPanels.begin(),
+  //     newPluginPanels.end(),
+  //     std::back_inserter(pluginPanels));
 
   std::ifstream cams("cams.json");
   if (cams) {
@@ -427,8 +436,8 @@ void MainWindow::start()
     cameraStack = j.get<std::vector<CameraState>>();
   }
 
-  parseCommandLine();
-  mainLoop();
+  if (parseCommandLine())
+    mainLoop();
 }
 
 MainWindow *MainWindow::getActiveWindow()
@@ -469,6 +478,15 @@ void MainWindow::mainLoop()
     ImGui::NewFrame();
 
     display();
+
+    // Remove motion blur transform, it will be added again as necessary
+    auto &camera = frame->child("camera");
+    if (camera.hasChild("motion.transform")) {
+      camera.remove("motion.transform");
+      // Don't reset the shutter if the animationWidget has motion blur
+      if (animationWidget && animationWidget->getShutter() == 0.f)
+        camera["shutter"] = range1f(0.0f);
+    }
 
     glfwPollEvents();
   }
@@ -531,6 +549,25 @@ void MainWindow::updateCamera()
     }
     camera["focusDistance"] = focusDistance;
   }
+
+  // Camera Motion Blur
+  affine3f newCamXfm = arcballCamera->getTransform();
+  auto cameraMotionBlur = camera["motion blur"].valueAs<float>();
+  if ((rendererTypeStr == "pathtracer") && cameraMotionBlur > 0.f
+      && newCamXfm != lastCamXfm) {
+    // Need to set transforms as {one} and {one + delta} due to using
+    // position/direction/up as primary camera trackers.
+    std::vector<affine3f> motionXfms;
+    motionXfms.push_back(one);
+    motionXfms.push_back(affine3f(one) + (newCamXfm - lastCamXfm));
+    camera.createChildData("motion.transform", motionXfms);
+    lastCamXfm = arcballCamera->getTransform();
+  } else {
+    camera.remove("motion.transform");
+    // Don't reset the shutter if the animationWidget has motion blur
+    if (animationWidget && animationWidget->getShutter() == 0.f)
+      camera["shutter"] = range1f(0.f);
+  }
 }
 
 void MainWindow::setCameraState(CameraState &cs)
@@ -559,7 +596,7 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   y = 1.f - clamp(y / windowSize.y, 0.f, 1.f);
   res = fb.handle().pick(r, c, w, x, y);
   if (res.hasHit) {
-    if (!glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+    if (!(glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)) {
       // Constraining rotation around the up works pretty well.
       arcballCamera->constrainedRotate(vec2f(0.5f,0.5f), vec2f(x,y), 1);
       // Restore any preFPV zoom level, then clear it.
@@ -891,26 +928,21 @@ void MainWindow::display()
     ImGui::EndFrame();
   }
 
+  // Update and Render additional Platform Windows
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    GLFWwindow *backup_current_context = glfwGetCurrentContext();
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+    glfwMakeContextCurrent(backup_current_context);
+  }
+
   // swap buffers
   glfwSwapBuffers(glfwWindow);
 }
 
 void MainWindow::startNewOSPRayFrame()
 {
-  // UI responsiveness can be increased by knowing if we're in the middle of
-  // ImGui widget interaction.
-  ImGuiIO &io = ImGui::GetIO();
-  bool interacting = ImGui::IsAnyMouseDown()
-      && (io.WantCaptureMouse || io.WantCaptureKeyboard);
-
-  // If in the middle of UI interaction, back off on how frequently scene
-  // updates are committed.
-  // 10 is a good imperical number.  If necessary, make UI adjustable
-  static auto skipCount = 0;
-  if (interacting)
-    skipCount = skipCount > 0 ? skipCount - 1 : 10;
-
-  frame->startNewFrame(interacting && !!skipCount);
+  frame->startNewFrame();
 }
 
 void MainWindow::waitOnOSPRayFrame()
@@ -1033,6 +1065,7 @@ void MainWindow::refreshScene(bool resetCam)
   if (resetCam && !sgScene) {
     const auto &worldBounds = frame->child("world").bounds();
     arcballCamera.reset(new ArcballCamera(worldBounds, windowSize));
+    lastCamXfm = arcballCamera->getTransform();
   }
   updateCamera();
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -1245,6 +1278,7 @@ void MainWindow::popLookMark()
     return;
   CameraState cs = cameraStack.back();
   cameraStack.pop_back();
+
   arcballCamera->setState(cs);
   updateCamera();
 }
@@ -1420,8 +1454,11 @@ void MainWindow::buildMainMenuEdit()
       sg::clearAssets();
 
       // Recreate MaterialRegistry, clearing old registry and all materials
+      // Then, add the new one to the frame and set the renderer type
       baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
           "baseMaterialRegistry", "materialRegistry");
+      frame->add(baseMaterialRegistry);
+      baseMaterialRegistry->updateRendererType();
 
       scene = "";
       refreshScene(true);
@@ -1434,6 +1471,7 @@ void MainWindow::buildMainMenuEdit()
 void MainWindow::buildMainMenuView()
 {
   static bool showFileBrowser = false;
+  static bool guizmoOn = false;
   if (ImGui::BeginMenu("View")) {
     // Camera stuff ////////////////////////////////////////////////////
 
@@ -1444,6 +1482,26 @@ void MainWindow::buildMainMenuView()
           new ArcballCamera(frame->child("world").bounds(), windowSize));
       updateCamera();
     }
+
+    static bool lockUpDir = false;
+    if (ImGui::Checkbox("Lock UpDir", &lockUpDir))
+      arcballCamera->setLockUpDir(lockUpDir);
+
+    if (lockUpDir) {
+      ImGui::SameLine();
+      static int dir = 1;
+      static int _dir = -1;
+      ImGui::RadioButton("X##setUpDir", &dir, 0);
+      ImGui::SameLine();
+      ImGui::RadioButton("Y##setUpDir", &dir, 1);
+      ImGui::SameLine();
+      ImGui::RadioButton("Z##setUpDir", &dir, 2);
+      if (dir != _dir) {
+        arcballCamera->setUpDir(vec3f(dir == 0, dir == 1, dir == 2));
+        _dir = dir;
+      }
+    }
+
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
       showKeyframes = true;
     if (ImGui::MenuItem("Snapshots...", "", nullptr))
@@ -1533,6 +1591,7 @@ void MainWindow::buildMainMenuView()
     ImGui::Separator();
 
     // UI options //////////////////////////////////////////////////////
+    ImGui::Text("ui options");
 
     ImGui::Checkbox("Show tooltips", &g_ShowTooltips);
     if (g_ShowTooltips) {
@@ -1541,8 +1600,46 @@ void MainWindow::buildMainMenuView()
       ImGui::DragInt("delay", &g_TooltipDelay, 50, 0, 1000, "%d ms");
     }
 
+#if 1 // XXX example new features that need to be integrated
+    ImGui::Separator();
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::CheckboxFlags(
+        "DockingEnable", &io.ConfigFlags, ImGuiConfigFlags_DockingEnable);
+    sg::showTooltip("[experimental] Menu docking");
+    ImGui::CheckboxFlags(
+        "ViewportsEnable", &io.ConfigFlags, ImGuiConfigFlags_ViewportsEnable);
+    sg::showTooltip("[experimental] Mind blowing multi-viewports support");
+
+    ImGui::Checkbox("Guizmo", &guizmoOn);
+
+    ImGui::Text("...right-click to open pie menu...");
+    pieMenu();
+#endif
+
     ImGui::EndMenu();
   }
+
+#if 1 // Guizmo shows outsize menu windo
+  if (guizmoOn) {
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration
+      | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings
+      | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav
+      | ImGuiWindowFlags_NoMove;
+    ImGui::SetNextWindowBgAlpha(0.75f);
+
+    // Bottom right corner
+    ImVec2 window_pos(ImGui::GetIO().DisplaySize.x,
+        ImGui::GetIO().DisplaySize.y);
+    ImVec2 window_pos_pivot(1.f, 1.f);
+    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+
+    if (ImGui::Begin("###guizmo", &guizmoOn, flags)) {
+      guizmo();
+      ImGui::End();
+    }
+  }
+#endif
 
   // Leave the fileBrowser open until file is selected
   if (showFileBrowser) {
@@ -1565,11 +1662,9 @@ void MainWindow::buildMainMenuView()
 void MainWindow::buildMainMenuPlugins()
 {
   if (!pluginPanels.empty() && ImGui::BeginMenu("Plugins")) {
-    for (auto &p : pluginPanels) {
-      bool show = p->isShown();
-      if (ImGui::Checkbox(p->name().c_str(), &show))
-        p->toggleShown();
-    }
+    for (auto &p : pluginPanels)
+      if (ImGui::MenuItem(p->name().c_str()))
+        p->setShown(true);
 
     ImGui::EndMenu();
   }
@@ -2174,7 +2269,11 @@ void MainWindow::buildWindowMaterialEditor()
     return;
   }
 
-  baseMaterialRegistry->traverse<sg::GenerateImGuiWidgets>();
+  static std::vector<sg::NodeType> types{sg::NodeType::MATERIAL};
+  static SearchWidget searchWidget(types, types, sg::TreeState::ALLCLOSED);
+
+  searchWidget.addSearchBarUI(*baseMaterialRegistry);
+  searchWidget.addSearchResultsUI(*baseMaterialRegistry);
 
   ImGui::End();
 }
@@ -2412,97 +2511,31 @@ void MainWindow::buildWindowTransformEditor()
     return;
   }
 
-  static char searchTerm[1024] = "";
-  static bool searched = false;
-  static std::vector<sg::Node *> results;
+  typedef sg::NodeType NT;
 
-  auto doClear = [&]() {
-    searched = false;
-    results.clear();
-    searchTerm[0] = '\0';
+  auto toggleSearch = [&](std::vector<sg::NodePtr> &results, bool visible) {
+    for (auto result : results)
+      if (result->hasChild("visible"))
+        result->child("visible").setValue(visible);
   };
-  auto doSearch = [&]() {
-    if (std::string(searchTerm).size() > 0) {
-      searched = true;
-      results.clear();
-      frame->traverse<sg::Search>(
-          std::string(searchTerm), sg::NodeType::GEOMETRY, results);
-    } else {
-      doClear();
-    }
+  auto showSearch = [&](std::vector<sg::NodePtr> &r) { toggleSearch(r, true); };
+  auto hideSearch = [&](std::vector<sg::NodePtr> &r) { toggleSearch(r, false); };
+
+  auto &warudo = frame->child("world");
+  auto toggleDisplay = [&](bool visible) {
+    warudo.traverse<sg::SetParamByNode>(NT::GEOMETRY, "visible", visible);
   };
+  auto showDisplay = [&]() { toggleDisplay(true); };
+  auto hideDisplay = [&]() { toggleDisplay(false); };
 
-  if (ImGui::InputTextWithHint("##findTransformEditor",
-          "search...",
-          searchTerm,
-          1024,
-          ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_AutoSelectAll
-              | ImGuiInputTextFlags_EnterReturnsTrue)) {
-    doSearch();
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("find")) {
-    doSearch();
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("clear")) {
-    doClear();
-  }
+  static std::vector<NT> searchTypes{NT::TRANSFORM, NT::GEOMETRY, NT::VOLUME};
+  static std::vector<NT> displayTypes{NT::GENERATOR, NT::IMPORTER, NT::TRANSFORM};
+  static SearchWidget searchWidget(searchTypes, displayTypes);
 
-  if (ImGui::Button("show all")) {
-    if (searched) {
-      for (auto result : results)
-        result->child("visible").setValue(true);
-    } else {
-      frame->child("world").traverse<sg::SetParamByNode>(
-          sg::NodeType::GEOMETRY, "visible", true);
-    }
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button("hide all")) {
-    if (searched) {
-      for (auto result : results)
-        result->child("visible").setValue(false);
-    } else {
-      frame->child("world").traverse<sg::SetParamByNode>(
-          sg::NodeType::GEOMETRY, "visible", false);
-    }
-  }
-
-  if (searched) {
-    ImGui::SameLine();
-    ImGui::Text(
-        "%lu %s", results.size(), (results.size() == 1 ? "result" : "results"));
-  }
-
-  ImGui::BeginChild(
-      "geometry", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
-  bool userUpdated = false;
-  if (searched) {
-    for (auto result : results) {
-      result->traverse<sg::GenerateImGuiWidgets>(
-          sg::TreeState::ALLCLOSED, userUpdated);
-      // Don't continue traversing
-      if (userUpdated) {
-        break;
-      }
-    }
-  } else {
-    for (auto &node : frame->child("world").children()) {
-      if (node.second->type() == sg::NodeType::GENERATOR
-          || node.second->type() == sg::NodeType::IMPORTER
-          || node.second->type() == sg::NodeType::TRANSFORM) {
-        node.second->traverse<sg::GenerateImGuiWidgets>(
-            sg::TreeState::ROOTOPEN, userUpdated);
-        // Don't continue traversing
-        if (userUpdated) {
-          break;
-        }
-      }
-    }
-  }
-  ImGui::EndChild();
+  searchWidget.addSearchBarUI(warudo);
+  searchWidget.addCustomAction("show all", showSearch, showDisplay);
+  searchWidget.addCustomAction("hide all", hideSearch, hideDisplay, true);
+  searchWidget.addSearchResultsUI(warudo);
 
   ImGui::End();
 }

@@ -7,68 +7,56 @@
 #include "sg/texture/Texture2D.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct GenerateOSPRayMaterials : public Visitor
-  {
-    GenerateOSPRayMaterials(std::string rendererType);
-    ~GenerateOSPRayMaterials() override = default;
+struct GenerateOSPRayMaterials : public Visitor
+{
+  GenerateOSPRayMaterials(std::string rendererType);
+  ~GenerateOSPRayMaterials() override = default;
 
-    bool operator()(Node &node, TraversalContext &) override;
+  bool operator()(Node &node, TraversalContext &) override;
 
-   private:
-    std::string rendererType;
-  };
+ private:
+  std::string rendererType;
+};
 
-  // Inlined definitions //////////////////////////////////////////////////////
+// Inlined definitions //////////////////////////////////////////////////////
 
-  inline GenerateOSPRayMaterials::GenerateOSPRayMaterials(std::string type)
-      : rendererType(type)
-  {
+inline GenerateOSPRayMaterials::GenerateOSPRayMaterials(std::string type)
+    : rendererType(type)
+{}
+
+inline bool GenerateOSPRayMaterials::operator()(Node &node, TraversalContext &)
+{
+  // XXX: How can a renderer specify that it doesn't handle materials?
+  if (rendererType == "debug")
+    return true;
+
+  // Only process material nodes
+  if (node.type() != NodeType::MATERIAL) {
+    return true;
   }
 
-  inline bool GenerateOSPRayMaterials::operator()(Node &node,
-                                                  TraversalContext &)
-  {
-    // XXX: How can a renderer specify that it doesn't handle materials?
-    if (rendererType == "debug")
-      return true;
+  auto &mat = *node.nodeAs<Material>();
 
-    switch (node.type()) {
-    case NodeType::MATERIAL: {
-      auto &mat         = *node.nodeAs<Material>();
-      auto &matChildren = mat.children();
-      if (rendererType == "pathtracer" &&
-          !mat["handles"].hasChild("pathtracer")) {
-        auto &matHandle = mat["handles"].createChild(
-            "pathtracer",
-            "Node",
-            cpp::Material("pathtracer", mat.osprayMaterialType()));
-        if (!matChildren.empty())
-          for (auto &c : matChildren)
-            if (c.second->subType() == "texture_2d" ||
-                c.second->subType() == "texture_volume")
-              c.second->setOSPRayParam(
-                  c.first, matHandle.valueAs<cpp::Material>().handle());
-      } else if (!mat["handles"].hasChild(rendererType) &&
-                 mat.osprayMaterialType() == "obj") {
-        auto &matHandle = mat.child("handles").createChild(
-            rendererType,
-            "Node",
-            cpp::Material(rendererType, mat.osprayMaterialType()));
-        if (!matChildren.empty())
-          for (auto &c : matChildren)
-            if (c.second->subType() == "texture_2d" ||
-                c.second->subType() == "texture_volume")
-              c.second->setOSPRayParam(
-                  c.first, matHandle.valueAs<cpp::Material>().handle());
-      }
-      return false;
-    }
-    default:
-      return true;
-    }
+  // Only the pathtracer handles material types other than OBJ
+  if (rendererType != "pathtracer" && mat.osprayMaterialType() != "obj")
+    return true;
+
+  // Create a renderer specific material node if it doesn't already exist
+  if (!mat["handles"].hasChild(rendererType)) {
+    auto &matHandle = mat["handles"].createChild(rendererType,
+        "Node",
+        cpp::Material(rendererType, mat.osprayMaterialType()));
+    for (auto &c : mat.children())
+      if (c.second->subType() == "texture_2d"
+          || c.second->subType() == "texture_volume")
+        c.second->setOSPRayParam(
+            c.first, matHandle.valueAs<cpp::Material>().handle());
   }
 
-  }  // namespace sg
+  return false;
+}
+
+} // namespace sg
 } // namespace ospray

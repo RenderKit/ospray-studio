@@ -6,7 +6,7 @@
 #include "tiny_obj_loader.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
-#include "../scene/geometry/Geometry.h"
+#include "sg/scene/geometry/Geometry.h"
 
 namespace ospray {
   namespace sg {
@@ -208,6 +208,21 @@ namespace ospray {
                                         containingPath,
                                         preferLinear,
                                         nearestFilter);
+
+            // If texture is UDIM, set appropriate scale/translation
+            if (map_misc) {
+              auto &ospTex = *map_misc->nodeAs<Texture2D>();
+              if (ospTex.hasUDIM()) {
+                auto scale = ospTex.getUDIM_scale();
+                auto translation = ospTex.getUDIM_translation();
+                // Set UDIM scale and translation
+                paramNodes.push_back(
+                    createNode(paramName + ".scale", "vec2f", scale));
+                paramNodes.push_back(createNode(
+                    paramName + ".translation", "vec2f", translation));
+              }
+            }
+
             paramNodes.push_back(map_misc);
 
           } else {

@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -16,6 +16,16 @@ struct OSPSG_INTERFACE TransferFunction
 
   std::vector<vec3f> colors;
   std::vector<float> opacities;
+
+ protected:
+  inline void initOpacities()
+  {
+    // Initialize to a simple ramp
+    auto numSamples = colors.size();
+    opacities.resize(numSamples);
+    for (auto i = 0; i < numSamples; i++)
+      opacities.at(i) = (float)i / (numSamples - 1);
+  }
 };
 
 } // namespace sg

@@ -26,6 +26,8 @@ RKCOMMON_DIR="rkcommon-${RKCOMMON_VER}"
 RKCOMMON_ZIP="${RKCOMMON_VER}.zip"
 RKCOMMON_LINK="${GITHUB_HOME}/rkcommon/archive/${RKCOMMON_ZIP}"
 
+THREADS=`sysctl -n hw.logicalcpu`
+
 mkdir -p build-macos && cd build-macos
 pushd .
 
@@ -63,4 +65,4 @@ popd
 # CMAKE_PREFIX_PATH="${PWD}/${RKCOMMON_DIR}/install;${PWD}/${OSPRAY_DIR}"
 cmake .. -DCMAKE_INSTALL_PREFIX=install \
   -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
-make -j install
+make -j $THREADS install

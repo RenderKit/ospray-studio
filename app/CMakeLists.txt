@@ -1,4 +1,4 @@
-## Copyright 2018-2020 Intel Corporation
+## Copyright 2018-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 if (APPLE)
@@ -40,12 +40,16 @@ add_library(ospray_ui STATIC
   widgets/TransferFunctionWidget.cpp
   widgets/FileBrowserWidget.cpp
   widgets/AnimationWidget.cpp
+  widgets/SearchWidget.cpp
+  widgets/Guizmo.cpp
+  widgets/PieMenu.cpp
 )
 
 target_link_libraries(ospray_ui
   ospray_sg
   imgui
   imguiFileDialog
+  imGuIZMO 
   json
   ${OPENGL_LIBRARIES}
   glfw
@@ -64,20 +68,22 @@ install(TARGETS ospStudio
   COMPONENT apps
 )
 
-get_target_property(OSPRAY_LIBNAME ospray::ospray IMPORTED_LOCATION_RELEASE)
+if(OSPRAY_INSTALL)
+  get_target_property(OSPRAY_LIBNAME ospray::ospray IMPORTED_LOCATION_RELEASE)
 
-string(REGEX MATCH "^.*/" _sharedlib_glob "${OSPRAY_LIBNAME}")
-string(APPEND _sharedlib_glob "*${CMAKE_SHARED_LIBRARY_SUFFIX}*")
-# message(STATUS "_sharedlib_glob: ${_sharedlib_glob}")
-file(GLOB _sharedlibs LIST_DIRECTORIES false "${_sharedlib_glob}")
-# message(STATUS "_sharedlibs: ${_sharedlibs}")
+  string(REGEX MATCH "^.*/" _sharedlib_glob "${OSPRAY_LIBNAME}")
+  string(APPEND _sharedlib_glob "*${CMAKE_SHARED_LIBRARY_SUFFIX}*")
+  # message(STATUS "_sharedlib_glob: ${_sharedlib_glob}")
+  file(GLOB _sharedlibs LIST_DIRECTORIES false "${_sharedlib_glob}")
+  # message(STATUS "_sharedlibs: ${_sharedlibs}")
 
-if(WIN32)
-  install(FILES
-    ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_BINDIR}
-  )
-else()
-  install(FILES
-    ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
+  if(WIN32)
+    install(FILES
+      ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+  else()
+    install(FILES
+      ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+  endif()
 endif()

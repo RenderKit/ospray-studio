@@ -3,8 +3,11 @@
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  OSPRAY_VER: "2.6.0"
-  RKCOMMON_VER: "1.6.1"
+  OSPRAY_VER: "2.7.0"
+  RKCOMMON_VER: "1.7.0"
+  PYTHON_VERSION: "3.7.10"
+  PYTHON_ROOT_MACOS: "/NAS/packages/apps/python/$PYTHON_VERSION/macos"
+  PYTHON_ROOT_WINDOWS: "N:/packages/apps/python/3.7.9/windows" ## python-3.7.10 currently not installed for windows
 
 stages:
   - build
@@ -12,10 +15,78 @@ stages:
   - release
   - scan
 
-.build-linux:
-  stage: build
-  needs: []
-  tags: [docker]
+.centos7:
+  tags: [ build, docker, modules ]
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7-mod
+  before_script:
+    - module load python/$PYTHON_VERSION
+    - echo $Python3_ROOT
+    - ls $Python3_ROOT
+
+.ubuntu18.04:
+  tags: [ build, docker, modules ]
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod
+
+.ubuntu20.04:
+  tags: [ build, docker ]
+  image: $DOCKER_REGISTRY/clamav:ubuntu20.04
+
+.macos:
+  tags: [ osx, clang ]
+  before_script:
+    - export Python3_ROOT=$PYTHON_ROOT_MACOS
+    - echo $Python3_ROOT
+    - ls $Python3_ROOT
+
+.macos-sign:
+  tags: [ osx, clang, sign ]
+  before_script:
+    - export Python3_ROOT=$PYTHON_ROOT_MACOS
+    - echo $Python3_ROOT
+    - ls $Python3_ROOT
+
+.windows:
+  tags: [ win, msvc15 ]
+  before_script:
+    - $env:Python3_ROOT = $PYTHON_ROOT_WINDOWS
+    - echo $env:Python3_ROOT
+    - ls $env:Python3_ROOT
+
+.linux-build-artifacts:
+  artifacts:
+    name: ospray_studio
+    paths:
+      - build/
+
+.macos-build-artifacts:
+  artifacts:
+    name: ospray-studio
+    paths:
+      - build-macos/
+
+.windows-build-artifacts:
+  artifacts:
+    name: ospray-studio
+    paths:
+        - build-win/
+
+.linux-release-artifacts:
+  artifacts:
+    name: ospray_studio
+    paths:
+      - build/package/ospray_studio*
+
+.macos-release-artifacts:
+  artifacts:
+    name: ospray_studio
+    paths:
+      - build-macos/package/ospray_studio*
+
+.windows-release-artifacts:
+  artifacts:
+    name: ospray_studio
+    paths:
+      - build-win/package/ospray_studio*
 
 source-protex-scan:
   stage: scan
@@ -29,48 +100,58 @@ source-protex-scan:
 ########
 # These build phases will no longer work on current branches, due to non-release branch dependencies
 ########
+
+build-centos7:
+  stage: build
+  extends:
+    - .centos7
+    - .linux-build-artifacts
+  script:
+    - source $SPACK_SETUP_ENV
+    - module load cmake/3.15.2
+    - module load gcc/5.4.0
+    - module load intel/2020.1
+    - export CC=icc
+    - export CXX=icpc
+    - export CXXFLAGS="-static-intel -static-libstdc++ -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
+    - gitlab/build.sh
+
 build-ubuntu18.04:
-  extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
+  stage: build
+  extends:
+    - .ubuntu18.04
+    - .linux-build-artifacts
   script:
     - gitlab/build.sh
-  artifacts:
-    name: ospray-studio
-    paths:
-      - build/
   only:
     - master
     - /^release-.*$/
 
-build-osx-clang:
+build-macos-clang:
   stage: build
-  tags: [osx, clang]
+  extends:
+    - .macos
+    - .macos-build-artifacts
   script:
     - gitlab/macos.sh
-  artifacts:
-    name: ospray-studio
-    paths:
-      - build-macos/
   only:
     - master
     - /^release-.*$/
 
 build-windows-msvc15:
   stage: build
-  tags: [win, msvc15]
+  extends:
+    - .windows
+    - .windows-build-artifacts
   script:
     - gitlab\win.ps1
-  artifacts:
-    name: ospray-studio
-    paths:
-      - build-win/
   only:
     - master
     - /^release-.*$/
 
 build-kw:
-  extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
+  stage: build
+  extends: .ubuntu18.04
   script:
     - gitlab/build-kw.sh
   artifacts:
@@ -80,11 +161,17 @@ build-kw:
     - master
     - /^release-.*$/
 
+test-run-centos7:
+  stage: test
+  extends: .centos7
+  needs: [ build-centos7 ]
+  script:
+    - build/install/bin/ospStudio --verify_install
+
 test-run-ubuntu18.04:
   stage: test
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
-  needs: [build-ubuntu18.04]
-  tags: [docker]
+  extends: .ubuntu18.04
+  needs: [ build-ubuntu18.04 ]
   script:
     - gitlab/run.sh
   only:
@@ -93,9 +180,8 @@ test-run-ubuntu18.04:
 
 test-kw:
   stage: scan
-  tags: [docker]
-  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
-  needs: [build-kw]
+  extends: .centos7
+  needs: [ build-kw ]
   script:
     - gitlab/kw-check-issues.sh
   allow_failure: true
@@ -108,38 +194,32 @@ test-kw:
 ########
 
 build-ubuntu18.04-dev:
-  extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
+  stage: build
+  extends:
+    - .ubuntu18.04
+    - .linux-build-artifacts
   script:
     - gitlab/build-dev.sh
-  artifacts:
-    name: ospray-studio
-    paths:
-      - build
 
-build-osx-clang-dev:
+build-macos-clang-dev:
   stage: build
-  tags: [osx, clang]
+  extends:
+    - .macos
+    - .macos-build-artifacts
   script:
     - gitlab/macos-dev.sh
-  artifacts:
-    name: ospray-studio
-    paths:
-      - build-macos
 
 build-windows-msvc15-dev:
   stage: build
-  tags: [win, msvc15]
+  extends:
+    - .windows
+    - .windows-build-artifacts
   script:
     - gitlab\win-dev.ps1
-  artifacts:
-    name: ospray-studio
-    paths:
-      - build-win
 
 build-kw-dev:
-  extends: .build-linux
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
+  stage: build
+  extends: .ubuntu18.04
   script:
     - gitlab/build-kw-dev.sh
   artifacts:
@@ -148,8 +228,7 @@ build-kw-dev:
 
 test-kw-dev:
   stage: scan
-  tags: [docker]
-  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
+  extends: .centos7
   needs: [build-kw-dev]
   script:
     - gitlab/kw-check-issues.sh
@@ -157,8 +236,7 @@ test-kw-dev:
 
 kw-gen-report:
   stage: scan
-  tags: [docker]
-  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
+  extends: .centos7
   needs: [build-kw-dev]
   script:
     - gitlab/kw-gen-report.sh
@@ -166,59 +244,64 @@ kw-gen-report:
     paths:
       - klocwork/report.log
 
-
 test-run-ubuntu18.04-dev:
   stage: test
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
-  needs: [build-ubuntu18.04-dev]
-  tags: [docker]
+  extends: .ubuntu18.04
+  needs: [ build-ubuntu18.04-dev ]
   script:
     - gitlab/run-dev.sh
 
-release-linux:
+release-ubuntu18.04:
   stage: release
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod-test
+  extends:
+    - .ubuntu18.04
+    - .linux-release-artifacts
   dependencies: []
-  tags: [docker]
   script:
    - gitlab/build.sh package
-  artifacts:
-    name: ospray_studio
-    paths:
-      - build/package/ospray_studio*
+
+release-centos7:
+  stage: release
+  extends:
+    - .centos7
+    - .linux-release-artifacts
+  needs: [ test-run-centos7 ]
+  script:
+    - source $SPACK_SETUP_ENV
+    - module load cmake/3.15.2
+    - module load gcc/5.4.0
+    - module load intel/2020.1
+    - export CC=icc
+    - export CXX=icpc
+    - export CXXFLAGS="-static-intel -static-libstdc++ -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
+    - gitlab/build.sh package
 
 release-windows:
   stage: release
+  extends:
+    - .windows
+    - .windows-release-artifacts
   dependencies: []
-  tags:
-    - msvc15
-    - win
   script:
     - gitlab\win.ps1 package
-  artifacts:
-    name: ospray_studio
-    paths:
-      - build-win/package/ospray_studio*
 
 release-macos:
   stage: release
+  extends:
+    - .macos-sign
+    - .macos-release-artifacts
   dependencies: []
-  tags:
-    - osx
-    - clang
-    - sign
   script:
    - gitlab/macos.sh package
-  artifacts:
-    name: ospray_studio
-    paths:
-      - build-macos/package/ospray_studio*
+  only:
+    - master
+    - /^release-.*$/
+    - devel
 
 scan-bdba-bin:
   stage: scan
-  image: $DOCKER_REGISTRY/ospray/docker-images:centos7
-  tags: [docker]
-  needs: [release-linux, release-windows, release-macos]
+  extends: .centos7
+  needs: [release-centos7, release-windows, release-macos]
   script:
     - gitlab/bdba.sh "build*/package/ospray_studio*"
     - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID bdba "ospray_studio*.pdf"
@@ -227,14 +310,21 @@ scan-bdba-bin:
     paths:
       - ospray_studio*.pdf
       - ospray_studio*.csv
+  only:
+    - master
+    - /^release-.*$/
+    - devel
 
 av:
   stage: scan
-  tags: [docker]
-  image: $DOCKER_REGISTRY/clamav:ubuntu20.04
-  needs: [release-linux, release-windows, release-macos]
+  extends: .ubuntu20.04
+  needs: [release-centos7, release-windows, release-macos]
   script:
     - freshclam | tee -a /tmp/av_scan.log
     - clamscan -va --max-filesize=512M --max-scansize=2048M --alert-broken --alert-exceeds-max build*/package/ospray_studio* | tee -a /tmp/av_scan.log
     - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID av /tmp/av_scan.log
+  only:
+    - master
+    - /^release-.*$/
+    - devel
 

@@ -18,13 +18,13 @@ void Animation::addTrack(AnimationTrackBase *track)
   timeRange.extend(track->times.back());
 }
 
-void Animation::update(const float time)
+void Animation::update(const float time, const float shutter)
 {
   if (!active)
     return;
 
   for (auto &t : tracks)
-    t->update(time);
+    t->update(time, shutter);
 }
 
 void AnimationTrackBase::updateIndex(const float time)
@@ -89,7 +89,7 @@ inline T cspline(
 }
 
 template <typename VALUE_T>
-void AnimationTrack<VALUE_T>::update(const float time)
+VALUE_T AnimationTrack<VALUE_T>::get(const float time)
 {
   updateIndex(time);
   const ssize_t idx0 = std::max(index, ssize_t(0));
@@ -114,24 +114,39 @@ void AnimationTrack<VALUE_T>::update(const float time)
     }
   }
 
-  target->setValue(val);
+  return val;
+}
+
+template <typename VALUE_T>
+void AnimationTrack<VALUE_T>::update(const float time, const float shutter)
+{
+  target->setValue(get(time));
+
+  if (shutter > 0.0f && interpolation != InterpolationMode::STEP) {
+    auto endKey = get(time + shutter);
+    if (!target->hasChild("endKey")) {
+      target->createChild("endKey");
+      target->child("endKey").setSGOnly();
+    }
+    target->child("endKey").setValue(endKey);
+  } else if (target->hasChild("endKey"))
+    target->remove("endKey");
 }
 
 template <>
-void AnimationTrack<NodePtr>::update(const float time)
+void AnimationTrack<NodePtr>::update(const float time, const float)
 {
   updateIndex(time);
   target->add(values[std::max(index, ssize_t(0))], "timeseries");
 }
 
-template void AnimationTrack<float>::update(const float);
+template void AnimationTrack<float>::update(const float, const float);
 template bool AnimationTrack<float>::valid();
-template void AnimationTrack<vec3f>::update(const float);
+template void AnimationTrack<vec3f>::update(const float, const float);
 template bool AnimationTrack<vec3f>::valid();
-template void AnimationTrack<quaternionf>::update(const float);
+template void AnimationTrack<quaternionf>::update(const float, const float);
 template bool AnimationTrack<quaternionf>::valid();
-template void AnimationTrack<NodePtr>::update(const float);
+template void AnimationTrack<NodePtr>::update(const float, const float);
 template bool AnimationTrack<NodePtr>::valid();
-
 } // namespace sg
 } // namespace ospray

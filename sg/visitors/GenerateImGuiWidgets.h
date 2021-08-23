@@ -280,6 +280,37 @@ inline bool generateWidget_vec3f(const std::string &title, Node &node)
   return false;
 }
 
+inline bool generateWidget_vec4f(const std::string &title, Node &node)
+{
+  vec4f v = node.valueAs<vec4f>();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s",
+        (node.name() + ": " + std::to_string(v.x) + ", " + std::to_string(v.y)
+            + ", " + std::to_string(v.z))
+            .c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  if (node.hasMinMax()) {
+    const float min = node.minAs<float>();
+    const float max = node.maxAs<float>();
+    if (ImGui::SliderFloat4(title.c_str(), v, min, max)) {
+      node.setValue(v);
+      return true;
+    }
+  } else {
+    if (ImGui::DragFloat4(title.c_str(), v)) {
+      node.setValue(v);
+      return true;
+    }
+  }
+
+  nodeTooltip(node);
+  return false;
+}
+
 inline bool generateWidget_rgb(const std::string &title, Node &node)
 {
   vec3f v = node.valueAs<vec3f>();
@@ -352,15 +383,15 @@ inline bool generateWidget_affine3f(const std::string &, Node &node)
   }
 
   ImGui::Text("%s", "linear space");
-  if (ImGui::DragFloat3("l.vx", a.l.vx) || ImGui::DragFloat3("l.vy", a.l.vy)
-      || ImGui::DragFloat3("l.vz", a.l.vz)) {
+  if (ImGui::DragFloat3("l.vx [vec3f]", a.l.vx) || ImGui::DragFloat3("l.vy [vec3f]", a.l.vy)
+      || ImGui::DragFloat3("l.vz [vec3f]", a.l.vz)) {
     node.setValue(a);
     nodeTooltip(node);
     return true;
   }
 
   ImGui::Text("%s", "affine space");
-  if (ImGui::DragFloat3("p", a.p)) {
+  if (ImGui::DragFloat3("p [vec3f]", a.p)) {
     node.setValue(a);
     nodeTooltip(node);
     return true;
@@ -436,6 +467,32 @@ inline bool generateWidget_range1f(const std::string &title, Node &node)
   return false;
 }
 
+inline bool generateWidget_quaternionf(const std::string &title, Node &node)
+{
+  quaternionf q = node.valueAs<quaternionf>();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s", (node.name() + ": quaternionf").c_str());
+    ImGui::Text("%s",
+        (node.name() + ": " + std::to_string(q.r) + ", " + std::to_string(q.i)
+            + ", " + std::to_string(q.j) + ", " + std::to_string(q.k))
+            .c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  vec4f v(q.r, q.i, q.j, q.k);
+  if (ImGui::DragFloat4(title.c_str(), v)) {
+    q = quaternionf(v.x, vec3f(v.y, v.z, v.w));
+    node.setValue(q);
+    nodeTooltip(node);
+    return true;
+  }
+
+  nodeTooltip(node);
+  return false;
+}
+
 inline bool generateWidget_string(const std::string &, Node &node)
 {
   std::string s = node.valueAs<std::string>();
@@ -460,6 +517,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"affine3f", generateWidget_affine3f},
     {"range1i", generateWidget_range1i},
     {"range1f", generateWidget_range1f},
+    {"quaternionf", generateWidget_quaternionf},
     {"string", generateWidget_string},
 };
 
@@ -471,7 +529,7 @@ inline GenerateImGuiWidgets::GenerateImGuiWidgets(TreeState state, bool &u)
 
 inline bool GenerateImGuiWidgets::operator()(Node &node, TraversalContext &ctx)
 {
-  std::string widgetName = node.name();
+  std::string widgetName = node.name() + " [" + node.subType() + "]";
 
   // Skip any nodes set to not show in the UI, and don't process children
   if (node.sgNoUI())
@@ -505,7 +563,6 @@ inline bool GenerateImGuiWidgets::operator()(Node &node, TraversalContext &ctx)
     }
   } else {
     // there is no generator for this type
-    widgetName += ": " + node.subType();
     ImGui::Text("%s", widgetName.c_str());
     nodeTooltip(node);
   }

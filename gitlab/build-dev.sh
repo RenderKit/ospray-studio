@@ -7,6 +7,7 @@
 # Override veresions set by CI
 OSPRAY_VER="devel"
 RKCOMMON_VER="devel"
+THREADS=`nproc`
 
 # Need a way to clean and force rebuild "ospray-devel" cache on a change to dependent branch
 # Ultimately, OSPRay CI is responsible for building OSPRay!  Studio should just use those artifacts.
@@ -34,4 +35,4 @@ mkdir build && cd build
 export CMAKE_PREFIX_PATH="$CACHE_DIR/ospray-$OSPRAY_VER/build/install"
 export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
 cmake -L -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
-make -j
+make -j $THREADS

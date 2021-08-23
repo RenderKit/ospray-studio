@@ -52,7 +52,7 @@ void Torus::generateData()
   auto R = parameters["R"].valueAs<float>();
 
   auto &xfm = child("xfm");
-  auto &tf = xfm.createChild("transfer_function", "transfer_function_jet");
+  auto &tf = xfm.createChild("transfer_function", "transfer_function_turbo");
 
   const int size_2 = size / 2;
 

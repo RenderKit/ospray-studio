@@ -158,7 +158,7 @@ inline std::shared_ptr<Importer> getImporter(
     auto count = 1;
     do {
       nodeName = baseName + "_instanceXfm_" + std::to_string(count++);
-    } while (origNode->hasChild(nodeName));
+    } while (root->hasChild(nodeName));
 
     auto instanceXfm = createNode(nodeName, "transform");
 

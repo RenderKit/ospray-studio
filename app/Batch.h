@@ -12,12 +12,10 @@
 #include "sg/renderer/MaterialRegistry.h"
 // Plugin
 #include <chrono>
-#include "PluginManager.h"
 #include "sg/scene/Animation.h"
 #include "sg/importer/Importer.h"
 
 using namespace rkcommon::math;
-using namespace ospray;
 using namespace ospray::sg;
 using rkcommon::make_unique;
 
@@ -38,32 +36,16 @@ class BatchContext : public StudioContext
   void renderFrame();
   void renderAnimation();
   bool refreshCamera(int cameraIdx, bool resetArcball = false);
-  // NodePtr world;
 
  protected:
-  PluginManager pluginManager;
   NodePtr importedModels;
-
-  std::string optRendererTypeStr = "pathtracer";
-  std::string optCameraTypeStr   = "perspective";
-  std::string optImageName       = "ospBatch";
-  vec2i optImageSize             = {1024, 768};
-  int optSPP                     = 32;
-  float optVariance              = 0.f; // varianceThreshold
-  int optPF                      = -1; // use default
-  int optDenoiser                = 0;
-  bool optGridEnable             = false;
-  vec3i optGridSize              = {1, 1, 1};
-  // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
-  int optStereoMode               = 0;
-  float optInterpupillaryDistance = 0.0635f;
   bool cmdlCam{false};
   vec3f pos, up{0.f, 1.f, 0.f}, gaze{0.f, 0.f, 1.f};
   bool saveAlbedo{false};
   bool saveDepth{false};
   bool saveNormal{false};
   bool saveLayers{false};
-  bool saveMetaData{false};
+  bool saveMetaData{true};
   std::string optImageFormat{"png"};
   bool animate{false};
   int fps{24};

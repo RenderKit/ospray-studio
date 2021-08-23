@@ -150,7 +150,7 @@ cmake -L `
   -D ENABLE_OPENVDB=OFF `
   -D ENABLE_EXR=OFF `
   ..
-cmake --build . --parallel -j --config Release --target install
+cmake --build . --parallel $env:NUMBER_OF_PROCESSORS --config Release --target install
 
 popd
 echo "done"

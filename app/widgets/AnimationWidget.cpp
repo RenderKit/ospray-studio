@@ -33,7 +33,7 @@ void AnimationWidget::update()
         play = false;
       }
   }
-  animationManager->update(time);
+  animationManager->update(time, shutter);
   lastUpdated = now;
 }
 
@@ -65,6 +65,10 @@ void AnimationWidget::addAnimationUI()
     ImGui::SameLine();
     ImGui::Text("%.*f", std::max(0, int(1.99f - exp)), speedup);
   }
+
+  if (ImGui::SliderFloat("shutter", &shutter, 0.0f, timeRange.size()))
+    modified = true;
+
   for (auto &a : animations)
     ImGui::Checkbox(a.name.c_str(), &a.active);
 

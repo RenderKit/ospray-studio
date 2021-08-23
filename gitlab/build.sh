@@ -11,6 +11,8 @@ then
     fi
 fi
 
+THREADS=`nproc`
+
 cmake --version
 
 mkdir -p build && cd build
@@ -23,7 +25,7 @@ then
         -D ENABLE_EXR=OFF \
         -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_LINUX \
         ..
-    cmake --build . --parallel --config Release
+    cmake --build . --parallel $THREADS --config Release
     cpack -B "${PWD}/package" -V
 else
     cmake -L \
@@ -32,5 +34,5 @@ else
         -D ENABLE_OPENVDB=OFF \
         -D ENABLE_EXR=OFF \
         ..
-    cmake --build . --parallel --config Release --target install
+    cmake --build . --parallel $THREADS --config Release --target install
 fi

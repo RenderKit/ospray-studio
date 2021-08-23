@@ -46,7 +46,7 @@ UnstructuredVol::UnstructuredVol()
 void UnstructuredVol::generateData()
 {
   auto &xfm = child("xfm");
-  auto &tf = xfm.createChild("transferFunction", "transfer_function_jet");
+  auto &tf = xfm.createChild("transferFunction", "transfer_function_turbo");
 
   auto &parameters = child("parameters");
 

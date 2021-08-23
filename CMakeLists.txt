@@ -3,29 +3,29 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-project(ospray_studio VERSION 0.7.0 LANGUAGES CXX)
+project(ospray_studio VERSION 0.8.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
+include(ProcessorCount)
+
+ProcessorCount(PROCESSOR_COUNT)
+set(NUM_BUILD_JOBS ${PROCESSOR_COUNT} CACHE STRING "Number of build jobs '-j <n>'")
+
+set(DEFAULT_BUILD_COMMAND cmake --build . --config release -j ${NUM_BUILD_JOBS})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Install location." FORCE)
+endif()
 
 set (CMAKE_CXX_STANDARD 14 CACHE STRING
      "C++ standard for preference (11, 14, 17, 20, etc.)")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 message (STATUS "This build is for C++${CMAKE_CXX_STANDARD}")
-
-# option(OSPSTUDIO_USE_CXX11_ABI "Use the 2011 C++ standard ABI" OFF)
-# mark_as_advanced(OSPSTUDIO_USE_CXX11_ABI)
-# if(NOT OSPSTUDIO_USE_CXX11_ABI)
-#   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-#     # Currently, OSPRay is compiled with C++11, so we have ensure a compatible ABI when using gcc
-#     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
-#     message (STATUS "...with ${CMAKE_CXX_FLAGS}")
-#   endif()
-# endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -44,7 +44,9 @@ else()
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CONFIGURATION_TYPES})
 endif()
 
-## globals
+## global options and variables
+option(OSPRAY_INSTALL "Install OSPRay libraries in addition to OSPRay Studio libraries / binaries" ON)
+
 set(OSPRAY_STUDIO_RESOURCE_FILE "${PROJECT_SOURCE_DIR}/resources/ospray_studio.rc")
 if(APPLE)
   ## ensures that build-time executables contain install-time rpaths, ensuring
@@ -95,6 +97,14 @@ if (BUILD_APPS AND BUILD_PLUGINS)
   add_subdirectory(plugins)
 endif()
 
+install(FILES
+  ${PROJECT_SOURCE_DIR}/LICENSE.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-OSPRay.txt
+  ${PROJECT_SOURCE_DIR}/CHANGELOG.md
+  ${PROJECT_SOURCE_DIR}/README.md
+  DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT apps
+)
 
 include(package)
 # must be last

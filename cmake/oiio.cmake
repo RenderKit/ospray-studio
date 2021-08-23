@@ -5,6 +5,7 @@ endif()
 
 ## Look for any available version
 message(STATUS "Looking for OpenImageIO...")
+
 find_package(OpenImageIO QUIET)
 
 if(NOT DEFINED OIIO_VERSION)

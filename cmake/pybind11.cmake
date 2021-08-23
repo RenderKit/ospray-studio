@@ -33,7 +33,7 @@ if(NOT "${pybind11_FOUND}")
   if(NOT pybind11_POPULATED)
     FetchContent_Populate(pybind11)
     ## the subdir will still be built since targets depend on it, but it won't be installed
-    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BUILD_DIR} EXCLUDE_FROM_ALL)
+    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 
 endif()

@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -13,6 +13,11 @@ class AnimationWidget
   ~AnimationWidget();
   void addAnimationUI();
 
+  float getShutter()
+  {
+    return shutter;
+  }
+
  private:
   bool play{false};
   bool loop{true};
@@ -21,5 +26,6 @@ class AnimationWidget
   std::shared_ptr<AnimationManager> animationManager;
   std::chrono::time_point<std::chrono::system_clock> lastUpdated;
   float time{0.0f};
+  float shutter{0.0f};
   void update();
 };

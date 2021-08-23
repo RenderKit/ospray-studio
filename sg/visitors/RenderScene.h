@@ -10,6 +10,7 @@
 #include "sg/scene/lights/Light.h"
 #include "sg/camera/Camera.h"
 #include "app/ArcballCamera.h"
+#include "sg/scene/volume/Volume.h"
 // std
 #include <stack>
 
@@ -19,6 +20,7 @@ namespace ospray {
   struct RenderScene : public Visitor
   {
     RenderScene();
+    ~RenderScene();
     RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
@@ -38,12 +40,7 @@ namespace ospray {
 
     struct
     {
-      std::vector<cpp::GeometricModel> geometries;
-      std::vector<cpp::VolumetricModel> volumes;
-      std::vector<cpp::GeometricModel> clippingGeometries;
-      // make this a shared pointer instead of vector
       std::vector<cpp::Texture> textures;
-      // make this a shared pointer instead of vector
       std::vector<cpp::Material> materials;
       // cpp::Group group;
       // Apperance information:
@@ -54,7 +51,12 @@ namespace ospray {
     bool setTextureVolume{false};
     cpp::World world;
     std::vector<cpp::Instance> instances;
+    // string identifier associated with a geometry
+    std::vector<cpp::Group> groups;
+    int groupIndex{0};
     std::stack<affine3f> xfms;
+    std::stack<affine3f> endXfms;
+    std::stack<bool> xfmsDiverged;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
     std::string instanceId{""};
@@ -71,11 +73,20 @@ namespace ospray {
   inline RenderScene::RenderScene()
   {
     xfms.emplace(math::one);
+    endXfms.emplace(math::one);
+    xfmsDiverged.emplace(false);
+  }
+
+  inline RenderScene::~RenderScene()
+  {
+    groups.clear();
   }
 
   inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId)
   {
     xfms.emplace(math::one);
+    endXfms.emplace(math::one);
+    xfmsDiverged.emplace(false);
     g = &geomIdMap;
     in = &instanceIdMap;
     camXfm = cameraToWorld;
@@ -97,6 +108,9 @@ namespace ospray {
       setTextureVolume = true;
       current.textures.push_back(node.valueAs<cpp::Texture>());
       break;
+    case NodeType::GEOMETRY:
+      createGeometry(node);
+      break;
     case NodeType::VOLUME:
       createVolume(node);
       traverseChildren = false;
@@ -106,12 +120,37 @@ namespace ospray {
       break;
     case NodeType::TRANSFORM: {
       affine3f xfm =
-          affine3f::rotate(node.child("rotation").valueAs<quaternionf>())
-          * affine3f::scale(node.child("scale").valueAs<vec3f>());
+          affine3f::rotate(node.child("rotation").valueAs<quaternionf>());
+      affine3f endXfm = xfm;
+      bool diverged = false;
+      if (node.child("rotation").hasChild("endKey")) {
+        diverged = true;
+        endXfm = affine3f::rotate(
+            node.child("rotation").child("endKey").valueAs<quaternionf>());
+      }
+
+      const affine3f sxfm =
+          affine3f::scale(node.child("scale").valueAs<vec3f>());
+      xfm *= sxfm;
+      if (node.child("scale").hasChild("endKey")) {
+        diverged = true;
+        endXfm *= affine3f::scale(
+            node.child("scale").child("endKey").valueAs<vec3f>());
+      } else
+        endXfm *= sxfm;
+
       xfm.p = node.child("translation").valueAs<vec3f>();
+      if (node.child("translation").hasChild("endKey")) {
+        diverged = true;
+        endXfm.p = node.child("translation").child("endKey").valueAs<vec3f>();
+      } else
+        endXfm.p = xfm.p;
+
       auto xfmNode = node.nodeAs<Transform>();
       xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
       xfms.push(xfmNode->accumulatedXfm);
+      endXfms.push(endXfms.top() * endXfm * node.valueAs<affine3f>());
+      xfmsDiverged.push(xfmsDiverged.top() || diverged);
 
       if (node.hasChildOfSubType("camera_perspective")
           || node.hasChildOfSubType("camera_orthographic")) {
@@ -153,15 +192,14 @@ namespace ospray {
       placeInstancesInWorld();
       world.commit();
       break;
-    case NodeType::GEOMETRY:
-      createGeometry(node);
-      break;
     case NodeType::TRANSFER_FUNCTION:
       tfns.pop();
       break;
     case NodeType::TRANSFORM:
       createInstanceFromGroup(node);
       xfms.pop();
+      endXfms.pop();
+      xfmsDiverged.pop();
       if (node.hasChild("instanceID")) {
           instanceId = "";
       }
@@ -176,16 +214,23 @@ namespace ospray {
 
   inline void RenderScene::createGeometry(Node &node)
   {
-    if (!node.child("visible").valueAs<bool>())
+    auto geomNode = node.nodeAs<Geometry>();
+
+    if (!node.child("visible").valueAs<bool>()) {
+      geomNode->groupIndex = -1;
+      return;
+    }
+
+    if (geomNode->groupIndex >= 0 && geomNode->groupIndex < groups.size())
       return;
 
     // skinning
-    auto geomNode = node.nodeAs<Geometry>();
     if (geomNode->skin) {
       auto &joints = geomNode->skin->joints;
       auto &inverseBindMatrices = geomNode->skin->inverseBindMatrices;
       const size_t weightsPerVertex = geomNode->weightsPerVertex;
       size_t weightIdx = 0;
+
       for (size_t i = 0; i < geomNode->positions.size(); ++i) { // XXX parallel
         affine3f xfm{zero};
         for (size_t j = 0; j < weightsPerVertex; ++j, ++weightIdx) {
@@ -201,13 +246,13 @@ namespace ospray {
         if (geomNode->skinnedNormals.size())
           geomNode->skinnedNormals[i] = xfmNormal(xfm, geomNode->normals[i]);
       }
+
+      // Recommit the cpp::Group for skinned animation to take effect
+      geomNode->group->commit();
     }
 
-    auto geom = node.valueAs<cpp::Geometry>();
-    cpp::GeometricModel model(geom);
-    auto ospGeometricModel = model.handle();
-
     if (g != nullptr) {
+      auto ospGeometricModel = geomNode->model->handle();
       // if geometric Id was set by a parent transform node
       // this happens in very specific cases like BIT reference extensions
       if (!geomId.empty())
@@ -218,40 +263,21 @@ namespace ospray {
       }
     }
 
-    if (node.hasChild("material")) {
-      if (node["material"].valueIsType<cpp::CopiedData>())
-        model.setParam("material", node["material"].valueAs<cpp::CopiedData>());
-      else
-        model.setParam("material",
-            cpp::CopiedData(std::vector<uint32_t>{
-                node["material"].valueAs<unsigned int>()}));
-    } else {
-      if (current.materials.size() != 0) {
-        model.setParam("material", cpp::CopiedData(*current.materials.begin()));
-        current.materials.clear();
-      } else
-        model.setParam("material", cpp::CopiedData(std::vector<uint32_t>{0}));
-    }
-
-    if (node.hasChild("color")) {
-      if (node["color"].valueIsType<cpp::CopiedData>())
-        model.setParam("color", node["color"].valueAs<cpp::CopiedData>());
-      else
-        model.setParam("color",
-            cpp::CopiedData(std::vector<vec4f>{
-                node["color"].valueAs<vec4f>()}));
-    }
-
-    model.commit();
-    if (!node.child("isClipping").valueAs<bool>())
-      current.geometries.push_back(model);
-    else
-      current.clippingGeometries.push_back(model);
+    groups.push_back(*geomNode->group);
+    geomNode->groupIndex = groupIndex;
+    groupIndex++;
   }
 
   inline void RenderScene::createVolume(Node &node)
   {
-    if (!node.child("visible").valueAs<bool>())
+    auto volNode = node.nodeAs<sg::Volume>();
+
+    if (!node.child("visible").valueAs<bool>()) {
+      volNode->groupIndex = -1;
+      return;
+    }
+
+    if (volNode->groupIndex >= 0 && volNode->groupIndex < groups.size())
       return;
 
     auto &vol = node.valueAs<cpp::Volume>();
@@ -276,23 +302,14 @@ namespace ospray {
     if (node.hasChild("maxPathDepth"))
       model.setParam("maxPathDepth", node["maxPathDepth"].valueAs<int>());
     model.commit();
-    if (setTextureVolume) {
-      auto &tex = *current.textures.begin();
-      tex.setParam("volume", model);
-      tex.commit();
 
-      // fix the following by allowing material registry communication and,
-      // adding a material directly in the material registry
-      // whose material reference can be added to the geometry
-      cpp::Material texmaterial("scivis", "obj");
-      texmaterial.setParam("map_kd", tex);
-      texmaterial.commit();
-      current.materials.push_back(texmaterial);
+    cpp::Group group;
+    group.setParam("volume", cpp::CopiedData(model));
 
-      current.textures.clear();
-      setTextureVolume = false;
-    } else
-      current.volumes.push_back(model);
+    group.commit();
+    groups.push_back(group);
+    volNode->groupIndex = groupIndex;
+    groupIndex++;
   }
 
   inline void RenderScene::createInstanceFromGroup(Node &node)
@@ -302,44 +319,72 @@ namespace ospray {
               << std::endl;
     #endif
 
-    if (current.geometries.empty() && current.volumes.empty()
-        && current.clippingGeometries.empty())
-      return;
-
-    cpp::Group group;
-    group.setParam("dynamicScene", node.child("dynamicScene").valueAs<bool>());
-    group.setParam("compactMode", node.child("compactMode").valueAs<bool>());
-    group.setParam("robustMode", node.child("robustMode").valueAs<bool>());
-
-    if (!current.geometries.empty())
-      group.setParam("geometry", cpp::CopiedData(current.geometries));
-
-    if (!current.volumes.empty())
-      group.setParam("volume", cpp::CopiedData(current.volumes));
-
-    if (!current.clippingGeometries.empty())
+    auto setInstance = [&](auto group) {
       group.setParam(
-          "clippingGeometry", cpp::CopiedData(current.clippingGeometries));
+          "dynamicScene", node.child("dynamicScene").valueAs<bool>());
+      group.setParam("compactMode", node.child("compactMode").valueAs<bool>());
+      group.setParam("robustMode", node.child("robustMode").valueAs<bool>());
 
-    current.geometries.clear();
-    current.volumes.clear();
-    current.clippingGeometries.clear();
+      cpp::Instance inst(group);
+      if (xfmsDiverged.top()) { // motion blur
+        std::vector<affine3f> motionXfms;
+        motionXfms.push_back(xfms.top());
+        motionXfms.push_back(endXfms.top());
+        inst.setParam("motion.transform", cpp::CopiedData(motionXfms));
+      } else
+        inst.setParam("transform", xfms.top());
+      inst.commit();
+      instances.push_back(inst);
 
-    group.commit();
+      if (in != nullptr && !instanceId.empty()) {
+        auto ospInstance = inst.handle();
+        in->insert(InstanceIdMap::value_type(
+            ospInstance, std::make_pair(instanceId, xfms.top())));
+      }
+    };
 
-    cpp::Instance inst(group);
-    inst.setParam("xfm", xfms.top());
-    inst.commit();
-    instances.push_back(inst);
-
-    if (in != nullptr && !instanceId.empty()) {
-      auto ospInstance = inst.handle();
-      in->insert(InstanceIdMap::value_type(ospInstance, std::make_pair(instanceId, xfms.top())));
+    if (node.hasChildOfType(NodeType::GEOMETRY)) {
+      auto &geomChildren = node.childrenOfType(NodeType::GEOMETRY);
+      for (auto geom : geomChildren) {
+        auto geomNode = geom->nodeAs<Geometry>();
+        auto geomIdentifier = geomNode->groupIndex;
+        if (geomIdentifier >= 0 && geomIdentifier < groups.size()) {
+          auto &group = groups[geomIdentifier];
+          setInstance(group);
+        }
+      }
     }
-    
-    #if defined(DEBUG)
-    std::cout << "number of instances : " << instances.size() << std::endl;
-    #endif
+
+    if (node.hasChildOfType(NodeType::VOLUME)) {
+      auto &volChildren = node.childrenOfType(NodeType::VOLUME);
+      for (auto vol : volChildren) {
+        auto volNode = vol->nodeAs<Volume>();
+        auto volumeIdentifier = volNode->groupIndex;
+        if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
+          auto &group = groups[volumeIdentifier];
+          setInstance(group);
+        }
+      }
+    }
+
+    if (node.hasChildOfType(NodeType::TRANSFER_FUNCTION)) {
+      auto &tfnChildren = node.childrenOfType(NodeType::TRANSFER_FUNCTION);
+      for (auto tfn : tfnChildren) {
+        auto volChildren = tfn->childrenOfType(NodeType::VOLUME);
+        for (auto vol : volChildren) {
+          auto volNode = vol->nodeAs<sg::Volume>();
+          auto volumeIdentifier = volNode->groupIndex;
+          if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
+            auto &group = groups[volumeIdentifier];
+            setInstance(group);
+          }
+        }
+      }
+    }
+
+#if defined(DEBUG)
+      std::cout << "number of instances : " << instances.size() << std::endl;
+#endif
   }
 
   inline void RenderScene::setLightParams(Node &node)
