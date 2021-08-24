@@ -87,6 +87,15 @@ footer span + span::before {
   background-size: cover;
   background-repeat: no-repeat;
 }
+@media (any-hover: hover) {
+.parallax {
+  min-height: 256px;
+  background-attachment: initial;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+}
 
 .img-circle {
   border-radius: 50%;
