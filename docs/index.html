@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+  <link href="static-fw/bootstrap-5.0.0-beta2-dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="static-fw/fonts/font-awesome-4.7.0/css/font-awesome.css" rel="stylesheet"/>
+  <link href="static-fw/css/intel.css" rel="stylesheet"/>
+  <link href="static-fw/css/arvacode.css" rel="stylesheet"/>
+  <title>
+   Intel OSPRay Studio
+  </title>
+  <style>
+   .news-image {
+        height: 512px;
+    }
+    #release-news {
+        background-color: #262626;
+        color: #FFFFFF;
+    }
+    
+      
+    #heightmap .card {
+        background-color: #FF56627F;
+        color: white;
+    }
+  </style>
+ </head>
+ <body>
+  <header>
+   <!-- main navbar, collapses to hamburger at 'small' sizes -->
+   <nav class="navbar navbar-expand-md navbar-light bg-light">
+    <!-- container-xl stops setting width to 100% after xl size -->
+    <div class="container-xl">
+     <a class="navbar-brand" href="#">
+      <img alt="" height="48" id="product-logo" src="images/studio_1125.png"/>
+     </a>
+     <!-- hamburger, shows when nav is collapsed, putting it after brand right-aligns it -->
+     <button aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-bs-target="#main-navbar" data-bs-toggle="collapse" type="button">
+      <span class="navbar-toggler-icon">
+      </span>
+     </button>
+     <div class="collapse navbar-collapse" id="main-navbar">
+      <!-- main navigation links -->
+      <ul class="navbar-nav">
+       <li class="nav-item">
+        <a class="nav-link" href="gallery.html">
+         Gallery
+        </a>
+       </li>
+       <li class="nav-item dropdown">
+        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="f60d5fa4-3d78-45a1-9522-89128a9fab72" role="button">
+         Documentation
+        </a>
+        <ul aria-labelledby="f60d5fa4-3d78-45a1-9522-89128a9fab72" class="dropdown-menu">
+         <li class="nav-item">
+          <a class="nav-link" href="api.html">
+           API Documentation
+          </a>
+         </li>
+        </ul>
+       </li>
+       <li class="nav-item dropdown">
+        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="f7658ec5-66ff-484c-aef0-6a7d6c584bd1" role="button">
+         RenderKit
+        </a>
+        <ul aria-labelledby="f7658ec5-66ff-484c-aef0-6a7d6c584bd1" class="dropdown-menu">
+         <li class="nav-item">
+          <a class="nav-link" href="https://www.openimagedenoise.org">
+           Intel® Open Image Denoise
+          </a>
+         </li>
+         <li class="nav-item">
+          <a class="nav-link" href="https://www.openvkl.org">
+           Intel® Open VKL
+          </a>
+         </li>
+         <li class="nav-item">
+          <a class="nav-link" href="https://www.ospray.org">
+           Intel® OSPRay
+          </a>
+         </li>
+        </ul>
+       </li>
+      </ul>
+      <a class="nav-link ms-auto" href="https://github.com/ospray/ospray_studio">
+       <li class="fa fa-fw fa-github">
+       </li>
+       GitHub
+      </a>
+      <a class="nav-link" href="https://github.com/ospray/ospray_studio/releases">
+       <li class="fa fa-fw fa-download">
+       </li>
+       Download
+      </a>
+     </div>
+    </div>
+   </nav>
+  </header>
+  <main class="container-fluid" id="main-content">
+   <div class="row banner">
+    <div class="col-12 px-0">
+     <img alt="" class="img-fluid w-100" src="images/crown3_crop.jpg"/>
+    </div>
+   </div>
+   <div class="container-lg blurb">
+    <div class="row justify-content-center py-5">
+     <div class="col-lg-9">
+      <h1>
+       Fast, easy, &amp; extensible rendering
+      </h1>
+      <p>
+       Intel® OSPRay Studio is an open source and interactive visualization
+    and ray tracking application that leverages
+       <a href="https://www.ospray.org">
+        Intel OSPRay
+       </a>
+       as its core rendering
+    engine. It can be used to load complex scenes requiring high fidelity
+    rendering or very large scenes requiring supercomputing resources.
+      </p>
+      <p>
+       OSPRay Studio is released as open source under the Apache 2.0 license.
+      </p>
+      <p>
+       Austrian Crown model courtesy of Martin Lubich (
+       <a href="https://www.loramel.net">
+        www.loramel.net
+       </a>
+       )
+      </p>
+     </div>
+     <div class="col-lg-3" id="blurb-contact">
+      <h2>
+       Get in touch
+      </h2>
+      <ul class="list-unstyled">
+       <li>
+        <a href="mailto:ospraystudio@googlegroups.com">
+         <i class="fa fa-envelope-o fa-fw">
+         </i>
+         Contact us
+        </a>
+       </li>
+       <li>
+        <a href="https://groups.google.com/g/ospraystudio">
+         <i class="fa fa-envelope-o fa-fw">
+         </i>
+         Subscribe to our mailing list
+        </a>
+       </li>
+      </ul>
+      <ul class="list-unstyled">
+       <li>
+        <a href="https://github.com/ospray/ospray_studio">
+         <i class="fa fa-github fa-fw">
+         </i>
+         GitHub
+        </a>
+       </li>
+       <li>
+        <a href="https://github.com/ospray/ospray_studio/issues">
+         <i class="fa fa-bug fa-fw">
+         </i>
+         Report a bug
+        </a>
+       </li>
+      </ul>
+      <ul class="list-unstyled">
+       <li>
+        <a href="https://www.apache.org/licenses/LICENSE-2.0">
+         <i class="fa fa-file-text-o fa-fw">
+         </i>
+         Apache 2.0 License
+        </a>
+       </li>
+      </ul>
+     </div>
+    </div>
+   </div>
+   <!-- end of blurb -->
+   <div class="row justify-content-center py-5 release-notes">
+    <div class="col-sm-5">
+     <h2 id="release-version">
+      Current Release: v0.8
+     </h2>
+     <p>
+      This release includes increased scenegraph performance for large scenes,
+        improved scenegraph search functionality, support for OSPRay camera and
+        transformation motion blur, and support for UDIM texture tiling,
+        plus other new features and improvements. See our release page
+        for details.
+     </p>
+     <ul class="list-unstyled">
+      <li>
+       <a href="https://github.com/ospray/ospray_studio/releases">
+        <i class="fa fa-github fa-fw">
+        </i>
+        Get it on GitHub
+       </a>
+      </li>
+      <li>
+       <a href="https://github.com/ospray/ospray_studio/releases/latest">
+        <i class="fa fa-file-text-o fa-fw">
+        </i>
+        Full release notes
+       </a>
+      </li>
+     </ul>
+    </div>
+   </div>
+   <!-- end of release-notes -->
+   <div class="row py-5 parallax news-image" style="background-image:url(images/Bentley/Hero-4k-FS.jpg);">
+   </div>
+   <div class="row justify-content-center py-5 news-content" id="release-news">
+    <div class="col-sm-6">
+     <h2>
+      OSPRay Studio presented at EuroVis 2021
+     </h2>
+     <p>
+      OSPRay Studio was presented at the
+      <a href="https://visgap.gitlab.io/visgap21/">
+       VisGap workshop
+      </a>
+      ,
+        co-located with the
+      <a href="https://www.eurovis.org/">
+       EuroVis 2021
+      </a>
+      conference.
+     </p>
+     <p>
+      View the paper
+      <a href="https://doi.org/10.2312/visgap.20211086">
+       here
+      </a>
+      , and the
+        presentation
+      <a href="https://www.youtube.com/watch?v=5gQabNJjuVk&amp;t=3683s">
+       here
+       <a>
+       </a>
+      </a>
+     </p>
+    </div>
+   </div>
+   <div class="row justify-content-center py-5 feature-gallery">
+    <div class="row justify-content-center pb-5">
+     <div class="col-sm-6">
+      <h2>
+       Built-in Importers
+      </h2>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Vehicles/Cobra-427-SC.jpg"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        OBJ/MTL
+       </h5>
+       <p class="card-text">
+        OSPRay Studio supports an extended MTL format that includes
+        OSPRay's photorealistic pathtracer renderer materials
+       </p>
+       <a class="card-link" href="https://www.cgtrader.com/3d-models/car/sport/shelby-cobra-427-543c391f-b94f-4a19-b7d0-78ef28eb2bc2">
+        Shelby Cobra 427 model courtesy of redowl on CGTrader
+       </a>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <video autoplay="" class="card-img-top mx-auto" loop="" muted="">
+       <source src="images/DizzyDrone15.mp4"/>
+       Could not load embedded video.
+      </video>
+      <div class="card-body">
+       <h5 class="card-title">
+        glTF
+       </h5>
+       <p class="card-text">
+        Load glTF files, a growing popular 3D file format,
+        now including animations
+       </p>
+       <a class="card-link" href="https://sketchfab.com/3d-models/buster-drone-294e79652f494130ad2ab00a13fdbafd">
+        Buster Drone from LaVADraGoN on Sketchfab
+       </a>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/ALab3.png"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        UDIM Texture Support
+       </h5>
+       <p class="card-text">
+        Render scenes with assets using Weta's tiled texture format
+       </p>
+       <a class="card-link" href="https://animallogic.com/animal-logic/news/usd-alab/">
+        ALab courtesy of Animal Logic
+       </a>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Clouds.jpeg"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        VDB Sparse Volumes
+       </h5>
+       <p class="card-text">
+        Load cloudscapes, such as the one we presented at
+        SIGGRAPH 2020 using VDB sparse volumes
+       </p>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/hacc.jpeg"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        Particle Volumes
+       </h5>
+       <p class="card-text">
+        Interactively render large particle volumes, such as
+        simulations of galactic formation
+       </p>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/PCD_warehouse.png"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        PCD Point Clouds
+       </h5>
+       <p class="card-text">
+        Render point clouds in PCD format, e.g. from photogrammetric
+        scans from a plane or done
+       </p>
+       <a class="card-link" href="https://dx.doi.org/10.21227/zyxc-wq04">
+        PCD Warehouse from IEEE DataPort
+       </a>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div class="row justify-content-center py-5 parallax feature-hero" id="heightmap" style="background-image:url(images/Plugins/FUN3D.png);">
+    <div class="col-3">
+    </div>
+    <!-- just for spacing -->
+    <div class="col-lg-3">
+     <div class="card">
+      <div class="card-body">
+       <h4 class="card-title">
+        Extensible via plugins
+       </h4>
+       <p class="card-text">
+        OSPRay Studio can be extended using our plugin architecture.
+        Need a new importer? That's a plugin. Need a new functionality?
+        That's a plugin. Need a generator to build terrain from a heightmap?
+        That's already a plugin!
+       </p>
+       <p class="card-text">
+        Which plugins you use can be customized every time you launch
+        OSPRay Studio. We will continue developing plugins as well to expand
+        functionality for new workflows.
+       </p>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div class="row justify-content-center py-5 feature-gallery">
+    <div class="row justify-content-center pb-5">
+     <div class="col-sm-6">
+      <h2>
+       Selected Plugins
+      </h2>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Plugins/DICOM/DICOM_NoGUI.png"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        DICOM Importer
+       </h5>
+       <p class="card-text">
+        This plugin enables loading DICOM formatted medical imaging datasets
+       </p>
+       <a class="card-link" href="https://medicine.uiowa.edu/mri/facility-resources/images/visible-human-project-ct-datasets">
+        Data from University of Iowa Visible Human dataset
+       </a>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Plugins/Rainier.jpg"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        Heightmap
+       </h5>
+       <p class="card-text">
+        Generate terrain from digital elevation models
+       </p>
+       <a class="card-link" href="https://www2.jpl.nasa.gov/srtm/">
+        Mt. Rainier DEM from NASA's SRTM project
+       </a>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Plugins/DICOM/DICOM_Slicer_NoGUI.png"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        Slicer
+       </h5>
+       <p class="card-text">
+        Easily cut away geometries and volumes, optionally with a cross-sectional texture
+       </p>
+       <a class="card-link" href="https://medicine.uiowa.edu/mri/facility-resources/images/visible-human-project-ct-datasets">
+        Data from University of Iowa Visible Human dataset
+       </a>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Plugins/moarb.png"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        Moar Instances
+       </h5>
+       <p class="card-text">
+        Create and manipulate large groups of instances of different geometries
+       </p>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Plugins/HemeLB.png"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        HemeLB Importer
+       </h5>
+       <p class="card-text">
+        Load and visualize sparse volume simulations of blood flow
+       </p>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Plugins/HACC_UI.png"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        HACC Importer
+       </h5>
+       <p class="card-text">
+        HACC drives ultrascale cosmological simulations, the
+        output of which can be viewed with this plugin
+       </p>
+      </div>
+     </div>
+    </div>
+    <div class="col-sm-4 col-md-4 feature.html">
+     <div class="card text-center mb-5">
+      <img class="card-img-top mx-auto" src="images/Plugins/VTPStreamlines.png"/>
+      <div class="card-body">
+       <h5 class="card-title">
+        VTK Importer
+       </h5>
+       <p class="card-text">
+        Load various VTK file formats (unstructured data, points, meshes), such as data
+        exported from ParaView
+       </p>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div class="row photos justify-content-center py-5 customers">
+    <div class="col-12 col-md-8 col-lg-6 text-center">
+     <h2>
+      Intel® OSPRay Studio is used in collaboration with
+     </h2>
+     <div class="row justify-content-center py-5">
+      <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-3 text-center">
+       <a href="https://bentleymotors.com">
+        <img class="img-fluid" src="images/Logos/BentleyMotorsLtd.png"/>
+       </a>
+      </div>
+      <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-3 text-center">
+       <a href="https://www.lrz.de//">
+        <img class="img-fluid" src="images/Logos/LRZ.png"/>
+       </a>
+      </div>
+     </div>
+    </div>
+   </div>
+  </main>
+  <footer>
+   <nav class="navbar navbar-expand-sm navbar-light">
+    <div class="container-xl">
+     <ul class="navbar-nav">
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com">
+        © 2021 Intel Corporation
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com/content/www/us/en/legal/terms-of-use.html">
+        Terms of Use
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com/content/www/us/en/legal/trademarks.html">
+        Trademarks
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com/content/www/us/en/privacy/intel-privacy-notice.html">
+        Privacy
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com/content/www/us/en/privacy/intel-cookie-notice.html">
+        Cookies
+       </a>
+      </li>
+     </ul>
+    </div>
+   </nav>
+  </footer>
+  <script src="static-fw/bootstrap-5.0.0-beta2-dist/js/bootstrap.bundle.min.js">
+  </script>
+ </body>
+</html>

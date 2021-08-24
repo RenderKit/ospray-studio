@@ -1,1 +1,0 @@
-# OSPRay Studio
