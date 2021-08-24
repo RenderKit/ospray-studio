@@ -1,0 +1,143 @@
+@font-face {
+  font-family: "Intel Clear";
+  src: url("../fonts/IntelClearLatn/IntelClear_WLat_Rg.eot");
+  src: url("../fonts/IntelClearLatn/IntelClear_WLat_Rg.eot?#iefix") format('embedded-opentype'), /* IE6-8 */
+       url("../fonts/IntelClearLatn/IntelClear_WLat_Rg.woff") format('woff'),
+       url("../fonts/IntelClearLatn/IntelClear_WLat_Rg.ttf") format('truetype'); /* Safari, Android, iOS */
+}
+
+@font-face {
+  font-family: "Intel Clear";
+  src: url("../fonts/IntelClearLatn/IntelClear_WLat_Bd.eot");
+  src: url("../fonts/IntelClearLatn/IntelClear_WLat_Bd.eot?#iefix") format('embedded-opentype'), /* IE6-8 */
+       url("../fonts/IntelClearLatn/IntelClear_WLat_Bd.woff") format('woff'),
+       url("../fonts/IntelClearLatn/IntelClear_WLat_Bd.ttf") format('truetype'); /* Safari, Android, iOS */
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: "Intel Clear";
+  src: url("../fonts/IntelClearLatn/IntelClear_WLat_It.eot");
+  src: url("../fonts/IntelClearLatn/IntelClear_WLat_It.eot?#iefix") format('embedded-opentype'), /* IE6-8 */
+       url("../fonts/IntelClearLatn/IntelClear_WLat_It.woff") format('woff'),
+       url("../fonts/IntelClearLatn/IntelClear_WLat_It.ttf") format('truetype'); /* Safari, Android, iOS */
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Intel Clear";
+  src: url("../fonts/IntelClearLatn/IntelClear_WLat_BdIt.eot");
+  src: url("../fonts/IntelClearLatn/IntelClear_WLat_BdIt.eot?#iefix") format('embedded-opentype'), /* IE6-8 */
+       url("../fonts/IntelClearLatn/IntelClear_WLat_BdIt.woff") format('woff'),
+       url("../fonts/IntelClearLatn/IntelClear_WLat_BdIt.ttf") format('truetype'); /* Safari, Android, iOS */
+  font-style: italic;
+  font-weight: bold;
+}
+
+
+body {
+  font-family: "Intel Clear", sans-serif;
+  background-color: #E9E9E9;
+}
+
+header, main {
+  background-color: #FFFFFF;
+}
+
+a, .navbar-light a {
+  color: #0068B5;
+  text-decoration: none;
+}
+a:hover, .navbar-light a:hover {
+  color: #00285A;
+  text-decoration: none;
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+footer {
+  color: #262626;
+  background-color: #E9E9E9;
+  font-size: 0.8em;
+}
+
+footer a {
+  color: #525252;
+  text-decoration: none;
+}
+footer a:hover {
+  color: #525252;
+  text-decoration: underline;
+}
+footer span + span::before {
+  content: "|";
+  display: inline-block;
+  color: #808080;
+  margin-left: 1em;
+  margin-right: 1em;
+}
+
+
+.parallax {
+  min-height: 256px;
+  background-attachment: fixed;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.img-circle {
+  border-radius: 50%;
+}
+
+/*
+ * Item-specific styling.
+ */
+
+.banner {
+  max-height: 35vh;
+  overflow: hidden;
+}
+
+.release-notes {
+  background-color: #0068B5;
+  color: #FFFFFF;
+}
+
+.release-notes a {
+  color: #FFFFFF;
+  font-weight: bold;
+}
+.release-notes a:hover {
+  color: #FFFFFF;
+  text-decoration: underline;
+}
+
+.gallery-item {
+  position: relative;
+  transition: transform 0.5s;
+}
+
+.gallery-item:hover {
+  transform: scale(1.1);
+}
+
+.gallery-item-overlay {
+  position: absolute;
+  bottom: 0em;
+  left: 0em;
+  background: linear-gradient(rgba(0,0,0,0) 0%, 10%, black 100%);
+  width: 100%;
+}
+
+.carousel-caption {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+.carousel-item {
+  max-height: 35vh;
+}

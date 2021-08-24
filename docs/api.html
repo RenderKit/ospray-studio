@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+  <link href="static-fw/bootstrap-5.0.0-beta2-dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="static-fw/fonts/font-awesome-4.7.0/css/font-awesome.css" rel="stylesheet"/>
+  <link href="static-fw/css/intel.css" rel="stylesheet"/>
+  <link href="static-fw/css/arvacode.css" rel="stylesheet"/>
+  <title>
+   API Documentation
+  </title>
+ </head>
+ <body>
+  <header>
+   <!-- main navbar, collapses to hamburger at 'small' sizes -->
+   <nav class="navbar navbar-expand-md navbar-light bg-light">
+    <!-- container-xl stops setting width to 100% after xl size -->
+    <div class="container-xl">
+     <a class="navbar-brand" href="index.html">
+      <img alt="" height="48" id="product-logo" src="images/studio_1125.png"/>
+     </a>
+     <!-- hamburger, shows when nav is collapsed, putting it after brand right-aligns it -->
+     <button aria-controls="main-navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-bs-target="#main-navbar" data-bs-toggle="collapse" type="button">
+      <span class="navbar-toggler-icon">
+      </span>
+     </button>
+     <div class="collapse navbar-collapse" id="main-navbar">
+      <!-- main navigation links -->
+      <ul class="navbar-nav">
+       <li class="nav-item">
+        <a class="nav-link" href="gallery.html">
+         Gallery
+        </a>
+       </li>
+       <li class="nav-item dropdown">
+        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="f60d5fa4-3d78-45a1-9522-89128a9fab72" role="button">
+         Documentation
+        </a>
+        <ul aria-labelledby="f60d5fa4-3d78-45a1-9522-89128a9fab72" class="dropdown-menu">
+         <li class="nav-item">
+          <a class="nav-link" href="#">
+           API Documentation
+          </a>
+         </li>
+        </ul>
+       </li>
+       <li class="nav-item dropdown">
+        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="f7658ec5-66ff-484c-aef0-6a7d6c584bd1" role="button">
+         RenderKit
+        </a>
+        <ul aria-labelledby="f7658ec5-66ff-484c-aef0-6a7d6c584bd1" class="dropdown-menu">
+         <li class="nav-item">
+          <a class="nav-link" href="https://www.openimagedenoise.org">
+           Intel® Open Image Denoise
+          </a>
+         </li>
+         <li class="nav-item">
+          <a class="nav-link" href="https://www.openvkl.org">
+           Intel® Open VKL
+          </a>
+         </li>
+         <li class="nav-item">
+          <a class="nav-link" href="https://www.ospray.org">
+           Intel® OSPRay
+          </a>
+         </li>
+        </ul>
+       </li>
+      </ul>
+      <a class="nav-link ms-auto" href="https://github.com/ospray/ospray_studio">
+       <li class="fa fa-fw fa-github">
+       </li>
+       GitHub
+      </a>
+      <a class="nav-link" href="https://github.com/ospray/ospray_studio/releases">
+       <li class="fa fa-fw fa-download">
+       </li>
+       Download
+      </a>
+     </div>
+    </div>
+   </nav>
+  </header>
+  <main class="container-fluid" id="main-content">
+   <div class="container-lg text">
+    <div class="row justify-content-center py-2">
+     <div class="col-8">
+      <section>
+       <h1>
+        OSPRay Studio Developer Documentation
+       </h1>
+       <p>
+        At its core, OSPRay Studio provides a
+        <emph>
+         scene graph
+        </emph>
+        (SG) API that eases the organization and manipulation of objects and scene
+    metadata. The API is available in C++ with optional Python bindings.
+       </p>
+       <p>
+        <h2 id="extending-ospray-studio">
+         Extending OSPRay Studio
+        </h2>
+        <p>
+         OSPRay Studio can be customized in various ways, including widgets for UI controls, plugins for application behavior, importers for file type support, and generators for creating new data.
+        </p>
+        <h3 id="widgets">
+         Widgets
+        </h3>
+        <p>
+         A widget is a GUI component. It is not necessarily a part of the MainWindow by default, but can be included for providing controls for special scenes/datasets. Widgets are implemented as separate classes, which can be instanced in the MainWindow class for loading the special controls. For example, an
+         <code>
+          AnimationWidget
+         </code>
+         provides animation playback controls once an animated scene is loaded.
+        </p>
+        <h3 id="plugins">
+         Plugins
+        </h3>
+        <p>
+         A plugin is a CMake subproject that enhances the functionality of OSPRay Studio. Plugins may be individually selected to build in CMake. They can then be individually chosen to load at runtime on the command line. An example plugin is provided to demonstrate how to create new plugins. To test it, enable plugins and the example plugin in CMake, then run:
+        </p>
+        <pre><code>./ospStudio -p example</code></pre>
+        <h3 id="importers">
+         Importers
+        </h3>
+        <p>
+         OSPRay Studio comes with support for glTF and OBJ/MTL formats for geometry data. It supports raw binary and OpenVDB formats for volumetric data. Additional importers may be added via plugins by extending OSPRay Studio's
+         <code>
+          importerMap
+         </code>
+         .
+        </p>
+        <h3 id="generators-for-scene-graph">
+         Generators for scene graph
+        </h3>
+        <p>
+         The generator API can be used to create data and node hierarchies programmatically. OSPRay Studio comes with a set of sample generators for reference. A new generator class is created by inheriting from the main Generator class and writing a
+         <code>
+          generateData()
+         </code>
+         method to specify the node hierarchy.
+        </p>
+        <h2 id="ospray-studio-scene-graph">
+         OSPRay Studio Scene Graph
+        </h2>
+        <p>
+         OSPRay Studio's scene graph (SG) is a
+         <em>
+          directed acyclical graph
+         </em>
+         (DAG) structure that provides an abstraction of OSPRay's rendering hierarchy via a graph comprised of
+         <code>
+          sg::Nodes
+         </code>
+         . In contrast to the old OSPRay SG, the new OSPRay Studio SG does
+         <em>
+          not
+         </em>
+         have a 1:1 correspondence with OSPRay scene objects. Instead, the OSPRay Studio SG presents a higher level interface comprising of a subset of OSPRay scene object types along with scene graph specific node types, together comprising the
+         <code>
+          sg::Nodes
+         </code>
+         types.
+        </p>
+        <h3 id="sg-design-overview">
+         SG Design Overview
+        </h3>
+        <p>
+         The OSPRay Studio SG provides a high-level representation of OSPRay objects which are flexible for organization within the DAG. The SG is comprised of
+         <em>
+          nodes
+         </em>
+         , which can represent OSPRay objects, custom data importers/exporters, and even individual parameters for other nodes. Nodes are connected with parent-child relationships. Every node has an array of parents node hence forming a directed acyclical graph structure. This graph structure is easy to traverse using parent-child links either via get methods, such as
+         <code>
+          node.child("childName")
+         </code>
+         or via access specifiers like
+         <code>
+          node["childName"]
+         </code>
+         .
+        </p>
+        <p>
+         All nodes classes manage node-data and node-state using the standard
+         <code>
+          sg:Nodes
+         </code>
+         API, while certain node classes provide routines which are specific to that node-type like a lights-manager node type would provide API to add/remove lights. Complex functionality, such as updating, committing, and rendering is handled by
+         <em>
+          visitors
+         </em>
+         , which traverse the graph, performing various actions based on nodes visited.
+        </p>
+        <p>
+         The general SG design is to build the scene heirarchy with nodes, then traverse the SG with visitors.
+        </p>
+        <h3 id="nodes">
+         Nodes
+        </h3>
+        <p>
+         The
+         <code>
+          Node
+         </code>
+         class, declared in
+         <code>
+          sg/Node.h
+         </code>
+         , is the backbone of the SG.
+         <code>
+          Node
+         </code>
+         itself is an abstract base class. All node types inherit from it. This class defines the basic API for working with nodes throughout the SG. A node is primarily a data container, and does not provide specialized functionality. This limited scope allows node types to be fairly short pieces of code. Complex inter-node functionality is provided by the
+         <code>
+          Visitor
+         </code>
+         class, described in the next section.
+        </p>
+        <p>
+         The code for the base
+         <code>
+          Node
+         </code>
+         class is organized as follows:
+        </p>
+        <ul>
+         <li>
+          Declarations for the base class, specialty classes, and convenience factory functions are in
+          <code>
+           sg/Node.h
+          </code>
+         </li>
+         <li>
+          Inline definitions for the base and specialty classes (template function definitions) are in
+          <code>
+           sg/Node.inl
+          </code>
+         </li>
+         <li>
+          All other definitions for the base class, specialty classes, factory functions, and node registrations are in
+          <code>
+           sg/Node.cpp
+          </code>
+         </li>
+        </ul>
+        <h4 id="creating-nodes">
+         Creating Nodes
+        </h4>
+        <p>
+         Four convenience factory functions are provided for creating nodes:
+        </p>
+        <div class="sourceCode" id="cb2">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a aria-hidden="true" href="#cb2-1" tabindex="-1"></a>NodePtr createNode<span class="op">(</span><span class="bu">std::</span>string<span class="op"> </span>name<span class="op">)</span></span>
+<span id="cb2-2"><a aria-hidden="true" href="#cb2-2" tabindex="-1"></a>NodePtr createNode<span class="op">(</span><span class="bu">std::</span>string<span class="op"> </span>name<span class="op">,</span> <span class="bu">std::</span>string<span class="op"> </span>subtype<span class="op">)</span></span>
+<span id="cb2-3"><a aria-hidden="true" href="#cb2-3" tabindex="-1"></a>NodePtr createNode<span class="op">(</span><span class="bu">std::</span>string<span class="op"> </span>name<span class="op">,</span> <span class="bu">std::</span>string<span class="op"> </span>subtype<span class="op">,</span> Any value<span class="op">)</span></span>
+<span id="cb2-4"><a aria-hidden="true" href="#cb2-4" tabindex="-1"></a>NodePtr createNode<span class="op">(</span><span class="bu">std::</span>string<span class="op"> </span>name<span class="op">,</span></span>
+<span id="cb2-5"><a aria-hidden="true" href="#cb2-5" tabindex="-1"></a>                   <span class="bu">std::</span>string<span class="op"> </span>subtype<span class="op">,</span></span>
+<span id="cb2-6"><a aria-hidden="true" href="#cb2-6" tabindex="-1"></a>                   <span class="bu">std::</span>string<span class="op"> </span>description<span class="op">,</span></span>
+<span id="cb2-7"><a aria-hidden="true" href="#cb2-7" tabindex="-1"></a>                   Any val<span class="op">)</span></span></code></pre>
+        </div>
+        <p>
+         <em>
+          Note:
+          <code>
+           NodePtr
+          </code>
+          is an alias for
+          <code>
+           std::shared_ptr&lt;Node&gt;
+          </code>
+         </em>
+        </p>
+        <p>
+         These are an easier alternative to constructing a node and setting values. When creating a node, you must at least provide a name, but usually nodes are created with a name, subtype, and value.
+        </p>
+        <div class="sourceCode" id="cb3">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a aria-hidden="true" href="#cb3-1" tabindex="-1"></a>NodePtr myNewNode <span class="op">=</span> createNode<span class="op">(</span><span class="st">"radius"</span><span class="op">,</span> <span class="st">"float"</span><span class="op">,</span> <span class="fl">1.</span><span class="bu">f</span><span class="op">);</span></span></code></pre>
+        </div>
+        <p>
+         Note that these factory functions are not used for creating nodes that represent OSPRay objects. These are described in
+         <a href="#special-node-types">
+          Special Node Types
+         </a>
+         .
+        </p>
+        <p>
+         A node's
+         <code>
+          name
+         </code>
+         is how it is referenced throughout the SG. Multiple nodes in the SG can have the same name, though you should avoid duplicate names between sibling nodes!
+        </p>
+        <p>
+         A node's
+         <code>
+          subType
+         </code>
+         is a string used to find the correct symbol containing the creator function for that type. For example, the node created above would need the
+         <code>
+          float
+         </code>
+         creator function, which should be found in the
+         <code>
+          ospray_create_sg_node__float
+         </code>
+         symbol. This special symbol name is created by the
+         <code>
+          OSP_REGISTER_SG_NODE_NAME
+         </code>
+         macro, described more in detail in
+         <a href="#creating-your-own-node-type">
+          Creating Your Own Node Type
+         </a>
+         .
+        </p>
+        <h4 id="node-properties">
+         Node Properties
+        </h4>
+        <p>
+         Nodes contain a private internal
+         <code>
+          properties
+         </code>
+         struct that holds the primary data comprising the node. Most of the members of the
+         <code>
+          properties
+         </code>
+         struct have a public getter and/or setter.
+        </p>
+        <p>
+         The
+         <code>
+          name
+         </code>
+         ,
+         <code>
+          subType
+         </code>
+         , and
+         <code>
+          value
+         </code>
+         members of this struct come from the node's creator (e.g. the factory functions described above). Some flags are provided to give context to the node's
+         <code>
+          value
+         </code>
+         :
+        </p>
+        <ul>
+         <li>
+          <code>
+           minMax
+          </code>
+          is used to set bounds on UI widgets created for this node (e.g. bound a light's brightness to [0, 1]). It does
+          <em>
+           not
+          </em>
+          however prohibit setting values outside of this range in code
+         </li>
+         <li>
+          <code>
+           readOnly
+          </code>
+          is used to disable UI widget creation for this node. It does
+          <em>
+           not
+          </em>
+          however prohibit changing the node's value in code
+         </li>
+         <li>
+          <code>
+           sgOnly
+          </code>
+          is used to signal that this node is not a parameter that OSPRay will recognize during a commit. OSPRay Studio frequently provides abstract or derived values as parameters to the end user, and hides the potentially more complex OSPRay parameters internally. This flag lets us avoid sending the derived value to OSPRay
+         </li>
+        </ul>
+        <p>
+         A node's
+         <code>
+          type
+         </code>
+         is a
+         <code>
+          NodeType
+         </code>
+         value, which is an enum defined in
+         <code>
+          sg/NodeType.h
+         </code>
+         . The specific type is set by the node's constructor. The base class constructor will set this to
+         <code>
+          GENERIC
+         </code>
+         . The value of this is used in visitors to find nodes by the role they play in the SG.
+        </p>
+        <p>
+         A node's connections to its parent and children are also held in
+         <code>
+          properties
+         </code>
+         . Children are held in a
+         <code>
+          FlatMap
+         </code>
+         , with keys being child node names and values being pointers to the child nodes.
+        </p>
+        <p>
+         Finally, a number of
+         <code>
+          TimeStamp
+         </code>
+         objects track the modification status of this node and its children. These are used to determine if a subgraph of the SG needs to be processed and committed to OSPRay.
+        </p>
+        <p>
+         A node's
+         <code>
+          name
+         </code>
+         and
+         <code>
+          subType
+         </code>
+         can be accessed via its
+         <code>
+          name()
+         </code>
+         and
+         <code>
+          subType()
+         </code>
+         methods, respectively. A node's
+         <code>
+          value
+         </code>
+         takes a bit more care, as the actual value is wrapped in an
+         <code>
+          Any
+         </code>
+         object. The
+         <code>
+          Any
+         </code>
+         object itself can be accessed with
+         <code>
+          value()
+         </code>
+         . To access the underlying value in its original type, you will need to use
+         <code>
+          valueAs&lt;T&gt;()
+         </code>
+         , where you must know the type
+         <code>
+          T
+         </code>
+         .
+        </p>
+        <p>
+         The
+         <code>
+          value
+         </code>
+         can be set in two ways: using
+         <code>
+          setValue(T val)
+         </code>
+         , or using
+         <code>
+          operator=(Any val)
+         </code>
+         . For example,
+        </p>
+        <div class="sourceCode" id="cb4">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a aria-hidden="true" href="#cb4-1" tabindex="-1"></a>NodePtr myNewNode <span class="op">=</span> createNode<span class="op">(</span><span class="st">"radius"</span><span class="op">,</span> <span class="st">"float"</span><span class="op">);</span></span>
+<span id="cb4-2"><a aria-hidden="true" href="#cb4-2" tabindex="-1"></a>myNewNode<span class="op">.</span>setValue<span class="op">(</span><span class="fl">1.</span><span class="bu">f</span><span class="op">);</span></span>
+<span id="cb4-3"><a aria-hidden="true" href="#cb4-3" tabindex="-1"></a><span class="co">// OR</span></span>
+<span id="cb4-4"><a aria-hidden="true" href="#cb4-4" tabindex="-1"></a>myNewNode <span class="op">=</span> <span class="fl">1.</span><span class="bu">f</span><span class="op">;</span></span></code></pre>
+        </div>
+        <p>
+         In either case, the node will mark itself as modified if the new value is different from the current value. More detail on the modified status is provided in
+         <a href="#graph-traversal-interface">
+          Graph Traversal Interface
+         </a>
+         .
+        </p>
+        <h4 id="parent-child-interface">
+         Parent-child Interface
+        </h4>
+        <p>
+         Nodes are connected together with a parent-child relationship. A node should have at most one parent, but can have any number of children. Nodes can be created and added as a child in a few ways. The most straightforward way is to create the node(s), set the necessary values, and then use one of the
+         <code>
+          Node
+         </code>
+         class'
+         <code>
+          add()
+         </code>
+         methods. For example,
+        </p>
+        <div class="sourceCode" id="cb5">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a aria-hidden="true" href="#cb5-1" tabindex="-1"></a>NodePtr myParentNode <span class="op">=</span> createNode<span class="op">(</span><span class="st">"mySpheres"</span><span class="op">,</span> <span class="st">"spheres"</span><span class="op">);</span></span>
+<span id="cb5-2"><a aria-hidden="true" href="#cb5-2" tabindex="-1"></a>NodePtr myChildNode <span class="op">=</span> createNode<span class="op">(</span><span class="st">"radius"</span><span class="op">,</span> <span class="st">"float"</span><span class="op">,</span> <span class="fl">1.</span><span class="bu">f</span><span class="op">);</span></span>
+<span id="cb5-3"><a aria-hidden="true" href="#cb5-3" tabindex="-1"></a>myParentNode<span class="op">-&gt;</span>add<span class="op">(</span>myChildNode<span class="op">);</span></span></code></pre>
+        </div>
+        <p>
+         Now,
+         <code>
+          myParentNode
+         </code>
+         has one child called
+         <code>
+          radius
+         </code>
+         . The
+         <code>
+          add()
+         </code>
+         method can take a
+         <code>
+          Node &amp;
+         </code>
+         or
+         <code>
+          NodePtr
+         </code>
+         .
+        </p>
+        <p>
+         Children may also be created and added to a parent node through factory functions. These work similarly to the factory functions described above. There are two factory functions provided:
+        </p>
+        <div class="sourceCode" id="cb6">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb6-1"><a aria-hidden="true" href="#cb6-1" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span><span class="op">...</span> Args<span class="op">&gt;</span></span>
+<span id="cb6-2"><a aria-hidden="true" href="#cb6-2" tabindex="-1"></a>Node <span class="op">&amp;</span>createChild<span class="op">(</span>Args <span class="op">&amp;&amp;...</span> args<span class="op">);</span></span>
+<span id="cb6-3"><a aria-hidden="true" href="#cb6-3" tabindex="-1"></a></span>
+<span id="cb6-4"><a aria-hidden="true" href="#cb6-4" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> NODE_T<span class="op">,</span> <span class="kw">typename</span><span class="op">...</span> Args<span class="op">&gt;</span></span>
+<span id="cb6-5"><a aria-hidden="true" href="#cb6-5" tabindex="-1"></a>NODE_T <span class="op">&amp;</span>createChildAs<span class="op">(</span>Args <span class="op">&amp;&amp;...</span> args<span class="op">);</span></span></code></pre>
+        </div>
+        <p>
+         The first function,
+         <code>
+          createChild()
+         </code>
+         , works identically to the factory functions above. We can replicate our spheres/radius example like so:
+        </p>
+        <div class="sourceCode" id="cb7">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb7-1"><a aria-hidden="true" href="#cb7-1" tabindex="-1"></a>Node myChildNode <span class="op">=</span> myParentNode<span class="op">-&gt;</span>createChild<span class="op">(</span><span class="st">"radius"</span><span class="op">,</span> <span class="st">"float"</span><span class="op">,</span> <span class="fl">1.</span><span class="bu">f</span><span class="op">);</span></span></code></pre>
+        </div>
+        <p>
+         Note that the returned node is a base
+         <code>
+          Node
+         </code>
+         type. The
+         <code>
+          createChildAs()
+         </code>
+         variant can be used to create a child node and have the return type be the actual derived node type. This is useful for creating an instance of a custom node class that you will then need to manipulate (you avoid having to manually cast the node). For example:
+        </p>
+        <div class="sourceCode" id="cb8">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a aria-hidden="true" href="#cb8-1" tabindex="-1"></a><span class="kw">auto</span> <span class="op">&amp;</span>lightManager <span class="op">=</span> myNode<span class="op">-&gt;</span>createChildAs<span class="op">&lt;</span>sg<span class="op">::</span>LightsManager<span class="op">&gt;(</span><span class="st">"lights"</span><span class="op">,</span> <span class="st">"lights"</span><span class="op">);</span></span>
+<span id="cb8-2"><a aria-hidden="true" href="#cb8-2" tabindex="-1"></a><span class="co">// now call a derived-class method on our lightManager node</span></span>
+<span id="cb8-3"><a aria-hidden="true" href="#cb8-3" tabindex="-1"></a>lightManager<span class="op">.</span>addLight<span class="op">(</span><span class="st">"ambientLight"</span><span class="op">,</span> <span class="st">"ambient"</span><span class="op">);</span></span></code></pre>
+        </div>
+        <p>
+         Child nodes can be removed either with a reference or pointer to the node, or by name.
+        </p>
+        <div class="sourceCode" id="cb9">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a aria-hidden="true" href="#cb9-1" tabindex="-1"></a><span class="dt">void</span> remove<span class="op">(</span>Node <span class="op">&amp;</span>node<span class="op">)</span></span>
+<span id="cb9-2"><a aria-hidden="true" href="#cb9-2" tabindex="-1"></a><span class="dt">void</span> remove<span class="op">(</span>NodePtr node<span class="op">)</span></span>
+<span id="cb9-3"><a aria-hidden="true" href="#cb9-3" tabindex="-1"></a><span class="dt">void</span> remove<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op"> &amp;</span>name<span class="op">)</span></span></code></pre>
+        </div>
+        <p>
+         There are several ways of interacting with the children of a node. First,
+         <code>
+          bool hasChildren()
+         </code>
+         can be used to check if a node has any children at all. A specific child can be searched for using
+         <code>
+          bool hasChild(const std::string &amp;name)
+         </code>
+         . Note that this does not return the child node itself.
+        </p>
+        <p>
+         Child nodes can be accessed in 4 ways. The first two look for a child by name and return a base
+         <code>
+          Node
+         </code>
+         object. These are useful for getting and setting child node values.
+        </p>
+        <div class="sourceCode" id="cb10">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb10-1"><a aria-hidden="true" href="#cb10-1" tabindex="-1"></a>Node <span class="op">&amp;</span>child<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op"> &amp;</span>name<span class="op">)</span></span>
+<span id="cb10-2"><a aria-hidden="true" href="#cb10-2" tabindex="-1"></a>Node <span class="op">&amp;</span><span class="kw">operator</span><span class="op">[](</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op"> &amp;</span>name<span class="op">)</span></span>
+<span id="cb10-3"><a aria-hidden="true" href="#cb10-3" tabindex="-1"></a></span>
+<span id="cb10-4"><a aria-hidden="true" href="#cb10-4" tabindex="-1"></a><span class="co">// get or set a child node's value</span></span>
+<span id="cb10-5"><a aria-hidden="true" href="#cb10-5" tabindex="-1"></a><span class="dt">float</span> radius <span class="op">=</span> myParentNode<span class="op">.</span>child<span class="op">(</span><span class="st">"radius"</span><span class="op">).</span>valueAs<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;();</span></span>
+<span id="cb10-6"><a aria-hidden="true" href="#cb10-6" tabindex="-1"></a>myParentNode<span class="op">[</span><span class="st">"radius"</span><span class="op">]</span> <span class="op">=</span> <span class="fl">1.</span><span class="bu">f</span><span class="op">;</span></span></code></pre>
+        </div>
+        <p>
+         There are also two methods that allow access to the derived node type. They are indentical except that the first returns a reference, and the second a pointer.
+        </p>
+        <div class="sourceCode" id="cb11">
+         <pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb11-1"><a aria-hidden="true" href="#cb11-1" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> NODE_T<span class="op">&gt;</span></span>
+<span id="cb11-2"><a aria-hidden="true" href="#cb11-2" tabindex="-1"></a>NODE_T <span class="op">&amp;</span>childAs<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op"> &amp;</span>name<span class="op">)</span></span>
+<span id="cb11-3"><a aria-hidden="true" href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a aria-hidden="true" href="#cb11-4" tabindex="-1"></a><span class="kw">template</span> <span class="op">&lt;</span><span class="kw">typename</span> NODE_T<span class="op">&gt;</span></span>
+<span id="cb11-5"><a aria-hidden="true" href="#cb11-5" tabindex="-1"></a><span class="bu">std::</span>shared_ptr<span class="op">&lt;</span>NODE_T<span class="op">&gt;</span> childNodeAs<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op"> &amp;</span>name<span class="op">)</span></span></code></pre>
+        </div>
+        <p>
+         Similar to the factory functions, these are useful if you need to access derived class methods of the node.
+        </p>
+        <h4 id="graph-traversal-interface">
+         Graph Traversal Interface
+        </h4>
+        <p>
+         Once nodes are connected into a graph, the graph needs to be traversed in order to translate it into an OSPRay render graph. A node's
+         <code>
+          traverse
+         </code>
+         method provides an "entry point" for graph traversal.
+        </p>
+        <p>
+         Graph traversal is performed mainly by
+         <code>
+          Visitor
+         </code>
+         objects, which are described in more detail in
+         <a href="#visitors">
+          Visitors
+         </a>
+         . A node's
+         <code>
+          commit()
+         </code>
+         and
+         <code>
+          render()
+         </code>
+         methods are actually shortcuts to calling
+         <code>
+          traverse()
+         </code>
+         using the appropriate visitor.
+        </p>
+        <p>
+         A node can check its modified status using
+         <code>
+          bool isModified()
+         </code>
+         . This will return
+         <code>
+          true
+         </code>
+         whenever any of a node's children are marked as modified (i.e. a node is considered "modified" if and only if one or more of its children are modified)
+        </p>
+        <h4 id="special-considerations">
+         Special Considerations
+        </h4>
+        <p>
+         <code>
+          Node
+         </code>
+         s cannot be copied or moved; this includes forbidding the use of copy constructors as well as
+         <code>
+          operator=
+         </code>
+         for other
+         <code>
+          Node
+         </code>
+         s. This design avoids some edge cases where SG structure may become fragile. Suppose we have
+         <code>
+          Node a = b
+         </code>
+         , where
+         <code>
+          b
+         </code>
+         is also a
+         <code>
+          Node
+         </code>
+         . Now,
+         <code>
+          b
+         </code>
+         's parent contains two identical
+         <code>
+          Node
+         </code>
+         s -- including the same name. When accessing that name, it is ambiguous which node is accessed. Nor is it clear that
+         <code>
+          b
+         </code>
+         should replace
+         <code>
+          a
+         </code>
+         . We avoid these cases altogether.
+        </p>
+        <h4 id="special-node-types">
+         Special Node Types
+        </h4>
+        <p>
+         There are two main special
+         <code>
+          Node
+         </code>
+         types:
+         <code>
+          Node_T
+         </code>
+         and
+         <code>
+          OSPNode
+         </code>
+         .
+        </p>
+        <p>
+         <code>
+          Node_T
+         </code>
+         represent a node used specifically to hold a single primitive/trivial value, such as an
+         <code>
+          int
+         </code>
+         ,
+         <code>
+          float
+         </code>
+         , or
+         <code>
+          std::string
+         </code>
+         . Aliases for most types are provided in
+         <code>
+          sg/Node.h
+         </code>
+         , such as
+         <code>
+          IntNode
+         </code>
+         ,
+         <code>
+          FloatNode
+         </code>
+         , and
+         <code>
+          StringNode
+         </code>
+         . These are primarily used as parameter nodes; that is, nodes that provide values for their parents' parameters.
+        </p>
+        <p>
+         The
+         <code>
+          OSPNode
+         </code>
+         type is for nodes encapsulating OSPRay objects, such as a
+         <code>
+          Camera
+         </code>
+         ,
+         <code>
+          World
+         </code>
+         , or a
+         <code>
+          Light
+         </code>
+         . Many of the classes defined throughout the
+         <code>
+          sg/
+         </code>
+         directory define these types of nodes. They hold a C++ wrapped object (using the OSPRay C++ API) within a
+         <code>
+          handle()
+         </code>
+         . Any children of these nodes are automatically provided to this internal object as an OSPRay parameter. Child nodes use their name to select the OSPRay parameter name, and their value as the parameter's value.
+        </p>
+        <h4 id="ospray-studio-sg-structure">
+         OSPRay Studio SG Structure
+        </h4>
+        <p>
+         A basic example of a scenegraph contains a
+         <code>
+          Frame
+         </code>
+         node at the root. By default, this node will have a
+         <code>
+          FrameBuffer
+         </code>
+         ,
+         <code>
+          Camera
+         </code>
+         ,
+         <code>
+          Renderer
+         </code>
+         , and
+         <code>
+          World
+         </code>
+         child. The
+         <code>
+          World
+         </code>
+         will contain a
+         <code>
+          Lights
+         </code>
+         node (lights manager) which provides it a single ambient light
+         <code>
+          Light
+         </code>
+         node.
+        </p>
+        <p>
+         From here, importer nodes may be added to the world.
+         <code>
+          Transform
+         </code>
+         ,
+         <code>
+          Geometry
+         </code>
+         , and
+         <code>
+          Volume
+         </code>
+         nodes are children of the importer node that loaded the file.
+        </p>
+        <h3 id="visitors">
+         Visitors
+        </h3>
+        <p>
+         The
+         <code>
+          Visitor
+         </code>
+         class defines objects used to traverse the SG and perform complex functions based on the nodes encountered. A
+         <code>
+          Visitor
+         </code>
+         can be called from the root node to traverse the whole graph, or be limited to a subgraph.
+        </p>
+        <p>
+         <code>
+          Visitor
+         </code>
+         s are essentially functors -- objects treated like functions. As such, the functionality provided by a
+         <code>
+          Visitor
+         </code>
+         is defined in its
+         <code>
+          operator()
+         </code>
+         method. The
+         <code>
+          operator()
+         </code>
+         method is called each time the
+         <code>
+          Visitor
+         </code>
+         object visits a new
+         <code>
+          Node
+         </code>
+         during traversal. In this method,
+         <code>
+          Visitor
+         </code>
+         s can perform any function based on the current
+         <code>
+          Node
+         </code>
+         . For example, the
+         <code>
+          Commit
+         </code>
+         visitor will commit the
+         <code>
+          Node
+         </code>
+         if it is marked as modified.
+        </p>
+        <p>
+         The
+         <code>
+          bool
+         </code>
+         return value determines whether children of the current
+         <code>
+          Node
+         </code>
+         should be visited. That is, it provides an early-exit for traversal to increase performance. For example, the
+         <code>
+          Commit
+         </code>
+         visitor will return
+         <code>
+          false
+         </code>
+         if the current
+         <code>
+          Node
+         </code>
+         was not marked as modified, since there is no reason to check the children.
+        </p>
+        <p>
+         When a
+         <code>
+          Node
+         </code>
+         is "revisited" during traversal (i.e. after a
+         <code>
+          Node
+         </code>
+         's children have been traversed), the
+         <code>
+          postChildren()
+         </code>
+         method is called.
+        </p>
+        <h4 id="renderscene-visitor">
+         RenderScene Visitor
+        </h4>
+        <p>
+         This visitor is responsible for creating the underlying OSPRay render graph hierarchy, which includes
+         <code>
+          Instance
+         </code>
+         s. This visitor is called every time the scene is modified to rebuild the render graph. Traversal with this visitor matches geometries with their materials and bundles them into a
+         <code>
+          GeometricModel
+         </code>
+         . The same is done for volumes into a
+         <code>
+          VolumetricModel
+         </code>
+         . Collections of these models are placed in a
+         <code>
+          Group
+         </code>
+         and then an
+         <code>
+          Instance
+         </code>
+         .
+         <code>
+          Instance
+         </code>
+         s are ultimately provided to the
+         <code>
+          World
+         </code>
+         's internal handle.
+        </p>
+        <h4 id="commit-visitor">
+         Commit Visitor
+        </h4>
+        <p>
+         This visitor is responsible for executing
+         <code>
+          preCommit()
+         </code>
+         and
+         <code>
+          postCommit()
+         </code>
+         methods of every
+         <code>
+          Node
+         </code>
+         in the subgraph on which it is called based on their last modified time. These methods finalize parameter values for the internal OSPRay objects. This visitor should be called before the
+         <code>
+          RenderScene
+         </code>
+         visitor to finalize nodes.
+        </p>
+        <h4 id="generateimguiwidgets-visitor">
+         GenerateImGuiWidgets Visitor
+        </h4>
+        <p>
+         This visitor generate UI components for any node in the scenegraph. It uses the parameter node children of a parent node to generate the appropriate widget; for example, it will create a checkbox for
+         <code>
+          BoolNode
+         </code>
+         s, a color picker for
+         <code>
+          RGBNode
+         </code>
+         s, and so on.
+        </p>
+        <hr/>
+       </p>
+      </section>
+     </div>
+    </div>
+   </div>
+  </main>
+  <footer>
+   <nav class="navbar navbar-expand-sm navbar-light">
+    <div class="container-xl">
+     <ul class="navbar-nav">
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com">
+        © 2021 Intel Corporation
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com/content/www/us/en/legal/terms-of-use.html">
+        Terms of Use
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com/content/www/us/en/legal/trademarks.html">
+        Trademarks
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com/content/www/us/en/privacy/intel-privacy-notice.html">
+        Privacy
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link" href="https://www.intel.com/content/www/us/en/privacy/intel-cookie-notice.html">
+        Cookies
+       </a>
+      </li>
+     </ul>
+    </div>
+   </nav>
+  </footer>
+  <script src="static-fw/bootstrap-5.0.0-beta2-dist/js/bootstrap.bundle.min.js">
+  </script>
+ </body>
+</html>
