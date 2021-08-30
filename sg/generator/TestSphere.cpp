@@ -47,6 +47,9 @@ void Sphere::generateData()
   // of the spheres primitive
   sphere.createChild("color", "rgba", color);
   sphere.child("color").setSGOnly();
+  // Assign the scenegraph default material
+  sphere.createChild("material", "uint32_t", (uint32_t)0);
+  sphere.child("material").setSGOnly();
 }
 
 } // namespace sg
