@@ -16,6 +16,9 @@
 #include "sg/JSONDefs.h"
 #include "PluginManager.h"
 
+// CLI
+#include <CLI11.hpp>
+
 static bool resetFileId = false;
 
 BatchContext::BatchContext(StudioCommon &_common)
@@ -78,222 +81,227 @@ void BatchContext::start()
 
 bool BatchContext::parseCommandLine()
 {
-  int argc = studioCommon.argc;
-  const char **argv = studioCommon.argv;
-  int argIndex = 1;
-
-  volumeParams = std::make_shared<sg::VolumeParams>();
-
-  auto argAvailability = [&](std::string switchArg, int nComp) {
-    if (argc >= argIndex + nComp)
-      return true;
-    std::cout << "Missing argument value for : " << switchArg << std::endl;
-    return false;
-  };
-
-  while (argIndex < argc) {
-    std::string switchArg(argv[argIndex++]);
-
-    if (switchArg == "--help") {
-      printHelp();
-      return 0;
-    } else if (switchArg.rfind("--plugin:", 0) == 0) { // prefix match
-      ++argIndex; // skip next argument
-      continue; // ignore because it will be parsed by plugins
-    } else if (switchArg == "-r" || switchArg == "--renderer") {
-      if (argAvailability(switchArg, 1))
-        optRendererTypeStr = argv[argIndex++];
-
-    } else if (switchArg == "-c" || switchArg == "--camera") {
-      if (argAvailability(switchArg, 1))
-        optCameraTypeStr = argv[argIndex++];
-
-    } else if (switchArg == "-vp") {
-      if (argAvailability(switchArg, 3)) {
-        vec3f posVec;
-        posVec.x = atof(argv[argIndex++]);
-        posVec.y = atof(argv[argIndex++]);
-        posVec.z = atof(argv[argIndex++]);
-        pos = posVec;
-        cmdlCam = true;
-      }
-
-    } else if (switchArg == "-vu") {
-      if (argAvailability(switchArg, 3)) {
-        vec3f upVec;
-        upVec.x = atof(argv[argIndex++]);
-        upVec.y = atof(argv[argIndex++]);
-        upVec.z = atof(argv[argIndex++]);
-        up = upVec;
-        cmdlCam = true;
-      }
-
-    } else if (switchArg == "-f" || switchArg == "--format") {
-      if (argAvailability(switchArg, 1))
-        optImageFormat = argv[argIndex++];
-
-    } else if (switchArg == "-i" || switchArg == "--image") {
-      if (argAvailability(switchArg, 1))
-        optImageName = argv[argIndex++];
-
-    } else if (switchArg == "-vi") {
-      if (argAvailability(switchArg, 3)) {
-        vec3f gazeVec;
-        gazeVec.x = atof(argv[argIndex++]);
-        gazeVec.y = atof(argv[argIndex++]);
-        gazeVec.z = atof(argv[argIndex++]);
-        gaze = gazeVec;
-        cmdlCam = true;
-      }
-
-    } else if (switchArg == "-id" || switchArg == "--interpupillaryDistance") {
-      if (argAvailability(switchArg, 1))
-        optInterpupillaryDistance = max(0.0, atof(argv[argIndex++]));
-
-    } else if (switchArg == "-sm" || switchArg == "--stereoMode") {
-      if (argAvailability(switchArg, 1))
-        optStereoMode = max(0, atoi(argv[argIndex++]));
-
-    } else if (switchArg == "-s" || switchArg == "--size") {
-      if (argAvailability(switchArg, 2)) {
-        auto x = max(0, atoi(argv[argIndex++]));
-        auto y = max(0, atoi(argv[argIndex++]));
-        optImageSize = vec2i(x, y);
-      }
-
-    } else if (switchArg == "-spp" || switchArg == "--samples") {
-      if (argAvailability(switchArg, 1))
-        optSPP = max(1, atoi(argv[argIndex++]));
-
-    } else if (switchArg == "-vt" || switchArg == "--variance") {
-      if (argAvailability(switchArg, 1))
-        optVariance = max(0.0, atof(argv[argIndex++]));
-
-    } else if (switchArg == "-pf" || switchArg == "--pixelfilter") {
-      if (argAvailability(switchArg, 1))
-        optPF = max(0, atoi(argv[argIndex++]));
-
-    } else if (switchArg == "-oidn" || switchArg == "--denoiser") {
-      if (studioCommon.denoiserAvailable) {
-        if (argAvailability(switchArg, 1))
-          optDenoiser = min(2, max(0, atoi(argv[argIndex++])));
-      } else {
-        std::cout << " Denoiser not enabled. Check OSPRay module.\n";
-        argIndex++;
-      }
-    } else if (switchArg == "-g" || switchArg == "--grid") {
-      if (argAvailability(switchArg, 3)) {
-        auto x = max(0, atoi(argv[argIndex++]));
-        auto y = max(0, atoi(argv[argIndex++]));
-        auto z = max(0, atoi(argv[argIndex++]));
-        optGridSize = vec3i(x, y, z);
-        optGridEnable = true;
-      }
-    } else if (switchArg == "-a" || switchArg == "--albedo") {
-      saveAlbedo = true;
-    } else if (switchArg == "-d" || switchArg == "--depth") {
-      saveDepth = true;
-    } else if (switchArg == "-n" || switchArg == "--normal") {
-      saveNormal = true;
-    } else if (switchArg == "-l" || switchArg == "--layers") {
-      saveLayers = true;
-    } else if (switchArg == "-m" || switchArg == "--metadata") {
-      saveMetaData = true;
-    } else if (switchArg == "-fps" || switchArg == "--speed") {
-      if (argAvailability(switchArg, 1))
-        fps = atoi(argv[argIndex++]);
-      animate = true;
-    } else if (switchArg == "-fr" || switchArg == "--force") {
-      forceRewrite = true;
-    } else if (switchArg == "-cam" || switchArg == "--camera") {
-      if (argAvailability(switchArg, 1)) {
-        cameraDef = std::stoi(argv[argIndex++]);
-        if (cameraDef < 0) {
-          std::cout << "unsupported camera index specified " << std::endl;
-          return false;
-        }
-      }
-      if (!cameraDef)
-        std::cout
-            << "using default ospray camera, to use imported definition camera indices begins from 1"
-            << std::endl;
-    } else if (switchArg == "-cams" || switchArg == "--cameras") {
-      if (argAvailability(switchArg, 2)) {
-        auto x = atoi(argv[argIndex++]);
-        auto y = atoi(argv[argIndex++]);
-        cameraRange.lower = x;
-        cameraRange.upper = y;
-        useCameraRange = true;
-      }
-      if (!cameraRange.lower && !cameraRange.upper)
-        std::cout
-            << "using default ospray camera, to use imported definition camera indices begins from 1"
-            << std::endl;
-    } else if (switchArg == "-rn" || switchArg == "--range") {
-      if (argAvailability(switchArg, 2)) {
-        auto x = atoi(argv[argIndex++]);
-        auto y = atoi(argv[argIndex++]);
-        framesRange.lower = x;
-        framesRange.upper = y;
-      }
-    }
-    // volume parameters 
-    else if (switchArg == "--dimensions" || switchArg == "-dim") {
-      if (argAvailability(switchArg, 3)) {
-      const std::string dimX(argv[argIndex++]);
-      const std::string dimY(argv[argIndex++]);
-      const std::string dimZ(argv[argIndex++]);
-      auto dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
-      volumeParams->createChild("dimensions", "vec3i", dimensions);
-      }
-    } else if (switchArg == "--gridSpacing" || switchArg == "-gs") {
-      if (argAvailability(switchArg, 3)) {
-      const std::string gridSpacingX(argv[argIndex++]);
-      const std::string gridSpacingY(argv[argIndex++]);
-      const std::string gridSpacingZ(argv[argIndex++]);
-      auto gridSpacing =
-          vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
-      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
-      }
-    } else if (switchArg == "--gridOrigin" || switchArg == "-go") {
-      if (argAvailability(switchArg, 3)) {
-      const std::string gridOriginX(argv[argIndex++]);
-      const std::string gridOriginY(argv[argIndex++]);
-      const std::string gridOriginZ(argv[argIndex++]);
-      auto gridOrigin =
-          vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
-      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
-      }
-    } else if (switchArg == "--voxelType" || switchArg == "-vt") {
-      if (argAvailability(switchArg, 1)) {
-        auto voxelTypeStr = std::string(argv[argIndex++]);
-        auto it = sg::volumeVoxelType.find(voxelTypeStr);
-        if (it != sg::volumeVoxelType.end()) {
-          auto voxelType = it->second;
-          volumeParams->createChild("voxelType", "int", (int)voxelType);
-        } else {
-          throw std::runtime_error("improper -voxelType format requested");
-        }
-      }
-    } else if (switchArg == "--sceneConfig" || switchArg == "-sc") {
-      // valid values are dynamic, compact and robust
-      if (argAvailability(switchArg, 1)) {
-        const std::string sc(argv[argIndex++]);
-        sceneConfig = sc;
-      }
-    } else if (switchArg == "--instanceConfig" || switchArg == "-ic") {
-      // valid values are dynamic, compact and robust
-      if (argAvailability(switchArg, 1)) {
-        const std::string ic(argv[argIndex++]);
-        instanceConfig = ic;
-      }
-    } else if (switchArg.front() == '-') {
-      std::cout << " Unknown option: " << switchArg << std::endl;
-      break;
-    } else {
-      filesToImport.push_back(switchArg);
+  int ac = studioCommon.argc;
+  const char **av = studioCommon.argv;
+  for (int i=1; i<ac; ++i) {
+    std::string s = av[i];
+    auto it = batchCommandLineAliases.find(s);
+    if (it != batchCommandLineAliases.end()) {
+      av[i] = it->second;
     }
   }
+
+  CLI::App app{"OSPRay Studio Batch"};
+  volumeParams = std::make_shared<sg::VolumeParams>();
+
+  app.add_option(
+    "files",
+    filesToImport,
+    "The list of files to import"
+  );
+  app.add_option(
+    "--renderer",
+    optRendererTypeStr,
+    "Set the renderer"
+  )->check(CLI::IsMember({"scivis", "pathtracer", "ao", "debug"}));
+  app.add_option(
+    "--camera-type",
+    optCameraTypeStr,
+    "Set the camera type"
+  )->check(CLI::IsMember({"perspective", "orthographic", "panoramic"}));
+  app.add_option(
+    "--position",
+    [&](const std::vector<std::string> val) {
+      pos = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      cmdlCam = true;
+      return true;
+    },
+    "Set the camera position"
+  )->expected(3);
+  app.add_option(
+    "--view",
+    [&](const std::vector<std::string> val) {
+      gaze = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      cmdlCam = true;
+      return true;
+    },
+    "Set the camera view vector"
+  )->expected(3);
+  app.add_option(
+    "--up",
+    [&](const std::vector<std::string> val) {
+      up = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      cmdlCam = true;
+      return true;
+    },
+    "Set the camera up vector"
+  );
+  app.add_option(
+    "--format",
+    optImageFormat,
+    "Set the image format"
+  )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
+  app.add_option(
+    "--image",
+    optImageName,
+    "Set the image name"
+  );
+  app.add_option(
+    "--interpupillaryDistance",
+    optInterpupillaryDistance,
+    "Set the interpupillary distance"
+  )->check(CLI::PositiveNumber);
+  app.add_option(
+    "--stereoMode",
+    optStereoMode,
+    "Set the stereo mode"
+  )->check(CLI::PositiveNumber);
+  app.add_option(
+    "--size",
+    [&](const std::vector<std::string> val) {
+      optImageSize = vec2i(std::stoi(val[0]), std::stoi(val[1]));
+      return true;
+    },
+    "Set the image size"
+  )->expected(2)->check(CLI::PositiveNumber);
+  app.add_option(
+    "--samples",
+    optSPP,
+    "Set the samples-per-pixel"
+  )->check(CLI::Range(1, 1024));
+  app.add_option(
+    "--variance",
+    optVariance,
+    "Set the maximum variance"
+  )->check(CLI::NonNegativeNumber);
+  app.add_option(
+    "--pixelfilter",
+    optPF,
+    "Set the pixelfilter"
+  )->check(CLI::NonNegativeNumber);
+  app.add_option_function<int>(
+    "--denoiser",
+    [&](const int denoiser) {
+      if (studioCommon.denoiserAvailable) {
+        optDenoiser = denoiser;
+        return true;
+      }
+      return false;
+    },
+    "Set the denoiser"
+  )->check(CLI::Range(0, 2+1));
+  app.add_option(
+    "--grid",
+    [&](const std::vector<std::string> val) {
+      optGridSize = vec3i(std::stoi(val[0]), std::stoi(val[1]), std::stoi(val[2]));
+      optGridEnable = true;
+      return true;
+    },
+    "Set the camera position"
+  )->expected(3);
+  app.add_flag(
+    "--albedo",
+    saveAlbedo,
+    "Save albedo values"
+  );
+  app.add_flag(
+    "--depth",
+    saveDepth,
+    "Save depth values"
+  );
+  app.add_flag(
+    "--normal",
+    saveNormal,
+    "Save normal values" 
+  );
+  app.add_flag(
+    "--layers",
+    saveLayers,
+    "Save all layers"
+  );
+  app.add_flag(
+    "--metadata",
+    saveMetaData,
+    "Save metadata"
+  );
+  app.add_option(
+    "--speed",
+    fps,
+    "Set the number of frames per second (integer)"
+  );
+  app.add_flag(
+    "--force",
+    forceRewrite,
+    "Force overwriting saved files if they exist"
+  );
+  app.add_option(
+    "--camera",
+    cameraDef,
+    "Set the camera index to use"
+  )->check(CLI::PositiveNumber);
+  app.add_option(
+    "--cameras",
+    [&](const std::vector<std::string> val) {
+      cameraRange.lower = std::stoi(val[0]);
+      cameraRange.upper = std::stoi(val[1]);
+      useCameraRange = true;
+      return true;
+    },
+    "Set the camera range"
+  )->expected(2);
+  app.add_option(
+    "--range",
+    [&](const std::vector<std::string> val) {
+      framesRange.lower = std::stoi(val[0]);
+      framesRange.upper = std::stoi(val[1]);
+      return true;
+    },
+    "Set the frames range"
+  )->expected(2);
+  app.add_option(
+    "--dimensions",
+    [&](const std::vector<std::string> val) {
+      auto dimensions = vec3i(std::stoi(val[0]), std::stoi(val[1]), std::stoi(val[2]));
+      volumeParams->createChild("dimensions", "vec3i", dimensions);
+      return true;
+    },
+    "Set the dimensions for imported volumes"
+  )->expected(3);
+  app.add_option(
+    "--gridSpacing",
+    [&](const std::vector<std::string> val) {
+      auto gridSpacing = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
+      return true;
+    },
+    "Set the grid spacing for imported volumes"
+  )->expected(3);
+  app.add_option(
+    "--gridOrigin",
+    [&](const std::vector<std::string> val) {
+      auto gridOrigin = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      volumeParams->createChild("gridSpacing", "vec3f", gridOrigin);
+      return true;
+    },
+    "Set the grid origin for imported volumes"
+  )->expected(3);
+  app.add_option_function<OSPDataType>(
+    "--voxelType",
+    [&](const OSPDataType &voxelType) {
+      volumeParams->createChild("voxelType", "int", (int)voxelType);
+    },
+    "Set the voxel type for imported volumes"
+  )->transform(CLI::CheckedTransformer(sg::volumeVoxelType));
+  app.add_option(
+    "--sceneConfig",
+    sceneConfig,
+    "Set the scene configuration (valid values: dynamic, compact, robust)"
+  )->check(CLI::IsMember({"dynamic", "compact", "robust"}));
+  app.add_option(
+    "--instanceConfig",
+    instanceConfig,
+    "Set the instance configuration (valid values: dynamic, compact, robust)"
+  )->check(CLI::IsMember({"dynamic", "compact", "robust"}));
 
   if (filesToImport.size() == 0) {
     std::cout << "No files to import " << std::endl;
