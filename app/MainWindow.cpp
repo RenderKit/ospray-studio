@@ -177,6 +177,10 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
+  // get primary monitor's display scaling
+  GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
+  glfwGetMonitorContentScale(primaryMonitor, &contentScale.x, &contentScale.y);
+
   // create GLFW window
   glfwWindow = glfwCreateWindow(
       windowSize.x, windowSize.y, "OSPRay Studio", nullptr, nullptr);
@@ -707,7 +711,8 @@ void MainWindow::mouseButton(const vec2f &position)
 
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-    pickCenterOfRotation(position.x, position.y);
+    vec2f scaledPosition = position / contentScale;
+    pickCenterOfRotation(scaledPosition.x, scaledPosition.y);
   }
 }
 

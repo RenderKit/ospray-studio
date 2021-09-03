@@ -170,6 +170,7 @@ class MainWindow : public StudioContext
 
   static MainWindow *activeWindow;
 
+  vec2f contentScale;
   vec2i windowSize;
   vec2i fbSize;
   vec2f previousMouse{-1.f};
