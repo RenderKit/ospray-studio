@@ -389,6 +389,18 @@ MainWindow::MainWindow(StudioCommon &_common)
   // Disable active viewports until users enables toggled in view menu
   ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
 
+  if (contentScale.x != 1 || contentScale.y != 1) {
+    auto &io = ImGui::GetIO();
+    auto scaleFactor = std::max(contentScale.x, contentScale.y);
+    auto scaledFontSize = fontSize * scaleFactor;
+    ImVec2 imScale(contentScale.x, contentScale.y);
+    std::string fontFile("Roboto-Regular.ttf");
+
+    io.Fonts->AddFontFromFileTTF(fontFile.c_str(), scaledFontSize);
+    io.FontGlobalScale = 1.f / scaleFactor;
+    io.DisplayFramebufferScale = imScale;
+  }
+
   // set initial OpenGL state
   glEnable(GL_TEXTURE_2D);
   glDisable(GL_LIGHTING);
