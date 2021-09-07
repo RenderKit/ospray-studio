@@ -25,7 +25,7 @@ Version History
     -   Can no longer create a zero-dimension framebuffer
     -   Fixed instancing node-naming to allow for for many identical instances
     -   Fixed crash if optional glTF punctual light color was omitted
-    -   Fixed crash if isosuface geometry is used as clipping geometry when no other
+    -   Fixed crash if isosurface geometry is used as clipping geometry when no other
         geometries are in the scene
 
 ### Changes in OSPRay Studio v0.7.0
