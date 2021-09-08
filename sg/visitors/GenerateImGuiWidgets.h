@@ -482,7 +482,8 @@ inline bool generateWidget_quaternionf(const std::string &title, Node &node)
   }
 
   vec4f v(q.r, q.i, q.j, q.k);
-  if (ImGui::DragFloat4(title.c_str(), v)) {
+  if (ImGui::DragFloat4(title.c_str(), v, 0.01f, -1.f, 1.f)) {
+    v.x = std::sqrt(1.f - v.y*v.y - v.z*v.z - v.w*v.w);
     q = quaternionf(v.x, vec3f(v.y, v.z, v.w));
     node.setValue(q);
     nodeTooltip(node);
