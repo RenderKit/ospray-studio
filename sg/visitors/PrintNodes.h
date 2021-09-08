@@ -33,7 +33,7 @@ namespace ospray {
 
     // A couple of usings to make subType strings match types
     using string = std::string;
-    using Transform = affine3f;
+    using transform = affine3f;
     using uchar = uint8_t;
     PRINT_AS(node, string);      
     PRINT_AS(node, bool);      
@@ -53,7 +53,7 @@ namespace ospray {
     PRINT_AS(node, range1f);   
     PRINT_AS(node, rgb);       
     PRINT_AS(node, rgba);      
-    PRINT_AS(node, Transform); 
+    PRINT_AS(node, transform); 
     std::cout << std::endl;
 
     // XXX Debug only, probably need something better here.
