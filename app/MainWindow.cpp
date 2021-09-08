@@ -675,7 +675,7 @@ void MainWindow::motion(const vec2f &position)
   if (frame->pauseRendering)
     return;
 
-  const vec2f mouse(position.x, position.y);
+  const vec2f mouse = position * contentScale;
   if (previousMouse != vec2f(-1)) {
     const bool leftDown =
         glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
@@ -723,7 +723,7 @@ void MainWindow::mouseButton(const vec2f &position)
 
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-    vec2f scaledPosition = position / contentScale;
+    vec2f scaledPosition = position * contentScale;
     pickCenterOfRotation(scaledPosition.x, scaledPosition.y);
   }
 }
