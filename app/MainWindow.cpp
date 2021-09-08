@@ -6,6 +6,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
+#include "Proggy.h"
 // std
 #include <chrono>
 #include <iostream>
@@ -394,9 +395,9 @@ MainWindow::MainWindow(StudioCommon &_common)
   auto scaleFactor = std::max(contentScale.x, contentScale.y);
   auto scaledFontSize = fontSize * scaleFactor;
   ImVec2 imScale(contentScale.x, contentScale.y);
-  std::string fontFile("Roboto-Regular.ttf");
 
-  io.Fonts->AddFontFromFileTTF(fontFile.c_str(), scaledFontSize);
+  ImFont *font = io.Fonts->AddFontFromMemoryCompressedTTF(
+      ProggyClean_compressed_data, ProggyClean_compressed_size, scaledFontSize);
   io.FontGlobalScale = 1.f / scaleFactor;
   io.DisplayFramebufferScale = imScale;
 

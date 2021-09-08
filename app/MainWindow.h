@@ -170,7 +170,7 @@ class MainWindow : public StudioContext
 
   static MainWindow *activeWindow;
 
-  int fontSize{16}; // pixels
+  int fontSize{13}; // pixels
   vec2f contentScale;
   vec2i windowSize;
   vec2i fbSize;

@@ -10,17 +10,6 @@ add_library(imgui ${libType}
   imgui_piemenu.cpp
 )
 
-add_custom_command(TARGET imgui POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  ${CMAKE_CURRENT_SOURCE_DIR}/Roboto-Regular.ttf
-  ${CMAKE_BINARY_DIR}
-)
-
-install(FILES Roboto-Regular.ttf
-  DESTINATION ${CMAKE_INSTALL_BINDIR}
-  COMPONENT apps
-)
-
 target_include_directories(imgui
 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
