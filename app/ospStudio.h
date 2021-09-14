@@ -119,6 +119,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   int optStereoMode               = 0;
   float optInterpupillaryDistance = 0.0635f;
 
+  StudioCommon &studioCommon;
  protected:
   virtual void printHelp()
   {
@@ -127,7 +128,6 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   bool sgScene{false}; // whether we are loading a scene file
 
-  StudioCommon &studioCommon;
 };
 
 inline OSPError initializeOSPRay(int &argc, const char **argv)

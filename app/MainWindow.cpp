@@ -1084,6 +1084,9 @@ bool MainWindow::parseCommandLine()
     } else if (arg == "-h" || arg == "--help") {
       printHelp();
       return false;
+    } else if (arg.rfind("--plugin:", 0) == 0) { // prefix match
+      ++i; // skip next argument
+      continue; // ignore because it will be parsed by plugins
     } else if (arg == "-pf" || arg == "--pixelfilter") {
       optPF = max(0, atoi(av[i + 1]));
       rkcommon::removeArgs(ac, av, i, 2);
@@ -1184,6 +1187,7 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
+          importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
           if (instanceConfig == "dynamic")

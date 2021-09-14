@@ -11,9 +11,12 @@ namespace ospray {
 
     struct PanelExample : public Panel
     {
-      PanelExample(std::shared_ptr<StudioContext> _context);
+      PanelExample(std::shared_ptr<StudioContext> _context, std::string _panelName);
 
       void buildUI(void *ImGuiCtx) override;
+
+    private:
+      std::string panelName;
     };
 
   }  // namespace example_plugin

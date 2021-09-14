@@ -97,6 +97,9 @@ bool BatchContext::parseCommandLine()
     if (switchArg == "--help") {
       printHelp();
       return 0;
+    } else if (switchArg.rfind("--plugin:", 0) == 0) { // prefix match
+      ++argIndex; // skip next argument
+      continue; // ignore because it will be parsed by plugins
     } else if (switchArg == "-r" || switchArg == "--renderer") {
       if (argAvailability(switchArg, 1))
         optRendererTypeStr = argv[argIndex++];
@@ -558,6 +561,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
+          importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           if (volumeParams->children().size() > 0) {
             auto vp = importer->getVolumeParams();
             for (auto &c : volumeParams->children()) {

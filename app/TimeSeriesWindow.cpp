@@ -328,7 +328,10 @@ bool TimeSeriesWindow::parseCommandLine()
   while (argIndex < argc) {
     std::string switchArg(argv[argIndex++]);
 
-    if (switchArg == "-renderer") {
+    if (switchArg.rfind("--plugin:", 0) == 0) { // prefix match
+      ++argIndex; // skip next argument
+      continue; // ignore because it will be parsed by plugins
+    } else if (switchArg == "-renderer") {
       // XXX This doesn't play nicely with the whichRenderer int in MainWindow
       rendererTypeStr = argv[argIndex++];
     }

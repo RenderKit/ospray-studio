@@ -10,18 +10,19 @@
 namespace ospray {
   namespace example_plugin {
 
-  PanelExample::PanelExample(std::shared_ptr<StudioContext> _context)
-      : Panel("Example Panel", _context)
+  PanelExample::PanelExample(std::shared_ptr<StudioContext> _context, std::string _panelName)
+      : Panel(_panelName.c_str(), _context)
+      , panelName(_panelName)
   {}
 
   void PanelExample::buildUI(void *ImGuiCtx)
   {
     // Need to set ImGuiContext in *this* address space
     ImGui::SetCurrentContext((ImGuiContext *)ImGuiCtx);
-    ImGui::OpenPopup("Example Panel");
+    ImGui::OpenPopup(panelName.c_str());
 
     if (ImGui::BeginPopupModal(
-            "Example Panel", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            panelName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
       ImGui::Text("%s", "Hello from the example plugin!");
       ImGui::Separator();
 
