@@ -2223,7 +2223,7 @@ void MainWindow::buildWindowMaterialEditor()
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("Advanced")) {
-      static int currentMaterial = 0;
+      static int currentMaterial = -1;
       std::vector<sg::NodePtr> materialNodes;
       for (auto &mat : baseMaterialRegistry->children())
         materialNodes.push_back(mat.second);
@@ -2231,23 +2231,23 @@ void MainWindow::buildWindowMaterialEditor()
         ImGui::Text("No materials found");
       } else {
         ImGui::Separator();
-        static sg::NodePtr selectedMaterial;
         if (listWidget.buildUI("Materials##advanced",
                 &currentMaterial,
                 materialNodes)) {
-          selectedMaterial = materialNodes.at(currentMaterial);
         }
-        if (selectedMaterial) {
-          selectedMaterial->traverse<sg::GenerateImGuiWidgets>(
+        if (currentMaterial != -1) {
+          auto selectedMat = materialNodes.at(currentMaterial);
+          auto matName = selectedMat->name();
+          selectedMat->traverse<sg::GenerateImGuiWidgets>(
               sg::TreeState::ROOTOPEN);
           ImGui::Text("Replace material");
           static int currentMatType = 0;
           const char *matTypes[] = {"principled", "carPaint", "obj"};
           ImGui::Combo("Material types", &currentMatType, matTypes, 3);
           if (ImGui::Button("Replace##material")) {
-            auto newMaterial = sg::createNode(
-                selectedMaterial->name(), matTypes[currentMatType]);
-            selectedMaterial = newMaterial;
+            auto newMaterial =
+                sg::createNode(matName, matTypes[currentMatType]);
+            baseMaterialRegistry->add(newMaterial);
           }
         }
       }
