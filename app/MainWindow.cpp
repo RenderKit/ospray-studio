@@ -40,6 +40,7 @@
 #include <queue>
 // widgets
 #include "widgets/FileBrowserWidget.h"
+#include "widgets/ListBoxWidget.h"
 #include "widgets/SearchWidget.h"
 #include "widgets/TransferFunctionWidget.h"
 #include "widgets/PieMenu.h"
@@ -2213,9 +2214,31 @@ void MainWindow::buildWindowMaterialEditor()
 
   static std::vector<sg::NodeType> types{sg::NodeType::MATERIAL};
   static SearchWidget searchWidget(types, types, sg::TreeState::ALLCLOSED);
+  static ListBoxWidget listWidget;
 
-  searchWidget.addSearchBarUI(*baseMaterialRegistry);
-  searchWidget.addSearchResultsUI(*baseMaterialRegistry);
+  if (ImGui::BeginTabBar("Material editor##tabs")) {
+    if (ImGui::BeginTabItem("Materials")) {
+      searchWidget.addSearchBarUI(*baseMaterialRegistry);
+      searchWidget.addSearchResultsUI(*baseMaterialRegistry);
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Advanced")) {
+      static int currentMaterial = 0;
+      std::vector<sg::NodePtr> materialNodes;
+      for (auto &mat : baseMaterialRegistry->children())
+        materialNodes.push_back(mat.second);
+      if (materialNodes.empty()) {
+        ImGui::Text("No materials found");
+      } else {
+        if (listWidget.buildUI("Materials##advanced",
+                &currentMaterial,
+                materialNodes)) {
+        }
+      }
+      ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
+  }
 
   ImGui::End();
 }

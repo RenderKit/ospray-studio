@@ -49,6 +49,7 @@ add_library(ospray_ui STATIC
   widgets/SearchWidget.cpp
   widgets/Guizmo.cpp
   widgets/PieMenu.cpp
+  widgets/ListBoxWidget.cpp
 )
 
 target_link_libraries(ospray_ui
