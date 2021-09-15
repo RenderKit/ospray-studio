@@ -2226,7 +2226,8 @@ void MainWindow::buildWindowMaterialEditor()
       static int currentMaterial = -1;
       std::vector<sg::NodePtr> materialNodes;
       for (auto &mat : baseMaterialRegistry->children())
-        materialNodes.push_back(mat.second);
+        if (mat.second->type() == sg::NodeType::MATERIAL)
+          materialNodes.push_back(mat.second);
       if (materialNodes.empty()) {
         ImGui::Text("No materials found");
       } else {
