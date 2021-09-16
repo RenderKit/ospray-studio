@@ -40,6 +40,7 @@ class BatchContext : public StudioContext
   ~BatchContext() {}
 
   void start() override;
+  void addToCommandLine(std::shared_ptr<CLI::App> app) override;
   bool parseCommandLine() override;
   void importFiles(sg::NodePtr world) override;
   void refreshRenderer();

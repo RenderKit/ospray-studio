@@ -39,6 +39,7 @@ class TimeSeriesWindow : public MainWindow
 
   void start() override;
 
+  void addToCommandLine(std::shared_ptr<CLI::App> app) override;
   bool parseCommandLine() override;
 
   void mainLoop();

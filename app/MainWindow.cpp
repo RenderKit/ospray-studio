@@ -740,7 +740,7 @@ void MainWindow::display()
 {
   static auto displayStart = std::chrono::high_resolution_clock::now();
 
-  if (autorotate) {
+  if (optAutorotate) {
     vec2f from(0.f, 0.f);
     vec2f to(autorotateSpeed * 0.001f, 0.f);
     arcballCamera->rotate(from, to);
@@ -801,12 +801,12 @@ void MainWindow::display()
       waitOnOSPRayFrame();
 
       // Only enabled if they exist
-      showAlbedo &= frameBuffer.hasAlbedoChannel();
-      showDepth &= frameBuffer.hasDepthChannel();
+      optShowAlbedo &= frameBuffer.hasAlbedoChannel();
+      optShowDepth &= frameBuffer.hasDepthChannel();
 
-      auto *mappedFB = (void *)frame->mapFrame(showDepth
+      auto *mappedFB = (void *)frame->mapFrame(optShowDepth
               ? OSP_FB_DEPTH
-              : (showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
+              : (optShowAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
 
       // This needs to query the actual framebuffer format
       const GLenum glType =
@@ -814,7 +814,7 @@ void MainWindow::display()
 
       // Only create the copy if it's needed
       float *pDepthCopy = nullptr;
-      if (showDepth) {
+      if (optShowDepth) {
         // Create a local copy and don't modify OSPRay buffer
         const auto *mappedDepth = static_cast<const float *>(mappedFB);
         std::vector<float> depthCopy(
@@ -835,7 +835,7 @@ void MainWindow::display()
         const float rcpDepthRange = 1.f / (maxDepth - minDepth);
 
         // Inverted depth (1.0 -> 0.0) may be more meaningful
-        if (showDepthInvert)
+        if (optShowDepthInvert)
           std::transform(depthCopy.begin(),
               depthCopy.end(),
               depthCopy.begin(),
@@ -852,13 +852,13 @@ void MainWindow::display()
       glBindTexture(GL_TEXTURE_2D, framebufferTexture);
       glTexImage2D(GL_TEXTURE_2D,
           0,
-          showAlbedo ? gl_rgb_format : gl_rgba_format,
+          optShowAlbedo ? gl_rgb_format : gl_rgba_format,
           fbSize.x,
           fbSize.y,
           0,
-          showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
+          optShowDepth ? GL_LUMINANCE : (optShowAlbedo ? GL_RGB : GL_RGBA),
           glType,
-          showDepth ? pDepthCopy : mappedFB);
+          optShowDepth ? pDepthCopy : mappedFB);
 
       frame->unmapFrame(mappedFB);
 
@@ -1035,11 +1035,11 @@ void MainWindow::refreshScene(bool resetCam)
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
-  if (sceneConfig == "dynamic")
+  if (optSceneConfig == "dynamic")
     world->child("dynamicScene").setValue(true);
-  else if (sceneConfig == "compact")
+  else if (optSceneConfig == "compact")
     world->child("compactMode").setValue(true);
-  else if (sceneConfig == "robust")
+  else if (optSceneConfig == "robust")
     world->child("robustMode").setValue(true);
 
   world->createChild(
@@ -1075,130 +1075,27 @@ void MainWindow::refreshScene(bool resetCam)
   fb.resetAccumulation();
 }
 
+void MainWindow::addToCommandLine(std::shared_ptr<CLI::App> app) {
+  app->add_flag(
+    "--animate",
+    optAnimate,
+    "enable loading glTF animations"
+  );
+}
+
 bool MainWindow::parseCommandLine()
 {
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
 
-  for (int i=1; i<ac; ++i) {
-    std::string s = av[i];
-    auto it = guiCommandLineAliases.find(s);
-    if (it != guiCommandLineAliases.end()) {
-      av[i] = it->second;
-    }
-  }
+  std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio GUI");
+  StudioContext::addToCommandLine(app);
+  MainWindow::addToCommandLine(app);
+  app->parse(ac, av);
 
-  volumeParams = std::make_shared<sg::VolumeParams>();
-
-  CLI::App app{"OSPRay Studio GUI"};
-  app.add_option(
-    "files",
-    filesToImport,
-    "The list of files to import"
-  );
-  app.add_option(
-    "--pixelfilter",
-    optPF,
-    "set default pixel filter (0=point, 1=box, 2=Gaussian, 3=Mitchell-Netravali, 4=Blackman-Harris)"
-  );
-  app.add_flag(
-    "--animate",
-    animate,
-    "enable loading glTF animations"
-  );
-  app.add_flag_function(
-    "--2160p",
-    [&](std::int64_t count) {
-      glfwSetWindowSize(glfwWindow, 3840, 2160);
-    },
-    "Set window/frame size to 3840x2160"
-  );
-  app.add_flag_function(
-    "--1440p",
-    [&](std::int64_t count) {
-      glfwSetWindowSize(glfwWindow, 2560, 1440);
-    },
-    "Set window/frame size to 2560x1440"
-  );
-  app.add_flag_function(
-    "--1080p",
-    [&](std::int64_t count) {
-      glfwSetWindowSize(glfwWindow, 1920, 1080);
-    },
-    "Set window/frame size to 1920x1080"
-  );
-  app.add_flag_function(
-    "--720p",
-    [&](std::int64_t count) {
-      glfwSetWindowSize(glfwWindow, 1280, 720);
-    },
-    "Set window/frame size to 1280x720"
-  );
-  app.add_flag_function(
-    "--540p",
-    [&](std::int64_t count) {
-      glfwSetWindowSize(glfwWindow, 960, 540);
-    },
-    "Set window/frame size to 960x540"
-  );
-  app.add_flag_function(
-    "--270p",
-    [&](std::int64_t count) {
-      glfwSetWindowSize(glfwWindow, 480, 270);
-    },
-    "Set window/frame size to 480x270"
-  );
-  app.add_option(
-    "--dimensions",
-    [&](const std::vector<std::string> val) {
-      auto dimensions = vec3i(std::stoi(val[0]), std::stoi(val[1]), std::stoi(val[2]));
-      volumeParams->createChild("dimensions", "vec3i", dimensions);
-      return true;
-    },
-    "Set the dimensions for imported volumes"
-  )->expected(3);
-  app.add_option(
-    "--gridSpacing",
-    [&](const std::vector<std::string> val) {
-      auto gridSpacing = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
-      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
-      return true;
-    },
-    "Set the grid spacing for imported volumes"
-  )->expected(3);
-  app.add_option(
-    "--gridOrigin",
-    [&](const std::vector<std::string> val) {
-      auto gridOrigin = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
-      volumeParams->createChild("gridSpacing", "vec3f", gridOrigin);
-      return true;
-    },
-    "Set the grid origin for imported volumes"
-  )->expected(3);
-  app.add_option_function<OSPDataType>(
-    "--voxelType",
-    [&](const OSPDataType &voxelType) {
-      volumeParams->createChild("voxelType", "int", (int)voxelType);
-    },
-    "Set the voxel type for imported volumes"
-  )->transform(CLI::CheckedTransformer(sg::volumeVoxelType));
-  app.add_option(
-    "--sceneConfig",
-    sceneConfig,
-    "Set the scene configuration (valid values: dynamic, compact, robust)"
-  )->check(CLI::IsMember({"dynamic", "compact", "robust"}));
-  app.add_option(
-    "--instanceConfig",
-    instanceConfig,
-    "Set the instance configuration (valid values: dynamic, compact, robust)"
-  )->check(CLI::IsMember({"dynamic", "compact", "robust"}));
-  app.add_option(
-    "--pointSize",
-    pointSize,
-    "Set the importer's point size"
-  );
-
-  app.parse(ac, av);
+  windowSize = optResolution;
+  glfwSetWindowSize(glfwWindow, optResolution.x, optResolution.y);
+  rendererTypeStr = optRendererTypeStr;
 
   if (!filesToImport.empty()) {
     std::cout << "Import files from cmd line" << std::endl;
@@ -1212,7 +1109,7 @@ bool MainWindow::parseCommandLine()
 void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<sg::NodePtr> cameras;
-  if (animate)
+  if (optAnimate)
     animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
@@ -1244,13 +1141,13 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
-          if (instanceConfig == "dynamic")
+          if (optInstanceConfig == "dynamic")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::DYNAMIC);
-          else if (instanceConfig == "compact")
+          else if (optInstanceConfig == "compact")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::COMPACT);
-          else if (instanceConfig == "robust")
+          else if (optInstanceConfig == "robust")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::ROBUST);
 
@@ -1361,10 +1258,10 @@ void MainWindow::buildMainMenuFile()
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem("Import ...", nullptr)) {
       showImportFileBrowser = true;
-      animate = false;
+      optAnimate = false;
     } else if (ImGui::MenuItem("Import and animate ...", nullptr)) {
       showImportFileBrowser = true;
-      animate = true;
+      optAnimate = true;
     }
     if (ImGui::BeginMenu("Demo Scene")) {
       for (size_t i = 0; i < g_scenes.size(); ++i) {
@@ -1588,8 +1485,8 @@ void MainWindow::buildMainMenuView()
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     frame->childAs<sg::Renderer>("renderer")["varianceThreshold"].
       traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-    ImGui::Checkbox("Auto rotate", &autorotate);
-    if (autorotate) {
+    ImGui::Checkbox("Auto rotate", &optAutorotate);
+    if (optAutorotate) {
       ImGui::SameLine();
       ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
       ImGui::SliderInt(" speed", &autorotateSpeed, 1, 100);
@@ -1854,21 +1751,21 @@ void MainWindow::buildWindowFrameBufferEditor()
 
   switch (whichBuffer) {
   case 0:
-    showColor = true;
-    showAlbedo = showDepth = showDepthInvert = false;
+    optShowColor = true;
+    optShowAlbedo = optShowDepth = optShowDepthInvert = false;
     break;
   case 1:
-    showAlbedo = true;
-    showColor = showDepth = showDepthInvert = false;
+    optShowAlbedo = true;
+    optShowColor = optShowDepth = optShowDepthInvert = false;
     break;
   case 2:
-    showDepth = true;
-    showColor = showAlbedo = showDepthInvert = false;
+    optShowDepth = true;
+    optShowColor = optShowAlbedo = optShowDepthInvert = false;
     break;
   case 3:
-    showDepth = true;
-    showDepthInvert = true;
-    showColor = showAlbedo = false;
+    optShowDepth = true;
+    optShowDepthInvert = true;
+    optShowColor = optShowAlbedo = false;
     break;
   }
 

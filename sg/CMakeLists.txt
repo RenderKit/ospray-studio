@@ -153,6 +153,7 @@ PRIVATE
   stb_image
   tiny_obj_loader
   tiny_gltf
+  cli11
 )
 
 _target_strip_and_sign(ospray_sg)

@@ -310,87 +310,35 @@ void TimeSeriesWindow::updateWindowTitle(std::string &updatedTitle)
   updatedTitle = windowTitle.str();
 }
 
-bool TimeSeriesWindow::parseCommandLine()
-{
-  int ac = studioCommon.argc;
-  const char **av = studioCommon.argv;
-
-  for (int i=1; i<ac; ++i) {
-    std::string s = av[i];
-    auto it = timeseriesCommandLineAliases.find(s);
-    if (it != timeseriesCommandLineAliases.end()) {
-      av[i] = it->second;
-    }
-  }
-
-  volumeParams = std::make_shared<sg::VolumeParams>();
-  CLI::App app{"OSPRay Studio Timeseries"};
-
-  app.add_option(
-    "--renderer",
-    rendererTypeStr,
-    "set the renderer type"
-  )->check(CLI::IsMember({"scivis", "pathtracer", "ao", "debug"}));
-  app.add_option(
-    "--light",
+void TimeSeriesWindow::addToCommandLine(std::shared_ptr<CLI::App> app) {
+  app->add_option(
+    "--lightType",
     lightTypeStr,
     "set the type of light"
   )->check(CLI::IsMember({"ambient", "distant", "hdri", "sphere", "spot", "sunSky", "quad"}));
-  app.add_option(
+  app->add_option(
     "--numInstances",
     numInstances,
     "set the number of rendering instances"
   )->check(CLI::PositiveNumber);
 
-  app.add_option(
-    "--dimensions",
-    [&](const std::vector<std::string> val) {
-      dimensions = vec3i(std::stoi(val[0]), std::stoi(val[1]), std::stoi(val[2]));
-      return true;
-    },
-    "Set the dimensions for imported volumes"
-  )->expected(3);
-  app.add_option(
-    "--gridSpacing",
-    [&](const std::vector<std::string> val) {
-      gridSpacing = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
-      return true;
-    },
-    "Set the grid spacing for imported volumes"
-  )->expected(3);
-  app.add_option(
-    "--gridOrigin",
-    [&](const std::vector<std::string> val) {
-      gridOrigin = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
-      return true;
-    },
-    "Set the grid origin for imported volumes"
-  )->expected(3);
-  app.add_option_function<OSPDataType>(
-    "--voxelType",
-    [&](const OSPDataType &val) {
-      voxelType = val;
-    },
-    "Set the voxel type for imported volumes"
-  )->transform(CLI::CheckedTransformer(sg::volumeVoxelType));
-
-  app.add_flag(
+  app->add_flag(
     "--separateTimeseries",
     importAsSeparateTimeseries,
     "Load volumes as separate timeseries objects"
   );
-  app.add_flag(
+  app->add_flag(
     "--localLoading",
     g_localLoading,
     "Load volumes locally"
   );
-  app.add_flag(
+  app->add_flag(
     "--separateFb",
     setSeparateFramebuffers,
     "Render into separate framebuffers"
   );
 
-  app.add_option_function<std::vector<std::string>>(
+  app->add_option_function<std::vector<std::string>>(
     "files",
     [&](const std::vector<std::string> val) {
       for (std::string x : val) {
@@ -409,8 +357,18 @@ bool TimeSeriesWindow::parseCommandLine()
     },
     "Load these volume files"
   );
+}
 
-  app.parse(ac, av);
+bool TimeSeriesWindow::parseCommandLine()
+{
+  int ac = studioCommon.argc;
+  const char **av = studioCommon.argv;
+
+  std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio Timeseries");
+  StudioContext::addToCommandLine(app);
+  MainWindow::addToCommandLine(app);
+  TimeSeriesWindow::addToCommandLine(app);
+  app->parse(ac, av);
 
   std::cerr << "local loading for time steps (on each process): "
             << g_localLoading << std::endl;

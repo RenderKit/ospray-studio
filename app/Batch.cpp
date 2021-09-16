@@ -79,37 +79,13 @@ void BatchContext::start()
   }
 }
 
-bool BatchContext::parseCommandLine()
-{
-  int ac = studioCommon.argc;
-  const char **av = studioCommon.argv;
-  for (int i=1; i<ac; ++i) {
-    std::string s = av[i];
-    auto it = batchCommandLineAliases.find(s);
-    if (it != batchCommandLineAliases.end()) {
-      av[i] = it->second;
-    }
-  }
-
-  CLI::App app{"OSPRay Studio Batch"};
-  volumeParams = std::make_shared<sg::VolumeParams>();
-
-  app.add_option(
-    "files",
-    filesToImport,
-    "The list of files to import"
-  );
-  app.add_option(
-    "--renderer",
-    optRendererTypeStr,
-    "Set the renderer"
-  )->check(CLI::IsMember({"scivis", "pathtracer", "ao", "debug"}));
-  app.add_option(
-    "--camera-type",
+void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
+  app->add_option(
+    "--cameraType",
     optCameraTypeStr,
     "Set the camera type"
   )->check(CLI::IsMember({"perspective", "orthographic", "panoramic"}));
-  app.add_option(
+  app->add_option(
     "--position",
     [&](const std::vector<std::string> val) {
       pos = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
@@ -118,7 +94,7 @@ bool BatchContext::parseCommandLine()
     },
     "Set the camera position"
   )->expected(3);
-  app.add_option(
+  app->add_option(
     "--view",
     [&](const std::vector<std::string> val) {
       gaze = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
@@ -127,7 +103,7 @@ bool BatchContext::parseCommandLine()
     },
     "Set the camera view vector"
   )->expected(3);
-  app.add_option(
+  app->add_option(
     "--up",
     [&](const std::vector<std::string> val) {
       up = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
@@ -136,27 +112,27 @@ bool BatchContext::parseCommandLine()
     },
     "Set the camera up vector"
   );
-  app.add_option(
+  app->add_option(
     "--format",
     optImageFormat,
     "Set the image format"
   )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
-  app.add_option(
+  app->add_option(
     "--image",
     optImageName,
     "Set the image name"
   );
-  app.add_option(
+  app->add_option(
     "--interpupillaryDistance",
     optInterpupillaryDistance,
     "Set the interpupillary distance"
   )->check(CLI::PositiveNumber);
-  app.add_option(
+  app->add_option(
     "--stereoMode",
     optStereoMode,
     "Set the stereo mode"
   )->check(CLI::PositiveNumber);
-  app.add_option(
+  app->add_option(
     "--size",
     [&](const std::vector<std::string> val) {
       optImageSize = vec2i(std::stoi(val[0]), std::stoi(val[1]));
@@ -164,22 +140,7 @@ bool BatchContext::parseCommandLine()
     },
     "Set the image size"
   )->expected(2)->check(CLI::PositiveNumber);
-  app.add_option(
-    "--samples",
-    optSPP,
-    "Set the samples-per-pixel"
-  )->check(CLI::Range(1, 1024));
-  app.add_option(
-    "--variance",
-    optVariance,
-    "Set the maximum variance"
-  )->check(CLI::NonNegativeNumber);
-  app.add_option(
-    "--pixelfilter",
-    optPF,
-    "Set the pixelfilter"
-  )->check(CLI::NonNegativeNumber);
-  app.add_option_function<int>(
+  app->add_option_function<int>(
     "--denoiser",
     [&](const int denoiser) {
       if (studioCommon.denoiserAvailable) {
@@ -190,7 +151,7 @@ bool BatchContext::parseCommandLine()
     },
     "Set the denoiser"
   )->check(CLI::Range(0, 2+1));
-  app.add_option(
+  app->add_option(
     "--grid",
     [&](const std::vector<std::string> val) {
       optGridSize = vec3i(std::stoi(val[0]), std::stoi(val[1]), std::stoi(val[2]));
@@ -199,47 +160,47 @@ bool BatchContext::parseCommandLine()
     },
     "Set the camera position"
   )->expected(3);
-  app.add_flag(
-    "--albedo",
+  app->add_flag(
+    "--saveAlbedo",
     saveAlbedo,
     "Save albedo values"
   );
-  app.add_flag(
-    "--depth",
+  app->add_flag(
+    "--saveDepth",
     saveDepth,
     "Save depth values"
   );
-  app.add_flag(
-    "--normal",
+  app->add_flag(
+    "--saveNormal",
     saveNormal,
     "Save normal values" 
   );
-  app.add_flag(
-    "--layers",
+  app->add_flag(
+    "--saveLayers",
     saveLayers,
     "Save all layers"
   );
-  app.add_flag(
-    "--metadata",
+  app->add_flag(
+    "--saveMetadata",
     saveMetaData,
     "Save metadata"
   );
-  app.add_option(
-    "--speed",
+  app->add_option(
+    "--framesPerSecond",
     fps,
     "Set the number of frames per second (integer)"
   );
-  app.add_flag(
-    "--force",
+  app->add_flag(
+    "--forceRewrite",
     forceRewrite,
     "Force overwriting saved files if they exist"
   );
-  app.add_option(
+  app->add_option(
     "--camera",
     cameraDef,
     "Set the camera index to use"
   )->check(CLI::PositiveNumber);
-  app.add_option(
+  app->add_option(
     "--cameras",
     [&](const std::vector<std::string> val) {
       cameraRange.lower = std::stoi(val[0]);
@@ -249,8 +210,8 @@ bool BatchContext::parseCommandLine()
     },
     "Set the camera range"
   )->expected(2);
-  app.add_option(
-    "--range",
+  app->add_option(
+    "--frameRange",
     [&](const std::vector<std::string> val) {
       framesRange.lower = std::stoi(val[0]);
       framesRange.upper = std::stoi(val[1]);
@@ -258,50 +219,17 @@ bool BatchContext::parseCommandLine()
     },
     "Set the frames range"
   )->expected(2);
-  app.add_option(
-    "--dimensions",
-    [&](const std::vector<std::string> val) {
-      auto dimensions = vec3i(std::stoi(val[0]), std::stoi(val[1]), std::stoi(val[2]));
-      volumeParams->createChild("dimensions", "vec3i", dimensions);
-      return true;
-    },
-    "Set the dimensions for imported volumes"
-  )->expected(3);
-  app.add_option(
-    "--gridSpacing",
-    [&](const std::vector<std::string> val) {
-      auto gridSpacing = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
-      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
-      return true;
-    },
-    "Set the grid spacing for imported volumes"
-  )->expected(3);
-  app.add_option(
-    "--gridOrigin",
-    [&](const std::vector<std::string> val) {
-      auto gridOrigin = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
-      volumeParams->createChild("gridSpacing", "vec3f", gridOrigin);
-      return true;
-    },
-    "Set the grid origin for imported volumes"
-  )->expected(3);
-  app.add_option_function<OSPDataType>(
-    "--voxelType",
-    [&](const OSPDataType &voxelType) {
-      volumeParams->createChild("voxelType", "int", (int)voxelType);
-    },
-    "Set the voxel type for imported volumes"
-  )->transform(CLI::CheckedTransformer(sg::volumeVoxelType));
-  app.add_option(
-    "--sceneConfig",
-    sceneConfig,
-    "Set the scene configuration (valid values: dynamic, compact, robust)"
-  )->check(CLI::IsMember({"dynamic", "compact", "robust"}));
-  app.add_option(
-    "--instanceConfig",
-    instanceConfig,
-    "Set the instance configuration (valid values: dynamic, compact, robust)"
-  )->check(CLI::IsMember({"dynamic", "compact", "robust"}));
+}
+
+bool BatchContext::parseCommandLine()
+{
+  int ac = studioCommon.argc;
+  const char **av = studioCommon.argv;
+
+  std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio Batch");
+  StudioContext::addToCommandLine(app);
+  BatchContext::addToCommandLine(app);
+  app->parse(ac, av);
 
   if (filesToImport.size() == 0) {
     std::cout << "No files to import " << std::endl;

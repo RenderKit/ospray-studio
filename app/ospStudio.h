@@ -19,6 +19,8 @@
 #include "ArcballCamera.h"
 // ospcommon
 #include "rkcommon/common.h"
+// CLI
+#include <CLI11.hpp>
 
 #include "version.h"
 
@@ -39,6 +41,20 @@ const static std::map<std::string, StudioMode> StudioModeMap = {
     {"batch", StudioMode::BATCH},
     {"server", StudioMode::HEADLESS},
     {"timeseries", StudioMode::TIMESERIES}};
+
+const static std::map<std::string, vec2i> standardResolutionSizeMap = {
+  {"144p", {256, 144}},
+  {"240p", {426, 240}},
+  {"360p", {640, 360}},
+  {"480p", {640, 480}},
+  {"720p", {1280, 720}},
+  {"1080p", {1920, 1080}},
+  {"1440p", {2560, 1440}},
+  {"2160p", {3840, 2160}},
+  {"4K", {3840, 2160}},
+  {"4320p", {7680, 4320}},
+  {"8K", {7680, 4320}}};
+
 
 // Common across all modes
 
@@ -82,6 +98,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   virtual void start() = 0;
   virtual bool parseCommandLine() = 0;
+  virtual void addToCommandLine(std::shared_ptr<CLI::App> app);
   virtual void importFiles(sg::NodePtr world) = 0;
   virtual void refreshScene(bool resetCam) = 0;
   virtual void updateCamera() = 0;
@@ -118,6 +135,11 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
   int optStereoMode               = 0;
   float optInterpupillaryDistance = 0.0635f;
+  sg::NodePtr volumeParams;
+  float pointSize{0.05f};
+  vec2i optResolution{1024, 768};
+  std::string optSceneConfig{""};
+  std::string optInstanceConfig{""};
 
   StudioCommon &studioCommon;
  protected:
