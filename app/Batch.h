@@ -21,18 +21,6 @@ using namespace rkcommon::math;
 using namespace ospray::sg;
 using rkcommon::make_unique;
 
-static std::map<std::string, const char *> const batchCommandLineAliases = {
-  {"-pf", "--pixelfilter"},
-  {"-a", "--animate"},
-  {"-dim", "--dimensions"},
-  {"-gs", "--gridSpacing"},
-  {"-go", "--gridOrigin"},
-  {"-vt", "--voxelType"},
-  {"-sc", "--sceneConfig"},
-  {"-ic", "--instanceConfig"},
-  {"-ps", "--pointSize"},
-};
-
 class BatchContext : public StudioContext
 {
  public:

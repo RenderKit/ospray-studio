@@ -19,10 +19,14 @@
 #include "ArcballCamera.h"
 // ospcommon
 #include "rkcommon/common.h"
-// CLI
-#include <CLI11.hpp>
 
 #include "version.h"
+
+// Forward-declare CLI::App to prevent every file that imports this header from
+// also having to load CLI11.hpp.
+namespace CLI {
+class App;
+}
 
 using namespace ospray;
 using namespace rkcommon::math;

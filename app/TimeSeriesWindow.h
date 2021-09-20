@@ -18,18 +18,6 @@ using namespace std;
 
 using namespace rkcommon::math;
 
-static std::map<std::string, const char *> const timeseriesCommandLineAliases = {
-  {"-pf", "--pixelfilter"},
-  {"-a", "--animate"},
-  {"-dim", "--dimensions"},
-  {"-gs", "--gridSpacing"},
-  {"-go", "--gridOrigin"},
-  {"-vt", "--voxelType"},
-  {"-sc", "--sceneConfig"},
-  {"-ic", "--instanceConfig"},
-  {"-ps", "--pointSize"},
-};
-
 class TimeSeriesWindow : public MainWindow
 {
  public:
