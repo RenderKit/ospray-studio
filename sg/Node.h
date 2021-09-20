@@ -160,6 +160,7 @@ namespace sg {
     void remove(const std::string &name);
 
     void removeAllParents();
+    void killAllParents(); // DANGEROUS! Only used in sg loading
     void removeAllChildren();
 
     template <typename... Args>

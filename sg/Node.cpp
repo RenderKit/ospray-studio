@@ -238,6 +238,11 @@ namespace ospray {
       p->remove(*this);
   }
 
+  void Node::killAllParents()
+  {
+    properties.parents.clear();
+  }
+
   void Node::removeAllChildren()
   {
     for (auto &c : properties.children)

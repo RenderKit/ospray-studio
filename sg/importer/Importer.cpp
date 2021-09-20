@@ -161,6 +161,12 @@ OSPSG_INTERFACE void importScene(
     sg::NodePtr materials = createNodeFromJSON(j["materialRegistry"]);
 
     for (auto &mat : materials->children()) {
+      // skip non-material nodes (e.g. renderer type)
+      if (mat.second->type() != NodeType::MATERIAL)
+        continue;
+      // kill old parent (from previous session); avoids a segfault when
+      // modifying parameters from loaded materials
+      mat.second->killAllParents();
 
       // XXX temporary workaround.  Just set params on existing materials.
       // Prevents loss of texture data.  Will be fixed when textures can reload.
