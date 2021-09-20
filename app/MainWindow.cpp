@@ -2243,8 +2243,8 @@ void MainWindow::buildWindowMaterialEditor()
               sg::TreeState::ROOTOPEN);
           ImGui::Text("Replace material");
           static int currentMatType = 0;
-          const char *matTypes[] = {"principled", "carPaint", "obj"};
-          ImGui::Combo("Material types", &currentMatType, matTypes, 3);
+          const char *matTypes[] = {"principled", "carPaint", "obj", "luminous"};
+          ImGui::Combo("Material types", &currentMatType, matTypes, 4);
           if (ImGui::Button("Replace##material")) {
             auto newMaterial =
                 sg::createNode(matName, matTypes[currentMatType]);

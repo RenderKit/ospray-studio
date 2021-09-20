@@ -18,7 +18,9 @@ namespace ospray {
 
   Luminous::Luminous() : Material("luminous")
   {
-
+    createChild("color", "rgb", "light emission color", vec3f(1.f));
+    createChild("intensity", "float", "light brightness", 1.f);
+    createChild("transparency", "float", "material transparency", 1.f);
   }
 
   }  // namespace sg
