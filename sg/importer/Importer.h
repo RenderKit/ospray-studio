@@ -126,8 +126,8 @@ struct OSPSG_INTERFACE Importer : public Node
   NodePtr lightsManager;
   sg::FrameBuffer *fb{nullptr};
   InstanceConfiguration ic{STATIC};
-  int argc;
-  char ** argv;
+  int argc{0};
+  char ** argv{nullptr};
 };
 
 // global assets catalogue
