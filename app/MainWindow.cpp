@@ -113,6 +113,8 @@ double g_camMoveR = 0.0;
 
 float lockAspectRatio = 0.0;
 
+sg::NodePtr g_copiedMat = nullptr;
+
 std::string quatToString(quaternionf &q)
 {
   std::stringstream ss;
@@ -437,6 +439,7 @@ MainWindow::~MainWindow()
   glfwTerminate();
   pluginManager->removeAllPlugins();
   g_sceneCameras.clear();
+  g_copiedMat = nullptr;
   sg::clearAssets();
 }
 
@@ -2241,14 +2244,35 @@ void MainWindow::buildWindowMaterialEditor()
           auto matName = selectedMat->name();
           selectedMat->traverse<sg::GenerateImGuiWidgets>(
               sg::TreeState::ROOTOPEN);
+
+          ImGui::Separator();
+
+          if (ImGui::Button("Copy")) {
+            g_copiedMat = selectedMat;
+          }
+          if (g_copiedMat != nullptr) {
+            ImGui::SameLine();
+            if (ImGui::Button("Paste")) {
+              // actually create the copied material node here so we know what
+              // name to give it
+              auto newMat =
+                  sg::createNode(selectedMat->name(), g_copiedMat->subType());
+              for (auto &c : g_copiedMat->children())
+                if (c.second->name() != "handles")
+                  newMat->child(c.second->name()).setValue(c.second->value());
+              baseMaterialRegistry->add(newMat);
+            }
+            ImGui::SameLine();
+            ImGui::TextDisabled("copied: '%s'", g_copiedMat->name().c_str());
+          }
+
           ImGui::Text("Replace material");
           static int currentMatType = 0;
           const char *matTypes[] = {"principled", "carPaint", "obj", "luminous"};
           ImGui::Combo("Material types", &currentMatType, matTypes, 4);
           if (ImGui::Button("Replace##material")) {
-            auto newMaterial =
-                sg::createNode(matName, matTypes[currentMatType]);
-            baseMaterialRegistry->add(newMaterial);
+            auto newMat = sg::createNode(matName, matTypes[currentMatType]);
+            baseMaterialRegistry->add(newMat);
           }
         }
       }
