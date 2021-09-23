@@ -287,7 +287,6 @@ Version History
   - Fixed bug with macOS ARM build.
   - Fixed `KHR_lights_punctual` light direction bug
 
-
 ### Changes in OSPRay Studio v0.8.1
 
 -   Compatible with OSPRay release v2.7.1
