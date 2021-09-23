@@ -18,6 +18,6 @@ void BenchmarkContext::renderFrame() {
       frame->immediatelyWait = true;
       frame->startNewFrame();
     }
-  })->Unit(::benchmark::kMillisecond)->MinTime(60.0);
+  })->Unit(::benchmark::kMillisecond);
   ::benchmark::RunSpecifiedBenchmarks();
 }
