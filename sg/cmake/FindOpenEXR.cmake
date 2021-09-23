@@ -46,7 +46,11 @@ set(OPENEXR_HINTS
     /lib-vc2015
 )
 set(OPENEXR_PATHS PATHS /usr/lib /usr/lib64 /lib /lib64)
-find_library(OPENEXR_LIBRARY IlmImf ${OPENEXR_HINTS} ${OPENEXR_PATHS})
+find_library(OPENEXR_LIBRARY
+  NAMES IlmImf OpenEXR
+  ${OPENEXR_HINTS}
+  ${OPENEXR_PATHS}
+)
 
 set(OPENEXR_ROOT_LAST ${OPENEXR_ROOT} CACHE INTERNAL "Last value of OPENEXR_ROOT to detect changes")
 

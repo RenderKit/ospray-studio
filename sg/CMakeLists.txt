@@ -170,7 +170,7 @@ target_include_directories(ospray_sg
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
 )
 
-if (OpenImageIO_FOUND)
+if (ENABLE_OPENIMAGEIO)
   target_compile_definitions(ospray_sg PRIVATE -DUSE_OPENIMAGEIO)
   target_link_libraries(ospray_sg PUBLIC OpenImageIO::OpenImageIO)
 endif()
@@ -180,12 +180,22 @@ target_compile_definitions(ospray_sg
   $<$<BOOL:${ENABLE_EXR}>:STUDIO_OPENEXR>
 )
 
-if (OpenEXR_FOUND)
+if (ENABLE_EXR)
   target_compile_definitions(ospray_sg PRIVATE -DUSE_OPENEXR)
-  target_link_libraries(ospray_sg PRIVATE OpenEXR::IlmImf)
-endif()
+  target_link_libraries(ospray_sg
+    PRIVATE
+      # For OpenEXR/Imath 3.x:
+      $<$<TARGET_EXISTS:OpenEXR::OpenEXR>:OpenEXR::OpenEXR>
+      $<$<TARGET_EXISTS:Imath::Imath>:Imath::Imath>
+      $<$<TARGET_EXISTS:Imath::Half>:Imath::Half>
+      # For OpenEXR 2.4/2.5:
+      $<$<TARGET_EXISTS:OpenEXR::IlmImf>:OpenEXR::IlmImf>
+      $<$<TARGET_EXISTS:IlmBase::Imath>:IlmBase::Imath>
+      $<$<TARGET_EXISTS:IlmBase::Half>:IlmBase::Half>
+  )
+  endif()
 
-if (OpenVDB_FOUND)
+if (ENABLE_OPENVDB)
   target_compile_definitions(ospray_sg PUBLIC -DUSE_OPENVDB)
   target_link_libraries(ospray_sg PUBLIC OpenVDB::openvdb)
 endif()

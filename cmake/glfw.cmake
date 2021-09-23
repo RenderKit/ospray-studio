@@ -3,13 +3,13 @@ if(glfw3_FOUND)
     return()
 endif()
 
-## Look for any available version
-message(STATUS "Looking for glfw...")
-find_package(glfw3 QUIET)
-
 if(NOT DEFINED GLFW_VERSION)
-    set(GLFW_VERSION 3.2.1)
+    set(GLFW_VERSION 3.3.4)
 endif()
+
+## Look for any available version
+message(STATUS "Looking for glfw ${GLFW_VERSION}")
+find_package(glfw3 ${GLFW_VERSION} QUIET)
 
 if(glfw3_FOUND)
     message(STATUS "Found glfw3")
