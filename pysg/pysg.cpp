@@ -19,6 +19,8 @@
 #include <sg/scene/World.h>
 #include <sg/scene/geometry/Geometry.h>
 #include <sg/scene/lights/LightsManager.h>
+#include <sg/scene/transfer_function/TransferFunction.h>
+#include <sg/scene/volume/Volume.h>
 
 namespace py = pybind11;
 using namespace ospray::sg;
@@ -48,6 +50,7 @@ static std::vector<std::string> init(const std::vector<std::string> &args)
 
   return newargs;
 }
+
 
 void updateCamera(Node &camera, ArcballCamera &arcballCamera)
 {
@@ -116,8 +119,8 @@ std::shared_ptr<Data> pysg_Data(const py::array &array, bool is_shared = false)
   // check max size of vec elements( for eg: vec2/vec3/vec4)
   const int vecSize = array.shape(array.ndim() - 1);
 
-  if (vecSize < 2 || vecSize > 4) {
-    std::cout << "only vec2/3/4 element types supported by pysg::Data()" << std::endl;
+  if (vecSize < 1 || vecSize > 4) {
+    std::cout << "only 1 and vec2/3/4 element types supported by pysg::Data()" << std::endl;
     return std::make_shared<Data>();
   }
 
@@ -127,7 +130,33 @@ std::shared_ptr<Data> pysg_Data(const py::array &array, bool is_shared = false)
   for (int i = 0; i < array.ndim() - 1; i++)
     numElements[i] = array.shape(i);
 
-  if (vecSize == 2) {
+  if (vecSize == 1) {
+
+    if (py::isinstance<py::array_t<float>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (float*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<int32_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (int*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint32_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (unsigned int*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint8_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (unsigned char*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<int64_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (long*)array.data(), is_shared);
+
+    else if (py::isinstance<py::array_t<uint64_t>>(array))
+      return std::make_shared<Data>(
+          numElements, byteStride, (unsigned long*)array.data(), is_shared);
+
+  } else if (vecSize == 2) {
 
     if (py::isinstance<py::array_t<float>>(array))
       return std::make_shared<Data>(
@@ -296,7 +325,13 @@ PYBIND11_MODULE(pysg, sg)
           static_cast<Node &(Node::*)(const std::string &,
               const std::string &)>(&Node::createChild),
           py::return_value_policy::reference)
+      .def("createChildAs",
+          static_cast<Node &(Node::*)(const std::string &,
+              const std::string &)>(&Node::createChildAs),
+          py::return_value_policy::reference)
       .def("add", py::overload_cast<NodePtr>(&Node::add))
+      .def("add", static_cast<void (Node::*)(ospray::sg::Node&, const std::string &)>(&Node::add))
+      .def("remove", static_cast<void (Node::*)(const std::string &)>(&Node::remove))
       .def("commit", &Node::commit)
       .def("render", py::overload_cast<>(&Node::render))
       .def("child", &Node::child, py::return_value_policy::reference)
@@ -416,5 +451,13 @@ PYBIND11_MODULE(pysg, sg)
       .def("importScene", &Importer::importScene)
       .def("setLightsManager", &Importer::setLightsManager)
       .def("setMaterialRegistry", &Importer::setMaterialRegistry)
-      .def("setCameraList", &Importer::setCameraList);
+      .def("setCameraList", &Importer::setCameraList)
+      .def("setVolumeParams", &Importer::setVolumeParams);
+
+  py::class_<VolumeParams, Node, std::shared_ptr<VolumeParams>>(sg, "VolumeParams")
+      .def(py::init<>());
+
+  py::class_<TransferFunction, Node, std::shared_ptr<TransferFunction>>(sg, "TransferFunction")
+      .def(py::init<std::string>());
+
 }
