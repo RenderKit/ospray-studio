@@ -34,7 +34,7 @@ class BatchContext : public StudioContext
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void render();
-  void renderFrame();
+  virtual void renderFrame();
   void renderAnimation();
   bool refreshCamera(int cameraIdx, bool resetArcball = false);
   void reshape();

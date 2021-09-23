@@ -9,6 +9,10 @@
 // CLI
 #include <CLI11.hpp>
 
+#ifdef USE_BENCHMARK
+#include "Benchmark.h"
+#endif
+
 using namespace ospray;
 using rkcommon::removeArgs;
 
@@ -251,6 +255,11 @@ int main(int argc, const char *argv[])
     case StudioMode::TIMESERIES:
       context = std::make_shared<TimeSeriesWindow>(studioCommon);
       break;
+#ifdef USE_BENCHMARK
+    case StudioMode::BENCHMARK:
+      context = std::make_shared<BenchmarkContext>(studioCommon);
+      break;
+#endif
     default:
       std::cerr << "unknown mode!  How did I get here?!\n";
     }

@@ -37,14 +37,21 @@ enum class StudioMode
   GUI,
   BATCH,
   HEADLESS,
-  TIMESERIES
+  TIMESERIES,
+#ifdef USE_BENCHMARK
+  BENCHMARK,
+#endif
 };
 
 const static std::map<std::string, StudioMode> StudioModeMap = {
     {"gui", StudioMode::GUI},
     {"batch", StudioMode::BATCH},
     {"server", StudioMode::HEADLESS},
-    {"timeseries", StudioMode::TIMESERIES}};
+    {"timeseries", StudioMode::TIMESERIES},
+#ifdef USE_BENCHMARK
+    {"benchmark", StudioMode::BENCHMARK},
+#endif
+  };
 
 const static std::map<std::string, vec2i> standardResolutionSizeMap = {
   {"144p", {256, 144}},

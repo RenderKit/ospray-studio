@@ -67,6 +67,12 @@ find_package(OpenGL 2 REQUIRED)
 include(glfw)
 include(ospray)
 
+option(USE_BENCHMARK "Build benchmarking support into ospStudio" OFF)
+
+if(USE_BENCHMARK)
+  include(benchmark)
+endif()
+
 ## Build application ##
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
