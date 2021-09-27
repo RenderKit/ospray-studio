@@ -212,11 +212,18 @@ std::shared_ptr<Data> pysg_Data(const py::array &array, bool is_shared = false)
 
 // Main SG python Module ///////////////////////////////////////////////////
 
+auto cleanup_callback = []() {
+  sg::clearAssets();
+  ospShutdown();
+};
+
 PYBIND11_MODULE(pysg, sg)
 {
   // OSPRay initialization
 
   sg.def("init", &init);
+  sg.add_object("_cleanup", py::capsule(cleanup_callback));
+
 
   // Main Node factory function ////////////////////////////////////////////
 
