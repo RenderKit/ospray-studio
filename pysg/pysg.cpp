@@ -353,7 +353,8 @@ PYBIND11_MODULE(pysg, sg)
       .def(py::init<>())
       .def("saveFrame", &Frame::saveFrame)
       .def("waitOnFrame", &Frame::waitOnFrame)
-      .def("startNewFrame", &Frame::startNewFrame);
+      .def("startNewFrame", &Frame::startNewFrame)
+      .def_readwrite("immediatelyWait", &Frame::immediatelyWait);
 
   py::class_<Renderer,
       OSPNode<ospray::cpp::Renderer, NodeType::RENDERER>,
