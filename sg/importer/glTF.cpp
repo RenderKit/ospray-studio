@@ -1099,18 +1099,66 @@ namespace ospray {
 
       // Material Extensions
       const auto &exts = mat.extensions;
+
+      // KHR_materials_specular
+      if (exts.find("KHR_materials_specular") != exts.end()) {
+        // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_specular
+        auto params = exts.find("KHR_materials_specular")->second;
+
+        // specularFactor: The strength of the specular reflection.
+        // default: 1.0
+        float specular = 1.f;
+        if (params.Has("specularFactor"))
+          specular = (float)params.Get("specularFactor").Get<double>();
+        ospMat->createChild("specular", "float") = specular;
+
+        // specularTexture: A texture that defines the strength of the specular
+        // reflection, stored in the alpha (A) channel. This will be multiplied
+        // by specularFactor.
+        if (params.Has("specularTexture")) {
+          setOSPTexture(ospMat,
+              "specular",
+              params.Get("specularTexture").Get("index").Get<int>(), 3);
+        }
+
+#if 0 // XXX OSPRay is missing the F0 color, always assumes white?
+        // specularColorFactor	The F0 color of the specular reflection
+        // (linear RGB).
+        // default: [1.0, 1.0, 1.0]
+        rgb specularColorFactor  = rgb(1.f);
+        if (params.Has("specularColorFactor")) {
+          std::vector<tinygltf::Value> sv =
+              params.Get("specularColorFactor").Get<tinygltf::Value::Array>();
+          specularColorFactor  = rgb(
+              sv[0].Get<double>(), sv[1].Get<double>(), sv[2].Get<double>());
+        }
+        ospMat->createChild("specularColor", "rgb") = specularColorFactor;
+
+        // specularColorTexture: A texture that defines the F0 color of the
+        // specular reflection, stored in the RGB channels and encoded in sRGB.
+        // This texture will be multiplied by specularColorFactor.
+        if (params.Has("specularColorTexture")) {
+          setOSPTexture(ospMat,
+              "specularColor",
+              params.Get("specularColorTexture").Get("index").Get<int>(),
+              false);
+        }
+#endif
+      }
+
+      // KHR_materials_pbrSpecularGlossiness
       if (exts.find("KHR_materials_pbrSpecularGlossiness") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_pbrSpecularGlossiness
         auto params = exts.find("KHR_materials_pbrSpecularGlossiness")->second;
 
         // diffuseFactor: The reflected diffuse factor of the material.
         // default:[1.0,1.0,1.0,1.0]
-        vec3f diffuse = vec3f(1.f);
+        rgb diffuse = rgb(1.f);
         float opacity = 1.f;
         if (params.Has("diffuseFactor")) {
           std::vector<tinygltf::Value> dv =
               params.Get("diffuseFactor").Get<tinygltf::Value::Array>();
-          diffuse = vec3f(
+          diffuse = rgb(
               dv[0].Get<double>(), dv[1].Get<double>(), dv[2].Get<double>());
           opacity = (float)dv[3].Get<double>();
         }
@@ -1127,11 +1175,11 @@ namespace ospray {
 
         // specularFactor: The specular RGB color of the material.
         // default:[1.0,1.0,1.0]
-        vec3f specular = vec3f(1.f);
+        rgb specular = rgb(1.f);
         if (params.Has("specularFactor")) {
           std::vector<tinygltf::Value> sv =
               params.Get("specularFactor").Get<tinygltf::Value::Array>();
-          specular = vec3f(
+          specular = rgb(
               sv[0].Get<double>(), sv[1].Get<double>(), sv[2].Get<double>());
         }
         // XXX this can't simply overwrite baseColor
@@ -1160,6 +1208,7 @@ namespace ospray {
 #endif
       }
 
+      // KHR_materials_clearcoat
       if (exts.find("KHR_materials_clearcoat") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_clearcoat
         auto params = exts.find("KHR_materials_clearcoat")->second;
@@ -1209,6 +1258,7 @@ namespace ospray {
         }
       }
 
+      // KHR_materials_transmission
       if (exts.find("KHR_materials_transmission") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_transmission
         auto params = exts.find("KHR_materials_transmission")->second;
@@ -1224,7 +1274,7 @@ namespace ospray {
           transmission = (float)params.Get("transmissionFactor").Get<double>();
         ospMat->createChild("transmission", "float") = transmission;
 
-        vec3f tinting = vec3f(pbr.baseColorFactor[0],
+        rgb tinting = rgb(pbr.baseColorFactor[0],
             pbr.baseColorFactor[1],
             pbr.baseColorFactor[2]);
         ospMat->createChild("transmissionColor", "rgb") = tinting;
@@ -1249,6 +1299,7 @@ namespace ospray {
         }
       }
 
+      // KHR_materials_sheen
       if (exts.find("KHR_materials_sheen") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_sheen/
         auto params = exts.find("KHR_materials_sheen")->second;
@@ -1258,11 +1309,11 @@ namespace ospray {
 
         // sheenColorFactor: The sheen color in linear space
         // default:[0.0, 0.0, 0.0]
-        vec3f sheen = vec3f(1.f);
+        rgb sheen = rgb(0.f);
         if (params.Has("sheenColorFactor")) {
           std::vector<tinygltf::Value> sv =
               params.Get("sheenColorFactor").Get<tinygltf::Value::Array>();
-          sheen = vec3f(
+          sheen = rgb(
               sv[0].Get<double>(), sv[1].Get<double>(), sv[2].Get<double>());
         }
         ospMat->createChild("sheenColor", "rgb") = sheen;
@@ -1290,6 +1341,7 @@ namespace ospray {
         }
       }
 
+      // KHR_materials_ior
       if (exts.find("KHR_materials_ior") != exts.end()) {
         // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_ior
         auto params = exts.find("KHR_materials_ior")->second;
