@@ -335,11 +335,11 @@ namespace ospray {
         newLight = createNode(lightName, l.type);
 
       // Color is optional, default:[1.0,1.0,1.0]
-      auto lightColor = vec3f(1.f);
+      auto lightColor = rgb(1.f);
       if (!l.color.empty())
         lightColor =
             vec3f{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
-      newLight->createChild("color", "vec3f", lightColor);
+      newLight->createChild("color", "rgb", lightColor);
 
       if (l.intensity)
         newLight->createChild("intensity", "float", (float)l.intensity);
@@ -1013,25 +1013,25 @@ namespace ospray {
     //     << "        .baseColorFactor.alpha:" << (float)pbr.baseColorFactor[4]
     //     << "\n";
 
-    auto emissiveColor = vec3f(
+    auto emissiveColor = rgb(
         mat.emissiveFactor[0], mat.emissiveFactor[1], mat.emissiveFactor[2]);
 
     // We can emulate a constant colored emissive texture
     // XXX this is a workaround
     auto constColor = true;
-    if (emissiveColor != vec3f(0.f) && mat.emissiveTexture.index != -1) {
+    if (emissiveColor != rgb(0.f) && mat.emissiveTexture.index != -1) {
       const auto &tex = model.textures[mat.emissiveTexture.index];
       const auto &img = model.images[tex.source];
       if (img.image.size() > 0) {
         const auto *data = img.image.data();
 
-        const vec3f color0 = vec3f(data[0], data[1], data[2]);
+        const rgb color0 = rgb(data[0], data[1], data[2]);
         auto i = 1;
         WARN << "Material emissiveTexture #" << mat.emissiveTexture.index << std::endl;
         WARN << "   color0 : " << color0 << std::endl;
         while (constColor && (i < img.width * img.height)) {
-          const vec3f color =
-            vec3f(data[4 * i + 0], data[4 * i + 1], data[4 * i + 2]);
+          const rgb color =
+            rgb(data[4 * i + 0], data[4 * i + 1], data[4 * i + 2]);
           if (color0 != color) {
             WARN << "   color @ " << i << " : " << color << std::endl;
             WARN << "   !!! non constant color, skipping emissive" << std::endl;
@@ -1045,9 +1045,9 @@ namespace ospray {
       }
     }
 
-    if ((emissiveColor == vec3f(0.f)) || (constColor == false)) {
+    if ((emissiveColor == rgb(0.f)) || (constColor == false)) {
         auto ospMat = createNode(matName, "principled");
-        ospMat->createChild("baseColor", "rgb") = vec3f(pbr.baseColorFactor[0],
+        ospMat->createChild("baseColor", "rgb") = rgb(pbr.baseColorFactor[0],
             pbr.baseColorFactor[1],
             pbr.baseColorFactor[2]);
         ospMat->createChild("metallic", "float")  = (float)pbr.metallicFactor;
@@ -1354,6 +1354,58 @@ namespace ospray {
         ospMat->createChild("ior", "float") = ior;
       }
 
+      // KHR_materials_volume
+      if (exts.find("KHR_materials_volume") != exts.end()) {
+        // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_volume
+        auto params = exts.find("KHR_materials_volume")->second;
+
+        // thicknessFactor: The thickness of the volume beneath the surface.
+        // default: 0.
+        float thickness = 0.f;
+        if (params.Has("thicknessFactor")) {
+          thickness = (float)params.Get("thicknessFactor").Get<double>();
+        }
+        ospMat->createChild("thin", "bool") = thickness > 0 ? false : true;
+        ospMat->createChild("thickness", "float") = thickness;
+
+        // thicknessTexture <textureInfo> A texture that defines the thickness,
+        // stored in the G channel. This will be multiplied by thicknessFactor.
+        // Default: No
+        if (params.Has("thicknessTexture")) {
+          setOSPTexture(ospMat,
+              "thickness",
+              params.Get("thicknessTexture").Get("index").Get<int>(),
+              1);
+        }
+
+        // attenuationDistance <float> Density of the medium given as the
+        // average distance that light travels in the medium before interacting
+        // with a particle. The value is given in world space.
+        // No, default: +Infinity
+        float attenuationDistance = FLT_LARGE;
+        if (params.Has("attenuationDistance")) {
+          attenuationDistance =
+              (float)params.Get("attenuationDistance").Get<double>();
+        }
+        ospMat->createChild("transmissionDepth", "float") = attenuationDistance;
+
+        // attenuationColor <vec3f> The color that white light turns into due
+        // to absorption when reaching the attenuation distance.
+        // No, default: [1, 1, 1]
+        rgb attenuationColor = rgb(1.f);
+        if (params.Has("attenuationColor")) {
+          std::vector<tinygltf::Value> ac =
+              params.Get("attenuationColor").Get<tinygltf::Value::Array>();
+          attenuationColor = rgb(
+              ac[0].Get<double>(), ac[1].Get<double>(), ac[2].Get<double>());
+          // XXX Setting transmissionColor to default attenuationColor would
+          // result in overwriting the tinting specified by
+          // KHR_materials_transmission. Only set transmissionColor if
+          // attenuationColor is present.
+          ospMat->createChild("transmissionColor", "rgb") = attenuationColor;
+        }
+      }
+
       return ospMat;
 
     } else {
@@ -1361,7 +1413,7 @@ namespace ospray {
       // So, use a luminous instead
       auto ospMat = createNode(matName, "luminous");
 
-      if (emissiveColor != vec3f(0.f)) {
+      if (emissiveColor != rgb(0.f)) {
         ospMat->createChild("color", "rgb") = emissiveColor;
         ospMat->createChild("intensity", "float") =
             20.f; // XXX what's good default intensity?
@@ -1372,7 +1424,7 @@ namespace ospray {
           const auto &img = model.images[tex.source];
           if (img.image.size() > 0) {
             const auto *data = img.image.data();
-            const vec3f color0 = vec3f(data[0], data[1], data[2]);
+            const rgb color0 = rgb(data[0], data[1], data[2]);
             WARN << "   name: " << img.name << std::endl;
             WARN << "   img: (" << img.width << ", " << img.height << ")";
             WARN << std::endl;
