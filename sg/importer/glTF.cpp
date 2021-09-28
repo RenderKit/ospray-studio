@@ -1291,7 +1291,7 @@ namespace ospray {
       }
 
       if (exts.find("KHR_materials_ior") != exts.end()) {
-        // Experimental https://github.com/KhronosGroup/glTF/pull/1718
+        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_ior
         auto params = exts.find("KHR_materials_ior")->second;
 
         // ior: The index of refraction. default:1.5
@@ -1300,11 +1300,6 @@ namespace ospray {
           ior = (float)params.Get("ior").Get<double>();
         }
         ospMat->createChild("ior", "float") = ior;
-
-        // iorTexture: A greyscale texture that defines the index of refraction
-        // as 1/ior.
-        // XXX the experimental spec says that texture holds 1/ior values!!!
-        // Nothing to test this with, thus far
       }
 
       return ospMat;
