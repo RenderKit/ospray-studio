@@ -2,6 +2,8 @@
 ## Copyright 2015-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
+set -e
+
 KW_SERVER_PATH=$KW_PATH/server
 KW_CLIENT_PATH=$KW_PATH/client
 export KLOCWORK_LTOKEN=/tmp/ltoken

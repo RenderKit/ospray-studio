@@ -25,11 +25,14 @@ stages:
 
 .ubuntu18.04:
   tags: [ build, docker, modules ]
-  image: $DOCKER_REGISTRY/general:ubuntu18.04-devel
+  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod
   before_script:
-    - module load python/$PYTHON_VERSION
-    - echo $Python3_ROOT
-    - ls $Python3_ROOT
+    - apt install -y xorg-dev
+  # image: $DOCKER_REGISTRY/general:ubuntu18.04-devel
+  # before_script:
+  #   - module load python/$PYTHON_VERSION
+  #   - echo $Python3_ROOT
+  #   - ls $Python3_ROOT
 
 .ubuntu20.04:
   tags: [ build, docker ]
