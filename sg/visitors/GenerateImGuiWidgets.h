@@ -401,6 +401,27 @@ inline bool generateWidget_affine3f(const std::string &, Node &node)
   return false;
 }
 
+inline bool generateWidget_linear2f(const std::string &title, Node &node)
+{
+  linear2f a = node.valueAs<linear2f>();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s", (node.name() + ": linear2f").c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  ImGui::Text("%s", (node.name() + ": linear2f").c_str());
+  if (ImGui::DragFloat2("vx [vec2f]", a.vx) || ImGui::DragFloat2("vy [vec2f]", a.vy)) {
+    node.setValue(a);
+    nodeTooltip(node);
+    return true;
+  }
+
+  nodeTooltip(node);
+  return false;
+}
+
 inline bool generateWidget_range1i(const std::string &title, Node &node)
 {
   range1i v = node.valueAs<range1i>();
@@ -516,6 +537,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"rgb", generateWidget_rgb},
     {"rgba", generateWidget_rgba},
     {"affine3f", generateWidget_affine3f},
+    {"linear2f", generateWidget_linear2f},
     {"range1i", generateWidget_range1i},
     {"range1f", generateWidget_range1f},
     {"quaternionf", generateWidget_quaternionf},

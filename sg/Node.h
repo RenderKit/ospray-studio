@@ -334,6 +334,8 @@ namespace sg {
   using Range1fNode = Node_T<range1f>;
   using Affine3fNode = Node_T<affine3f>;
   using QuaternionfNode = Node_T<quaternionf>;
+  using Linear2fNode = Node_T<linear2f>;
+
 
   // Extra aliases //
 
