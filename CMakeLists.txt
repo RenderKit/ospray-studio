@@ -44,8 +44,6 @@ else()
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CONFIGURATION_TYPES})
 endif()
 
-set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
-
 ## global options and variables
 option(OSPRAY_INSTALL "Install OSPRay libraries in addition to OSPRay Studio libraries / binaries" ON)
 
