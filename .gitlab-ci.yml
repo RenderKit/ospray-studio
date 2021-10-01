@@ -3,7 +3,7 @@
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  OSPRAY_VER: "2.7.0"
+  OSPRAY_VER: "2.7.1"
   RKCOMMON_VER: "1.7.0"
   PYTHON_VERSION: "3.7.10"
   PYTHON_ROOT_MACOS: "/NAS/packages/apps/python/$PYTHON_VERSION/macos"
@@ -17,7 +17,7 @@ stages:
 
 .centos7:
   tags: [ build, docker, modules ]
-  image: $DOCKER_REGISTRY/ospray/docker-images:centos7-mod
+  image: $DOCKER_REGISTRY/general:centos7-devel
   before_script:
     - module load python/$PYTHON_VERSION
     - echo $Python3_ROOT
@@ -26,6 +26,13 @@ stages:
 .ubuntu18.04:
   tags: [ build, docker, modules ]
   image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod
+  before_script:
+    - apt install -y xorg-dev
+  # image: $DOCKER_REGISTRY/general:ubuntu18.04-devel
+  # before_script:
+  #   - module load python/$PYTHON_VERSION
+  #   - echo $Python3_ROOT
+  #   - ls $Python3_ROOT
 
 .ubuntu20.04:
   tags: [ build, docker ]
