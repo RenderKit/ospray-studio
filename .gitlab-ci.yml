@@ -3,7 +3,7 @@
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  OSPRAY_VER: "2.7.0"
+  OSPRAY_VER: "2.7.1"
   RKCOMMON_VER: "1.7.0"
   PYTHON_VERSION: "3.7.10"
   PYTHON_ROOT_MACOS: "/NAS/packages/apps/python/$PYTHON_VERSION/macos"

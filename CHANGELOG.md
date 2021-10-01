@@ -3,6 +3,16 @@ Version History
 
 ### Changes in OSPRay Studio v0.9.0
 
+### Changes in OSPRay Studio v0.8.1
+
+-   Compatible with OSPRay release v2.7.1
+
+-   Bug Fixes
+    -   Fixed CMake scripts to make optional 3rd party dependencies easier to predict.
+        Optional 3rd party dependencies must be pre-installed prior to building Studio,
+        rather than using FetchContent.
+    -   Fixed bug in the demo scene "sphere" material
+
 ### Changes in OSPRay Studio v0.8.0
 
 -   Compatible with OSPRay release v2.7.x
@@ -19,7 +29,7 @@ Version History
     -   Modified OBJ importer to parse and use quads and triangles
     -   Improved Arcball camera navigation with up-vector lock
 
--   Bugs Fixes
+-   Bug Fixes
     -   Fixed materials after clearing scene
     -   Fixed materials for PointCloudData (PCD)
     -   Can no longer create a zero-dimension framebuffer
