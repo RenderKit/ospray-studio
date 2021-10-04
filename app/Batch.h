@@ -67,11 +67,4 @@ class BatchContext : public StudioContext
 
   //camera animation
   sg::NodePtr selectedSceneCamera;
-
-  //Volume parameters
-  sg::NodePtr volumeParams;
-
-  // scene/instance configuration params
-  std::string sceneConfig{""};
-  std::string instanceConfig{""};
 };

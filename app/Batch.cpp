@@ -413,11 +413,11 @@ void BatchContext::refreshScene(bool resetCam)
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
-  if (sceneConfig == "dynamic")
+  if (optSceneConfig == "dynamic")
     world->child("dynamicScene").setValue(true);
-  else if (sceneConfig == "compact")
+  else if (optSceneConfig == "compact")
     world->child("compactMode").setValue(true);
-  else if (sceneConfig == "robust")
+  else if (optSceneConfig == "robust")
     world->child("robustMode").setValue(true);
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
@@ -497,14 +497,21 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
-          importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
+          std::fprintf(stderr, "Here 1\n");
           if (volumeParams->children().size() > 0) {
+            std::fprintf(stderr, "Here 2\n");
             auto vp = importer->getVolumeParams();
+            std::fprintf(stderr, "Here 3\n");
             for (auto &c : volumeParams->children()) {
+              std::fprintf(stderr, "Here 4\n");
               vp->remove(c.first);
+              std::fprintf(stderr, "Here 5\n");
               vp->add(c.second);
+              std::fprintf(stderr, "Here 6\n");
             }
+            std::fprintf(stderr, "Here 7\n");
           }
+          std::fprintf(stderr, "Here 8\n");
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
           if (instanceConfig == "dynamic")
@@ -579,7 +586,7 @@ ospStudio batch specific parameters:
    -id    --interpupillaryDistance
    -g     --grid [x y z] (default 1 1 1, single instance)
             instace a grid of models
-   -sc    --sceneConfig(default is the static BVH build of embree)
+   -sc    --optSceneConfig(default is the static BVH build of embree)
           set global scene configuration params
           valid values are dynamic, compact and robust
    -ic    --instanceConfig(default is the static BVH build of embree)
