@@ -497,30 +497,23 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
-          std::fprintf(stderr, "Here 1\n");
+          importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           if (volumeParams->children().size() > 0) {
-            std::fprintf(stderr, "Here 2\n");
             auto vp = importer->getVolumeParams();
-            std::fprintf(stderr, "Here 3\n");
             for (auto &c : volumeParams->children()) {
-              std::fprintf(stderr, "Here 4\n");
               vp->remove(c.first);
-              std::fprintf(stderr, "Here 5\n");
               vp->add(c.second);
-              std::fprintf(stderr, "Here 6\n");
             }
-            std::fprintf(stderr, "Here 7\n");
           }
-          std::fprintf(stderr, "Here 8\n");
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
-          if (instanceConfig == "dynamic")
+          if (optInstanceConfig == "dynamic")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::DYNAMIC);
-          else if (instanceConfig == "compact")
+          else if (optInstanceConfig == "compact")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::COMPACT);
-          else if (instanceConfig == "robust")
+          else if (optInstanceConfig == "robust")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::ROBUST);
           importer->importScene();
@@ -589,7 +582,7 @@ ospStudio batch specific parameters:
    -sc    --optSceneConfig(default is the static BVH build of embree)
           set global scene configuration params
           valid values are dynamic, compact and robust
-   -ic    --instanceConfig(default is the static BVH build of embree)
+   -ic    --optInstanceConfig(default is the static BVH build of embree)
           set instance scene configuration params
           valid values are dynamic, compact and robust)text"
             << std::endl;

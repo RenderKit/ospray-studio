@@ -19,12 +19,12 @@ struct PluginExample : public Plugin
   {
     if (ctx->mode == StudioMode::GUI) {
       auto &studioCommon = ctx->studioCommon;
-      int ac = studioCommon.argc;
-      const char **av = studioCommon.argv;
+      int ac = studioCommon.plugin_argc;
+      const char **av = studioCommon.plugin_argv;
 
       std::string optPanelName = "Example Panel";
 
-      for (int i=1; i<ac; ++i) {
+      for (int i=0; i<ac; ++i) {
         std::string arg = av[i];
         if (arg == "--plugin:example:name") {
           optPanelName = av[i + 1];

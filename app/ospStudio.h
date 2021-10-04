@@ -72,7 +72,9 @@ class StudioCommon
       : pluginsToLoad(_pluginsToLoad),
         denoiserAvailable(denoiser),
         argc(_argc),
-        argv(_argv){};
+        argv(_argv) {}
+
+  void splitPluginArguments();
 
   std::vector<std::string> pluginsToLoad;
   bool denoiserAvailable{false};
@@ -80,6 +82,8 @@ class StudioCommon
 
   int argc;
   const char **argv;
+  int plugin_argc;
+  const char **plugin_argv;
 };
 
 // abstract base class for all Studio modes
