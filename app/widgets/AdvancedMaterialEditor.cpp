@@ -54,9 +54,14 @@ void AdvancedMaterialEditor::buildUI(ospray::sg::NodePtr materialRegistry)
           // name to give it
           auto newMat = ospray::sg::createNode(
               selectedMat->name(), s_copiedMat->subType());
-          for (auto &c : s_copiedMat->children())
-            if (c.second->name() != "handles")
-              newMat->child(c.second->name()).setValue(c.second->value());
+          for (auto &c : s_copiedMat->children()) {
+            if (c.second->name() != "handles") {
+              if (c.second->name().substr(0, 4) == "map_")
+                newMat->add(c.second);
+              else
+                newMat->child(c.second->name()).setValue(c.second->value());
+            }
+          }
           materialRegistry->add(newMat);
         }
         ImGui::SameLine();
