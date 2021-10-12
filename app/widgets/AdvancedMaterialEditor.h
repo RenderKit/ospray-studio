@@ -5,6 +5,8 @@
 
 #include "sg/Node.h"
 
+using WeakNodePtr = std::weak_ptr<ospray::sg::Node>;
+
 class AdvancedMaterialEditor
 {
  public:
@@ -12,5 +14,13 @@ class AdvancedMaterialEditor
 
    void buildUI(ospray::sg::NodePtr materialRegistry);
  private:
-   ospray::sg::NodePtr copiedMat;
+   inline bool clipboard()
+   {
+     // check if weak_ptr copiedMat is uninitialized
+     // does not trigger if copiedMat is expired
+     // https://stackoverflow.com/a/45507610/4765406
+     return copiedMat.owner_before(WeakNodePtr{})
+         || WeakNodePtr{}.owner_before(copiedMat);
+   }
+   WeakNodePtr copiedMat;
 };

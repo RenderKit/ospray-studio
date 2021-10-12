@@ -46,20 +46,22 @@ void AdvancedMaterialEditor::buildUI(ospray::sg::NodePtr materialRegistry)
     if (ImGui::Button("Copy")) {
       copiedMat = selectedMat;
     }
-    if (copiedMat != nullptr) {
-      ImGui::SameLine();
-      if (ImGui::Button("Paste")) {
-        // actually create the copied material node here so we know what
-        // name to give it
-        auto newMat =
-            ospray::sg::createNode(selectedMat->name(), copiedMat->subType());
-        for (auto &c : copiedMat->children())
-          if (c.second->name() != "handles")
-            newMat->child(c.second->name()).setValue(c.second->value());
-        materialRegistry->add(newMat);
+    if (clipboard()) {
+      if (ospray::sg::NodePtr s_copiedMat = copiedMat.lock()) {
+        ImGui::SameLine();
+        if (ImGui::Button("Paste")) {
+          // actually create the copied material node here so we know what
+          // name to give it
+          auto newMat = ospray::sg::createNode(
+              selectedMat->name(), s_copiedMat->subType());
+          for (auto &c : s_copiedMat->children())
+            if (c.second->name() != "handles")
+              newMat->child(c.second->name()).setValue(c.second->value());
+          materialRegistry->add(newMat);
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("copied: '%s'", s_copiedMat->name().c_str());
       }
-      ImGui::SameLine();
-      ImGui::TextDisabled("copied: '%s'", copiedMat->name().c_str());
     }
 
     ImGui::Spacing();
