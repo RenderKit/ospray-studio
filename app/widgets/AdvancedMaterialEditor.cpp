@@ -16,11 +16,11 @@
 
 #include <imgui.h>
 
-void AdvancedMaterialEditor::buildUI(ospray::sg::NodePtr materialRegistry)
+void AdvancedMaterialEditor::buildUI(NodePtr materialRegistry)
 {
   static int currentMaterial = -1;
   static ListBoxWidget listWidget;
-  std::vector<ospray::sg::NodePtr> materialNodes;
+  std::vector<NodePtr> materialNodes;
 
   for (auto &mat : materialRegistry->children())
     if (mat.second->type() == ospray::sg::NodeType::MATERIAL)
@@ -47,21 +47,12 @@ void AdvancedMaterialEditor::buildUI(ospray::sg::NodePtr materialRegistry)
       copiedMat = selectedMat;
     }
     if (clipboard()) {
-      if (ospray::sg::NodePtr s_copiedMat = copiedMat.lock()) {
+      if (NodePtr s_copiedMat = copiedMat.lock()) {
         ImGui::SameLine();
         if (ImGui::Button("Paste")) {
           // actually create the copied material node here so we know what
           // name to give it
-          auto newMat = ospray::sg::createNode(
-              selectedMat->name(), s_copiedMat->subType());
-          for (auto &c : s_copiedMat->children()) {
-            if (c.second->name() != "handles") {
-              if (c.second->name().substr(0, 4) == "map_")
-                newMat->add(c.second);
-              else
-                newMat->child(c.second->name()).setValue(c.second->value());
-            }
-          }
+          auto newMat = copyMaterial(s_copiedMat, selectedMat->name());
           materialRegistry->add(newMat);
         }
         ImGui::SameLine();
@@ -111,18 +102,7 @@ void AdvancedMaterialEditor::buildUI(ospray::sg::NodePtr materialRegistry)
             std::static_pointer_cast<ospray::sg::Texture2D>(
                 ospray::sg::createNode(paramStr, "texture_2d"));
         sgTex->load(matTexFileName, true, false);
-        auto newMat =
-            ospray::sg::createNode(selectedMat->name(), selectedMat->subType());
-        for (auto &c : selectedMat->children()) {
-          // keep existing textures if they're not the one we're currently
-          // adding/replacing
-          if (c.second->name() != "handles" && c.second->name() != paramStr) {
-            if (c.second->name().substr(0, 4) == "map_")
-              newMat->add(c.second);
-            else
-              newMat->child(c.second->name()).setValue(c.second->value());
-          }
-        }
+        auto newMat = copyMaterial(selectedMat, "", paramStr);
         newMat->add(sgTex, paramStr);
         materialRegistry->add(newMat);
       }
