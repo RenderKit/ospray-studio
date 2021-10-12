@@ -50,6 +50,7 @@ add_library(ospray_ui STATIC
   widgets/Guizmo.cpp
   widgets/PieMenu.cpp
   widgets/ListBoxWidget.cpp
+  widgets/AdvancedMaterialEditor.cpp
 )
 
 target_link_libraries(ospray_ui
