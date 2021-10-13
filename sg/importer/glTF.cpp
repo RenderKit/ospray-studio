@@ -334,6 +334,39 @@ void GLTFData::createLights()
 
       auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
       ast2d->load(texFileName, false, false);
+    } else if (l.type == "sunSky") {
+      newLight = createNode(lightName, l.type);
+      if (l.sunSky.up.size()) {
+        auto up = vec3f{(float)l.sunSky.up[0],
+            (float)l.sunSky.up[1],
+            (float)l.sunSky.up[2]};
+        newLight->createChild("up", "vec3f", up);
+      }
+      if (l.sunSky.turbidity) {
+        auto turbidity = (float)l.sunSky.turbidity;
+        newLight->createChild("turbidity", "float", turbidity);
+      }
+      if (l.sunSky.albedo) {
+        auto albedo = (float)l.sunSky.albedo;
+        newLight->createChild("albedo", "float", albedo);
+      }
+
+      if (l.sunSky.horizonExtension) {
+        auto horizonExtension = (float)l.sunSky.horizonExtension;
+        newLight->createChild("horizonExtension", "float", horizonExtension);
+      }
+
+      if (l.sunSky.azimuth) {
+        auto azimuth = (float)l.sunSky.azimuth;
+        newLight->createChild("azimuth", "float", azimuth);
+      }
+
+      if (l.sunSky.elevation) {
+        auto elevation = (float)l.sunSky.elevation;
+        newLight->createChild("elevation", "float", elevation);
+        newLight->child("elevation").setSGOnly();
+      }
+
     } else
       newLight = createNode(lightName, l.type);
 

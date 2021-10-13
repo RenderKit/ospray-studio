@@ -1119,6 +1119,26 @@ struct SpotLight {
   std::string extensions_json_string;
 };
 
+struct SunSkyLight {
+  std::vector<double> up;
+  double turbidity;
+  double albedo;
+  double horizonExtension;
+  double azimuth;
+  double elevation;
+
+  SunSkyLight() : turbidity(3.0), albedo(0.3), horizonExtension(0.01) {}
+  DEFAULT_METHODS(SunSkyLight)
+  bool operator==(const SunSkyLight &) const;
+
+  ExtensionMap extensions;
+  Value extras;
+
+  // Filled when SetStoreOriginalJSONForExtrasAndExtensions is enabled.
+  std::string extras_json_string;
+  std::string extensions_json_string;
+};
+
 struct Light {
   std::string name;
   std::vector<double> color;
@@ -1126,6 +1146,7 @@ struct Light {
   std::string type;
   double range{0.0};  // 0.0 = inifinite
   SpotLight spot;
+  SunSkyLight sunSky;
 
   Light() : intensity(1.0), range(0.0) {}
   DEFAULT_METHODS(Light)
@@ -5244,6 +5265,39 @@ static bool ParseSpotLight(SpotLight *light, std::string *err, const json &o,
   return true;
 }
 
+static bool ParseSunSkyLight(SunSkyLight *light, std::string *err, const json &o,
+                           bool store_original_json_for_extras_and_extensions) {
+
+  ParseNumberArrayProperty(&light->up, err, o, "up", false);
+  ParseNumberProperty(&light->turbidity, err, o, "turbidity", false);
+  ParseNumberProperty(&light->albedo, err, o, "albedo", false);
+  ParseNumberProperty(&light->horizonExtension, err, o, "horizonExtension", false);
+  ParseNumberProperty(&light->azimuth, err, o, "azimuth", false);
+  ParseNumberProperty(&light->elevation, err, o, "elevation", false);
+
+  ParseExtensionsProperty(&light->extensions, err, o);
+  ParseExtrasProperty(&light->extras, o);
+
+  if (store_original_json_for_extras_and_extensions) {
+    {
+      json_const_iterator it;
+      if (FindMember(o, "extensions", it)) {
+        light->extensions_json_string = JsonToString(GetValue(it));
+      }
+    }
+    {
+      json_const_iterator it;
+      if (FindMember(o, "extras", it)) {
+        light->extras_json_string = JsonToString(GetValue(it));
+      }
+    }
+  }
+
+  // TODO(syoyo): Validate parameter values.
+
+  return true;
+}
+
 static bool ParseOrthographicCamera(
     OrthographicCamera *camera, std::string *err, const json &o,
     bool store_original_json_for_extras_and_extensions) {
@@ -5415,6 +5469,31 @@ static bool ParseLight(Light *light, std::string *err, const json &o,
     }
 
     if (!ParseSpotLight(&light->spot, err, v,
+                        store_original_json_for_extras_and_extensions)) {
+      return false;
+    }
+  } else if (light->type == "sunSky") {
+    json_const_iterator sunSkyIt;
+    if (!FindMember(o, "sunSky", sunSkyIt)) {
+      if (err) {
+        std::stringstream ss;
+        ss << "sunSky light description not found." << std::endl;
+        (*err) += ss.str();
+      }
+      return false;
+    }
+
+    const json &v = GetValue(sunSkyIt);
+    if (!IsObject(v)) {
+      if (err) {
+        std::stringstream ss;
+        ss << "\"sunSky\" is not a JSON object." << std::endl;
+        (*err) += ss.str();
+      }
+      return false;
+    }
+
+    if (!ParseSunSkyLight(&light->sunSky, err, v,
                         store_original_json_for_extras_and_extensions)) {
       return false;
     }
