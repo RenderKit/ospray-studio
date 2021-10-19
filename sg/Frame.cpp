@@ -151,10 +151,7 @@ void Frame::refreshFrameOperations()
   auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
   auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
 
-  if (denoiserEnabled && denoiseFBFinalFrame && accumAtFinal())
-    denoiserEnabled = true;
-  else
-    denoiserEnabled = false;
+  denoiserEnabled = denoiserEnabled && denoiseFBFinalFrame && accumAtFinal();
 
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
