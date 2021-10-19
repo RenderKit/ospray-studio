@@ -29,6 +29,7 @@ namespace ospray {
     void waitOnFrame();
     void cancelFrame();
     bool accumLimitReached();
+    bool accumAtFinal();
     void resetAccumulation();
 
     inline bool isCanceled()
@@ -39,6 +40,7 @@ namespace ospray {
     bool denoiserEnabled{false};
     bool denoiseFB{false};
     bool denoiseNavFB{false};
+    bool denoiseFBFinalFrame{false};
 
     bool toneMapFB{false};
     bool toneMapNavFB{false};

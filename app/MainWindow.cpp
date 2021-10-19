@@ -1785,6 +1785,14 @@ void MainWindow::buildWindowFrameBufferEditor()
       ImGui::SameLine();
       ImGui::Checkbox("Denoise nav", &frame->denoiseNavFB);
     }
+    if (frame->denoiseFB) {
+      ImGui::Checkbox("Denoise on final frame", &frame->denoiseFBFinalFrame);
+      ImGui::SameLine();
+      // Add accum here for convenience with final-frame denoising
+      ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+      ImGui::DragInt(
+          "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
+    }
   } else {
     ImGui::TextColored(
         ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for post-processing");

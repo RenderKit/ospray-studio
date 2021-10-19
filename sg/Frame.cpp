@@ -114,6 +114,11 @@ bool Frame::accumLimitReached()
   return (accumLimit > 0 && currentAccum >= accumLimit);
 }
 
+bool Frame::accumAtFinal()
+{
+  return (accumLimit > 0 && currentAccum == accumLimit - 1);
+}
+
 void Frame::resetAccumulation()
 {
   auto &fb = childAs<FrameBuffer>("framebuffer");
@@ -145,6 +150,11 @@ void Frame::refreshFrameOperations()
   auto &fb = childAs<FrameBuffer>("framebuffer");
   auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
   auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
+
+  if (denoiserEnabled && denoiseFBFinalFrame && accumAtFinal())
+    denoiserEnabled = true;
+  else
+    denoiserEnabled = false;
 
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
