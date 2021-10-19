@@ -583,11 +583,15 @@ inline bool GenerateImGuiWidgets::operator()(Node &node, TraversalContext &ctx)
 
       // this node may be strongly-typed and contain a parameter
       if (node.type() == NodeType::TRANSFORM) {
-        widgetName += "##" + std::to_string(node.uniqueID());
-        if (generateWidget_affine3f(widgetName, node))
-          updated = true;
+        widgetName += " advanced ##" + std::to_string(node.uniqueID());
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(184,169,80,255));
+        if (ImGui::TreeNodeEx(widgetName.c_str(), ImGuiTreeNodeFlags_None)) {
+          if (generateWidget_affine3f(widgetName, node))
+            updated = true;
+          ImGui::TreePop();
+        }
+        ImGui::PopStyleColor();
       } // else if (other types) {}
-
     } else {
       return false; // tree closed, don't process children
     }
