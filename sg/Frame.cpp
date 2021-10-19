@@ -71,6 +71,8 @@ void Frame::startNewFrame(bool interacting)
 
     if (immediatelyWait)
       waitOnFrame();
+    if (!accumLimitReached())
+      currentAccum++;
   }
 }
 
@@ -97,8 +99,6 @@ void Frame::waitOnFrame()
   auto future = value().valid() ? handle() : nullptr;
   if (future)
     future.wait(OSP_FRAME_FINISHED);
-  if (!accumLimitReached())
-    currentAccum++;
 }
 
 void Frame::cancelFrame()
