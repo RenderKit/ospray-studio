@@ -35,34 +35,42 @@ NodeType Frame::type() const
   return NodeType::FRAME;
 }
 
-void Frame::startNewFrame(bool interacting)
+void Frame::startNewFrame()
 {
   auto &fb = childAs<FrameBuffer>("framebuffer");
   auto &camera = childAs<Camera>("camera");
   auto &renderer = childAs<Renderer>("renderer");
   auto &world = childAs<World>("world");
 
+  // navMode/mouse-button vs frame-state navMode
+  if (navMode != child("navMode").valueAs<bool>()) {
+    child("navMode") = navMode;
+
+    // Recreate framebuffers on windowsize or scale changes.
+    auto &fb = child("framebuffer");
+    auto oldSize = fb["size"].valueAs<vec2i>();
+    auto scale = (navMode ? child("scaleNav").valueAs<float>()
+                          : child("scale").valueAs<float>());
+
+    auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
+    if (oldSize != newSize)
+      fb["size"] = newSize;
+  }
+
   // If working on a frame, cancel it, something has changed
   if (isModified()) {
     cancelFrame();
     waitOnFrame();
     resetAccumulation();
-    // Enable navMode
-    if (!navMode)
-      child("navMode") = true;
-  } else {
-    // No frame changes, disable navMode
-    if (navMode)
-      child("navMode") = false;
   }
 
   refreshFrameOperations();
 
-  // Commit only when modified and not while interacting.
-  if (isModified() && !interacting)
+  // Commit only when modified
+  if (isModified())
     commit();
 
-  if (!(interacting || pauseRendering || accumLimitReached())) {
+  if (!(pauseRendering || accumLimitReached())) {
     auto future = fb.handle().renderFrame(
         renderer.handle(), camera.handle(), world.handle());
     setHandle(future);
@@ -151,7 +159,8 @@ void Frame::refreshFrameOperations()
   auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
   auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
 
-  denoiserEnabled = denoiserEnabled && denoiseFBFinalFrame && accumAtFinal();
+  denoiserEnabled = denoiserEnabled
+      && (!denoiseFBFinalFrame || denoiseFBFinalFrame && accumAtFinal());
 
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
@@ -160,23 +169,6 @@ void Frame::refreshFrameOperations()
 
 void Frame::preCommit()
 {
-  static bool currentNavMode = navMode;
-  navMode = child("navMode").valueAs<bool>();
-
-  if (navMode != currentNavMode) {
-    currentNavMode = navMode;
-
-    // Recreate framebuffers on windowsize or scale changes.
-    auto &fb = child("framebuffer");
-    auto oldSize = fb["size"].valueAs<vec2i>();
-    auto scale = (navMode ? child("scaleNav").valueAs<float>()
-                          : child("scale").valueAs<float>());
-
-    auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
-    if (oldSize != newSize)
-      fb["size"] = newSize;
-  }
-
   // The materials list needs to know of any change in renderer type.
   // Yet, the renderer has no direct way of notifying the material registery,
   // so update the rendererType here.

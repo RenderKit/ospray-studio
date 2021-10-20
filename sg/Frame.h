@@ -22,7 +22,7 @@ namespace ospray {
 
     NodeType type() const override;
 
-    void startNewFrame(bool interacting = false);
+    void startNewFrame();
 
     bool frameIsReady();
     float frameProgress();
@@ -35,6 +35,11 @@ namespace ospray {
     inline bool isCanceled()
     {
       return canceled;
+    }
+
+    void setNavMode(bool mode)
+    {
+      navMode = mode;
     }
 
     bool denoiserEnabled{false};

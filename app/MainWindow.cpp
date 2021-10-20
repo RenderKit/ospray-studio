@@ -369,12 +369,14 @@ MainWindow::MainWindow(StudioCommon &_common)
         activeWindow->reshape(vec2i{newWidth, newHeight});
       });
 
-  glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow *win, int, int, int) {
+  glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow *win, int, int action, int) {
     ImGuiIO &io = ImGui::GetIO();
     if (!activeWindow->showUi || !io.WantCaptureMouse) {
       double x, y;
       glfwGetCursorPos(win, &x, &y);
       activeWindow->mouseButton(vec2f{float(x), float(y)});
+
+      activeWindow->getFrame()->setNavMode(action == GLFW_PRESS);
     }
   });
 
