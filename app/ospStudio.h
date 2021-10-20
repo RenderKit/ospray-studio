@@ -82,8 +82,8 @@ class StudioCommon
 
   int argc;
   const char **argv;
-  int plugin_argc;
-  const char **plugin_argv;
+  int plugin_argc{0};
+  const char **plugin_argv{nullptr};
 };
 
 // abstract base class for all Studio modes
