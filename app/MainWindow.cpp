@@ -23,6 +23,7 @@
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/Search.h"
 #include "sg/visitors/SetParamByNode.h"
+#include "sg/visitors/CollectTransferFunctions.h"
 #include "sg/scene/volume/Volume.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
@@ -2243,17 +2244,9 @@ void MainWindow::buildWindowTransferFunctionEditor()
   }
 
   // Gather all transfer functions in the scene
-  std::map<std::string, sg::NodePtr> transferFunctions = {};
-  for (auto &node : frame->child("world").children())
-    if (node.second->type() == sg::NodeType::GENERATOR
-        || node.second->type() == sg::NodeType::IMPORTER
-        || node.second->type() == sg::NodeType::VOLUME) {
-      auto tfn =
-          findFirstNodeOfType(node.second, sg::NodeType::TRANSFER_FUNCTION);
-      // node.first is a unique name. tfn->name() is always "transferFunction"
-      if (tfn)
-        transferFunctions[node.first] = tfn;
-    }
+  sg::CollectTransferFunctions visitor;
+  frame->traverse(visitor);
+  auto &transferFunctions = visitor.transferFunctions;
 
   if (transferFunctions.empty()) {
     ImGui::Text("== empty == ");
