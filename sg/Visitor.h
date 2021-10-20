@@ -6,6 +6,7 @@
 #include "rkcommon/traits/rktraits.h"
 #include <vector>
 #include <memory>
+#include <string>
 
 namespace ospray {
   namespace sg {
