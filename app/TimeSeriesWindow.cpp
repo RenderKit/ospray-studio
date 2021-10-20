@@ -183,7 +183,7 @@ void TimeSeriesWindow::mainLoop()
         }
 
         auto tfn = std::static_pointer_cast<sg::TransferFunction>(
-            sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
+            sg::createNode("tfn_" + to_string(i), "transfer_function_turbo"));
 
         for (int j = 0; j < numInstances; j++) {
           auto newX = createNode("geomXfm" + to_string(j), "transform");
@@ -257,7 +257,7 @@ void TimeSeriesWindow::mainLoop()
         }
 
         auto tfn = std::static_pointer_cast<sg::TransferFunction>(
-            sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
+            sg::createNode("tfn_" + to_string(i), "transfer_function_turbo"));
 
         for (int j = 0; j < numInstances; j++) {
           auto newX = createNode("geomXfm" + to_string(j), "transform");
@@ -338,13 +338,11 @@ void TimeSeriesWindow::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "Render into separate framebuffers"
   );
 
+  app->remove_option(app->get_option_no_throw("files"));
   app->add_option_function<std::vector<std::string>>(
     "files",
     [&](const std::vector<std::string> val) {
-      for (std::string x : val) {
-        std::fprintf(stderr, "arg: %s\n", x.c_str());
-      }
-      // fit it into a unit cube (if no other fetchnamerid spacing provided)
+      // fit it into a unit cube (if no other gridSpacing provided)
       if (gridSpacing == vec3f(-1.f)) {
         const float normalizedGridSpacing = reduce_min(1.f / dimensions);
 
@@ -368,7 +366,11 @@ bool TimeSeriesWindow::parseCommandLine()
   StudioContext::addToCommandLine(app);
   MainWindow::addToCommandLine(app);
   TimeSeriesWindow::addToCommandLine(app);
-  app->parse(ac, av);
+  try {
+    app->parse(ac, av);
+  } catch (const CLI::ParseError &e) {
+    exit(app->exit(e));
+  }
 
   std::cerr << "local loading for time steps (on each process): "
             << g_localLoading << std::endl;
@@ -599,26 +601,4 @@ void TimeSeriesWindow::setTimestep(int timestep)
   //set up separate framebuffers
   if (setSeparateFramebuffers)
     setTimestepFb(timestep);
-}
-
-void TimeSeriesWindow::printHelp()
-{
-  std::cout <<
-      R"text(
-  ./ospStudio timeseries [parameters] [files]
-
-  requirement for parameteres depend on the type of volume import.
-
-  ospStudio timeseries specific parameters:
-    -separateTimeseries add volume variables as separate dropdown selectable timeseries
-    -separateFb     configure separate Framebuffer per timestep
-    -localLoading   to disable asynchronous loading of timesteps
-    -numInstances   <number of instances>
-    -renderer       pathtracer | scivis
-    -dimensions     <dimX> <dimY> <dimZ>
-    -voxelType       OSP_FLOAT | 
-    -gridSpacing    <x> <y> <z>
-    -gridOrigin     <x> <y> <z>
-    -variable       <float.extension>>... )text"
-            << std::endl;
 }

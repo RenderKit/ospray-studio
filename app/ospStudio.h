@@ -151,11 +151,6 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   StudioCommon &studioCommon;
  protected:
-  virtual void printHelp()
-  {
-    std::cerr << "common Studio help message" << std::endl;
-  }
-
   bool sgScene{false}; // whether we are loading a scene file
 
 };

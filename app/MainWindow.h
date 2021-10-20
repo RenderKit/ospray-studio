@@ -137,7 +137,6 @@ class MainWindow : public StudioContext
   void buildWindowRenderingStats();
 
   void setCameraSnapshot(size_t snapshot);
-  void printHelp() override;
 
   std::vector<CameraState> cameraStack;
   sg::NodePtr g_selectedSceneCamera;

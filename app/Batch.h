@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <map>
-
 #include "ospStudio.h"
 
 #include "ArcballCamera.h"
@@ -54,7 +52,6 @@ class BatchContext : public StudioContext
   int fps{24};
   bool forceRewrite{false};
   range1i framesRange{0, 0};
-  void printHelp() override;
   int cameraDef{0};
   range1i cameraRange{0, 0};
   bool useCameraRange{false};

@@ -229,7 +229,11 @@ bool BatchContext::parseCommandLine()
   std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio Batch");
   StudioContext::addToCommandLine(app);
   BatchContext::addToCommandLine(app);
-  app->parse(ac, av);
+  try {
+    app->parse(ac, av);
+  } catch (const CLI::ParseError &e) {
+    exit(app->exit(e));
+  }
 
   if (filesToImport.size() == 0) {
     std::cout << "No files to import " << std::endl;
@@ -531,66 +535,4 @@ void BatchContext::importFiles(sg::NodePtr world)
   filesToImport.clear();
   if (animationManager)
     animationManager->init();
-}
-
-void BatchContext::printHelp()
-{
-  std::cout <<
-      R"text(
-./ospStudio batch [parameters] [scene_files]
-
-ospStudio batch specific parameters:
-   -fps  --speed
-   -fr   --forceRewrite
-         force rewrite on existing saved files
-   -rn   --range [start end] for eg : [10 20]
-         range of frames to be rendered
-         This should be determined by the user based on specified `fps` and total animation time.
-   -cam  --camera 
-         In case of mulitple imported cameras specify which camera definition to use, counting starts from 1
-         0 here would use default camera implementation
-   -cams  --cameras 
-         In case of mulitple imported cameras specify which camera-range to use, counting starts from 1
-         for eg. a valid range would be [1 7]
-   -a    --albedo
-   -d    --depth
-   -n    --normal
-   -m    --metadata
-   -l    --layers
-   -f    --format (default png)
-          format for saving the image
-          (sg, exr, hdr, jpg, pfm,png, ppm)
-   -i     --image [baseFilename] (default 'ospBatch')
-            base name of saved image
-   -s     --size [x y] (default 1024x768)
-            image size
-   -spp   --samples [int] (default 32)
-            samples per pixel
-   -pf    --pixelfilter (default gauss)
-            (0=point, 1=box, 2=gauss, 3=mitchell, 4=blackman_harris)
-   -r     --renderer [type] (default "pathtracer")
-            rendererType scivis, ao, or pathtracer
-   -c     --camera [type] (default "perspective")
-            cameraType perspective or panoramic
-   -vp    [x y z] camera position  
-   -vu    [x y z] camera up  
-   -vi    [x y z] camera look-at  
-   -sm    --stereoMode 0=none, 1=left, 2=right, 3=side-by-side, 4=top-bottom
-   -id    --interpupillaryDistance
-   -g     --grid [x y z] (default 1 1 1, single instance)
-            instace a grid of models
-   -sc    --optSceneConfig(default is the static BVH build of embree)
-          set global scene configuration params
-          valid values are dynamic, compact and robust
-   -ic    --optInstanceConfig(default is the static BVH build of embree)
-          set instance scene configuration params
-          valid values are dynamic, compact and robust)text"
-            << std::endl;
-  if (studioCommon.denoiserAvailable) {
-    std::cout <<
-        R"text(
-   -oidn  --denoiser [0,1,2] (default 0)
-            image denoiser (0 = off, 1 = on, 2 = save both)
-)text" << std::endl;
-  }
 }

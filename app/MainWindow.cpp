@@ -1091,7 +1091,11 @@ bool MainWindow::parseCommandLine()
   std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio GUI");
   StudioContext::addToCommandLine(app);
   MainWindow::addToCommandLine(app);
-  app->parse(ac, av);
+  try {
+    app->parse(ac, av);
+  } catch (const CLI::ParseError &e) {
+    exit(app->exit(e));
+  }
 
   windowSize = optResolution;
   glfwSetWindowSize(glfwWindow, optResolution.x, optResolution.y);
@@ -2559,24 +2563,4 @@ void MainWindow::buildWindowRenderingStats()
   }
 
   ImGui::End();
-}
-
-void MainWindow::printHelp()
-{
-  const char *help = R"help(ospStudio gui [options] [file1 [file2 ...]]
-
-    OPTIONS
-    -h, --help               this help message
-    -pf N, --pixelfilter N   set default pixel filter:
-                               0 = point
-                               1 = box
-                               2 = Gaussian
-                               3 = Mitchell-Netravali
-                               4 = Blackman-Harris
-    -a, --animate            enable loading glTF animations
-    --2160p, --1440p,        set window/frame resolution
-    --1080p, --720p,
-    --540p, --270p
-)help";
-  std::cerr << help;
 }

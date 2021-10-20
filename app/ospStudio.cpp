@@ -89,7 +89,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       }
       return true;
     },
-    "Set the dimensions for imported volumes"
+    "Set the initial framebuffer/window size (e.g. 720p, 4K, 1024x768, 1024)"
   );
   app->add_option(
     "--dimensions",

@@ -17,7 +17,6 @@ PUBLIC
   ospray::ospray
   json
   ospray_sg
-  cli11
 )
 
 # ## Version header ##
