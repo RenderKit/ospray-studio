@@ -18,6 +18,7 @@ namespace ospray {
 
   struct TraversalContext
   {
+    std::string name;
     int level{0};
   };
 

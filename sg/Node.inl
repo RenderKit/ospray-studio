@@ -130,6 +130,7 @@ namespace ospray {
   inline void Node::traverse(VISITOR_T &&visitor)
   {
     TraversalContext ctx;
+    ctx.name = "<root>";
     traverse(std::forward<VISITOR_T>(visitor), ctx);
   }
 
@@ -147,17 +148,22 @@ namespace ospray {
         " implement 'bool visit(Node &node, TraversalContext &ctx)'"
         "!");
 
+    std::string oldName = ctx.name;
+
     bool traverseChildren = visitor(*this, ctx);
 
     ctx.level++;
 
     if (traverseChildren) {
-      for (auto &child : properties.children)
+      for (auto &child : properties.children) {
+        ctx.name = child.first;
         child.second->traverse(visitor, ctx);
+      }
     }
 
     ctx.level--;
 
+    ctx.name = oldName;
     visitor.postChildren(*this, ctx);
   }
 
