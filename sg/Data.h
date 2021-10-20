@@ -63,6 +63,11 @@ namespace ospray {
     template <typename T>
     Data(const T &obj);
 
+    vec3ul numItems;
+    vec3ul byteStride;
+    OSPDataType format;
+    bool isShared;
+
    private:
     template <typename T>
     void validate_element_type();
@@ -115,14 +120,18 @@ namespace ospray {
   }
 
   template <typename T>
-  inline Data::Data(const vec3ul &numItems,
-                    const vec3ul &byteStride,
+  inline Data::Data(const vec3ul &numItems_,
+                    const vec3ul &byteStride_,
                     const T *init,
-                    bool isShared)
+                    bool isShared_)
+    : numItems(numItems_)
+    , byteStride(byteStride_)
+    , isShared(isShared_)
   {
     validate_element_type<T>();
 
     auto format = OSPTypeFor<T>::value;
+    this->format = format;
 
     auto tmp = ospNewSharedData(init,
                                 format,
