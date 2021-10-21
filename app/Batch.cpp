@@ -271,8 +271,22 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
     auto &camera = frame->createChildAs<sg::Camera>(
         "camera", selectedSceneCamera->subType());
       
-    for (auto &c : selectedSceneCamera->children())
-      camera.add(c.second);
+    // XXX should create a node function "copyParamValues"???  Would come in very handy.
+    // Add new camera params.  Only copy the param values not the nodes.
+    // only if param doesn't exist, then create it.
+    for (auto &c : selectedSceneCamera->children()) {
+      auto &param = *c.second;
+      if (camera.hasChild(c.first))
+        camera[c.first] = param.value();
+      else {
+        camera.createChild(
+            c.first, param.subType(), param.description(), param.value());
+        if (param.sgOnly())
+          camera[c.first].setSGOnly();
+      }
+      if (param.hasMinMax())
+        camera[c.first].setMinMax(param.min(), param.max());
+    }
 
     // create unique cameraId for every camera
     auto &cameraParents = selectedSceneCamera->parents();

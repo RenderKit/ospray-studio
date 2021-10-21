@@ -334,11 +334,6 @@ namespace ospray {
 
   inline void RenderScene::createInstanceFromGroup(Node &node)
   {
-    #if defined(DEBUG)
-    std::cout << "number of geometries : " << current.geometries.size()
-              << std::endl;
-    #endif
-
     auto setInstance = [&](auto group) {
       group.setParam(
           "dynamicScene", node.child("dynamicScene").valueAs<bool>());
@@ -365,6 +360,10 @@ namespace ospray {
 
     if (node.hasChildOfType(NodeType::GEOMETRY)) {
       auto &geomChildren = node.childrenOfType(NodeType::GEOMETRY);
+#if defined(DEBUG)
+      std::cout << "number of geometries : " << geomChildren.size() << std::endl;
+#endif
+
       for (auto geom : geomChildren) {
         auto geomNode = geom->nodeAs<Geometry>();
         auto geomIdentifier = geomNode->groupIndex;

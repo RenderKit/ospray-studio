@@ -2177,18 +2177,55 @@ void MainWindow::buildWindowCameraEditor()
 
       // Change the camera type, if the new camera is different.
       if (frame->childAs<sg::Camera>("camera").subType()
-          != newCamera.second->subType()) {
+          != g_selectedSceneCamera->subType()) {
         frame->createChildAs<sg::Camera>("camera",
-            newCamera.second->subType());
+            g_selectedSceneCamera->subType());
       }
 
-      // Add new camera params
+      // XXX should create a node function "copyParamValues"???  Would come in very handy.
+      // Add new camera params.  Only copy the param values not the nodes.
+      // only if param doesn't exist, then create it.
       auto &camera = frame->childAs<sg::Camera>("camera");
-      for (auto &c : g_selectedSceneCamera->children())
-        camera.add(c.second);
+      for (auto &c : g_selectedSceneCamera->children()) {
+        auto &param = *c.second;
+
+#if 1 // XXX DEBUG INFO
+        std::cout << c.first << " = ";
+        if (param.valueIsType<vec3f>())
+          std::cout << param.valueAs<vec3f>() << std::endl;
+        else if (param.valueIsType<vec2f>())
+          std::cout << param.valueAs<vec2f>() << std::endl;
+        else if (param.valueIsType<range1f>())
+          std::cout << param.valueAs<range1f>() << std::endl;
+        else if (param.valueIsType<float>())
+          std::cout << param.valueAs<float>() << std::endl;
+        else if (param.valueIsType<int>())
+          std::cout << param.valueAs<int>() << std::endl;
+        else if (param.valueIsType<bool>())
+          std::cout << (param.valueAs<bool>() ? "on" : "off") << std::endl;
+        else
+          std::cout << "unknown type" << std::endl;
+#endif
+
+        if (camera.hasChild(c.first))
+          camera[c.first] = param.value();
+        else {
+          camera.createChild(
+              c.first, param.subType(), param.description(), param.value());
+          if (param.sgOnly())
+            camera[c.first].setSGOnly();
+        }
+        if (param.hasMinMax())
+          camera[c.first].setMinMax(param.min(), param.max());
+      }
 
       auto newCS = g_selectedSceneCamera->nodeAs<sg::Camera>()->getState();
-      arcballCamera->setState(*newCS);
+      if (newCS) {
+#if 1 //XXX DEBUG INFO
+        std::cout << "newCS: " << *newCS << std::endl;
+#endif
+        arcballCamera->setState(*newCS);
+      }
 
       reshape(windowSize); // resets aspect
       updateCamera();
