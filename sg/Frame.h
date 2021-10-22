@@ -46,6 +46,7 @@ namespace ospray {
     bool denoiseFB{false};
     bool denoiseNavFB{false};
     bool denoiseFBFinalFrame{false};
+    bool denoiseOnlyPathTracer{true};
 
     bool toneMapFB{false};
     bool toneMapNavFB{false};

@@ -151,6 +151,9 @@ void Frame::refreshFrameOperations()
   denoiserEnabled &=
       (!denoiseFBFinalFrame || denoiseFBFinalFrame && accumAtFinal());
 
+  denoiserEnabled &= !(denoiseOnlyPathTracer
+      && (child("renderer")["type"].valueAs<std::string>() != "pathtracer"));
+
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
   fb.updateImageOperations();

@@ -1787,7 +1787,8 @@ void MainWindow::buildWindowFrameBufferEditor()
       ImGui::SameLine();
       ImGui::Checkbox("Denoise nav", &frame->denoiseNavFB);
     }
-    if (frame->denoiseFB) {
+    if (frame->denoiseFB || frame->denoiseNavFB) {
+      ImGui::Checkbox("Denoise only PathTracer", &frame->denoiseOnlyPathTracer);
       ImGui::Checkbox("Denoise on final frame", &frame->denoiseFBFinalFrame);
       ImGui::SameLine();
       // Add accum here for convenience with final-frame denoising
