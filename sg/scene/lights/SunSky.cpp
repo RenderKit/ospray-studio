@@ -64,23 +64,25 @@ SunSky::SunSky() : Light("sunSky")
 
 void SunSky::preCommit()
 {
-  const float azimuth = child("azimuth").valueAs<float>() * M_PI / 180.f;
-  const float elevation = child("elevation").valueAs<float>() * M_PI / 180.f;
+  if (child("direction").readOnly()) {
+    const float azimuth = child("azimuth").valueAs<float>() * M_PI / 180.f;
+    const float elevation = child("elevation").valueAs<float>() * M_PI / 180.f;
 
-  vec3f up = child("up").valueAs<vec3f>();
-  vec3f dir = child("right").valueAs<vec3f>();
-  vec3f p1 = cross(up, dir);
-  LinearSpace3f r1 = LinearSpace3f::rotate(dir, -elevation);
-  vec3f p2 = r1 * p1;
-  LinearSpace3f r2 = LinearSpace3f::rotate(up, azimuth);
-  vec3f p3 = r2 * p2;
-  vec3f direction = p3;
-  if (!(std::isnan(direction.x) || std::isnan(direction.y)
-          || std::isnan(direction.z))) {
-    // this overwrites the "direction" child parameters, making that UI element
-    // not directly useable...
-    auto &directionNode = child("direction");
-    directionNode.setValue(direction);
+    vec3f up = child("up").valueAs<vec3f>();
+    vec3f dir = child("right").valueAs<vec3f>();
+    vec3f p1 = cross(up, dir);
+    LinearSpace3f r1 = LinearSpace3f::rotate(dir, -elevation);
+    vec3f p2 = r1 * p1;
+    LinearSpace3f r2 = LinearSpace3f::rotate(up, azimuth);
+    vec3f p3 = r2 * p2;
+    vec3f direction = p3;
+    if (!(std::isnan(direction.x) || std::isnan(direction.y)
+            || std::isnan(direction.z))) {
+      // this overwrites the "direction" child parameters, making that UI
+      // element not directly useable...
+      auto &directionNode = child("direction");
+      directionNode.setValue(direction);
+    }
   }
   Light::preCommit();
 }

@@ -356,17 +356,6 @@ void GLTFData::createLights()
         newLight->createChild("horizonExtension", "float", horizonExtension);
       }
 
-      if (l.sunSky.azimuth) {
-        auto azimuth = (float)l.sunSky.azimuth;
-        newLight->createChild("azimuth", "float", azimuth);
-      }
-
-      if (l.sunSky.elevation) {
-        auto elevation = (float)l.sunSky.elevation;
-        newLight->createChild("elevation", "float", elevation);
-        newLight->child("elevation").setSGOnly();
-      }
-
     } else
       newLight = createNode(lightName, l.type);
 

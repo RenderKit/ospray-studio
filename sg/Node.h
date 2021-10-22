@@ -220,6 +220,7 @@ namespace sg {
     // prevent user adjustment to this Node *via the UI*
     bool readOnly() const;
     void setReadOnly();
+    void rmReadOnly();
 
     // Nodes that are used internally to the SG and invalid for OSPRay
     bool sgOnly() const;

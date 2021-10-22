@@ -302,6 +302,11 @@ namespace ospray {
     properties.readOnly = true;
   }
 
+  void Node::rmReadOnly()
+  {
+    properties.readOnly = false;
+  }
+
   bool Node::sgOnly() const
   {
     return properties.sgOnly;

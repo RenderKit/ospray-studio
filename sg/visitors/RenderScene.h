@@ -422,21 +422,29 @@ namespace ospray {
   inline void RenderScene::setLightParams(Node &node)
   {
     auto type = node.subType();
-    std::map<std::string, vec3f> propMap;
+    // properties map for initializing light property values
+    std::unordered_map<std::string, std::pair<vec3f, bool>> propMap;
 
     if (type == "sphere" || type == "spot" || type == "quad") {
       auto lightPos = xfmPoint(xfms.top(), vec3f(0));
-      propMap.insert(std::make_pair("position", lightPos));
+      propMap.insert(
+          std::make_pair("position", std::make_pair(lightPos, false)));
     }
 
     if (type == "distant" || type == "hdri" || type == "spot") {
       auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
-      propMap.insert(std::make_pair("direction", lightDir));
+      propMap.insert(
+          std::make_pair("direction", std::make_pair(lightDir, false)));
+    }
+
+    if (type == "sunSky") {
+      auto sunDir = xfmVector(xfms.top(), vec3f(0, -1, 0));
+      propMap.insert(std::make_pair("direction", std::make_pair(sunDir, true)));
     }
 
     if (type == "hdri") {
       auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
-      propMap.insert(std::make_pair("up", upDir));
+      propMap.insert(std::make_pair("up", std::make_pair(upDir, false)));
     }
     auto lightNode = node.nodeAs<sg::Light>();
     lightNode->initOrientation(propMap);

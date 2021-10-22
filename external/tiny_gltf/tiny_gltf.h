@@ -1124,8 +1124,6 @@ struct SunSkyLight {
   double turbidity;
   double albedo;
   double horizonExtension;
-  double azimuth;
-  double elevation;
 
   SunSkyLight() : turbidity(3.0), albedo(0.3), horizonExtension(0.01) {}
   DEFAULT_METHODS(SunSkyLight)
@@ -5272,8 +5270,6 @@ static bool ParseSunSkyLight(SunSkyLight *light, std::string *err, const json &o
   ParseNumberProperty(&light->turbidity, err, o, "turbidity", false);
   ParseNumberProperty(&light->albedo, err, o, "albedo", false);
   ParseNumberProperty(&light->horizonExtension, err, o, "horizonExtension", false);
-  ParseNumberProperty(&light->azimuth, err, o, "azimuth", false);
-  ParseNumberProperty(&light->elevation, err, o, "elevation", false);
 
   ParseExtensionsProperty(&light->extensions, err, o);
   ParseExtrasProperty(&light->extras, o);
