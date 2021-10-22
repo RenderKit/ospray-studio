@@ -53,18 +53,19 @@ namespace ospray {
   }
 
   template <>
-  inline void Node::setValue(Any val)
+  inline void Node::setValue(Any val, bool markModified)
   {
     if (val != properties.value) {
       properties.value = val;
-      markAsModified();
+      if (markModified)
+        markAsModified();
     }
   }
 
   template <typename T>
-  inline void Node::setValue(T val)
+  inline void Node::setValue(T val, bool markModified)
   {
-    setValue(Any(val));
+    setValue(Any(val), markModified);
   }
 
   template <typename T>
@@ -297,9 +298,9 @@ namespace ospray {
   }
 
   template <typename HANDLE_T, NodeType TYPE>
-  inline void OSPNode<HANDLE_T, TYPE>::setHandle(HANDLE_T handle)
+  inline void OSPNode<HANDLE_T, TYPE>::setHandle(HANDLE_T handle, bool markModified)
   {
-    setValue(handle);
+    setValue(handle, markModified);
   }
 
   template <typename HANDLE_T, NodeType TYPE>

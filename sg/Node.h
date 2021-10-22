@@ -108,8 +108,9 @@ namespace sg {
     template <typename T>
     bool valueIsType() const;
 
+    // updates modified time by default, special case does not
     template <typename T>
-    void setValue(T val);
+    void setValue(T val, bool markModified = true);
 
     void operator=(Any val);
 
@@ -360,7 +361,8 @@ namespace sg {
 
     const HANDLE_T &handle() const;
 
-    void setHandle(HANDLE_T handle);
+    // updates modified time by default, special case does not
+    void setHandle(HANDLE_T handle, bool markModified = true);
 
     operator HANDLE_T();
 

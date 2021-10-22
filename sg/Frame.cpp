@@ -43,19 +43,9 @@ void Frame::startNewFrame()
   auto &world = childAs<World>("world");
 
   // navMode/mouse-button vs frame-state navMode
-  if (navMode != child("navMode").valueAs<bool>()) {
-    child("navMode") = navMode;
-
-    // Recreate framebuffers on windowsize or scale changes.
-    auto &fb = child("framebuffer");
-    auto oldSize = fb["size"].valueAs<vec2i>();
-    auto scale = (navMode ? child("scaleNav").valueAs<float>()
-                          : child("scale").valueAs<float>());
-
-    auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
-    if (oldSize != newSize)
-      fb["size"] = newSize;
-  }
+  // Enable navMode on mouse and move, not just click.
+  if (navMode != child("navMode").valueAs<bool>())
+    child("navMode") = navMode && (!navMode || isModified());
 
   // If working on a frame, cancel it, something has changed
   if (isModified()) {
@@ -73,8 +63,7 @@ void Frame::startNewFrame()
   if (!(pauseRendering || accumLimitReached())) {
     auto future = fb.handle().renderFrame(
         renderer.handle(), camera.handle(), world.handle());
-    setHandle(future);
-    commit(); // XXX setHandle modifies node, but nothing else has changed yet
+    setHandle(future, false); // setHandle but don't update modified time
     canceled = false;
 
     if (immediatelyWait)
@@ -159,8 +148,8 @@ void Frame::refreshFrameOperations()
   auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
   auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
 
-  denoiserEnabled = denoiserEnabled
-      && (!denoiseFBFinalFrame || denoiseFBFinalFrame && accumAtFinal());
+  denoiserEnabled &=
+      (!denoiseFBFinalFrame || denoiseFBFinalFrame && accumAtFinal());
 
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
@@ -169,6 +158,16 @@ void Frame::refreshFrameOperations()
 
 void Frame::preCommit()
 {
+  // Recreate framebuffers on windowsize or scale changes.
+  auto &fb = child("framebuffer");
+  auto oldSize = fb["size"].valueAs<vec2i>();
+  auto scale = (navMode ? child("scaleNav").valueAs<float>()
+      : child("scale").valueAs<float>());
+
+  auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
+  if (oldSize != newSize)
+    fb["size"] = newSize;
+
   // The materials list needs to know of any change in renderer type.
   // Yet, the renderer has no direct way of notifying the material registery,
   // so update the rendererType here.
