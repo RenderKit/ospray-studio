@@ -431,15 +431,10 @@ namespace ospray {
           std::make_pair("position", std::make_pair(lightPos, false)));
     }
 
-    if (type == "distant" || type == "hdri" || type == "spot") {
-      auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
+    if (type == "distant" || type == "spot" || type == "sunSky") {
+      auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, -1));
       propMap.insert(
           std::make_pair("direction", std::make_pair(lightDir, false)));
-    }
-
-    if (type == "sunSky") {
-      auto sunDir = xfmVector(xfms.top(), vec3f(0, -1, 0));
-      propMap.insert(std::make_pair("direction", std::make_pair(sunDir, true)));
     }
 
     if (type == "hdri") {
