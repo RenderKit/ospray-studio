@@ -2131,9 +2131,7 @@ void MainWindow::buildWindowLightEditor()
       if (lightsManager->addLight(lightName, lightType)) {
         if (lightType == "hdri") {
           auto &hdri = lightsManager->child(lightName);
-          auto &hdriTex = hdri.createChild("map", "texture_2d");
-          auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
-          ast2d->load(texFileName, false, false);
+          hdri["filename"] = texFileName.str();
         }
         // Select newly added light
         whichLight = lights.size() - 1;

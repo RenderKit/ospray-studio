@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
+#include "sg/texture/Texture2D.h"
 
 namespace ospray {
 namespace sg {
@@ -10,6 +11,7 @@ struct OSPSG_INTERFACE HDRILight : public Light
 {
   HDRILight();
   virtual ~HDRILight() override = default;
+  void preCommit() override;
   void postCommit() override;
 };
 
@@ -19,6 +21,9 @@ OSP_REGISTER_SG_NODE_NAME(HDRILight, hdri);
 
 HDRILight::HDRILight() : Light("hdri")
 {
+  createChild("filename", "string", "HDRI filename", std::string(""));
+  child("filename").setSGOnly();
+
   createChild("up",
       "vec3f",
       "up direction of the light in world-space",
@@ -34,12 +39,37 @@ HDRILight::HDRILight() : Light("hdri")
   child("direction").setMinMax(-1.f, 1.f); // per component min/max
 }
 
+void HDRILight::preCommit()
+{
+  Light::preCommit();
+
+  auto filename = child("filename").valueAs<std::string>();
+
+  // Load HDRI file and create texture
+  if (filename == "") {
+    remove("map");
+  } else {
+    auto mapFilename =
+        hasChild("map") ? child("map")["filename"].valueAs<std::string>() : "";
+    // reload if HDRI filename changes
+    if (filename != mapFilename) {
+      auto &hdriTex = createChild("map", "texture_2d");
+      auto texture = hdriTex.nodeAs<sg::Texture2D>();
+      texture->load(filename, false, false);
+    }
+  }
+}
+
 void HDRILight::postCommit()
 {
   auto asLight = valueAs<cpp::Light>();
-  auto &map = child("map").valueAs<cpp::Texture>();
-  asLight.setParam("map", (cpp::Texture)map);
-  map.commit();
+
+  if (hasChild("map")) {
+    auto &map = child("map").valueAs<cpp::Texture>();
+    asLight.setParam("map", (cpp::Texture)map);
+    map.commit();
+  } else
+    asLight.removeParam("map");
 
   Light::postCommit();
 }
