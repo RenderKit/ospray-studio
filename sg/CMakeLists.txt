@@ -45,6 +45,7 @@ add_library(ospray_sg SHARED
   Data.cpp
   Node.cpp
   Frame.cpp
+  PluginCore.cpp
 
   camera/Camera.cpp
   camera/Perspective.cpp

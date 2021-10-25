@@ -11,6 +11,7 @@
 #include <sg/Data.h>
 #include <sg/Frame.h>
 #include <sg/Node.h>
+#include <sg/PluginCore.h>
 #include <sg/camera/Camera.h>
 #include <sg/fb/FrameBuffer.h>
 #include <sg/importer/Importer.h>
@@ -57,6 +58,12 @@ void updateCamera(Node &camera, ArcballCamera &arcballCamera)
   camera["position"] = arcballCamera.eyePos();
   camera["direction"] = arcballCamera.lookDir();
   camera["up"] = arcballCamera.upDir();
+}
+
+bool loadPlugin(const std::string &name)
+{
+  void *plugin = loadPluginCore(name);
+  return plugin != nullptr;
 }
 
 // OSPNode typedefs //////////////////////////////////////////////////////
@@ -261,6 +268,10 @@ PYBIND11_MODULE(pysg, sg)
   sg.def("createNode",
       py::overload_cast<std::string, std::string, rkcommon::utility::Any>(
           &createNode));
+
+  // Plugins ////////////////////////////////////////////
+  sg.def(
+    "loadPlugin", py::overload_cast<const std::string &>(&loadPlugin));
 
   // Importer functions ////////////////////////////////////////////////////
   sg.def("getImporter",

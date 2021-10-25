@@ -3,40 +3,17 @@
 
 #include "PluginManager.h"
 
+#include "sg/PluginCore.h"
+
 #include <iterator>
 
 void PluginManager::loadPlugin(const std::string &name)
 {
-  std::cout << "...attempting to load plugin '" << name << "'\n";
-  std::string libName = "ospray_studio_plugin_" + name;
-  try {
-    rkcommon::loadLibrary(libName, false);
-  } catch (std::runtime_error &e) {
-    std::cout << "...failed to load plugin '" << name << "'!"
-              << " (plugin was not found). Please verify the name of the plugin"
-              << " is correct and that it is on your LD_LIBRARY_PATH."
-              << e.what() << std::endl;
-    return;
-  }
-
-  std::string initSymName = "init_plugin_" + name;
-  void *initSym = rkcommon::getSymbol(initSymName);
-  if (!initSym) {
-    std::cout << "...failed to load plugin, could not find init function!\n";
-    return;
-  }
-
-  Plugin *(*initMethod)() = (Plugin * (*)()) initSym;
-
-  try {
+  void *plugin = ospray::sg::loadPluginCore(name);
+  if (plugin != nullptr) {
     auto pluginInstance =
-        std::unique_ptr<Plugin>(static_cast<Plugin *>(initMethod()));
+       std::unique_ptr<Plugin>(static_cast<Plugin *>(plugin));
     addPlugin(std::move(pluginInstance));
-  } catch (const std::exception &e) {
-    std::cout << "...failed to initialize plugin '" << name << "'!\n";
-    std::cout << "  " << e.what() << std::endl;
-  } catch (...) {
-    std::cout << "...failed to initialize plugin '" << name << "'!\n";
   }
 }
 
