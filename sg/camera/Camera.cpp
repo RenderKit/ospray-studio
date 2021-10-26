@@ -32,6 +32,10 @@ Camera::Camera(const std::string &type)
 
   createChild("shutter", "range1f", range1f(0.0f));
   child("shutter").setSGNoUI();
+
+  createChild("uniqueCameraName", "string", "default", std::string("default"));
+  child("uniqueCameraName").setSGOnly();
+  child("uniqueCameraName").setSGNoUI();
 }
 
 NodeType Camera::type() const

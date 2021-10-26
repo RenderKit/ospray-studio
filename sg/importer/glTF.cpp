@@ -409,38 +409,27 @@ void GLTFData::createCameras()
     if (cameraName == "")
       cameraName = "camera_" + std::to_string(nCamera);
     if (m.type == "perspective") {
-      sgCamera = createNode(cameraName, "camera_perspective");
-
+      sgCamera = createNode("camera", "camera_perspective");
       // convert radians to degrees for vertical FOV
       float fovy = (float)m.perspective.yfov * (180.f / (float)pi);
 
-      sgCamera->createChild("fovy", "float", fovy);
-      sgCamera->createChild("nearClip", "float", (float)m.perspective.znear);
+      sgCamera->child("fovy") = fovy;
+      sgCamera->child("nearClip") = (float)m.perspective.znear;
       if (m.perspective.aspectRatio > 0)
-        sgCamera->createChild(
-            "aspect", "float", (float)m.perspective.aspectRatio);
+        sgCamera->child(
+            "aspect") = (float)m.perspective.aspectRatio;
 
-      if (m.perspective.extras.Has("focusDistance"))
-        sgCamera->createChild("focusDistance",
-            "float",
-            (float)m.perspective.extras.Get("focusDistance")
-                .GetNumberAsDouble());
-
-      if (m.perspective.extras.Has("apertureRadius"))
-        sgCamera->createChild("apertureRadius",
-            "float",
-            (float)m.perspective.extras.Get("apertureRadius")
-                .GetNumberAsDouble());
     } else {
-      sgCamera = createNode(cameraName, "camera_orthographic");
-      sgCamera->createChild("height", "float", (float)m.orthographic.ymag);
+      sgCamera = createNode("camera", "camera_orthographic");
+      sgCamera->child("height") = (float)m.orthographic.ymag;
 
       // calculate orthographic aspect with horizontal and vertical
       // maginifications
       float aspect = (float)m.orthographic.xmag / m.orthographic.ymag;
-      sgCamera->createChild("aspect", "float", aspect);
-      sgCamera->createChild("nearClip", "float", (float)m.orthographic.znear);
+      sgCamera->child("aspect") = aspect;
+      sgCamera->child("nearClip") = (float)m.orthographic.znear;
     }
+    sgCamera->child("uniqueCameraName") = cameraName;
 
     // check if camera has EXT_cameras_sensor
     if (m.extensions.find("EXT_cameras_sensor") != m.extensions.end()
@@ -698,6 +687,7 @@ void GLTFData::visitNode(NodePtr sgNode,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
   if (n.camera != -1 && cameras != nullptr) {
+    std::cout << "listCameras size" << cameras->size() << std::endl;
     auto &listCameras = *cameras;
     auto &camera = listCameras[n.camera];
     newXfm->add(camera);

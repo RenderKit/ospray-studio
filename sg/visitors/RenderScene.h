@@ -39,7 +39,6 @@ namespace ospray {
     void createInstanceFromGroup(Node &node);
     void placeInstancesInWorld();
     void setLightParams(Node &node);
-    void setCameraParams(Node &node);
 
     // Data //
 
@@ -70,10 +69,7 @@ namespace ospray {
     InstanceIdMap *in{nullptr};
     affine3f *camXfm{nullptr};
     int camId{0};
-    std::shared_ptr<CameraState> cs;
-    std::vector<NodePtr> *instanceXfms{nullptr};
-    std::vector<std::tuple<std::string, box3f, affine3f>> *groupBBoxes{nullptr};
-    box3f currentInstBBox{empty};
+    // std::shared_ptr<CameraState> cs;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -167,13 +163,6 @@ namespace ospray {
       endXfms.push(endXfms.top() * endXfm * node.valueAs<affine3f>());
       xfmsDiverged.push(xfmsDiverged.top() || diverged);
 
-      if (node.hasChildOfSubType("camera_perspective")
-          || node.hasChildOfSubType("camera_orthographic")) {
-        cs = std::make_shared<CameraState>();
-        cs->useCameraToWorld = true;
-        cs->cameraToWorld = xfm;
-      }
-
       if (node.hasChild("instanceId"))
         instanceId = node.child("instanceId").valueAs<std::string>();
       if (node.hasChild("geomId"))
@@ -191,7 +180,6 @@ namespace ospray {
         auto &outputCamXfm = *camXfm;
         outputCamXfm = outputCamXfm * xfms.top();
       }
-      setCameraParams(node);
     } break;
     default:
       break;
@@ -442,16 +430,6 @@ namespace ospray {
     }
     auto lightNode = node.nodeAs<sg::Light>();
     lightNode->initOrientation(propMap);
-  }
-
-  inline void RenderScene::setCameraParams(Node &node)
-  {
-    auto camera = node.nodeAs<sg::Camera>();
-    if (cs != nullptr) {
-      camera->setState(cs);
-      if (node.parents().front()->child("animateCamera").valueAs<bool>())
-        camera->animate = true;
-    }
   }
 
   inline void RenderScene::placeInstancesInWorld()

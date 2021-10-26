@@ -372,7 +372,7 @@ void BatchContext::renderFrame()
   frame->startNewFrame();
 
   if (selectedSceneCamera->nodeAs<sg::Camera>()->animate || cameraDef > 0) {
-    auto newCS = selectedSceneCamera->nodeAs<sg::Camera>()->getState();
+    auto newCS = selectedSceneCamera->nodeAs<sg::Camera>()->cs;
     arcballCamera->setState(*newCS);
     updateCamera();
     frame->cancelFrame();

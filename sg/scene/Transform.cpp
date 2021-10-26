@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Transform.h"
+#include "sg/camera/Camera.h"
 
 namespace ospray {
 namespace sg {
@@ -27,6 +28,32 @@ Transform::Transform()
 NodeType Transform::type() const
 {
   return NodeType::TRANSFORM;
+}
+
+void Transform::preCommit()
+{
+  if (hasChildOfSubType("camera_perspective")) {
+    auto &cameras = childrenOfSubType("camera_perspective");
+    for (auto c : cameras) {
+      auto newPosition = xfmPoint(accumulatedXfm, vec3f(0));
+      auto newDirection = xfmVector(accumulatedXfm, vec3f(0, 0, -1));
+      auto newUp = xfmVector(accumulatedXfm, vec3f(0, 1, 0));
+      c->child("position").setValue(newPosition);
+      c->child("direction").setValue(newDirection);
+      c->child("up").setValue(newUp);
+    }
+
+  } else if (hasChildOfSubType("camera_orthographic")) {
+    auto &cameras = childrenOfSubType("camera_orthographic");
+    for (auto c : cameras) {
+      auto newPosition = xfmPoint(accumulatedXfm, vec3f(0));
+      auto newDirection = xfmVector(accumulatedXfm, vec3f(0, 0, -1));
+      auto newUp = xfmVector(accumulatedXfm, vec3f(0, 1, 0));
+      c->child("position").setValue(newPosition);
+      c->child("direction").setValue(newDirection);
+      c->child("up").setValue(newUp);
+    }
+  }
 }
 
 OSP_REGISTER_SG_NODE_NAME(Transform, transform);

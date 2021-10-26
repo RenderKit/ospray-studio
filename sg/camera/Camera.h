@@ -18,19 +18,8 @@ struct OSPSG_INTERFACE Camera : public OSPNode<cpp::Camera, NodeType::CAMERA>
 
   virtual void preCommit() override;
 
-  void setState(std::shared_ptr<CameraState> _cs)
-  {
-    cs = _cs;
-  };
-
-  std::shared_ptr<CameraState> getState()
-  {
-    return cs;
-  };
-
   bool animate{false};
 
- private:
   std::shared_ptr<CameraState> cs;
 };
 
