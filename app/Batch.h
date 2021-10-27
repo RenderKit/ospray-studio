@@ -48,8 +48,8 @@ class BatchContext : public StudioContext
   bool saveLayers{false};
   bool saveMetaData{true};
   std::string optImageFormat{"png"};
-  bool animate{false};
-  int fps{24};
+
+  int fps{0};
   bool forceRewrite{false};
   range1i framesRange{0, 0};
   int cameraDef{0};

@@ -687,7 +687,6 @@ void GLTFData::visitNode(NodePtr sgNode,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
   if (n.camera != -1 && cameras != nullptr) {
-    std::cout << "listCameras size" << cameras->size() << std::endl;
     auto &listCameras = *cameras;
     auto &camera = listCameras[n.camera];
     newXfm->add(camera);

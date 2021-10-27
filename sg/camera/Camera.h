@@ -19,8 +19,6 @@ struct OSPSG_INTERFACE Camera : public OSPNode<cpp::Camera, NodeType::CAMERA>
   virtual void preCommit() override;
 
   bool animate{false};
-
-  std::shared_ptr<CameraState> cs;
 };
 
 } // namespace sg

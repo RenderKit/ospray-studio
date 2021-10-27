@@ -32,6 +32,8 @@ NodeType Transform::type() const
 
 void Transform::preCommit()
 {
+  // TODO: if we can somehow mark camera as modified here...
+  // we should move the following code to camera class
   if (hasChildOfSubType("camera_perspective")) {
     auto &cameras = childrenOfSubType("camera_perspective");
     for (auto c : cameras) {

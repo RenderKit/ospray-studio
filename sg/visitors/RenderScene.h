@@ -69,7 +69,6 @@ namespace ospray {
     InstanceIdMap *in{nullptr};
     affine3f *camXfm{nullptr};
     int camId{0};
-    // std::shared_ptr<CameraState> cs;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////

@@ -45,7 +45,7 @@ void BatchContext::start()
       bool useCamera = refreshCamera(cameraDef);
       if (useCamera) {
         render();
-        if (animate) {
+        if (fps) {
           std::cout << "..rendering animation!" << std::endl;
           renderAnimation();
         } else if (!cameraStack.empty()) {
@@ -65,7 +65,7 @@ void BatchContext::start()
         bool useCamera = refreshCamera(cameraIdx, true);
         if (useCamera) {
           render();
-          if (animate) {
+          if (fps) {
             std::cout << "..rendering animation!" << std::endl;
             renderAnimation();
           } else
@@ -256,9 +256,6 @@ void BatchContext::refreshRenderer()
 
 bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 {
-  if(frame->hasChild("camera"))
-  frame->remove("camera");
-
   if (resetArcball)
     arcballCamera.reset(
         new ArcballCamera(frame->child("world").bounds(), optImageSize));
@@ -267,26 +264,8 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
               << std::endl;
     selectedSceneCamera = cameras[cameraIdx - 1];
-
-    auto &camera = frame->createChildAs<sg::Camera>(
-        "camera", selectedSceneCamera->subType());
-      
-    // XXX should create a node function "copyParamValues"???  Would come in very handy.
-    // Add new camera params.  Only copy the param values not the nodes.
-    // only if param doesn't exist, then create it.
-    for (auto &c : selectedSceneCamera->children()) {
-      auto &param = *c.second;
-      if (camera.hasChild(c.first))
-        camera[c.first] = param.value();
-      else {
-        camera.createChild(
-            c.first, param.subType(), param.description(), param.value());
-        if (param.sgOnly())
-          camera[c.first].setSGOnly();
-      }
-      if (param.hasMinMax())
-        camera[c.first].setMinMax(param.min(), param.max());
-    }
+    frame->remove("camera");
+    frame->add(selectedSceneCamera);
 
     // create unique cameraId for every camera
     auto &cameraParents = selectedSceneCamera->parents();
@@ -307,13 +286,9 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
   } else {
     std::cout << "No cameras imported or invalid camera index specified"
               << std::endl;
-    selectedSceneCamera = createNode(
-        "camera", "camera_" + optCameraTypeStr);
-    frame->add(selectedSceneCamera);
+    std::cout << "using default camera..." << std::endl;
   }
-
   updateCamera();
-
   return true;
 }
 
@@ -370,14 +345,6 @@ void BatchContext::renderFrame()
     frame->denoiseFB = true;
   frame->immediatelyWait = true;
   frame->startNewFrame();
-
-  if (selectedSceneCamera->nodeAs<sg::Camera>()->animate || cameraDef > 0) {
-    auto newCS = selectedSceneCamera->nodeAs<sg::Camera>()->cs;
-    arcballCamera->setState(*newCS);
-    updateCamera();
-    frame->cancelFrame();
-    frame->startNewFrame();
-  }
 
   static int filenum;
   if (resetFileId) {
@@ -466,9 +433,11 @@ void BatchContext::updateCamera()
   frame->currentAccum = 0;
   auto &camera = frame->child("camera");
 
-  camera["position"] = arcballCamera->eyePos();
-  camera["direction"] = arcballCamera->lookDir();
-  camera["up"] = arcballCamera->upDir();
+  if (camera.child("uniqueCameraName").valueAs<std::string>() == "default") {
+    camera["position"] = arcballCamera->eyePos();
+    camera["direction"] = arcballCamera->lookDir();
+    camera["up"] = arcballCamera->upDir();
+  }
 
   if (camera.hasChild("aspect"))
     camera["aspect"] = optImageSize.x / (float)optImageSize.y;
@@ -495,7 +464,7 @@ void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform");
   frame->child("world").add(importedModels);
-  if (animate)
+  if (fps)
     animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
