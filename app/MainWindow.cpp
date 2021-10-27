@@ -2156,11 +2156,12 @@ void MainWindow::buildWindowCameraEditor()
     if (whichCamera > -1 && whichCamera < (int) g_sceneCameras.size()) {
       auto &newCamera = g_sceneCameras.at_index(whichCamera);
       g_selectedSceneCamera = newCamera.second;
-      frame->child("camera").child("isActive").setValue(false);
+      auto hasParents = g_selectedSceneCamera->parents().size();
       frame->remove("camera");
       frame->add(g_selectedSceneCamera);
-      g_selectedSceneCamera->child("isActive").setValue(true);
       reshape(windowSize); // resets aspect
+      if(!hasParents)
+        updateCamera();
     }
   }
 
