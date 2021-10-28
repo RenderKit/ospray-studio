@@ -453,7 +453,7 @@ void GLTFData::createCameras()
       if (ext.Has("lens")) {
         auto lens = ext.Get("lens");
         float focalLength = (float)lens.Get("focalLength").Get<double>();
-        float fovy = 2 * atan(len_y / (2 * focalLength));
+        float fovy = 2 * atan(len_y / (2 * focalLength)) * (180.f / (float)pi);
         sgCamera->child("fovy").setValue(fovy);
 
         float apertureRadius = (float)lens.Get("apertureRadius").Get<double>();

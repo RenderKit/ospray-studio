@@ -161,7 +161,7 @@ namespace ospray {
       xfms.push(xfmNode->accumulatedXfm);
       endXfms.push(endXfms.top() * endXfm * node.valueAs<affine3f>());
       xfmsDiverged.push(xfmsDiverged.top() || diverged);
-
+      
       if (node.hasChild("instanceId"))
         instanceId = node.child("instanceId").valueAs<std::string>();
       if (node.hasChild("geomId"))

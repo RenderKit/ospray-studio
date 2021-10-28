@@ -2160,6 +2160,16 @@ void MainWindow::buildWindowCameraEditor()
       frame->remove("camera");
       frame->add(g_selectedSceneCamera);
 
+      // TODO: remove this Hack : for some reason the accumulated transform in
+      // transform node does not get updated for the BIT animation scene.
+      // Attempting to make transform modified so it picks up accumulated
+      // transform values made by renderScene
+      if (hasParents) {
+        auto cameraXfm = g_selectedSceneCamera->parents().front();
+        if (cameraXfm->valueAs<affine3f>() == affine3f(one))
+          cameraXfm->createChild("refresh", "bool");
+      }
+
       if (g_selectedSceneCamera->hasChild("aspect"))
         lockAspectRatio =
             g_selectedSceneCamera->child("aspect").valueAs<float>();
