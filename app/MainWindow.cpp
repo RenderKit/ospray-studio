@@ -2147,20 +2147,24 @@ void MainWindow::buildWindowCameraEditor()
   }
 
   // Only present selector UI if more than one camera
-  if (!g_sceneCameras.empty() &&
-      ImGui::Combo("sceneCameras##whichCamera",
+  if (!g_sceneCameras.empty()
+      && ImGui::Combo("sceneCameras##whichCamera",
           &whichCamera,
           cameraUI_callback,
           nullptr,
           g_sceneCameras.size())) {
-    if (whichCamera > -1 && whichCamera < (int) g_sceneCameras.size()) {
+    if (whichCamera > -1 && whichCamera < (int)g_sceneCameras.size()) {
       auto &newCamera = g_sceneCameras.at_index(whichCamera);
       g_selectedSceneCamera = newCamera.second;
       auto hasParents = g_selectedSceneCamera->parents().size();
       frame->remove("camera");
       frame->add(g_selectedSceneCamera);
+
+      if (g_selectedSceneCamera->hasChild("aspect"))
+        lockAspectRatio =
+            g_selectedSceneCamera->child("aspect").valueAs<float>();
       reshape(windowSize); // resets aspect
-      if(!hasParents)
+      if (!hasParents)
         updateCamera();
     }
   }
