@@ -285,12 +285,13 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
   if (resetArcball)
     arcballCamera.reset(
         new ArcballCamera(frame->child("world").bounds(), optImageSize));
+  int hasParents{0};
 
   if (cameraIdx <= cameras.size() && cameraIdx > 0) {
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
               << std::endl;
     selectedSceneCamera = cameras[cameraIdx - 1];
-    auto hasParents = selectedSceneCamera->parents().size();
+    hasParents = selectedSceneCamera->parents().size();
     frame->remove("camera");
     frame->add(selectedSceneCamera);
 
@@ -330,7 +331,12 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
   }
 
   reshape(); // resets aspect
+
+   // if imported cameras don't have parent transform then use Arcball properties
+  if (!hasParents)
+    useArcball = true;
   updateCamera();
+
   return true;
 }
 
@@ -471,7 +477,7 @@ void BatchContext::updateCamera()
   frame->currentAccum = 0;
   auto &camera = frame->child("camera");
 
-  if (camera.child("uniqueCameraName").valueAs<std::string>() == "default") {
+  if (useArcball) {
     camera["position"] = arcballCamera->eyePos();
     camera["direction"] = arcballCamera->lookDir();
     camera["up"] = arcballCamera->upDir();

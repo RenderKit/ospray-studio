@@ -55,7 +55,6 @@ static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
-static bool g_animateCamera = false;
 static bool g_clearSceneConfirm = false;
 
 static const std::vector<std::string> g_scenes = {"tutorial_scene",
