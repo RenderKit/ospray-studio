@@ -69,6 +69,9 @@ namespace ospray {
     InstanceIdMap *in{nullptr};
     affine3f *camXfm{nullptr};
     int camId{0};
+    std::vector<NodePtr> *instanceXfms{nullptr};
+    std::vector<std::tuple<std::string, box3f, affine3f>> *groupBBoxes{nullptr};
+    box3f currentInstBBox{empty};
   };
 
   // Inlined definitions //////////////////////////////////////////////////////

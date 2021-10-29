@@ -37,6 +37,7 @@ class BatchContext : public StudioContext
   void renderFrame();
   void renderAnimation();
   bool refreshCamera(int cameraIdx, bool resetArcball = false);
+  void reshape();
 
  protected:
   NodePtr importedModels;
@@ -64,4 +65,6 @@ class BatchContext : public StudioContext
 
   //camera animation
   sg::NodePtr selectedSceneCamera;
+
+  float lockAspectRatio = 0.0;
 };

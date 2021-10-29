@@ -254,6 +254,32 @@ void BatchContext::refreshRenderer()
   renderer.child("varianceThreshold").setValue(optVariance);
 }
 
+void BatchContext::reshape()
+{
+  auto fSize = frame->child("windowSize").valueAs<vec2i>();
+
+  if (lockAspectRatio) {
+    // Tell OSPRay to render the largest subset of the window that satisies the
+    // aspect ratio
+    float aspectCorrection = lockAspectRatio * static_cast<float>(fSize.y)
+        / static_cast<float>(fSize.x);
+    if (aspectCorrection > 1.f) {
+      fSize.y /= aspectCorrection;
+    } else {
+      fSize.x *= aspectCorrection;
+    }
+    if (frame->child("camera").hasChild("aspect"))
+      frame->child("camera")["aspect"] = static_cast<float>(fSize.x) / fSize.y;
+  } else if (frame->child("camera").hasChild("aspect"))
+    frame->child("camera")["aspect"] = optImageSize.x / (float)optImageSize.y;
+
+  frame->child("windowSize") = fSize;
+  frame->currentAccum = 0;
+
+  // update camera
+  arcballCamera->updateWindowSize(fSize);
+}
+
 bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 {
   if (resetArcball)
@@ -264,8 +290,22 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
               << std::endl;
     selectedSceneCamera = cameras[cameraIdx - 1];
+    auto hasParents = selectedSceneCamera->parents().size();
     frame->remove("camera");
     frame->add(selectedSceneCamera);
+
+    // TODO: remove this Hack : for some reason the accumulated transform in
+    // transform node does not get updated for the BIT animation scene.
+    // Attempting to make transform modified so it picks up accumulated
+    // transform values made by renderScene
+    if (hasParents) {
+      auto cameraXfm = selectedSceneCamera->parents().front();
+      if (cameraXfm->valueAs<affine3f>() == affine3f(one))
+        cameraXfm->createChild("refresh", "bool");
+    }
+
+    if (selectedSceneCamera->hasChild("aspect"))
+      lockAspectRatio = selectedSceneCamera->child("aspect").valueAs<float>();
 
     // create unique cameraId for every camera
     auto &cameraParents = selectedSceneCamera->parents();
@@ -288,16 +328,14 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
               << std::endl;
     std::cout << "using default camera..." << std::endl;
   }
+
+  reshape(); // resets aspect
   updateCamera();
   return true;
 }
 
 void BatchContext::render()
 {
-  
-  // Set the frame "windowSize", it will create the right sized framebuffer
-  frame->child("windowSize") = optImageSize;
-
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
   frameBuffer["floatFormat"] = true;
   frameBuffer.commit();
@@ -438,9 +476,6 @@ void BatchContext::updateCamera()
     camera["direction"] = arcballCamera->lookDir();
     camera["up"] = arcballCamera->upDir();
   }
-
-  if (camera.hasChild("aspect"))
-    camera["aspect"] = optImageSize.x / (float)optImageSize.y;
 
   if (cmdlCam) {
     camera["position"] = pos;
