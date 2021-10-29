@@ -5,9 +5,9 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   OSPRAY_VER: "2.7.1"
   RKCOMMON_VER: "1.7.0"
-  PYTHON_VERSION: "3.7.10"
-  PYTHON_ROOT_MACOS: "/NAS/packages/apps/python/$PYTHON_VERSION/macos"
-  PYTHON_ROOT_WINDOWS: "N:/packages/apps/python/3.7.9/windows" ## python-3.7.10 currently not installed for windows
+  PYTHON_VERSION: "3.9.7"
+  # PYTHON_ROOT_MACOS: "/NAS/packages/apps/python/$PYTHON_VERSION/macos"
+  PYTHON_ROOT_WINDOWS: "N:/packages/apps/python/$PYTHON_VERSION/windows"
 
 stages:
   - build
@@ -17,18 +17,23 @@ stages:
 
 .centos7:
   tags: [ build, docker, modules ]
-  image: $DOCKER_REGISTRY/general:centos7
+  image: $DOCKER_REGISTRY/centos:7
   before_script:
-    - source $SPACK_SETUP_ENV
+    # - source $SPACK_SETUP_ENV
     - module load python/$PYTHON_VERSION
     - echo $Python3_ROOT
     - ls $Python3_ROOT
 
 .ubuntu18.04:
   tags: [ build, docker, modules ]
-  image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod
+  # image: $DOCKER_REGISTRY/ospray/docker-images:ubuntu18.04-mod
+  image: $DOCKER_REGISTRY/ubuntu:18.04
   before_script:
-    - apt install -y xorg-dev
+    # - apt install -y xorg-dev
+    # - source $SPACK_SETUP_ENV
+    - module load python/$PYTHON_VERSION
+    - echo $Python3_ROOT
+    - ls $Python3_ROOT
 
 .ubuntu20.04:
   tags: [ build, docker ]
@@ -36,17 +41,17 @@ stages:
 
 .macos:
   tags: [ osx, clang ]
-  before_script:
-    - export Python3_ROOT=$PYTHON_ROOT_MACOS
-    - echo $Python3_ROOT
-    - ls $Python3_ROOT
+  # before_script:
+  #   - export Python3_ROOT=$PYTHON_ROOT_MACOS
+  #   - echo $Python3_ROOT
+  #   - ls $Python3_ROOT
 
 .macos-sign:
   tags: [ osx, clang, sign ]
-  before_script:
-    - export Python3_ROOT=$PYTHON_ROOT_MACOS
-    - echo $Python3_ROOT
-    - ls $Python3_ROOT
+  # before_script:
+  #   - export Python3_ROOT=$PYTHON_ROOT_MACOS
+  #   - echo $Python3_ROOT
+  #   - ls $Python3_ROOT
 
 .windows:
   tags: [ win, msvc15 ]
