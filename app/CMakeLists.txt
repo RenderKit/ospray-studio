@@ -16,13 +16,13 @@ add_executable(ospStudio
   TimeSeriesWindow.cpp
   AnimationManager.cpp
 
-  $<$<BOOL:USE_BENCHMARK>:Benchmark.cpp>
+  $<$<BOOL:${USE_BENCHMARK}>:Benchmark.cpp>
 
   ${OSPRAY_STUDIO_RESOURCE_FILE}
 )
 
 if(USE_BENCHMARK)
-target_compile_definitions(ospStudio PRIVATE USE_BENCHMARK)
+  target_compile_definitions(ospStudio PRIVATE USE_BENCHMARK)
 endif()
 
 target_compile_definitions(ospStudio PRIVATE OSPRAY_CPP_RKCOMMON_TYPES)
@@ -66,7 +66,7 @@ target_link_libraries(ospStudio
   ospray_sg
   json
   cli11
-  $<$<BOOL:USE_BENCHMARK>:benchmark::benchmark>
+  $<$<BOOL:${USE_BENCHMARK}>:benchmark::benchmark>
 )
 
 _target_strip_and_sign(ospStudio)
