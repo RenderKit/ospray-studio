@@ -20,6 +20,7 @@ mkdir -p build-macos && cd build-macos
 if [[ "$PACKAGE" == true ]]
 then
     cmake -L \
+        -D CMAKE_INSTALL_PREFIX="" \
         -D ENABLE_OPENIMAGEIO=OFF \
         -D ENABLE_OPENVDB=OFF \
         -D ENABLE_EXR=OFF \
