@@ -336,8 +336,8 @@ parameter name, and their value as the parameter's value.
 
 A basic example of a scenegraph contains a `Frame` node at the root. By
 default, this node will have a `FrameBuffer`, `Camera`, `Renderer`, and
-`World` child. The `World` will contain a `Lights` node (lights manager)
-which provides it a single ambient light `Light` node.
+`World` child. The `Frame` will contain a `Lights` node (lights manager)
+which provides it a single ambient light `Light` node by default.
 
 From here, importer nodes may be added to the world. `Transform`,
 `Geometry`, and `Volume` nodes are children of the importer node that
