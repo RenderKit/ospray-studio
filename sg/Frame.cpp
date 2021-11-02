@@ -42,8 +42,7 @@ void Frame::startNewFrame()
   auto &renderer = childAs<Renderer>("renderer");
   auto &world = childAs<World>("world");
 
-  // navMode/mouse-button vs frame-state navMode
-  // Enable navMode on mouse and move, not just click.
+  // App navMode set via setNavMode() vs current frame-state navMode
   if (navMode != child("navMode").valueAs<bool>())
     child("navMode") = navMode && (!navMode || isModified());
 
@@ -113,7 +112,7 @@ bool Frame::accumLimitReached()
 
 bool Frame::accumAtFinal()
 {
-  return (accumLimit > 0 && currentAccum == accumLimit - 1);
+  return (accumLimit > 0 && currentAccum >= accumLimit - 1);
 }
 
 void Frame::resetAccumulation()
@@ -157,6 +156,16 @@ void Frame::refreshFrameOperations()
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
   fb.updateImageOperations();
+
+  uint8_t newFrameOpsState = denoiserEnabled << 1 | toneMapperEnabled;
+  static uint8_t lastFrameOpsState{0};
+
+  // If there's a change and accumLimit is already reach, force another frame so
+  // operations will occur
+  if ((newFrameOpsState != lastFrameOpsState) && accumLimitReached())
+    currentAccum--;
+
+  lastFrameOpsState = newFrameOpsState;
 }
 
 void Frame::preCommit()
