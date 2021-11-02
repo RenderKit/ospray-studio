@@ -35,6 +35,7 @@ namespace ospray {
     createChild("roughness", "float", "surface roughness [0-1] (0 is smooth)", 0.f).setMinMax(0.f, 1.f);
     createChild("anisotropy", "float", "amount of specular anisotropy [0-1]", 0.f).setMinMax(0.f, 1.f);
     createChild("rotation", "float", "anisotropy rotation [0-1]", 0.f).setMinMax(0.f, 1.f);
+    createChild("normal", "float", "normal map/scale for all layers [0-1]", 1.f).setMinMax(0.f, 1.f);
     createChild("thin", "bool", "whether material is thin or solid", false);
     createChild("thickness", "float", "with thin, amount of attenuation", 1.f);
     createChild("backlight", "float", "with thin, amount of diffuse transmission [0-2] (1 is 50/50 reflection/transmission)", 0.f).setMinMax(0.f, 2.f);
