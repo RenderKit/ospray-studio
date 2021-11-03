@@ -1,3 +1,6 @@
+// Copyright 2018-2021 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
 // File: 'ProggyClean.ttf' (41208 bytes)
 // Exported using binary_to_compressed_c.cpp
 static const unsigned int ProggyClean_compressed_size = 9583;
