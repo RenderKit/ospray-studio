@@ -181,6 +181,8 @@ MainWindow::MainWindow(StudioCommon &_common)
   // get primary monitor's display scaling
   GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
   glfwGetMonitorContentScale(primaryMonitor, &contentScale.x, &contentScale.y);
+  if (contentScale.x != contentScale.y != 1)
+    std::cout << "Display scaling: " << contentScale << std::endl;
 
   // create GLFW window
   glfwWindow = glfwCreateWindow(
@@ -691,10 +693,12 @@ void MainWindow::motion(const vec2f &position)
     if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
       sensitivity *= fineControl;
 
-    const vec2f mouseFrom(clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-        clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
-    const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-        clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
+    auto displaySize = windowSize * contentScale;
+
+    const vec2f mouseFrom(clamp(prev.x * 2.f / displaySize.x - 1.f, -1.f, 1.f),
+        clamp(prev.y * 2.f / displaySize.y - 1.f, -1.f, 1.f));
+    const vec2f mouseTo(clamp(mouse.x * 2.f / displaySize.x - 1.f, -1.f, 1.f),
+        clamp(mouse.y * 2.f / displaySize.y - 1.f, -1.f, 1.f));
 
     if (leftDown) {
       arcballCamera->constrainedRotate(mouseFrom,
@@ -1103,8 +1107,13 @@ bool MainWindow::parseCommandLine()
     exit(app->exit(e));
   }
 
-  windowSize = optResolution;
-  glfwSetWindowSize(glfwWindow, optResolution.x, optResolution.y);
+  // XXX: changing windowSize here messes causes some display scaling issues
+  // because it desyncs window and framebuffer size with any scaling
+  if (optResolution.x != 0) {
+    windowSize = optResolution;
+    glfwSetWindowSize(glfwWindow, optResolution.x, optResolution.y);
+    reshape(windowSize);
+  }
   rendererTypeStr = optRendererTypeStr;
 
   if (!filesToImport.empty()) {

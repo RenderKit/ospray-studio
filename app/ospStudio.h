@@ -145,7 +145,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   float optInterpupillaryDistance = 0.0635f;
   sg::NodePtr volumeParams;
   float pointSize{0.05f};
-  vec2i optResolution{1024, 768};
+  vec2i optResolution{0, 0};
   std::string optSceneConfig{""};
   std::string optInstanceConfig{""};
 
