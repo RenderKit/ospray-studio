@@ -181,8 +181,6 @@ MainWindow::MainWindow(StudioCommon &_common)
   // get primary monitor's display scaling
   GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
   glfwGetMonitorContentScale(primaryMonitor, &contentScale.x, &contentScale.y);
-  if (contentScale.x != contentScale.y != 1)
-    std::cout << "Display scaling: " << contentScale << std::endl;
 
   // create GLFW window
   glfwWindow = glfwCreateWindow(
