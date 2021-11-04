@@ -13,12 +13,12 @@ echo "$KW_SERVER_IP;$KW_SERVER_PORT;$KW_USER;$KW_LTOKEN" > $KLOCWORK_LTOKEN
 mkdir -p $CI_PROJECT_DIR/klocwork
 log_file=$CI_PROJECT_DIR/klocwork/build.log
 
-dpkg --add-architecture i386
-apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev libtinfo5:i386 -y
-if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
-then
-  build.sh
-fi
+#dpkg --add-architecture i386
+#apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev libtinfo5:i386 -y
+#if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
+#then
+#  build.sh
+#fi
 
 cd $CI_PROJECT_DIR
 mkdir build && cd build

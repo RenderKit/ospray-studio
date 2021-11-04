@@ -3,6 +3,27 @@ Version History
 
 ### Changes in OSPRay Studio v0.9.0
 
+-   Compatible with OSPRay release v2.8.0
+
+- Features and Improvements
+  - Added initial EULUMDAT photometric light support to SpotLight
+  - Enabled alternate camera selection in glTF scenes
+  - Added ability for python scripts to define transfer functions and load Studio plugins
+  - Enabled .sg scene files can now contain an HDRI light
+  - Much improved command line parsing in all modes
+  - Added support for several new KHR_materials extentions
+    (`KHR_materials_volume`, `KHR_materials_specular`, `KHR_materials_ior`)
+    and  `KHR_texture_transform`
+  - Improved UI controls for adjusting model transforms
+
+- Bug Fixes:
+  - Fixed high-DPI display issues
+  - Fixed bug causing model textures to be flipped if loading HDRI first
+  - Fixed crash when selecting non-default cameras in glTF scenes
+  - Fixed bug with macOS ARM build.
+  - Fixed `KHR_lights_punctual` light direction bug
+
+
 ### Changes in OSPRay Studio v0.8.1
 
 -   Compatible with OSPRay release v2.7.1

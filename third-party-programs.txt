@@ -2,7 +2,7 @@ Intel(R) OSPRay Studio Third Party Programs File
 
 This file contains the list of third party software ("third party programs") contained in the Intel software and their required notices and/or license terms. This third party software, even if included with the distribution of the Intel software, may be governed by separate license terms, including without limitation, third party license terms, other Intel software license terms, and open source software license terms. These separate license terms govern your use of the third party programs as set forth in the "third-party-programs.txt" or other similarly- named text file.
 
-Third party programs andjk their corresponding required notices and/or license terms are listed below.
+Third party programs and their corresponding required notices and/or license terms are listed below.
 --------------------------------------------------------------------------------
 1.  Intel(R) OSPRay
     Copyright 2009-2020 Intel Corporation
