@@ -24,11 +24,11 @@ namespace ospray {
     createChild("flakeDensity", "float", "amount of flake coverage [0-1]", 0.f)
         .setMinMax(0.f, 1.f);
     createChild("flakeScale", "float", "size of flakes", 100.f);
-    createChild("flakeSpread", "float", "flake spread [0-1]", 0.f)
+    createChild("flakeSpread", "float", "flake spread [0-1]", 0.3f)
         .setMinMax(0.f, 1.f);
-    createChild("flakeJitter", "float", "flake randomness [0-1]", 0.f)
+    createChild("flakeJitter", "float", "flake randomness [0-1]", 0.75f)
         .setMinMax(0.f, 1.f);
-    createChild("flakeRoughness", "float", "flake roughness [0-1]", 0.f)
+    createChild("flakeRoughness", "float", "flake roughness [0-1]", 0.3f)
         .setMinMax(0.f, 1.f);
     createChild("coat", "float", "clearcoat layer weight [0-1]", 1.f)
         .setMinMax(0.f, 1.f);
