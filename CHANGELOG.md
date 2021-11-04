@@ -15,6 +15,7 @@ Version History
     (`KHR_materials_volume`, `KHR_materials_specular`, `KHR_materials_ior`)
     and  `KHR_texture_transform`
   - Improved UI controls for adjusting model transforms
+<br>
 
 - Bug Fixes:
   - Fixed high-DPI display issues
@@ -49,6 +50,7 @@ Version History
     -   Updated external 3rd party dependencies bringing in features and bug fixes
     -   Modified OBJ importer to parse and use quads and triangles
     -   Improved Arcball camera navigation with up-vector lock
+<br>
 
 -   Bug Fixes
     -   Fixed materials after clearing scene
