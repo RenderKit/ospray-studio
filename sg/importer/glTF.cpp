@@ -226,8 +226,7 @@ void GLTFData::applySceneBackground(NodePtr bgXfm)
   auto &bgFileName = background.Get("background-uri").Get<std::string>();
   rkcommon::FileName bgTexture = fileName.path() + bgFileName;
   auto bgNode = createNode("background", "hdri");
-  auto &map = bgNode->createChild("map", "texture_2d");
-  map.nodeAs<sg::Texture2D>()->load(bgTexture, false, false);
+  bgNode->createChild("filename") = std::string(bgTexture);
 
   if (background.Has("rotation")) {
     const auto &r = background.Get("rotation").Get<tinygltf::Value::Array>();
@@ -327,13 +326,8 @@ void GLTFData::createLights()
           "penumbraAngle", "float", outerConeAngle - innerConeAngle);
     } else if (l.type == "hdri") {
       newLight = createNode(lightName, l.type);
-      auto &hdriTex = newLight->createChild("map", "texture_2d");
-      static rkcommon::FileName texFileName("");
       auto hdrFileName = l.extras.Get("map").Get<std::string>();
-      texFileName = fileName.path() + hdrFileName;
-
-      auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
-      ast2d->load(texFileName, false, false);
+      newLight->createChild("filename") = fileName.path() + hdrFileName;
     } else if (l.type == "sunSky") {
       newLight = createNode(lightName, l.type);
       if (l.sunSky.up.size()) {
@@ -1155,7 +1149,7 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
       }
 
 #if 0 // XXX OSPRay is missing the F0 color, always assumes white?
-      // specularColorFactor	The F0 color of the specular reflection
+      // specularColorFactor The F0 color of the specular reflection
       // (linear RGB).
       // default: [1.0, 1.0, 1.0]
         rgb specularColorFactor  = rgb(1.f);
