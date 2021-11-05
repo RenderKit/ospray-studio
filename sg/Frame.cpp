@@ -78,7 +78,7 @@ bool Frame::frameIsReady()
 {
   auto future = value().valid() ? handle() : nullptr;
   if (future)
-    return future.isReady();
+    return future.isReady(OSP_FRAME_FINISHED);
   else
     return false;
 }
@@ -96,7 +96,7 @@ void Frame::waitOnFrame()
 {
   auto future = value().valid() ? handle() : nullptr;
   if (future)
-    future.wait();
+    future.wait(OSP_FRAME_FINISHED);
   if (!accumLimitReached())
     currentAccum++;
 }
@@ -104,10 +104,9 @@ void Frame::waitOnFrame()
 void Frame::cancelFrame()
 {
   auto future = value().valid() ? handle() : nullptr;
-  if (future) {
+  if (future)
     future.cancel();
-    canceled = true;
-  }
+  canceled = true;
 }
 
 bool Frame::accumLimitReached()
