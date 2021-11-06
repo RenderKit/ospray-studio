@@ -16,6 +16,9 @@
 #include "sg/JSONDefs.h"
 #include "PluginManager.h"
 
+// CLI
+#include <CLI11.hpp>
+
 static bool resetFileId = false;
 
 BatchContext::BatchContext(StudioCommon &_common)
@@ -42,7 +45,7 @@ void BatchContext::start()
       bool useCamera = refreshCamera(cameraDef);
       if (useCamera) {
         render();
-        if (animate) {
+        if (fps) {
           std::cout << "..rendering animation!" << std::endl;
           renderAnimation();
         } else if (!cameraStack.empty()) {
@@ -62,7 +65,7 @@ void BatchContext::start()
         bool useCamera = refreshCamera(cameraIdx, true);
         if (useCamera) {
           render();
-          if (animate) {
+          if (fps) {
             std::cout << "..rendering animation!" << std::endl;
             renderAnimation();
           } else
@@ -76,220 +79,160 @@ void BatchContext::start()
   }
 }
 
+void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
+  app->add_option(
+    "--cameraType",
+    optCameraTypeStr,
+    "Set the camera type"
+  )->check(CLI::IsMember({"perspective", "orthographic", "panoramic"}));
+  app->add_option(
+    "--position",
+    [&](const std::vector<std::string> val) {
+      pos = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      cmdlCam = true;
+      return true;
+    },
+    "Set the camera position"
+  )->expected(3);
+  app->add_option(
+    "--view",
+    [&](const std::vector<std::string> val) {
+      gaze = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      cmdlCam = true;
+      return true;
+    },
+    "Set the camera view vector"
+  )->expected(3);
+  app->add_option(
+    "--up",
+    [&](const std::vector<std::string> val) {
+      up = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
+      cmdlCam = true;
+      return true;
+    },
+    "Set the camera up vector"
+  );
+  app->add_option(
+    "--format",
+    optImageFormat,
+    "Set the image format"
+  )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
+  app->add_option(
+    "--image",
+    optImageName,
+    "Set the image name"
+  );
+  app->add_option(
+    "--interpupillaryDistance",
+    optInterpupillaryDistance,
+    "Set the interpupillary distance"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--stereoMode",
+    optStereoMode,
+    "Set the stereo mode"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--size",
+    [&](const std::vector<std::string> val) {
+      optImageSize = vec2i(std::stoi(val[0]), std::stoi(val[1]));
+      return true;
+    },
+    "Set the image size"
+  )->expected(2)->check(CLI::PositiveNumber);
+  app->add_option_function<int>(
+    "--denoiser",
+    [&](const int denoiser) {
+      if (studioCommon.denoiserAvailable) {
+        optDenoiser = denoiser;
+        return true;
+      }
+      return false;
+    },
+    "Set the denoiser"
+  )->check(CLI::Range(0, 2+1));
+  app->add_option(
+    "--grid",
+    [&](const std::vector<std::string> val) {
+      optGridSize = vec3i(std::stoi(val[0]), std::stoi(val[1]), std::stoi(val[2]));
+      optGridEnable = true;
+      return true;
+    },
+    "Set the camera position"
+  )->expected(3);
+  app->add_flag(
+    "--saveAlbedo",
+    saveAlbedo,
+    "Save albedo values"
+  );
+  app->add_flag(
+    "--saveDepth",
+    saveDepth,
+    "Save depth values"
+  );
+  app->add_flag(
+    "--saveNormal",
+    saveNormal,
+    "Save normal values" 
+  );
+  app->add_flag(
+    "--saveLayers",
+    saveLayers,
+    "Save all layers"
+  );
+  app->add_flag(
+    "--saveMetadata",
+    saveMetaData,
+    "Save metadata"
+  );
+  app->add_option(
+    "--framesPerSecond",
+    fps,
+    "Set the number of frames per second (integer)"
+  );
+  app->add_flag(
+    "--forceRewrite",
+    forceRewrite,
+    "Force overwriting saved files if they exist"
+  );
+  app->add_option(
+    "--camera",
+    cameraDef,
+    "Set the camera index to use"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--cameras",
+    [&](const std::vector<std::string> val) {
+      cameraRange.lower = std::stoi(val[0]);
+      cameraRange.upper = std::stoi(val[1]);
+      useCameraRange = true;
+      return true;
+    },
+    "Set the camera range"
+  )->expected(2);
+  app->add_option(
+    "--frameRange",
+    [&](const std::vector<std::string> val) {
+      framesRange.lower = std::stoi(val[0]);
+      framesRange.upper = std::stoi(val[1]);
+      return true;
+    },
+    "Set the frames range"
+  )->expected(2);
+}
+
 bool BatchContext::parseCommandLine()
 {
-  int argc = studioCommon.argc;
-  const char **argv = studioCommon.argv;
-  int argIndex = 1;
+  int ac = studioCommon.argc;
+  const char **av = studioCommon.argv;
 
-  volumeParams = std::make_shared<sg::VolumeParams>();
-
-  auto argAvailability = [&](std::string switchArg, int nComp) {
-    if (argc >= argIndex + nComp)
-      return true;
-    std::cout << "Missing argument value for : " << switchArg << std::endl;
-    return false;
-  };
-
-  while (argIndex < argc) {
-    std::string switchArg(argv[argIndex++]);
-
-    if (switchArg == "--help") {
-      printHelp();
-      return 0;
-    } else if (switchArg == "-r" || switchArg == "--renderer") {
-      if (argAvailability(switchArg, 1))
-        optRendererTypeStr = argv[argIndex++];
-
-    } else if (switchArg == "-c" || switchArg == "--camera") {
-      if (argAvailability(switchArg, 1))
-        optCameraTypeStr = argv[argIndex++];
-
-    } else if (switchArg == "-vp") {
-      if (argAvailability(switchArg, 3)) {
-        vec3f posVec;
-        posVec.x = atof(argv[argIndex++]);
-        posVec.y = atof(argv[argIndex++]);
-        posVec.z = atof(argv[argIndex++]);
-        pos = posVec;
-        cmdlCam = true;
-      }
-
-    } else if (switchArg == "-vu") {
-      if (argAvailability(switchArg, 3)) {
-        vec3f upVec;
-        upVec.x = atof(argv[argIndex++]);
-        upVec.y = atof(argv[argIndex++]);
-        upVec.z = atof(argv[argIndex++]);
-        up = upVec;
-        cmdlCam = true;
-      }
-
-    } else if (switchArg == "-f" || switchArg == "--format") {
-      if (argAvailability(switchArg, 1))
-        optImageFormat = argv[argIndex++];
-
-    } else if (switchArg == "-i" || switchArg == "--image") {
-      if (argAvailability(switchArg, 1))
-        optImageName = argv[argIndex++];
-
-    } else if (switchArg == "-vi") {
-      if (argAvailability(switchArg, 3)) {
-        vec3f gazeVec;
-        gazeVec.x = atof(argv[argIndex++]);
-        gazeVec.y = atof(argv[argIndex++]);
-        gazeVec.z = atof(argv[argIndex++]);
-        gaze = gazeVec;
-        cmdlCam = true;
-      }
-
-    } else if (switchArg == "-id" || switchArg == "--interpupillaryDistance") {
-      if (argAvailability(switchArg, 1))
-        optInterpupillaryDistance = max(0.0, atof(argv[argIndex++]));
-
-    } else if (switchArg == "-sm" || switchArg == "--stereoMode") {
-      if (argAvailability(switchArg, 1))
-        optStereoMode = max(0, atoi(argv[argIndex++]));
-
-    } else if (switchArg == "-s" || switchArg == "--size") {
-      if (argAvailability(switchArg, 2)) {
-        auto x = max(0, atoi(argv[argIndex++]));
-        auto y = max(0, atoi(argv[argIndex++]));
-        optImageSize = vec2i(x, y);
-      }
-
-    } else if (switchArg == "-spp" || switchArg == "--samples") {
-      if (argAvailability(switchArg, 1))
-        optSPP = max(1, atoi(argv[argIndex++]));
-
-    } else if (switchArg == "-vt" || switchArg == "--variance") {
-      if (argAvailability(switchArg, 1))
-        optVariance = max(0.0, atof(argv[argIndex++]));
-
-    } else if (switchArg == "-pf" || switchArg == "--pixelfilter") {
-      if (argAvailability(switchArg, 1))
-        optPF = max(0, atoi(argv[argIndex++]));
-
-    } else if (switchArg == "-oidn" || switchArg == "--denoiser") {
-      if (studioCommon.denoiserAvailable) {
-        if (argAvailability(switchArg, 1))
-          optDenoiser = min(2, max(0, atoi(argv[argIndex++])));
-      } else {
-        std::cout << " Denoiser not enabled. Check OSPRay module.\n";
-        argIndex++;
-      }
-    } else if (switchArg == "-g" || switchArg == "--grid") {
-      if (argAvailability(switchArg, 3)) {
-        auto x = max(0, atoi(argv[argIndex++]));
-        auto y = max(0, atoi(argv[argIndex++]));
-        auto z = max(0, atoi(argv[argIndex++]));
-        optGridSize = vec3i(x, y, z);
-        optGridEnable = true;
-      }
-    } else if (switchArg == "-a" || switchArg == "--albedo") {
-      saveAlbedo = true;
-    } else if (switchArg == "-d" || switchArg == "--depth") {
-      saveDepth = true;
-    } else if (switchArg == "-n" || switchArg == "--normal") {
-      saveNormal = true;
-    } else if (switchArg == "-l" || switchArg == "--layers") {
-      saveLayers = true;
-    } else if (switchArg == "-m" || switchArg == "--metadata") {
-      saveMetaData = true;
-    } else if (switchArg == "-fps" || switchArg == "--speed") {
-      if (argAvailability(switchArg, 1))
-        fps = atoi(argv[argIndex++]);
-      animate = true;
-    } else if (switchArg == "-fr" || switchArg == "--force") {
-      forceRewrite = true;
-    } else if (switchArg == "-cam" || switchArg == "--camera") {
-      if (argAvailability(switchArg, 1)) {
-        cameraDef = std::stoi(argv[argIndex++]);
-        if (cameraDef < 0) {
-          std::cout << "unsupported camera index specified " << std::endl;
-          return false;
-        }
-      }
-      if (!cameraDef)
-        std::cout
-            << "using default ospray camera, to use imported definition camera indices begins from 1"
-            << std::endl;
-    } else if (switchArg == "-cams" || switchArg == "--cameras") {
-      if (argAvailability(switchArg, 2)) {
-        auto x = atoi(argv[argIndex++]);
-        auto y = atoi(argv[argIndex++]);
-        cameraRange.lower = x;
-        cameraRange.upper = y;
-        useCameraRange = true;
-      }
-      if (!cameraRange.lower && !cameraRange.upper)
-        std::cout
-            << "using default ospray camera, to use imported definition camera indices begins from 1"
-            << std::endl;
-    } else if (switchArg == "-rn" || switchArg == "--range") {
-      if (argAvailability(switchArg, 2)) {
-        auto x = atoi(argv[argIndex++]);
-        auto y = atoi(argv[argIndex++]);
-        framesRange.lower = x;
-        framesRange.upper = y;
-      }
-    }
-    // volume parameters 
-    else if (switchArg == "--dimensions" || switchArg == "-dim") {
-      if (argAvailability(switchArg, 3)) {
-      const std::string dimX(argv[argIndex++]);
-      const std::string dimY(argv[argIndex++]);
-      const std::string dimZ(argv[argIndex++]);
-      auto dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
-      volumeParams->createChild("dimensions", "vec3i", dimensions);
-      }
-    } else if (switchArg == "--gridSpacing" || switchArg == "-gs") {
-      if (argAvailability(switchArg, 3)) {
-      const std::string gridSpacingX(argv[argIndex++]);
-      const std::string gridSpacingY(argv[argIndex++]);
-      const std::string gridSpacingZ(argv[argIndex++]);
-      auto gridSpacing =
-          vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
-      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
-      }
-    } else if (switchArg == "--gridOrigin" || switchArg == "-go") {
-      if (argAvailability(switchArg, 3)) {
-      const std::string gridOriginX(argv[argIndex++]);
-      const std::string gridOriginY(argv[argIndex++]);
-      const std::string gridOriginZ(argv[argIndex++]);
-      auto gridOrigin =
-          vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
-      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
-      }
-    } else if (switchArg == "--voxelType" || switchArg == "-vt") {
-      if (argAvailability(switchArg, 1)) {
-        auto voxelTypeStr = std::string(argv[argIndex++]);
-        auto it = sg::volumeVoxelType.find(voxelTypeStr);
-        if (it != sg::volumeVoxelType.end()) {
-          auto voxelType = it->second;
-          volumeParams->createChild("voxelType", "int", (int)voxelType);
-        } else {
-          throw std::runtime_error("improper -voxelType format requested");
-        }
-      }
-    } else if (switchArg == "--sceneConfig" || switchArg == "-sc") {
-      // valid values are dynamic, compact and robust
-      if (argAvailability(switchArg, 1)) {
-        const std::string sc(argv[argIndex++]);
-        sceneConfig = sc;
-      }
-    } else if (switchArg == "--instanceConfig" || switchArg == "-ic") {
-      // valid values are dynamic, compact and robust
-      if (argAvailability(switchArg, 1)) {
-        const std::string ic(argv[argIndex++]);
-        instanceConfig = ic;
-      }
-    } else if (switchArg.front() == '-') {
-      std::cout << " Unknown option: " << switchArg << std::endl;
-      break;
-    } else {
-      filesToImport.push_back(switchArg);
-    }
+  std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio Batch");
+  StudioContext::addToCommandLine(app);
+  BatchContext::addToCommandLine(app);
+  try {
+    app->parse(ac, av);
+  } catch (const CLI::ParseError &e) {
+    exit(app->exit(e));
   }
 
   if (filesToImport.size() == 0) {
@@ -311,25 +254,59 @@ void BatchContext::refreshRenderer()
   renderer.child("varianceThreshold").setValue(optVariance);
 }
 
+void BatchContext::reshape()
+{
+  auto fSize = frame->child("windowSize").valueAs<vec2i>();
+
+  if (lockAspectRatio) {
+    // Tell OSPRay to render the largest subset of the window that satisies the
+    // aspect ratio
+    float aspectCorrection = lockAspectRatio * static_cast<float>(fSize.y)
+        / static_cast<float>(fSize.x);
+    if (aspectCorrection > 1.f) {
+      fSize.y /= aspectCorrection;
+    } else {
+      fSize.x *= aspectCorrection;
+    }
+    if (frame->child("camera").hasChild("aspect"))
+      frame->child("camera")["aspect"] = static_cast<float>(fSize.x) / fSize.y;
+  } else if (frame->child("camera").hasChild("aspect"))
+    frame->child("camera")["aspect"] = optImageSize.x / (float)optImageSize.y;
+
+  frame->child("windowSize") = fSize;
+  frame->currentAccum = 0;
+
+  // update camera
+  arcballCamera->updateWindowSize(fSize);
+}
+
 bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 {
-  if(frame->hasChild("camera"))
-  frame->remove("camera");
-
   if (resetArcball)
     arcballCamera.reset(
         new ArcballCamera(frame->child("world").bounds(), optImageSize));
+  int hasParents{0};
 
   if (cameraIdx <= cameras.size() && cameraIdx > 0) {
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
               << std::endl;
     selectedSceneCamera = cameras[cameraIdx - 1];
+    hasParents = selectedSceneCamera->parents().size();
+    frame->remove("camera");
+    frame->add(selectedSceneCamera);
 
-    auto &camera = frame->createChildAs<sg::Camera>(
-        "camera", selectedSceneCamera->subType());
-      
-    for (auto &c : selectedSceneCamera->children())
-      camera.add(c.second);
+    // TODO: remove this Hack : for some reason the accumulated transform in
+    // transform node does not get updated for the BIT animation scene.
+    // Attempting to make transform modified so it picks up accumulated
+    // transform values made by renderScene
+    if (hasParents) {
+      auto cameraXfm = selectedSceneCamera->parents().front();
+      if (cameraXfm->valueAs<affine3f>() == affine3f(one))
+        cameraXfm->createChild("refresh", "bool");
+    }
+
+    if (selectedSceneCamera->hasChild("aspect"))
+      lockAspectRatio = selectedSceneCamera->child("aspect").valueAs<float>();
 
     // create unique cameraId for every camera
     auto &cameraParents = selectedSceneCamera->parents();
@@ -350,11 +327,14 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
   } else {
     std::cout << "No cameras imported or invalid camera index specified"
               << std::endl;
-    selectedSceneCamera = createNode(
-        "camera", "camera_" + optCameraTypeStr);
-    frame->add(selectedSceneCamera);
+    std::cout << "using default camera..." << std::endl;
   }
 
+  reshape(); // resets aspect
+
+   // if imported cameras don't have parent transform then use Arcball properties
+  if (!hasParents)
+    useArcball = true;
   updateCamera();
 
   return true;
@@ -362,10 +342,6 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 
 void BatchContext::render()
 {
-  
-  // Set the frame "windowSize", it will create the right sized framebuffer
-  frame->child("windowSize") = optImageSize;
-
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
   frameBuffer["floatFormat"] = true;
   frameBuffer.commit();
@@ -413,14 +389,6 @@ void BatchContext::renderFrame()
     frame->denoiseFB = true;
   frame->immediatelyWait = true;
   frame->startNewFrame();
-
-  if (selectedSceneCamera->nodeAs<sg::Camera>()->animate || cameraDef > 0) {
-    auto newCS = selectedSceneCamera->nodeAs<sg::Camera>()->getState();
-    arcballCamera->setState(*newCS);
-    updateCamera();
-    frame->cancelFrame();
-    frame->startNewFrame();
-  }
 
   static int filenum;
   if (resetFileId) {
@@ -474,11 +442,11 @@ void BatchContext::refreshScene(bool resetCam)
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
-  if (sceneConfig == "dynamic")
+  if (optSceneConfig == "dynamic")
     world->child("dynamicScene").setValue(true);
-  else if (sceneConfig == "compact")
+  else if (optSceneConfig == "compact")
     world->child("compactMode").setValue(true);
-  else if (sceneConfig == "robust")
+  else if (optSceneConfig == "robust")
     world->child("robustMode").setValue(true);
   world->createChild(
       "materialref", "reference_to_material", defaultMaterialIdx);
@@ -509,12 +477,11 @@ void BatchContext::updateCamera()
   frame->currentAccum = 0;
   auto &camera = frame->child("camera");
 
-  camera["position"] = arcballCamera->eyePos();
-  camera["direction"] = arcballCamera->lookDir();
-  camera["up"] = arcballCamera->upDir();
-
-  if (camera.hasChild("aspect"))
-    camera["aspect"] = optImageSize.x / (float)optImageSize.y;
+  if (useArcball) {
+    camera["position"] = arcballCamera->eyePos();
+    camera["direction"] = arcballCamera->lookDir();
+    camera["up"] = arcballCamera->upDir();
+  }
 
   if (cmdlCam) {
     camera["position"] = pos;
@@ -538,7 +505,7 @@ void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform");
   frame->child("world").add(importedModels);
-  if (animate)
+  if (fps)
     animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
@@ -558,6 +525,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
+          importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           if (volumeParams->children().size() > 0) {
             auto vp = importer->getVolumeParams();
             for (auto &c : volumeParams->children()) {
@@ -567,13 +535,13 @@ void BatchContext::importFiles(sg::NodePtr world)
           }
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
-          if (instanceConfig == "dynamic")
+          if (optInstanceConfig == "dynamic")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::DYNAMIC);
-          else if (instanceConfig == "compact")
+          else if (optInstanceConfig == "compact")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::COMPACT);
-          else if (instanceConfig == "robust")
+          else if (optInstanceConfig == "robust")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::ROBUST);
           importer->importScene();
@@ -591,66 +559,4 @@ void BatchContext::importFiles(sg::NodePtr world)
   filesToImport.clear();
   if (animationManager)
     animationManager->init();
-}
-
-void BatchContext::printHelp()
-{
-  std::cout <<
-      R"text(
-./ospStudio batch [parameters] [scene_files]
-
-ospStudio batch specific parameters:
-   -fps  --speed
-   -fr   --forceRewrite
-         force rewrite on existing saved files
-   -rn   --range [start end] for eg : [10 20]
-         range of frames to be rendered
-         This should be determined by the user based on specified `fps` and total animation time.
-   -cam  --camera 
-         In case of mulitple imported cameras specify which camera definition to use, counting starts from 1
-         0 here would use default camera implementation
-   -cams  --cameras 
-         In case of mulitple imported cameras specify which camera-range to use, counting starts from 1
-         for eg. a valid range would be [1 7]
-   -a    --albedo
-   -d    --depth
-   -n    --normal
-   -m    --metadata
-   -l    --layers
-   -f    --format (default png)
-          format for saving the image
-          (sg, exr, hdr, jpg, pfm,png, ppm)
-   -i     --image [baseFilename] (default 'ospBatch')
-            base name of saved image
-   -s     --size [x y] (default 1024x768)
-            image size
-   -spp   --samples [int] (default 32)
-            samples per pixel
-   -pf    --pixelfilter (default gauss)
-            (0=point, 1=box, 2=gauss, 3=mitchell, 4=blackman_harris)
-   -r     --renderer [type] (default "pathtracer")
-            rendererType scivis, ao, or pathtracer
-   -c     --camera [type] (default "perspective")
-            cameraType perspective or panoramic
-   -vp    [x y z] camera position  
-   -vu    [x y z] camera up  
-   -vi    [x y z] camera look-at  
-   -sm    --stereoMode 0=none, 1=left, 2=right, 3=side-by-side, 4=top-bottom
-   -id    --interpupillaryDistance
-   -g     --grid [x y z] (default 1 1 1, single instance)
-            instace a grid of models
-   -sc    --sceneConfig(default is the static BVH build of embree)
-          set global scene configuration params
-          valid values are dynamic, compact and robust
-   -ic    --instanceConfig(default is the static BVH build of embree)
-          set instance scene configuration params
-          valid values are dynamic, compact and robust)text"
-            << std::endl;
-  if (studioCommon.denoiserAvailable) {
-    std::cout <<
-        R"text(
-   -oidn  --denoiser [0,1,2] (default 0)
-            image denoiser (0 = off, 1 = on, 2 = save both)
-)text" << std::endl;
-  }
 }

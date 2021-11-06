@@ -3,7 +3,7 @@
 ## SPDX-License-Identifier: Apache-2.0
 
 set -e
-apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev -y
+
 if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
 then
     cd /tmp
@@ -13,11 +13,7 @@ then
     mkdir build && cd build && cmake ../scripts/superbuild -DBUILD_OIDN=ON && cmake --build .
     cp -r /tmp/ospray-$OSPRAY_VER $CACHE_DIR/
 fi
-export DEBIAN_FRONTEND=noninteractive
-apt update
-apt install -y xorg
-apt install -y mesa-utils
-apt install -y tigervnc-standalone-server
+
 export DISPLAY=:1
 export USER=root
 mkdir -p $HOME/.vnc; echo testtest | vncpasswd -f > $HOME/.vnc/passwd; chmod 0600 $HOME/.vnc/passwd; touch $HOME/.vnc/xstartup; chmod +x $HOME/.vnc/xstartup

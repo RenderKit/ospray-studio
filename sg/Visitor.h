@@ -6,6 +6,7 @@
 #include "rkcommon/traits/rktraits.h"
 #include <vector>
 #include <memory>
+#include <string>
 
 namespace ospray {
   namespace sg {
@@ -18,6 +19,7 @@ namespace ospray {
 
   struct TraversalContext
   {
+    std::string name;
     int level{0};
   };
 

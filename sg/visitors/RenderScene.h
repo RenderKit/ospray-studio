@@ -21,7 +21,12 @@ namespace ospray {
   {
     RenderScene();
     ~RenderScene();
-    RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId);
+    RenderScene(GeomIdMap &geomIdMap,
+        InstanceIdMap &instanceIdMap,
+        affine3f *cameraToWorld,
+        std::vector<NodePtr> &instanceXfms,
+        std::vector<std::tuple<std::string, box3f, affine3f>> &_groupBBoxes,
+        int cId);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
     void postChildren(Node &node, TraversalContext &) override;
@@ -34,7 +39,6 @@ namespace ospray {
     void createInstanceFromGroup(Node &node);
     void placeInstancesInWorld();
     void setLightParams(Node &node);
-    void setCameraParams(Node &node);
 
     // Data //
 
@@ -65,7 +69,9 @@ namespace ospray {
     InstanceIdMap *in{nullptr};
     affine3f *camXfm{nullptr};
     int camId{0};
-    std::shared_ptr<CameraState> cs;
+    std::vector<NodePtr> *instanceXfms{nullptr};
+    std::vector<std::tuple<std::string, box3f, affine3f>> *groupBBoxes{nullptr};
+    box3f currentInstBBox{empty};
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -82,7 +88,12 @@ namespace ospray {
     groups.clear();
   }
 
-  inline RenderScene::RenderScene(GeomIdMap &geomIdMap, InstanceIdMap &instanceIdMap, affine3f *cameraToWorld, int cId)
+  inline RenderScene::RenderScene(GeomIdMap &geomIdMap,
+      InstanceIdMap &instanceIdMap,
+      affine3f *cameraToWorld,
+      std::vector<NodePtr> &_instanceXfms,
+      std::vector<std::tuple<std::string, box3f, affine3f>> &_groupBBoxes,
+      int cId)
   {
     xfms.emplace(math::one);
     endXfms.emplace(math::one);
@@ -91,6 +102,8 @@ namespace ospray {
     in = &instanceIdMap;
     camXfm = cameraToWorld;
     camId = cId;
+    instanceXfms = &_instanceXfms;
+    groupBBoxes = &_groupBBoxes;
   }
 
   inline bool RenderScene::operator()(Node &node, TraversalContext &)
@@ -151,14 +164,7 @@ namespace ospray {
       xfms.push(xfmNode->accumulatedXfm);
       endXfms.push(endXfms.top() * endXfm * node.valueAs<affine3f>());
       xfmsDiverged.push(xfmsDiverged.top() || diverged);
-
-      if (node.hasChildOfSubType("camera_perspective")
-          || node.hasChildOfSubType("camera_orthographic")) {
-        cs = std::make_shared<CameraState>();
-        cs->useCameraToWorld = true;
-        cs->cameraToWorld = xfm;
-      }
-
+      
       if (node.hasChild("instanceId"))
         instanceId = node.child("instanceId").valueAs<std::string>();
       if (node.hasChild("geomId"))
@@ -176,7 +182,6 @@ namespace ospray {
         auto &outputCamXfm = *camXfm;
         outputCamXfm = outputCamXfm * xfms.top();
       }
-      setCameraParams(node);
     } break;
     default:
       break;
@@ -235,11 +240,16 @@ namespace ospray {
         affine3f xfm{zero};
         for (size_t j = 0; j < weightsPerVertex; ++j, ++weightIdx) {
           const int idx = geomNode->joints[weightIdx];
+          // skinning matrix
           xfm = xfm
               + geomNode->weights[weightIdx]
                   * joints[idx]->nodeAs<Transform>()->accumulatedXfm
                   * inverseBindMatrices[idx];
         }
+        // from gltf docu:
+        // final joint matrix = globalTransformOfNodeThatTheMeshIsAttachedTo^-1 * 
+        //                         globalTransformOfJointNode(j) *
+        //                         inverseBindMatrixForJoint(j)
         xfm = rcp(geomNode->skeletonRoot->nodeAs<Transform>()->accumulatedXfm)
             * xfm;
         geomNode->skinnedPositions[i] = xfmPoint(xfm, geomNode->positions[i]);
@@ -314,11 +324,6 @@ namespace ospray {
 
   inline void RenderScene::createInstanceFromGroup(Node &node)
   {
-    #if defined(DEBUG)
-    std::cout << "number of geometries : " << current.geometries.size()
-              << std::endl;
-    #endif
-
     auto setInstance = [&](auto group) {
       group.setParam(
           "dynamicScene", node.child("dynamicScene").valueAs<bool>());
@@ -345,14 +350,30 @@ namespace ospray {
 
     if (node.hasChildOfType(NodeType::GEOMETRY)) {
       auto &geomChildren = node.childrenOfType(NodeType::GEOMETRY);
+#if defined(DEBUG)
+      std::cout << "number of geometries : " << geomChildren.size() << std::endl;
+#endif
+
       for (auto geom : geomChildren) {
         auto geomNode = geom->nodeAs<Geometry>();
         auto geomIdentifier = geomNode->groupIndex;
         if (geomIdentifier >= 0 && geomIdentifier < groups.size()) {
           auto &group = groups[geomIdentifier];
+          if (groupBBoxes && !node.hasChild("instanceId")) {
+            auto box = group.getBounds<box3f>();
+            affine3f xfm =  affine3f::scale(node.child("scale").valueAs<vec3f>());
+            xfm.p = node.child("translation").valueAs<vec3f>();
+            auto xfmdBox = xfmBounds(xfm, box);
+            currentInstBBox.extend(xfmdBox);
+          }
           setInstance(group);
         }
       }
+    }
+
+    if (groupBBoxes && node.hasChild("instanceId")) {
+      groupBBoxes->push_back(std::make_tuple(node.name(), currentInstBBox, xfms.top()));
+      currentInstBBox = empty;
     }
 
     if (node.hasChildOfType(NodeType::VOLUME)) {
@@ -390,34 +411,28 @@ namespace ospray {
   inline void RenderScene::setLightParams(Node &node)
   {
     auto type = node.subType();
-    std::map<std::string, vec3f> propMap;
+    // properties map for initializing light property values
+    std::unordered_map<std::string, std::pair<vec3f, bool>> propMap;
 
     if (type == "sphere" || type == "spot" || type == "quad") {
       auto lightPos = xfmPoint(xfms.top(), vec3f(0));
-      propMap.insert(std::make_pair("position", lightPos));
+      propMap.insert(
+          std::make_pair("position", std::make_pair(lightPos, false)));
     }
 
-    if (type == "distant" || type == "hdri" || type == "spot") {
-      auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, 1));
-      propMap.insert(std::make_pair("direction", lightDir));
+    if (type == "distant" || type == "spot" || type == "sunSky"
+        || type == "hdri") {
+      auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, -1));
+      propMap.insert(
+          std::make_pair("direction", std::make_pair(lightDir, false)));
     }
 
     if (type == "hdri") {
       auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
-      propMap.insert(std::make_pair("up", upDir));
+      propMap.insert(std::make_pair("up", std::make_pair(upDir, false)));
     }
     auto lightNode = node.nodeAs<sg::Light>();
     lightNode->initOrientation(propMap);
-  }
-
-  inline void RenderScene::setCameraParams(Node &node)
-  {
-    auto camera = node.nodeAs<sg::Camera>();
-    if (cs != nullptr) {
-      camera->setState(cs);
-      if (node.parents().front()->child("animateCamera").valueAs<bool>())
-        camera->animate = true;
-    }
   }
 
   inline void RenderScene::placeInstancesInWorld()

@@ -109,6 +109,11 @@ struct OSPSG_INTERFACE Importer : public Node
     return ic;
   }
 
+  inline void setArguments(int _argc, char** _argv){
+    argc = _argc;
+    argv = _argv;
+  }
+
   float pointSize{0.0f};
 
  protected:
@@ -121,6 +126,8 @@ struct OSPSG_INTERFACE Importer : public Node
   NodePtr lightsManager;
   sg::FrameBuffer *fb{nullptr};
   InstanceConfiguration ic{STATIC};
+  int argc{0};
+  char ** argv{nullptr};
 };
 
 // global assets catalogue

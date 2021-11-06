@@ -8,13 +8,7 @@
 OSPRAY_VER="devel"
 
 set -e
-apt-get update -y && apt-get install libglfw3-dev libxinerama-dev libxcursor-dev -y
 
-export DEBIAN_FRONTEND=noninteractive
-apt update
-apt install -y xorg
-apt install -y mesa-utils
-apt install -y tigervnc-standalone-server
 export DISPLAY=:1
 export USER=root
 mkdir -p $HOME/.vnc; echo testtest | vncpasswd -f > $HOME/.vnc/passwd; chmod 0600 $HOME/.vnc/passwd; touch $HOME/.vnc/xstartup; chmod +x $HOME/.vnc/xstartup

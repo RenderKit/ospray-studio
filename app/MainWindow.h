@@ -14,6 +14,7 @@
 // std
 #include <functional>
 
+#include <map>
 #include "widgets/AnimationWidget.h"
 #include "PluginManager.h"
 #include "sg/importer/Importer.h"
@@ -68,6 +69,7 @@ class MainWindow : public StudioContext
 
   void mainLoop();
 
+  void addToCommandLine(std::shared_ptr<CLI::App> app) override;
   bool parseCommandLine() override;
 
   void start() override;
@@ -82,8 +84,6 @@ class MainWindow : public StudioContext
 
   void updateTitleBar();
 
-  std::string rendererTypeStr{"pathtracer"};
-
   void refreshRenderer();
 
   void updateCamera() override;
@@ -92,6 +92,8 @@ class MainWindow : public StudioContext
   int whichLightType{-1};
   int whichCamera{0};
   std::string lightTypeStr{"ambient"};
+  std::string scene;
+  std::string rendererTypeStr;
 
  protected:
   void buildPanel();
@@ -135,15 +137,9 @@ class MainWindow : public StudioContext
   void buildWindowRenderingStats();
 
   void setCameraSnapshot(size_t snapshot);
-  void printHelp() override;
 
   std::vector<CameraState> cameraStack;
   sg::NodePtr g_selectedSceneCamera;
-
-  //Volume parameters
-  sg::NodePtr volumeParams;
-
-  float pointSize{0.05f};
 
   // Plugins //
   std::vector<std::unique_ptr<Panel>> pluginPanels;
@@ -174,19 +170,11 @@ class MainWindow : public StudioContext
 
   static MainWindow *activeWindow;
 
+  int fontSize{13}; // pixels
+  vec2f contentScale;
   vec2i windowSize;
   vec2i fbSize;
   vec2f previousMouse{-1.f};
-
-  bool showColor{true};
-  bool showAlbedo{false};
-  bool showDepth{false};
-  bool showDepthInvert{false};
-  bool autorotate{false};
-  bool linkNodes{false};
-  bool animate{false};
-
-  std::string scene;
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
   int optPF = -1; // optional pixel filter, -1 = use default
@@ -231,6 +219,11 @@ class MainWindow : public StudioContext
 
   std::shared_ptr<AnimationWidget> animationWidget{nullptr};
 
-  std::string sceneConfig{""};
-  std::string instanceConfig{""};
+  // CLI
+  bool optShowColor{true};
+  bool optShowAlbedo{false};
+  bool optShowDepth{false};
+  bool optShowDepthInvert{false};
+  bool optAutorotate{false};
+  bool optAnimate{false};
 };

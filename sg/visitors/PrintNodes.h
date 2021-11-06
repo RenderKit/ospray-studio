@@ -27,13 +27,21 @@ namespace ospray {
     return cout << (int)uc;
   }
 
+  static std::ostream &operator<<(std::ostream &cout, const std::shared_ptr<Data> data)
+  {
+    return cout << "numItems=" << data->numItems
+                << ", byteStride=" << data->byteStride
+                << ", format=" << (int)data->format
+                << ", isShared=" << (int)data->isShared;
+  }
+
   inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
   {
     std::cout << std::string(2*ctx.level, ' ') << node.name() << " : " << node.subType();
 
     // A couple of usings to make subType strings match types
     using string = std::string;
-    using Transform = affine3f;
+    using transform = affine3f;
     using uchar = uint8_t;
     PRINT_AS(node, string);      
     PRINT_AS(node, bool);      
@@ -53,7 +61,9 @@ namespace ospray {
     PRINT_AS(node, range1f);   
     PRINT_AS(node, rgb);       
     PRINT_AS(node, rgba);      
-    PRINT_AS(node, Transform); 
+    PRINT_AS(node, transform); 
+    if (node.subType() == "Data")
+      std::cout << " [" << node.nodeAs<Data>() << "]";
     std::cout << std::endl;
 
     // XXX Debug only, probably need something better here.

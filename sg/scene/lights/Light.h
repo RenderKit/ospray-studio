@@ -14,7 +14,8 @@ namespace ospray {
     ~Light() override = default;
     NodeType type() const override;
 
-    void initOrientation(std::map<std::string, vec3f> &propMap);
+    void initOrientation(
+    std::unordered_map<std::string, std::pair<vec3f, bool>> &propMap);
 
    private:
     bool setOrientation{true};

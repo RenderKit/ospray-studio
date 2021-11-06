@@ -26,6 +26,7 @@ class BatchContext : public StudioContext
   ~BatchContext() {}
 
   void start() override;
+  void addToCommandLine(std::shared_ptr<CLI::App> app) override;
   bool parseCommandLine() override;
   void importFiles(sg::NodePtr world) override;
   void refreshRenderer();
@@ -36,6 +37,7 @@ class BatchContext : public StudioContext
   void renderFrame();
   void renderAnimation();
   bool refreshCamera(int cameraIdx, bool resetArcball = false);
+  void reshape();
 
  protected:
   NodePtr importedModels;
@@ -47,11 +49,10 @@ class BatchContext : public StudioContext
   bool saveLayers{false};
   bool saveMetaData{true};
   std::string optImageFormat{"png"};
-  bool animate{false};
-  int fps{24};
+
+  int fps{0};
   bool forceRewrite{false};
   range1i framesRange{0, 0};
-  void printHelp() override;
   int cameraDef{0};
   range1i cameraRange{0, 0};
   bool useCameraRange{false};
@@ -65,10 +66,6 @@ class BatchContext : public StudioContext
   //camera animation
   sg::NodePtr selectedSceneCamera;
 
-  //Volume parameters
-  sg::NodePtr volumeParams;
-
-  // scene/instance configuration params
-  std::string sceneConfig{""};
-  std::string instanceConfig{""};
+  float lockAspectRatio = 0.0;
+  bool useArcball{false};
 };

@@ -45,6 +45,7 @@ add_library(ospray_sg SHARED
   Data.cpp
   Node.cpp
   Frame.cpp
+  PluginCore.cpp
 
   camera/Camera.cpp
   camera/Perspective.cpp
@@ -126,6 +127,7 @@ add_library(ospray_sg SHARED
 
   scene/lights/Light.cpp
   scene/lights/LightsManager.cpp
+  scene/lights/Photometric.cpp
   scene/lights/DirectionalLight.cpp
   scene/lights/AmbientLight.cpp
   scene/lights/SpotLight.cpp

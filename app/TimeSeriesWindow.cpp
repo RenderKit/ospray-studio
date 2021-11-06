@@ -17,6 +17,9 @@
 #include "sg/scene/volume/VolumeTimeStep.h"
 #include "sg/scene/volume/Volume.h"
 
+// CLI
+#include <CLI11.hpp>
+
 using namespace ospray::sg;
 
 std::vector<std::string> variablesLoaded;
@@ -180,7 +183,7 @@ void TimeSeriesWindow::mainLoop()
         }
 
         auto tfn = std::static_pointer_cast<sg::TransferFunction>(
-            sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
+            sg::createNode("tfn_" + to_string(i), "transfer_function_turbo"));
 
         for (int j = 0; j < numInstances; j++) {
           auto newX = createNode("geomXfm" + to_string(j), "transform");
@@ -254,7 +257,7 @@ void TimeSeriesWindow::mainLoop()
         }
 
         auto tfn = std::static_pointer_cast<sg::TransferFunction>(
-            sg::createNode("tfn_" + to_string(i), "transfer_function_cloud"));
+            sg::createNode("tfn_" + to_string(i), "transfer_function_turbo"));
 
         for (int j = 0; j < numInstances; j++) {
           auto newX = createNode("geomXfm" + to_string(j), "transform");
@@ -307,90 +310,39 @@ void TimeSeriesWindow::updateWindowTitle(std::string &updatedTitle)
   updatedTitle = windowTitle.str();
 }
 
-bool TimeSeriesWindow::parseCommandLine()
-{
-  int argc = studioCommon.argc;
-  const char **argv = studioCommon.argv;
+void TimeSeriesWindow::addToCommandLine(std::shared_ptr<CLI::App> app) {
+  app->add_option(
+    "--lightType",
+    lightTypeStr,
+    "set the type of light"
+  )->check(CLI::IsMember({"ambient", "distant", "hdri", "sphere", "spot", "sunSky", "quad"}));
+  app->add_option(
+    "--numInstances",
+    numInstances,
+    "set the number of rendering instances"
+  )->check(CLI::PositiveNumber);
 
-  if (argc < 2) {
-    std::cout << "incomplete/wrong usage of command line params" << std::endl;
+  app->add_flag(
+    "--separateTimeseries",
+    importAsSeparateTimeseries,
+    "Load volumes as separate timeseries objects"
+  );
+  app->add_flag(
+    "--localLoading",
+    g_localLoading,
+    "Load volumes locally"
+  );
+  app->add_flag(
+    "--separateFb",
+    setSeparateFramebuffers,
+    "Render into separate framebuffers"
+  );
 
-    std::cerr << "usage: " << argv[0] << " timeseries"
-              <<" [-renderer scivis | pathtracer ]"
-              <<" [-dimensions <dimX> <dimY> <dimZ>] "
-              << "[-voxelType OSP_FLOAT | OSP_INT] "
-              << "[-gridOrigin <x> <y> <z>] "
-                 "[-gridSpacing <x> <y> <z>] "
-              << "[-numInstances <n>] "
-              << "[-variable <float.raw>>...]" << std::endl;
-    return 1;
-  }
-  while (argIndex < argc) {
-    std::string switchArg(argv[argIndex++]);
-
-    if (switchArg == "-renderer") {
-      // XXX This doesn't play nicely with the whichRenderer int in MainWindow
-      rendererTypeStr = argv[argIndex++];
-    }
-
-    else if (switchArg == "-light") {
-      // XXX This doesn't play nicely with the whichLight int in MainWindow
-      lightTypeStr = argv[argIndex++];
-    }
-
-    else if (switchArg == "-numInstances") {
-      numInstances = stoi(std::string(argv[argIndex++]));
-    }
-    
-    else if (switchArg == "-dimensions") {
-
-      const std::string dimX(argv[argIndex++]);
-      const std::string dimY(argv[argIndex++]);
-      const std::string dimZ(argv[argIndex++]);
-
-      dimensions = vec3i(stoi(dimX), stoi(dimY), stoi(dimZ));
-    }
-
-    else if (switchArg == "-voxelType") {
-      auto voxelTypeStr = std::string(argv[argIndex++]);
-      auto it           = sg::volumeVoxelType.find(voxelTypeStr);
-      if (it != sg::volumeVoxelType.end()) {
-        voxelType = it->second;
-      } else {
-        throw std::runtime_error("improper -voxelType format requested");
-      }
-    }
-
-    else if (switchArg == "-gridSpacing") {
-
-      const std::string gridSpacingX(argv[argIndex++]);
-      const std::string gridSpacingY(argv[argIndex++]);
-      const std::string gridSpacingZ(argv[argIndex++]);
-
-      gridSpacing =
-          vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
-    }
-
-    else if (switchArg == "-gridOrigin") {
-
-      const std::string gridOriginX(argv[argIndex++]);
-      const std::string gridOriginY(argv[argIndex++]);
-      const std::string gridOriginZ(argv[argIndex++]);
-
-      gridOrigin =
-          vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
-    }
-
-    else if (switchArg == "-separateTimeseries") {
-      importAsSeparateTimeseries = true;
-    } 
-    
-    else if (switchArg == "-variable") {
-      if (argc < argIndex + 1) {
-        throw std::runtime_error("improper -variable arguments");
-      }
-
-      // fit it into a unit cube (if no other fetchnamerid spacing provided)
+  app->remove_option(app->get_option_no_throw("files"));
+  app->add_option_function<std::vector<std::string>>(
+    "files",
+    [&](const std::vector<std::string> val) {
+      // fit it into a unit cube (if no other gridSpacing provided)
       if (gridSpacing == vec3f(-1.f)) {
         const float normalizedGridSpacing = reduce_min(1.f / dimensions);
 
@@ -398,32 +350,26 @@ bool TimeSeriesWindow::parseCommandLine()
         gridSpacing = vec3f(normalizedGridSpacing);
       }
 
-      std::vector<std::string> singleVariableData;
+      allVariablesData.push_back(val);
+      return true;
+    },
+    "Load these volume files"
+  );
+}
 
-      while (argIndex < argc && argv[argIndex][0] != '-') {
-        const std::string filename(argv[argIndex++]);
-        singleVariableData.push_back(filename);
-      }
+bool TimeSeriesWindow::parseCommandLine()
+{
+  int ac = studioCommon.argc;
+  const char **av = studioCommon.argv;
 
-      allVariablesData.push_back(singleVariableData);
-    }
-
-    else if (switchArg == "-localLoading") {
-      g_localLoading = true;
-    } 
-    
-    else if (switchArg == "-separateFb") {
-      setSeparateFramebuffers = true;
-    } 
-
-    else {
-      // Ignore "--osp:" ospray arguments
-      if (switchArg.rfind("--osp:") != std::string::npos)
-        continue;
-      printHelp();
-      std::cerr << "switch arg: " << switchArg << std::endl;
-      throw std::runtime_error("unknown switch argument");
-    }
+  std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio Timeseries");
+  StudioContext::addToCommandLine(app);
+  MainWindow::addToCommandLine(app);
+  TimeSeriesWindow::addToCommandLine(app);
+  try {
+    app->parse(ac, av);
+  } catch (const CLI::ParseError &e) {
+    exit(app->exit(e));
   }
 
   std::cerr << "local loading for time steps (on each process): "
@@ -655,26 +601,4 @@ void TimeSeriesWindow::setTimestep(int timestep)
   //set up separate framebuffers
   if (setSeparateFramebuffers)
     setTimestepFb(timestep);
-}
-
-void TimeSeriesWindow::printHelp()
-{
-  std::cout <<
-      R"text(
-  ./ospStudio timeseries [parameters] [files]
-
-  requirement for parameteres depend on the type of volume import.
-
-  ospStudio timeseries specific parameters:
-    -separateTimeseries add volume variables as separate dropdown selectable timeseries
-    -separateFb     configure separate Framebuffer per timestep
-    -localLoading   to disable asynchronous loading of timesteps
-    -numInstances   <number of instances>
-    -renderer       pathtracer | scivis
-    -dimensions     <dimX> <dimY> <dimZ>
-    -voxelType       OSP_FLOAT | 
-    -gridSpacing    <x> <y> <z>
-    -gridOrigin     <x> <y> <z>
-    -variable       <float.extension>>... )text"
-            << std::endl;
 }

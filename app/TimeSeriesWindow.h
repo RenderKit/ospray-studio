@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Intel Corporation
+// Copyright 2019-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -27,6 +27,7 @@ class TimeSeriesWindow : public MainWindow
 
   void start() override;
 
+  void addToCommandLine(std::shared_ptr<CLI::App> app) override;
   bool parseCommandLine() override;
 
   void mainLoop();
@@ -44,8 +45,6 @@ class TimeSeriesWindow : public MainWindow
   void setTimestep(int timestep);
 
   void setVariableTimeseries(int whichVariable, int timestep);
-
-  void printHelp() override;
 
   std::vector<ospray::sg::VolumeParameters> g_volumeParameters;
   std::vector<std::shared_ptr<ospray::sg::World>> g_allWorlds;

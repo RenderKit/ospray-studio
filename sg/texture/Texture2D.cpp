@@ -295,6 +295,9 @@ void Texture2D::loadTexture_STBi(const std::string &fileName)
     texels = (void *)stbi_load(
         fileName.c_str(), &width, &height, &params.components, 0);
 
+  // Set flip on load back to default, STBi maintains a static global.
+  stbi_set_flip_vertically_on_load(0);
+
   params.size = vec2ul(width, height);
   params.depth = isHDR ? 4 : is16b ? 2 : 1;
 

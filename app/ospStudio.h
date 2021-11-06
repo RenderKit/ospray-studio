@@ -22,6 +22,12 @@
 
 #include "version.h"
 
+// Forward-declare CLI::App to prevent every file that imports this header from
+// also having to load CLI11.hpp.
+namespace CLI {
+class App;
+}
+
 using namespace ospray;
 using namespace rkcommon::math;
 
@@ -40,6 +46,20 @@ const static std::map<std::string, StudioMode> StudioModeMap = {
     {"server", StudioMode::HEADLESS},
     {"timeseries", StudioMode::TIMESERIES}};
 
+const static std::map<std::string, vec2i> standardResolutionSizeMap = {
+  {"144p", {256, 144}},
+  {"240p", {426, 240}},
+  {"360p", {640, 360}},
+  {"480p", {640, 480}},
+  {"720p", {1280, 720}},
+  {"1080p", {1920, 1080}},
+  {"1440p", {2560, 1440}},
+  {"2160p", {3840, 2160}},
+  {"4K", {3840, 2160}},
+  {"4320p", {7680, 4320}},
+  {"8K", {7680, 4320}}};
+
+
 // Common across all modes
 
 class StudioCommon
@@ -52,7 +72,9 @@ class StudioCommon
       : pluginsToLoad(_pluginsToLoad),
         denoiserAvailable(denoiser),
         argc(_argc),
-        argv(_argv){};
+        argv(_argv) {}
+
+  void splitPluginArguments();
 
   std::vector<std::string> pluginsToLoad;
   bool denoiserAvailable{false};
@@ -60,6 +82,8 @@ class StudioCommon
 
   int argc;
   const char **argv;
+  int plugin_argc{0};
+  const char **plugin_argv{nullptr};
 };
 
 // abstract base class for all Studio modes
@@ -82,6 +106,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   virtual void start() = 0;
   virtual bool parseCommandLine() = 0;
+  virtual void addToCommandLine(std::shared_ptr<CLI::App> app);
   virtual void importFiles(sg::NodePtr world) = 0;
   virtual void refreshScene(bool resetCam) = 0;
   virtual void updateCamera() = 0;
@@ -118,16 +143,21 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
   int optStereoMode               = 0;
   float optInterpupillaryDistance = 0.0635f;
-
- protected:
-  virtual void printHelp()
-  {
-    std::cerr << "common Studio help message" << std::endl;
-  }
-
-  bool sgScene{false}; // whether we are loading a scene file
+  sg::NodePtr volumeParams;
+  float pointSize{0.05f};
+  vec2i optResolution{0, 0};
+  std::string optSceneConfig{""};
+  std::string optInstanceConfig{""};
 
   StudioCommon &studioCommon;
+
+  bool showPoseBBox{false};
+  bool showInstBBox{false};
+  bool showInstBBoxFrame{false};
+
+ protected:
+  bool sgScene{false}; // whether we are loading a scene file
+
 };
 
 inline OSPError initializeOSPRay(int &argc, const char **argv)

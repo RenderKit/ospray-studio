@@ -6,6 +6,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
+#include "Proggy.h"
 // std
 #include <chrono>
 #include <iostream>
@@ -23,6 +24,7 @@
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/Search.h"
 #include "sg/visitors/SetParamByNode.h"
+#include "sg/visitors/CollectTransferFunctions.h"
 #include "sg/scene/volume/Volume.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
@@ -43,6 +45,9 @@
 #include "widgets/PieMenu.h"
 #include "widgets/Guizmo.h"
 
+// CLI
+#include <CLI11.hpp>
+
 using namespace ospray_studio;
 using namespace ospray;
 
@@ -51,7 +56,6 @@ static ImGuiWindowFlags g_imguiWindowFlags = ImGuiWindowFlags_AlwaysAutoResize;
 static bool g_quitNextFrame = false;
 static bool g_saveNextFrame = false;
 static bool g_animatingPath = false;
-static bool g_animateCamera = false;
 static bool g_clearSceneConfirm = false;
 
 static const std::vector<std::string> g_scenes = {"tutorial_scene",
@@ -173,6 +177,10 @@ MainWindow::MainWindow(StudioCommon &_common)
   }
 
   glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+
+  // get primary monitor's display scaling
+  GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
+  glfwGetMonitorContentScale(primaryMonitor, &contentScale.x, &contentScale.y);
 
   // create GLFW window
   glfwWindow = glfwCreateWindow(
@@ -381,6 +389,17 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   // Disable active viewports until users enables toggled in view menu
   ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+
+  // set ImGui font, scaled to display DPI
+  auto &io = ImGui::GetIO();
+  auto scaleFactor = std::max(contentScale.x, contentScale.y);
+  auto scaledFontSize = fontSize * scaleFactor;
+  ImVec2 imScale(contentScale.x, contentScale.y);
+
+  ImFont *font = io.Fonts->AddFontFromMemoryCompressedTTF(
+      ProggyClean_compressed_data, ProggyClean_compressed_size, scaledFontSize);
+  io.FontGlobalScale = 1.f / scaleFactor;
+  io.DisplayFramebufferScale = imScale;
 
   // set initial OpenGL state
   glEnable(GL_TEXTURE_2D);
@@ -656,7 +675,7 @@ void MainWindow::motion(const vec2f &position)
   if (frame->pauseRendering)
     return;
 
-  const vec2f mouse(position.x, position.y);
+  const vec2f mouse = position * contentScale;
   if (previousMouse != vec2f(-1)) {
     const bool leftDown =
         glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
@@ -672,10 +691,12 @@ void MainWindow::motion(const vec2f &position)
     if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
       sensitivity *= fineControl;
 
-    const vec2f mouseFrom(clamp(prev.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-        clamp(prev.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
-    const vec2f mouseTo(clamp(mouse.x * 2.f / windowSize.x - 1.f, -1.f, 1.f),
-        clamp(mouse.y * 2.f / windowSize.y - 1.f, -1.f, 1.f));
+    auto displaySize = windowSize * contentScale;
+
+    const vec2f mouseFrom(clamp(prev.x * 2.f / displaySize.x - 1.f, -1.f, 1.f),
+        clamp(prev.y * 2.f / displaySize.y - 1.f, -1.f, 1.f));
+    const vec2f mouseTo(clamp(mouse.x * 2.f / displaySize.x - 1.f, -1.f, 1.f),
+        clamp(mouse.y * 2.f / displaySize.y - 1.f, -1.f, 1.f));
 
     if (leftDown) {
       arcballCamera->constrainedRotate(mouseFrom,
@@ -704,7 +725,8 @@ void MainWindow::mouseButton(const vec2f &position)
 
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-    pickCenterOfRotation(position.x, position.y);
+    vec2f scaledPosition = position * contentScale;
+    pickCenterOfRotation(scaledPosition.x, scaledPosition.y);
   }
 }
 
@@ -737,7 +759,7 @@ void MainWindow::display()
 {
   static auto displayStart = std::chrono::high_resolution_clock::now();
 
-  if (autorotate) {
+  if (optAutorotate) {
     vec2f from(0.f, 0.f);
     vec2f to(autorotateSpeed * 0.001f, 0.f);
     arcballCamera->rotate(from, to);
@@ -760,17 +782,6 @@ void MainWindow::display()
       }
     } else {
       g_camCurrentPathIndex++;
-    }
-  }
-
-  // Add new camera params
-  if (g_animateCamera) {
-    auto selectedCamera = g_selectedSceneCamera->nodeAs<sg::Camera>();
-    auto cs = selectedCamera->getState();
-
-    if (cs != nullptr) {
-      arcballCamera->setState(*cs);
-      updateCamera();
     }
   }
 
@@ -798,12 +809,12 @@ void MainWindow::display()
       waitOnOSPRayFrame();
 
       // Only enabled if they exist
-      showAlbedo &= frameBuffer.hasAlbedoChannel();
-      showDepth &= frameBuffer.hasDepthChannel();
+      optShowAlbedo &= frameBuffer.hasAlbedoChannel();
+      optShowDepth &= frameBuffer.hasDepthChannel();
 
-      auto *mappedFB = (void *)frame->mapFrame(showDepth
+      auto *mappedFB = (void *)frame->mapFrame(optShowDepth
               ? OSP_FB_DEPTH
-              : (showAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
+              : (optShowAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
 
       // This needs to query the actual framebuffer format
       const GLenum glType =
@@ -811,7 +822,7 @@ void MainWindow::display()
 
       // Only create the copy if it's needed
       float *pDepthCopy = nullptr;
-      if (showDepth) {
+      if (optShowDepth) {
         // Create a local copy and don't modify OSPRay buffer
         const auto *mappedDepth = static_cast<const float *>(mappedFB);
         std::vector<float> depthCopy(
@@ -832,7 +843,7 @@ void MainWindow::display()
         const float rcpDepthRange = 1.f / (maxDepth - minDepth);
 
         // Inverted depth (1.0 -> 0.0) may be more meaningful
-        if (showDepthInvert)
+        if (optShowDepthInvert)
           std::transform(depthCopy.begin(),
               depthCopy.end(),
               depthCopy.begin(),
@@ -849,13 +860,13 @@ void MainWindow::display()
       glBindTexture(GL_TEXTURE_2D, framebufferTexture);
       glTexImage2D(GL_TEXTURE_2D,
           0,
-          showAlbedo ? gl_rgb_format : gl_rgba_format,
+          optShowAlbedo ? gl_rgb_format : gl_rgba_format,
           fbSize.x,
           fbSize.y,
           0,
-          showDepth ? GL_LUMINANCE : (showAlbedo ? GL_RGB : GL_RGBA),
+          optShowDepth ? GL_LUMINANCE : (optShowAlbedo ? GL_RGB : GL_RGBA),
           glType,
-          showDepth ? pDepthCopy : mappedFB);
+          optShowDepth ? pDepthCopy : mappedFB);
 
       frame->unmapFrame(mappedFB);
 
@@ -1032,11 +1043,11 @@ void MainWindow::refreshScene(bool resetCam)
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
-  if (sceneConfig == "dynamic")
+  if (optSceneConfig == "dynamic")
     world->child("dynamicScene").setValue(true);
-  else if (sceneConfig == "compact")
+  else if (optSceneConfig == "compact")
     world->child("compactMode").setValue(true);
-  else if (sceneConfig == "robust")
+  else if (optSceneConfig == "robust")
     world->child("robustMode").setValue(true);
 
   world->createChild(
@@ -1072,76 +1083,36 @@ void MainWindow::refreshScene(bool resetCam)
   fb.resetAccumulation();
 }
 
+void MainWindow::addToCommandLine(std::shared_ptr<CLI::App> app) {
+  app->add_flag(
+    "--animate",
+    optAnimate,
+    "enable loading glTF animations"
+  );
+}
+
 bool MainWindow::parseCommandLine()
 {
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
-  volumeParams = std::make_shared<sg::VolumeParams>();
-  for (int i = 1; i < ac; i++) {
-    const auto arg = std::string(av[i]);
-    if (arg.rfind("-", 0) != 0) {
-      filesToImport.push_back(arg);
-    } else if (arg == "-h" || arg == "--help") {
-      printHelp();
-      return false;
-    } else if (arg == "-pf" || arg == "--pixelfilter") {
-      optPF = max(0, atoi(av[i + 1]));
-      rkcommon::removeArgs(ac, av, i, 2);
-      --i;
-    } else if (arg == "--animate" || arg == "-a") {
-      animate = true;
-    } else if (arg == "--dimensions" || arg == "-dim") {
-      const std::string dimX(av[++i]);
-      const std::string dimY(av[++i]);
-      const std::string dimZ(av[++i]);
-      auto dimensions = vec3i(std::stoi(dimX), std::stoi(dimY), std::stoi(dimZ));
-      volumeParams->createChild("dimensions", "vec3i", dimensions);
-    } else if (arg == "--gridSpacing" || arg == "-gs") {
-      const std::string gridSpacingX(av[++i]);
-      const std::string gridSpacingY(av[++i]);
-      const std::string gridSpacingZ(av[++i]);
-      auto gridSpacing =
-          vec3f(stof(gridSpacingX), stof(gridSpacingY), stof(gridSpacingZ));
-      volumeParams->createChild("gridSpacing", "vec3f", gridSpacing);
-    } else if (arg == "--gridOrigin" || arg == "-go") {
-      const std::string gridOriginX(av[++i]);
-      const std::string gridOriginY(av[++i]);
-      const std::string gridOriginZ(av[++i]);
-      auto gridOrigin =
-          vec3f(stof(gridOriginX), stof(gridOriginY), stof(gridOriginZ));
-      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
-    } else if (arg == "--voxelType" || arg == "-vt") {
-      auto voxelTypeStr = std::string(av[++i]);
-      auto it           = sg::volumeVoxelType.find(voxelTypeStr);
-      if (it != sg::volumeVoxelType.end()) {
-        auto voxelType = it->second;
-        volumeParams->createChild("voxelType", "int", (int)voxelType);
-      } else {
-        throw std::runtime_error("improper -voxelType format requested");
-      }
-    } else if (arg == "--sceneConfig" || arg == "-sc") {
-      // valid values are dynamic, compact and robust
-      const std::string sc(av[++i]);
-      sceneConfig = sc;
-    } else if (arg == "--instanceConfig" || arg == "-ic") {
-      // valid values are dynamic, compact and robust
-      const std::string ic(av[++i]);
-      instanceConfig = ic;
-    } else if (arg == "--2160p")
-      glfwSetWindowSize(glfwWindow, 3840, 2160);
-    else if (arg == "--1440p")
-      glfwSetWindowSize(glfwWindow, 2560, 1440);
-    else if (arg == "--1080p")
-      glfwSetWindowSize(glfwWindow, 1920, 1080);
-    else if (arg == "--720p")
-      glfwSetWindowSize(glfwWindow, 1280, 720);
-    else if (arg == "--540p")
-      glfwSetWindowSize(glfwWindow, 960, 540);
-    else if (arg == "--270p")
-      glfwSetWindowSize(glfwWindow, 480, 270);
-    else if (arg == "--pointSize" || arg == "-ps")
-      pointSize = std::stof(av[++i]);
+
+  std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio GUI");
+  StudioContext::addToCommandLine(app);
+  MainWindow::addToCommandLine(app);
+  try {
+    app->parse(ac, av);
+  } catch (const CLI::ParseError &e) {
+    exit(app->exit(e));
   }
+
+  // XXX: changing windowSize here messes causes some display scaling issues
+  // because it desyncs window and framebuffer size with any scaling
+  if (optResolution.x != 0) {
+    windowSize = optResolution;
+    glfwSetWindowSize(glfwWindow, optResolution.x, optResolution.y);
+    reshape(windowSize);
+  }
+  rendererTypeStr = optRendererTypeStr;
 
   if (!filesToImport.empty()) {
     std::cout << "Import files from cmd line" << std::endl;
@@ -1155,7 +1126,7 @@ bool MainWindow::parseCommandLine()
 void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<sg::NodePtr> cameras;
-  if (animate)
+  if (optAnimate)
     animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
@@ -1184,15 +1155,16 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->setMaterialRegistry(baseMaterialRegistry);
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
+          importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
-          if (instanceConfig == "dynamic")
+          if (optInstanceConfig == "dynamic")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::DYNAMIC);
-          else if (instanceConfig == "compact")
+          else if (optInstanceConfig == "compact")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::COMPACT);
-          else if (instanceConfig == "robust")
+          else if (optInstanceConfig == "robust")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::ROBUST);
 
@@ -1216,19 +1188,13 @@ void MainWindow::importFiles(sg::NodePtr world)
   }
 
   if (cameras.size() > 0) {
-    auto &mainCamera = frame->child("camera");
-    auto defaultCamera =
-        sg::createNode("default_camera", frame->child("camera").subType());
-    for (auto &c : mainCamera.children()) {
-      defaultCamera->createChild(
-          c.first, c.second->subType(), c.second->value());
-    }
-
-    g_sceneCameras["default camera"] = defaultCamera;
+    auto mainCamera = frame->child("camera").nodeAs<sg::Camera>();
+    g_sceneCameras[mainCamera->child("uniqueCameraName")
+                       .valueAs<std::string>()] = mainCamera;
 
     // populate cameras in camera editor in View menu
     for (auto &c : cameras)
-      g_sceneCameras[c->name()] = c;
+      g_sceneCameras[c->child("uniqueCameraName").valueAs<std::string>()] = c;
   }
 }
 
@@ -1303,10 +1269,10 @@ void MainWindow::buildMainMenuFile()
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem("Import ...", nullptr)) {
       showImportFileBrowser = true;
-      animate = false;
+      optAnimate = false;
     } else if (ImGui::MenuItem("Import and animate ...", nullptr)) {
       showImportFileBrowser = true;
-      animate = true;
+      optAnimate = true;
     }
     if (ImGui::BeginMenu("Demo Scene")) {
       for (size_t i = 0; i < g_scenes.size(); ++i) {
@@ -1530,8 +1496,8 @@ void MainWindow::buildMainMenuView()
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     frame->childAs<sg::Renderer>("renderer")["varianceThreshold"].
       traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-    ImGui::Checkbox("Auto rotate", &autorotate);
-    if (autorotate) {
+    ImGui::Checkbox("Auto rotate", &optAutorotate);
+    if (optAutorotate) {
       ImGui::SameLine();
       ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
       ImGui::SliderInt(" speed", &autorotateSpeed, 1, 100);
@@ -1796,21 +1762,21 @@ void MainWindow::buildWindowFrameBufferEditor()
 
   switch (whichBuffer) {
   case 0:
-    showColor = true;
-    showAlbedo = showDepth = showDepthInvert = false;
+    optShowColor = true;
+    optShowAlbedo = optShowDepth = optShowDepthInvert = false;
     break;
   case 1:
-    showAlbedo = true;
-    showColor = showDepth = showDepthInvert = false;
+    optShowAlbedo = true;
+    optShowColor = optShowDepth = optShowDepthInvert = false;
     break;
   case 2:
-    showDepth = true;
-    showColor = showAlbedo = showDepthInvert = false;
+    optShowDepth = true;
+    optShowColor = optShowAlbedo = optShowDepthInvert = false;
     break;
   case 3:
-    showDepth = true;
-    showDepthInvert = true;
-    showColor = showAlbedo = false;
+    optShowDepth = true;
+    optShowDepthInvert = true;
+    optShowColor = optShowAlbedo = false;
     break;
   }
 
@@ -2172,9 +2138,7 @@ void MainWindow::buildWindowLightEditor()
       if (lightsManager->addLight(lightName, lightType)) {
         if (lightType == "hdri") {
           auto &hdri = lightsManager->child(lightName);
-          auto &hdriTex = hdri.createChild("map", "texture_2d");
-          auto ast2d = hdriTex.nodeAs<sg::Texture2D>();
-          ast2d->load(texFileName, false, false);
+          hdri["filename"] = texFileName.str();
         }
         // Select newly added light
         whichLight = lights.size() - 1;
@@ -2206,34 +2170,35 @@ void MainWindow::buildWindowCameraEditor()
   }
 
   // Only present selector UI if more than one camera
-  if (!g_sceneCameras.empty() &&
-      ImGui::Combo("sceneCameras##whichCamera",
+  if (!g_sceneCameras.empty()
+      && ImGui::Combo("sceneCameras##whichCamera",
           &whichCamera,
           cameraUI_callback,
           nullptr,
           g_sceneCameras.size())) {
-    if (whichCamera > -1 && whichCamera < (int) g_sceneCameras.size()) {
+    if (whichCamera > -1 && whichCamera < (int)g_sceneCameras.size()) {
       auto &newCamera = g_sceneCameras.at_index(whichCamera);
       g_selectedSceneCamera = newCamera.second;
-      g_animateCamera = g_selectedSceneCamera->nodeAs<sg::Camera>()->animate;
+      auto hasParents = g_selectedSceneCamera->parents().size();
+      frame->remove("camera");
+      frame->add(g_selectedSceneCamera);
 
-      // Change the camera type, if the new camera is different.
-      if (frame->childAs<sg::Camera>("camera").subType()
-          != newCamera.second->subType()) {
-        frame->createChildAs<sg::Camera>("camera",
-            newCamera.second->subType());
+      // TODO: remove this Hack : for some reason the accumulated transform in
+      // transform node does not get updated for the BIT animation scene.
+      // Attempting to make transform modified so it picks up accumulated
+      // transform values made by renderScene
+      if (hasParents) {
+        auto cameraXfm = g_selectedSceneCamera->parents().front();
+        if (cameraXfm->valueAs<affine3f>() == affine3f(one))
+          cameraXfm->createChild("refresh", "bool");
       }
 
-      // Add new camera params
-      auto &camera = frame->childAs<sg::Camera>("camera");
-      for (auto &c : g_selectedSceneCamera->children())
-        camera.add(c.second);
-
-      auto newCS = g_selectedSceneCamera->nodeAs<sg::Camera>()->getState();
-      arcballCamera->setState(*newCS);
-
+      if (g_selectedSceneCamera->hasChild("aspect"))
+        lockAspectRatio =
+            g_selectedSceneCamera->child("aspect").valueAs<float>();
       reshape(windowSize); // resets aspect
-      updateCamera();
+      if (!hasParents)
+        updateCamera();
     }
   }
 
@@ -2286,17 +2251,9 @@ void MainWindow::buildWindowTransferFunctionEditor()
   }
 
   // Gather all transfer functions in the scene
-  std::map<std::string, sg::NodePtr> transferFunctions = {};
-  for (auto &node : frame->child("world").children())
-    if (node.second->type() == sg::NodeType::GENERATOR
-        || node.second->type() == sg::NodeType::IMPORTER
-        || node.second->type() == sg::NodeType::VOLUME) {
-      auto tfn =
-          findFirstNodeOfType(node.second, sg::NodeType::TRANSFER_FUNCTION);
-      // node.first is a unique name. tfn->name() is always "transferFunction"
-      if (tfn)
-        transferFunctions[node.first] = tfn;
-    }
+  sg::CollectTransferFunctions visitor;
+  frame->traverse(visitor);
+  auto &transferFunctions = visitor.transferFunctions;
 
   if (transferFunctions.empty()) {
     ImGui::Text("== empty == ");
@@ -2604,24 +2561,4 @@ void MainWindow::buildWindowRenderingStats()
   }
 
   ImGui::End();
-}
-
-void MainWindow::printHelp()
-{
-  const char *help = R"help(ospStudio gui [options] [file1 [file2 ...]]
-
-    OPTIONS
-    -h, --help               this help message
-    -pf N, --pixelfilter N   set default pixel filter:
-                               0 = point
-                               1 = box
-                               2 = Gaussian
-                               3 = Mitchell-Netravali
-                               4 = Blackman-Harris
-    -a, --animate            enable loading glTF animations
-    --2160p, --1440p,        set window/frame resolution
-    --1080p, --720p,
-    --540p, --270p
-)help";
-  std::cerr << help;
 }

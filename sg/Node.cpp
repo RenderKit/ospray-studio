@@ -302,6 +302,11 @@ namespace ospray {
     properties.readOnly = true;
   }
 
+  void Node::rmReadOnly()
+  {
+    properties.readOnly = false;
+  }
+
   bool Node::sgOnly() const
   {
     return properties.sgOnly;
@@ -467,6 +472,7 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(Range1fNode, range1f);
   OSP_REGISTER_SG_NODE_NAME(Affine3fNode, affine3f);
   OSP_REGISTER_SG_NODE_NAME(QuaternionfNode, quaternionf);
+  OSP_REGISTER_SG_NODE_NAME(Linear2fNode, linear2f);
 
   OSP_REGISTER_SG_NODE_NAME(RGBNode, rgb);
   OSP_REGISTER_SG_NODE_NAME(RGBANode, rgba);
