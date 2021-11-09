@@ -11,7 +11,7 @@ message(STATUS "Looking for rkcommon...")
 find_package(rkcommon QUIET)
 
 if(NOT DEFINED RKCOMMON_VERSION)
-    set(RKCOMMON_VERSION 1.7.0)
+    set(RKCOMMON_VERSION 1.8.0)
 endif()
 
 if(rkcommon_FOUND)
