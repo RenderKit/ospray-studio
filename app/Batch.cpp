@@ -111,7 +111,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the camera up vector"
-  );
+  )->expected(3);
   app->add_option(
     "--format",
     optImageFormat,
@@ -485,7 +485,7 @@ void BatchContext::updateCamera()
 
   if (cmdlCam) {
     camera["position"] = pos;
-    camera["direction"] = normalize(gaze - pos);
+    camera["direction"] = gaze;
     camera["up"] = up;
   }
 
