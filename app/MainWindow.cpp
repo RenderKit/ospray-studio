@@ -180,7 +180,8 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   // get primary monitor's display scaling
   GLFWmonitor *primaryMonitor = glfwGetPrimaryMonitor();
-  glfwGetMonitorContentScale(primaryMonitor, &contentScale.x, &contentScale.y);
+  if (primaryMonitor)
+    glfwGetMonitorContentScale(primaryMonitor, &contentScale.x, &contentScale.y);
 
   // create GLFW window
   glfwWindow = glfwCreateWindow(

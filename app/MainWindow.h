@@ -7,7 +7,7 @@
 
 #include "ArcballCamera.h"
 // glfw
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 // ospray sg
 #include "sg/Frame.h"
 #include "sg/renderer/MaterialRegistry.h"
@@ -171,7 +171,7 @@ class MainWindow : public StudioContext
   static MainWindow *activeWindow;
 
   int fontSize{13}; // pixels
-  vec2f contentScale;
+  vec2f contentScale{1.0f};
   vec2i windowSize;
   vec2i fbSize;
   vec2f previousMouse{-1.f};
