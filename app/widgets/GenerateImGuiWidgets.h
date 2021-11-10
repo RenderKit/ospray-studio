@@ -589,6 +589,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"vec2f", generateWidget_vec2f},
     {"vec3i", generateWidget_vec3i},
     {"vec3f", generateWidget_vec3f},
+    {"vec4f", generateWidget_vec4f},
     {"rgb", generateWidget_rgb},
     {"rgba", generateWidget_rgba},
     {"affine3f", generateWidget_affine3f},
