@@ -38,6 +38,10 @@ PathTracer::PathTracer() : Renderer("pathtracer")
       "bool",
       "allow for alpha blending even if background is seen through refractive objects like glass",
       false);
+  createChild("shadowCatcherPlane",
+      "vec4f",
+      "shadow catcher plane offset and normal (all zeros disable)",
+      vec4f(0));
 
   child("lightSamples").setMinMax(-1, 1000);
   child("roulettePathLength").setMinMax(0, 1000);
