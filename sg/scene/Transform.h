@@ -16,8 +16,6 @@ struct OSPSG_INTERFACE Transform : public Node_T<affine3f>
   NodeType type() const override;
 
   affine3f accumulatedXfm{one};
-
-  virtual void preCommit() override;
 };
 
 } // namespace sg

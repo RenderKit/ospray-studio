@@ -423,6 +423,9 @@ void GLTFData::createCameras()
       sgCamera->child("aspect") = aspect;
       sgCamera->child("nearClip") = (float)m.orthographic.znear;
     }
+    sgCamera->child("position") = vec3f(0.f);
+    sgCamera->child("direction") = vec3f(0.0f, 0.0f, -1.f);
+    sgCamera->child("up") = vec3f(0.0f, 1.0f, 0.f);
     sgCamera->child("uniqueCameraName") = cameraName;
 
     // check if camera has EXT_cameras_sensor

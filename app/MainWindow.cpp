@@ -499,15 +499,6 @@ void MainWindow::mainLoop()
 
     display();
 
-    // Remove motion blur transform, it will be added again as necessary
-    auto &camera = frame->child("camera");
-    if (camera.hasChild("motion.transform")) {
-      camera.remove("motion.transform");
-      // Don't reset the shutter if the animationWidget has motion blur
-      if (animationWidget && animationWidget->getShutter() == 0.f)
-        camera["shutter"] = range1f(0.0f);
-    }
-
     glfwPollEvents();
   }
 
@@ -568,25 +559,6 @@ void MainWindow::updateCamera()
       }
     }
     camera["focusDistance"] = focusDistance;
-  }
-
-  // Camera Motion Blur
-  affine3f newCamXfm = arcballCamera->getTransform();
-  auto cameraMotionBlur = camera["motion blur"].valueAs<float>();
-  if ((rendererTypeStr == "pathtracer") && cameraMotionBlur > 0.f
-      && newCamXfm != lastCamXfm) {
-    // Need to set transforms as {one} and {one + delta} due to using
-    // position/direction/up as primary camera trackers.
-    std::vector<affine3f> motionXfms;
-    motionXfms.push_back(one);
-    motionXfms.push_back(affine3f(one) + (newCamXfm - lastCamXfm));
-    camera.createChildData("motion.transform", motionXfms);
-    lastCamXfm = arcballCamera->getTransform();
-  } else {
-    camera.remove("motion.transform");
-    // Don't reset the shutter if the animationWidget has motion blur
-    if (animationWidget && animationWidget->getShutter() == 0.f)
-      camera["shutter"] = range1f(0.f);
   }
 }
 

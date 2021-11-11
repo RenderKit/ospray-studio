@@ -173,6 +173,20 @@ namespace ospray {
       setLightParams(node);
       break;
     case NodeType::CAMERA: {
+      // camera transformation update
+      auto &cam = node.valueAs<cpp::Camera>();
+      if (xfmsDiverged.top()) { // motion blur
+        std::vector<affine3f> motionXfms;
+        motionXfms.push_back(xfms.top());
+        motionXfms.push_back(endXfms.top());
+        cam.removeParam("transform");
+        cam.setParam("motion.transform", cpp::CopiedData(motionXfms));
+      } else {
+        cam.removeParam("motion.transform");
+        cam.setParam("transform", xfms.top());
+      }
+      cam.commit();
+
       bool useCameraXfm{false};
       if (node.hasChild("cameraId"))
         useCameraXfm = camId == node.child("cameraId").valueAs<int>();

@@ -12,7 +12,7 @@ Camera::Camera(const std::string &type)
   setHandle(handle);
 
   createChild("position", "vec3f", vec3f(0.f));
-  createChild("direction", "vec3f", vec3f(1.f));
+  createChild("direction", "vec3f", vec3f(0.0f, 0.0f, 1.f));
   createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f));
 
   createChild("nearClip", "float", 0.f);
