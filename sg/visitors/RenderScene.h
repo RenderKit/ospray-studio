@@ -94,10 +94,8 @@ namespace ospray {
       std::vector<NodePtr> &_instanceXfms,
       std::vector<std::tuple<std::string, box3f, affine3f>> &_groupBBoxes,
       int cId)
+      : RenderScene()
   {
-    xfms.emplace(math::one);
-    endXfms.emplace(math::one);
-    xfmsDiverged.emplace(false);
     g = &geomIdMap;
     in = &instanceIdMap;
     camXfm = cameraToWorld;

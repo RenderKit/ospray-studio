@@ -587,9 +587,6 @@ void GLTFData::createAnimations(std::vector<Animation> &animations)
       track->target =
           sceneNodes[c.target_node]->child(c.target_path).shared_from_this();
 
-      if (sceneNodes[c.target_node]->hasChild("animateCamera"))
-        sceneNodes[c.target_node]->child("animateCamera").setValue(true);
-
       Accessor<float> time(inputAcc, model);
       track->times.reserve(time.size());
       for (size_t i = 0; i < time.size(); ++i)
@@ -684,7 +681,6 @@ void GLTFData::visitNode(NodePtr sgNode,
     auto &listCameras = *cameras;
     auto &camera = listCameras[n.camera];
     newXfm->add(camera);
-    newXfm->createChild("animateCamera", "bool", false);
   }
 
   sgNode = newXfm;

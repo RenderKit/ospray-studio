@@ -148,22 +148,19 @@ namespace ospray {
         " implement 'bool visit(Node &node, TraversalContext &ctx)'"
         "!");
 
-    std::string oldName = ctx.name;
+    if (visitor(*this, ctx)) { // traverse children
+      ctx.level++;
+      std::string oldName = ctx.name;
 
-    bool traverseChildren = visitor(*this, ctx);
-
-    ctx.level++;
-
-    if (traverseChildren) {
       for (auto &child : properties.children) {
         ctx.name = child.first;
         child.second->traverse(visitor, ctx);
       }
+
+      ctx.name = oldName;
+      ctx.level--;
     }
 
-    ctx.level--;
-
-    ctx.name = oldName;
     visitor.postChildren(*this, ctx);
   }
 
