@@ -192,7 +192,7 @@ namespace ospray {
         useCameraXfm = camId == node.child("cameraId").valueAs<int>();
       if (camXfm && useCameraXfm) {
         auto &outputCamXfm = *camXfm;
-        outputCamXfm = outputCamXfm * xfms.top();
+        outputCamXfm = xfms.top();
       }
     } break;
     default:
