@@ -40,25 +40,6 @@ void BatchContext::start()
     std::cout << "...importing files!" << std::endl;
     refreshRenderer();
     refreshScene(true);
-    if (!useCameraRange) {
-      resetFileId = true;
-      bool useCamera = refreshCamera(cameraDef);
-      if (useCamera) {
-        render();
-        if (fps) {
-          std::cout << "..rendering animation!" << std::endl;
-          renderAnimation();
-        } else if (!cameraStack.empty()) {
-          std::cout << "..using cams.json camera stack" << std::endl;
-          for (auto &cs : cameraStack) {
-            arcballCamera->setState(cs);
-            updateCamera();
-            renderFrame();
-          }
-        } else
-          renderFrame();
-      }
-    } else {
       for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
            ++cameraIdx) {
         resetFileId = true;
@@ -72,8 +53,6 @@ void BatchContext::start()
             renderFrame();
         }
       }
-    }
-
     std::cout << "...finished!" << std::endl;
     sg::clearAssets();
   }
@@ -197,7 +176,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   );
   app->add_option(
     "--camera",
-    cameraDef,
+    cameraRange,
     "Set the camera index to use"
   )->check(CLI::PositiveNumber);
   app->add_option(
@@ -311,14 +290,11 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
     // create unique cameraId for every camera
     auto &cameraParents = selectedSceneCamera->parents();
     if (cameraParents.size()) {
-      if (useCameraRange) {
         auto &cameraXfm = cameraParents.front();
         if (cameraXfm->hasChild("geomId"))
           cameraId = cameraXfm->child("geomId").valueAs<std::string>();
         else
           cameraId = ".Camera_" + std::to_string(cameraIdx);
-      }
-
     } else {
       std::cout << "camera not used in GLTF scene" << std::endl;
       return false;

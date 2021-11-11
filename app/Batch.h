@@ -53,7 +53,6 @@ class BatchContext : public StudioContext
   int fps{0};
   bool forceRewrite{false};
   range1i framesRange{0, 0};
-  int cameraDef{0};
   range1i cameraRange{0, 0};
   bool useCameraRange{false};
 
