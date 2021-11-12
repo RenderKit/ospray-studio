@@ -169,9 +169,6 @@ namespace ospray {
         geomId = node.child("geomId").valueAs<std::string>();
       break;
     }
-    case NodeType::LIGHT:
-      setLightParams(node);
-      break;
     case NodeType::CAMERA: {
       // camera transformation update
       auto &cam = node.valueAs<cpp::Camera>();
@@ -360,8 +357,19 @@ namespace ospray {
       }
     };
 
-    if (node.hasChildOfType(NodeType::GEOMETRY)) {
-      auto &geomChildren = node.childrenOfType(NodeType::GEOMETRY);
+    if (node.hasChildOfType(NodeType::LIGHT)) {
+      auto &lights = node.childrenOfType(NodeType::LIGHT);
+      std::vector<cpp::Light> cppLightObjects;
+      for (auto l : lights) {
+        cppLightObjects.emplace_back(l->valueAs<cpp::Light>());
+      }
+      cpp::Group lightGroup;
+      lightGroup.setParam("light", cpp::CopiedData(cppLightObjects));
+      setInstance(lightGroup);
+    }
+
+      if (node.hasChildOfType(NodeType::GEOMETRY)) {
+        auto &geomChildren = node.childrenOfType(NodeType::GEOMETRY);
 #if defined(DEBUG)
       std::cout << "number of geometries : " << geomChildren.size() << std::endl;
 #endif
@@ -418,34 +426,7 @@ namespace ospray {
 #if defined(DEBUG)
       std::cout << "number of instances : " << instances.size() << std::endl;
 #endif
-  }
-
-  inline void RenderScene::setLightParams(Node &node)
-  {
-    auto type = node.subType();
-    // properties map for initializing light property values
-    std::unordered_map<std::string, std::pair<vec3f, bool>> propMap;
-
-    if (type == "sphere" || type == "spot" || type == "quad") {
-      auto lightPos = xfmPoint(xfms.top(), vec3f(0));
-      propMap.insert(
-          std::make_pair("position", std::make_pair(lightPos, false)));
     }
-
-    if (type == "distant" || type == "spot" || type == "sunSky"
-        || type == "hdri") {
-      auto lightDir = xfmVector(xfms.top(), vec3f(0, 0, -1));
-      propMap.insert(
-          std::make_pair("direction", std::make_pair(lightDir, false)));
-    }
-
-    if (type == "hdri") {
-      auto upDir = xfmVector(xfms.top(), vec3f(0, 1, 0));
-      propMap.insert(std::make_pair("up", std::make_pair(upDir, false)));
-    }
-    auto lightNode = node.nodeAs<sg::Light>();
-    lightNode->initOrientation(propMap);
-  }
 
   inline void RenderScene::placeInstancesInWorld()
   {

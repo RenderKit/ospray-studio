@@ -40,20 +40,5 @@ NodeType Light::type() const
   return NodeType::LIGHT;
 }
 
-// called once upon setting initial orientation of lights with transforms
-void Light::initOrientation(
-    std::unordered_map<std::string, std::pair<vec3f, bool>> &propMap)
-{
-  if (setOrientation) {
-    for (auto &m : propMap) {
-      auto &prop = child(m.first);
-      prop = m.second.first;
-      if (m.second.second)
-        child(m.first).rmReadOnly();
-    }
-    setOrientation = false;
-  }
-}
-
 } // namespace sg
 } // namespace ospray
