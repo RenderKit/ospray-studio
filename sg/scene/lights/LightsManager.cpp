@@ -37,9 +37,11 @@ bool LightsManager::addLight(NodePtr light)
   // When adding HDRI or sunSky, set background color to black.
   // It's otherwise confusing.  The user can still adjust it afterward.
   if (light->subType() == "hdri" || light->subType() == "sunSky") {
-    auto &frame = parents().front();
-    auto &renderer = frame->childAs<sg::Renderer>("renderer");
-    renderer["backgroundColor"] = rgba(vec3f(0.f), 1.f); // black, opaque
+    if (!parents().empty()) {
+      auto &frame = parents().front();
+      auto &renderer = frame->childAs<sg::Renderer>("renderer");
+      renderer["backgroundColor"] = rgba(vec3f(0.f), 1.f); // black, opaque
+    }
   }
 
   lightNames.push_back(light->name());
