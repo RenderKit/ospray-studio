@@ -1707,10 +1707,10 @@ void glTFImporter::importScene()
   gltf.finalizeSkins(); // needs nodes / buildScene
   if (animations)
     gltf.createAnimations(*animations);
-  if (gltf.lights.size() != 0) {
-    auto lightsMan = std::static_pointer_cast<sg::LightsManager>(lightsManager);
-    lightsMan->addLights(gltf.lights);
-  }
+  // if (gltf.lights.size() != 0) {
+  //   auto lightsMan = std::static_pointer_cast<sg::LightsManager>(lightsManager);
+  //   lightsMan->addLights(gltf.lights);
+  // }
 
   // Finally, add node hierarchy to importer parent
   add(rootNode);
