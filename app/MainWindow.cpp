@@ -63,6 +63,7 @@ static const std::vector<std::string> g_scenes = {"tutorial_scene",
     "particle_volume",
     "random_spheres",
     "wavelet",
+    "wavelet_slices",
     "torus_volume",
     "unstructured_volume",
     "multilevel_hierarchy"};
