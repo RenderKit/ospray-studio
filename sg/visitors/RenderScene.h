@@ -192,6 +192,22 @@ namespace ospray {
         outputCamXfm = xfms.top();
       }
     } break;
+    // case NodeType::LIGHT: {
+    //   // light transformation update
+    //   auto &light = node.valueAs<cpp::Light>();
+    //   cpp::Group group;
+    //   group.setParam("light", cpp::CopiedData(light));
+    //   cpp::Instance inst(group);
+    //   if (xfmsDiverged.top()) { // motion blur
+    //     std::vector<affine3f> motionXfms;
+    //     motionXfms.push_back(xfms.top());
+    //     motionXfms.push_back(endXfms.top());
+    //     inst.setParam("motion.transform", cpp::CopiedData(motionXfms));
+    //   } else
+    //     inst.setParam("transform", xfms.top());
+    //   inst.commit();
+    //   instances.push_back(inst);
+    // } break;
     default:
       break;
     }
@@ -361,10 +377,13 @@ namespace ospray {
       auto &lights = node.childrenOfType(NodeType::LIGHT);
       std::vector<cpp::Light> cppLightObjects;
       for (auto l : lights) {
-        cppLightObjects.emplace_back(l->valueAs<cpp::Light>());
+        auto &light = l->valueAs<cpp::Light>();
+        light.commit();     // adding this just to make it similar to ospray light testing tutorial
+        cppLightObjects.emplace_back(light);
       }
       cpp::Group lightGroup;
       lightGroup.setParam("light", cpp::CopiedData(cppLightObjects));
+      lightGroup.commit();
       setInstance(lightGroup);
     }
 
