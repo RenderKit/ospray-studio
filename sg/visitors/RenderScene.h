@@ -384,7 +384,7 @@ namespace ospray {
     }
 
     if (groupBBoxes && node.hasChild("instanceId")) {
-      groupBBoxes->push_back(std::make_tuple(node.name(), currentInstBBox, xfms.top()));
+      groupBBoxes->push_back(std::make_tuple(node.child("instanceId").valueAs<std::string>(), currentInstBBox, xfms.top()));
       currentInstBBox = empty;
     }
 
