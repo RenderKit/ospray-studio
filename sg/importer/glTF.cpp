@@ -313,25 +313,21 @@ void GLTFData::createLights()
     auto lightType = l.type;
     NodePtr newLight;
 
-    if (l.type == "directional") {
+    if (l.type == "directional")
       newLight = createNode(lightName, "distant");
-      newLight->child("direction").setValue(vec3f(0.f, 0.f, -1.f));
-    } else if (l.type == "point") {
+    else if (l.type == "point")
       newLight = createNode(lightName, "sphere");
-      newLight->child("position").setValue(vec3f(0));
-    } else if (l.type == "spot") {
+    else if (l.type == "spot") {
       newLight = createNode(lightName, "spot");
       auto outerConeAngle = (float)l.spot.outerConeAngle;
       auto innerConeAngle = (float)l.spot.innerConeAngle;
       newLight->createChild("openingAngle", "float", outerConeAngle);
       newLight->createChild(
           "penumbraAngle", "float", outerConeAngle - innerConeAngle);
-      newLight->child("direction").setValue(vec3f(0.f, 0.f, -1.f));
     } else if (l.type == "hdri") {
       newLight = createNode(lightName, l.type);
       auto hdrFileName = l.extras.Get("map").Get<std::string>();
       newLight->createChild("filename") = fileName.path() + hdrFileName;
-      newLight->child("direction").setValue(vec3f(0.f, 0.f, -1.f));
     } else if (l.type == "sunSky") {
       newLight = createNode(lightName, l.type);
       if (l.sunSky.up.size()) {
@@ -353,10 +349,15 @@ void GLTFData::createLights()
         auto horizonExtension = (float)l.sunSky.horizonExtension;
         newLight->createChild("horizonExtension", "float", horizonExtension);
       }
-      newLight->child("direction").setValue(vec3f(0.f, 0.f, -1.f));
-      newLight->child("up").setValue(vec3f(0.f, 1.f, 0.f));
     } else
       newLight = createNode(lightName, l.type);
+
+    if (newLight->hasChild("position"))
+      newLight->child("position").setValue(vec3f(0));
+    if (newLight->hasChild("direction"))
+      newLight->child("direction").setValue(vec3f(0.f, 0.f, -1.f));
+    if (newLight->hasChild("up"))
+      newLight->child("up").setValue(vec3f(0.f, 1.f, 0.f));
 
     // Color is optional, default:[1.0,1.0,1.0]
     auto lightColor = rgb(1.f);
