@@ -111,14 +111,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     optStereoMode,
     "Set the stereo mode"
   )->check(CLI::PositiveNumber);
-  app->add_option(
-    "--size",
-    [&](const std::vector<std::string> val) {
-      optImageSize = vec2i(std::stoi(val[0]), std::stoi(val[1]));
-      return true;
-    },
-    "Set the image size"
-  )->expected(2)->check(CLI::PositiveNumber);
   app->add_option_function<int>(
     "--denoiser",
     [&](const int denoiser) {
@@ -250,7 +242,7 @@ void BatchContext::reshape()
     if (frame->child("camera").hasChild("aspect"))
       frame->child("camera")["aspect"] = static_cast<float>(fSize.x) / fSize.y;
   } else if (frame->child("camera").hasChild("aspect"))
-    frame->child("camera")["aspect"] = optImageSize.x / (float)optImageSize.y;
+    frame->child("camera")["aspect"] = optResolution.x / (float)optResolution.y;
 
   frame->child("windowSize") = fSize;
   frame->currentAccum = 0;
@@ -261,9 +253,11 @@ void BatchContext::reshape()
 
 bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 {
-  if (resetArcball)
+  if (resetArcball) {
+    frame->child("windowSize") = optResolution;
     arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), optImageSize));
+        new ArcballCamera(frame->child("world").bounds(), optResolution));
+  }
   int hasParents{0};
 
   if (cameraIdx <= cameras.size() && cameraIdx > 0) {
@@ -442,7 +436,7 @@ void BatchContext::refreshScene(bool resetCam)
 
   if (resetCam && !sgScene)
     arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), optImageSize));
+        new ArcballCamera(frame->child("world").bounds(), optResolution));
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();

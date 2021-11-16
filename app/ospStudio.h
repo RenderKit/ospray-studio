@@ -55,9 +55,9 @@ const static std::map<std::string, vec2i> standardResolutionSizeMap = {
   {"1080p", {1920, 1080}},
   {"1440p", {2560, 1440}},
   {"2160p", {3840, 2160}},
-  {"4K", {3840, 2160}},
+  {"4k", {3840, 2160}},
   {"4320p", {7680, 4320}},
-  {"8K", {7680, 4320}}};
+  {"8k", {7680, 4320}}};
 
 
 // Common across all modes
@@ -99,7 +99,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
     baseMaterialRegistry = frame->baseMaterialRegistry;
     lightsManager = frame->lightsManager;
     mode = _mode;
-    optImageSize = _common.defaultSize;
+    optResolution = _common.defaultSize;
   }
 
   virtual ~StudioContext() {}
@@ -132,8 +132,6 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   std::string optRendererTypeStr = "pathtracer";
   std::string optCameraTypeStr   = "perspective";
-  std::string optImageName       = "ospBatch";
-  vec2i optImageSize;
   int optSPP                     = 32;
   float optVariance              = 0.f; // varianceThreshold
   int optPF                      = -1; // use default
@@ -143,7 +141,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
   int optStereoMode               = 0;
   float optInterpupillaryDistance = 0.0635f;
-  sg::NodePtr volumeParams;
+  sg::NodePtr volumeParams{};
   float pointSize{0.05f};
   vec2i optResolution{0, 0};
   std::string optSceneConfig{""};

@@ -82,16 +82,21 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       // s is one of: X"p", X"k", X"x"Y, X
       // e.g. 720p, 4K, 1024x768, 1024
 
+      // Normalize the argument by making it lowercase
+      std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+        return std::tolower(c);
+      });
+
       auto it = standardResolutionSizeMap.find(s);
-      int found = s.find('x');
+      int foundX = s.find('x');
 
       if (it != standardResolutionSizeMap.end()) {
         // standard size: 720p, 1080p, etc
         optResolution = it->second;
-      } else if (found != std::string::npos) {
+      } else if (foundX != std::string::npos) {
         // exact resolution: 1024x768, 512x512, etc
-        std::string width = s.substr(0, found);
-        std::string height = s.substr(found + 1);
+        std::string width = s.substr(0, foundX);
+        std::string height = s.substr(foundX + 1);
         optResolution = vec2i(std::stoi(width), std::stoi(height));
       } else {
         // exact square resolution: 1024, 512, etc
