@@ -9,6 +9,7 @@
 #include "sg/scene/Animation.h"
 #include "sg/texture/Texture2D.h"
 #include "sg/scene/volume/Volume.h"
+#include "sg/generator/Generator.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
 

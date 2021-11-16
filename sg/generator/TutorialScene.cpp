@@ -32,12 +32,13 @@ TutorialScene::TutorialScene()
   parameters.child("V2").setMinMax(-3.f, 3.f);
   parameters.child("V3").setMinMax(-3.f, 3.f);
 
-  parameters.createChild("C0", "rgba", vec4f(0.9f, 0.5f, 0.5f, 1.0f));
-  parameters.createChild("C1", "rgba", vec4f(0.8f, 0.8f, 0.8f, 1.0f));
-  parameters.createChild("C2", "rgba", vec4f(0.8f, 0.8f, 0.8f, 1.0f));
-  parameters.createChild("C3", "rgba", vec4f(0.5f, 0.9f, 0.5f, 1.0f));
+  parameters.createChild("C0", "rgba", rgba(0.9f, 0.5f, 0.5f, 1.0f));
+  parameters.createChild("C1", "rgba", rgba(0.8f, 0.8f, 0.8f, 1.0f));
+  parameters.createChild("C2", "rgba", rgba(0.8f, 0.8f, 0.8f, 1.0f));
+  parameters.createChild("C3", "rgba", rgba(0.5f, 0.9f, 0.5f, 1.0f));
 
   auto &xfm = createChild("xfm", "transform");
+  xfm["translation"] = vec3f(0.1f);
 }
 
 void TutorialScene::generateData()
@@ -54,7 +55,6 @@ void TutorialScene::generateData()
   auto C3 = parameters["C3"].valueAs<rgba>();
 
   auto &xfm = child("xfm");
-  xfm["translation"] = vec3f(0.1f);
   auto &mesh = xfm.createChild("mesh", "geometry_triangles");
 
   std::vector<vec3f> vertex = {V0, V1, V2, V3};

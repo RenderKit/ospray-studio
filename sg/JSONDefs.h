@@ -108,7 +108,12 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
   if (j["subType"] == "texture_2d")
     return nullptr;
 
-  if (j.contains("value")) {
+  // If the json doesn't contain a valid value, just ignore the node
+  // :^) was used as a sentinel for unhandled types.
+  bool valueValid = !(j.contains("value") && j["value"].is_string()
+      && j["value"].get<std::string>() == ":^)");
+
+  if (j.contains("value") && valueValid) {
     if (j.contains("description")) {
       n = createNode(
           j["name"], j["subType"], j["description"], j["value"].get<Any>());
@@ -137,11 +142,22 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
       n->setMinMax(minMax[0], minMax[1]);
     }
 
-    // JSON doesn't distinguish between uint8_t and integer.  Convert it, if
-    // the subType calls for an uchar.
+    // JSON doesn't distinguish the following types.
+    // Need conversion based on subType.
+
+    // integer to uint8_t
     if (j["subType"] == "uchar") {
       n->setValue(uint8_t(n->valueAs<int>()));
-      n->setMinMax(uint8_t(n->minAs<int>()), uint8_t(n->maxAs<int>()));
+      if (n->hasMinMax())
+        n->setMinMax(uint8_t(n->minAs<int>()), uint8_t(n->maxAs<int>()));
+    }
+
+    // vec2f to range1f
+    if (j["subType"] == "range1f") {
+      vec2f v(n->valueAs<vec2f>());
+      n->setValue(math::range1f(v[0], v[1]));
+      if (n->hasMinMax())
+        n->setMinMax(range1f(n->minAs<float>()), range1f(n->maxAs<float>()));
     }
 
   } else {
@@ -200,15 +216,43 @@ inline void from_json(
 
 namespace math {
 
+inline void to_json(JSON &j, const vec2i &v)
+{
+  j = {v.x, v.y};
+}
+
+inline void from_json(const JSON &j, vec2i &v)
+{
+  j.at(0).get_to(v.x);
+  j.at(1).get_to(v.y);
+}
+
 inline void to_json(JSON &j, const vec2f &v)
 {
   j = {v.x, v.y};
+}
+
+inline void to_json(JSON &j, const range1f &v)
+{
+  j = {v.lower, v.upper};
 }
 
 inline void from_json(const JSON &j, vec2f &v)
 {
   j.at(0).get_to(v.x);
   j.at(1).get_to(v.y);
+}
+
+inline void to_json(JSON &j, const vec3i &v)
+{
+  j = {v.x, v.y, v.z};
+}
+
+inline void from_json(const JSON &j, vec3i &v)
+{
+  j.at(0).get_to(v.x);
+  j.at(1).get_to(v.y);
+  j.at(2).get_to(v.z);
 }
 
 inline void to_json(JSON &j, const vec3f &v)
@@ -221,6 +265,32 @@ inline void from_json(const JSON &j, vec3f &v)
   j.at(0).get_to(v.x);
   j.at(1).get_to(v.y);
   j.at(2).get_to(v.z);
+}
+
+inline void to_json(JSON &j, const vec4i &v)
+{
+  j = {v.x, v.y, v.z, v.w};
+}
+
+inline void from_json(const JSON &j, vec4i &v)
+{
+  j.at(0).get_to(v.x);
+  j.at(1).get_to(v.y);
+  j.at(2).get_to(v.z);
+  j.at(2).get_to(v.w);
+}
+
+inline void to_json(JSON &j, const vec4f &v)
+{
+  j = {v.x, v.y, v.z, v.w};
+}
+
+inline void from_json(const JSON &j, vec4f &v)
+{
+  j.at(0).get_to(v.x);
+  j.at(1).get_to(v.y);
+  j.at(2).get_to(v.z);
+  j.at(2).get_to(v.w);
 }
 
 inline void to_json(JSON &j, const LinearSpace3f &ls)
@@ -275,10 +345,18 @@ inline void to_json(JSON &j, const Any &a)
     j = a.get<float>();
   else if (a.is<std::string>())
     j = a.get<std::string>();
+  else if (a.is<math::vec2i>())
+    j = a.get<math::vec2i>();
   else if (a.is<math::vec2f>())
     j = a.get<math::vec2f>();
+  else if (a.is<math::range1f>())
+    j = a.get<math::range1f>();
+  else if (a.is<math::vec3i>())
+    j = a.get<math::vec3i>();
   else if (a.is<math::vec3f>())
     j = a.get<math::vec3f>();
+  else if (a.is<math::vec4f>())
+    j = a.get<math::vec4f>();
   else if (a.is<math::AffineSpace3f>())
     j = a.get<math::AffineSpace3f>();
   else if (a.is<math::quaternionf>())
@@ -303,11 +381,22 @@ inline void from_json(const JSON &j, Any &a)
     else
       std::cout << "unhandled primitive type in json" << std::endl;
   } else if (j.is_structured()) { // array or object
-    if (j.is_array() && j.size() == 2)
-      a = j.get<math::vec2f>();
-    else if (j.is_array() && j.size() == 3)
-      a = j.get<math::vec3f>();
-    else if (j.is_object())
+    if (j.is_array() && j.size() == 2) {
+      if (j[0].is_number_float())
+        a = j.get<math::vec2f>();
+      else
+        a = j.get<math::vec2i>();
+    } else if (j.is_array() && j.size() == 3) {
+      if (j[0].is_number_float())
+        a = j.get<math::vec3f>();
+      else
+        a = j.get<math::vec3i>();
+    } else if (j.is_array() && j.size() == 4) {
+      if (j[0].is_number_float())
+        a = j.get<math::vec4f>();
+      else
+        a = j.get<math::vec4i>();
+    } else if (j.is_object())
       std::cout << "cannot load object types from json" << std::endl;
     else
       std::cout << "unhandled structured type in json " << std::endl;
