@@ -414,7 +414,6 @@ MainWindow::MainWindow(StudioCommon &_common)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  refreshRenderer();
   refreshScene(true);
 
   // trigger window reshape events with current window size
@@ -457,8 +456,10 @@ void MainWindow::start()
     cameraStack = j.get<std::vector<CameraState>>();
   }
 
-  if (parseCommandLine())
+  if (parseCommandLine()) {
+    refreshRenderer();
     mainLoop();
+  }
 }
 
 MainWindow *MainWindow::getActiveWindow()
@@ -1002,6 +1003,9 @@ void MainWindow::refreshRenderer()
   auto &r = frame->childAs<sg::Renderer>("renderer");
   if (optPF >= 0)
     r.createChild("pixelFilter", "int", optPF);
+
+  r.child("pixelSamples").setValue(optSPP);
+  r.child("varianceThreshold").setValue(optVariance);
 
   // Re-add the backplate on renderer change
   if (backPlateTexture != "") {

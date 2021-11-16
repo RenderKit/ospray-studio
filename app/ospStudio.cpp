@@ -61,6 +61,16 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "set the renderer type"
   )->check(CLI::IsMember({"scivis", "pathtracer", "ao", "debug"}));
   app->add_option(
+    "--spp",
+    optSPP,
+    "set the number of samples per pixels for the renderer"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--variance",
+    optVariance,
+    "set the threshold for adaptive accumluation when rendering"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
     "--pixelfilter",
     optPF,
     "set default pixel filter (0=point, 1=box, 2=Gaussian, 3=Mitchell-Netravali, 4=Blackman-Harris)"
