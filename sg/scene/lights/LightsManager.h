@@ -38,6 +38,7 @@ struct OSPSG_INTERFACE LightsManager
 
   void updateWorld(World &world);
   bool rmDefaultLight{true};
+  bool lightsInstanced{false};
 
  protected:
   std::vector<std::string> lightNames;

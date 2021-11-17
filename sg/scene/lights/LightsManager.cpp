@@ -102,7 +102,8 @@ void LightsManager::postCommit()
   auto &frame = parents().front();
   auto &world = frame->childAs<sg::World>("world");
 
-  updateWorld(world);
+  if (!lightsInstanced)
+    updateWorld(world);
 }
 
 // On a change of world or lightsManager, set the new lights list on the world
