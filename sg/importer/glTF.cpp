@@ -321,9 +321,9 @@ void GLTFData::createLights()
       newLight = createNode(lightName, "spot");
       auto outerConeAngle = (float)l.spot.outerConeAngle;
       auto innerConeAngle = (float)l.spot.innerConeAngle;
-      newLight->createChild("openingAngle", "float", outerConeAngle);
-      newLight->createChild(
-          "penumbraAngle", "float", outerConeAngle - innerConeAngle);
+      newLight->child("openingAngle") = outerConeAngle * (360.f / (float)pi);
+      newLight->child("penumbraAngle") =
+          (outerConeAngle - innerConeAngle) * (180.f / (float)pi);
     } else if (l.type == "hdri") {
       newLight = createNode(lightName, l.type);
       auto hdrFileName = l.extras.Get("map").Get<std::string>();
