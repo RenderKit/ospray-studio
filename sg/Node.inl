@@ -70,12 +70,48 @@ namespace ospray {
   template <typename T>
   inline T &Node::valueAs()
   {
+    if (!properties.value.valid()) {
+      std::stringstream msg;
+      msg << "Node::valueAs() can't query value from an empty Any\n";
+      msg << "  Node::name() = " << name() << "\n";
+      msg << "  Node::type() = " << NodeTypeToString[type()] << "\n";
+      msg << "  Node::subType() = " << subType() << "\n";
+      throw std::runtime_error(msg.str());
+    }
+    if (!properties.value.is<T>()) {
+      std::stringstream msg;
+      msg << "Node::valueAs(): Incorrect type queried for Any\n";
+      msg << "  Node::name() = " << name() << "\n";
+      msg << "  Node::type() = " << NodeTypeToString[type()] << "\n";
+      msg << "  Node::subType() = " << subType() << "\n";
+      msg << "  Node::value() = " << value().toString() << "\n";
+      msg << "  queried type = " << rkcommon::utility::nameOf<T>() << "\n";
+      throw std::runtime_error(msg.str());
+    }
     return properties.value.get<T>();
   }
 
   template <typename T>
   inline const T &Node::valueAs() const
   {
+    if (!properties.value.valid()) {
+      std::stringstream msg;
+      msg << "Node::valueAs(): Can't query value from an empty Any\n";
+      msg << "  Node::name() = " << name() << "\n";
+      msg << "  Node::type() = " << NodeTypeToString[type()] << "\n";
+      msg << "  Node::subType() = " << subType() << "\n";
+      throw std::runtime_error(msg.str());
+    }
+    if (!properties.value.is<T>()) {
+      std::stringstream msg;
+      msg << "Node::valueAs(): Incorrect type queried for Any\n";
+      msg << "  Node::name() = " << name() << "\n";
+      msg << "  Node::type() = " << NodeTypeToString[type()] << "\n";
+      msg << "  Node::subType() = " << subType() << "\n";
+      msg << "  Node::value() = " << value().toString() << "\n";
+      msg << "  queried type = " << rkcommon::utility::nameOf<T>() << "\n";
+      throw std::runtime_error(msg.str());
+    }
     return properties.value.get<T>();
   }
 
