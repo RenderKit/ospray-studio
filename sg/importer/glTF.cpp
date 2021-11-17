@@ -327,27 +327,27 @@ void GLTFData::createLights()
     } else if (l.type == "hdri") {
       newLight = createNode(lightName, l.type);
       auto hdrFileName = l.extras.Get("map").Get<std::string>();
-      newLight->createChild("filename") = fileName.path() + hdrFileName;
+      newLight->child("filename") = fileName.path() + hdrFileName;
     } else if (l.type == "sunSky") {
       newLight = createNode(lightName, l.type);
       if (l.sunSky.up.size()) {
         auto up = vec3f{(float)l.sunSky.up[0],
             (float)l.sunSky.up[1],
             (float)l.sunSky.up[2]};
-        newLight->createChild("up", "vec3f", up);
+        newLight->child("up") = up;
       }
       if (l.sunSky.turbidity) {
         auto turbidity = (float)l.sunSky.turbidity;
-        newLight->createChild("turbidity", "float", turbidity);
+        newLight->child("turbidity") = turbidity;
       }
       if (l.sunSky.albedo) {
         auto albedo = (float)l.sunSky.albedo;
-        newLight->createChild("albedo", "float", albedo);
+        newLight->child("albedo") = albedo;
       }
 
       if (l.sunSky.horizonExtension) {
         auto horizonExtension = (float)l.sunSky.horizonExtension;
-        newLight->createChild("horizonExtension", "float", horizonExtension);
+        newLight->child("horizonExtension") = horizonExtension;
       }
     } else
       newLight = createNode(lightName, l.type);
@@ -364,10 +364,10 @@ void GLTFData::createLights()
     if (!l.color.empty())
       lightColor =
           rgb{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
-    newLight->createChild("color", "rgb", lightColor);
+    newLight->child("color") = lightColor;
 
     if (l.intensity)
-      newLight->createChild("intensity", "float", (float)l.intensity);
+      newLight->child("intensity") = (float)l.intensity;
     if (l.range)
       std::cout << "Range value for light is not supported yet" << std::endl;
 
