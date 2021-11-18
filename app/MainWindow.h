@@ -177,7 +177,6 @@ class MainWindow : public StudioContext
   vec2f previousMouse{-1.f};
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
-  int optPF = -1; // optional pixel filter, -1 = use default
 
   rkcommon::FileName backPlateTexture = "";
 

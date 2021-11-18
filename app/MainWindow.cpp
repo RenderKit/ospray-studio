@@ -168,6 +168,8 @@ MainWindow::MainWindow(StudioCommon &_common)
     throw std::runtime_error("Cannot create more than one MainWindow!");
   }
 
+  optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
+
   activeWindow = this;
 
   glfwSetErrorCallback(error_callback);
