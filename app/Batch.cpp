@@ -15,7 +15,6 @@
 // json
 #include "sg/JSONDefs.h"
 #include "PluginManager.h"
-// benchmark
 
 // CLI
 #include <CLI11.hpp>
