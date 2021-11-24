@@ -62,9 +62,6 @@ namespace sg {
 
   struct Data;
 
-  typedef std::unordered_map<OSPGeometricModel, std::string> GeomIdMap;
-  typedef std::unordered_map<OSPInstance, std::pair<std::string, affine3f>> InstanceIdMap;
-
   struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
   {
     Node();
@@ -288,6 +285,10 @@ namespace sg {
 
     friend struct CommitVisitor;
   };
+
+  // SG Instance Picking //////////////////////////////////////////////////////
+  
+  typedef std::unordered_multimap<Node*, std::pair<Node*, OSPInstance>> NodeInstanceMap;
 
   /////////////////////////////////////////////////////////////////////////////
   // Nodes with a strongly-typed value ////////////////////////////////////////

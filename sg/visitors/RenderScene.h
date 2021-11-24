@@ -9,8 +9,8 @@
 #include "sg/scene/geometry/Geometry.h"
 #include "sg/scene/lights/Light.h"
 #include "sg/camera/Camera.h"
-#include "app/ArcballCamera.h"
 #include "sg/scene/volume/Volume.h"
+#include "sg/scene/World.h"
 // std
 #include <stack>
 
@@ -21,12 +21,6 @@ namespace ospray {
   {
     RenderScene();
     ~RenderScene();
-    RenderScene(GeomIdMap &geomIdMap,
-        InstanceIdMap &instanceIdMap,
-        affine3f *cameraToWorld,
-        std::vector<NodePtr> &instanceXfms,
-        std::vector<std::tuple<std::string, box3f, affine3f>> &_groupBBoxes,
-        int cId);
 
     bool operator()(Node &node, TraversalContext &ctx) override;
     void postChildren(Node &node, TraversalContext &) override;
@@ -63,15 +57,8 @@ namespace ospray {
     std::stack<bool> xfmsDiverged;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
-    std::string instanceId{""};
-    std::string geomId{""};
-    GeomIdMap *g{nullptr};
-    InstanceIdMap *in{nullptr};
-    affine3f *camXfm{nullptr};
-    int camId{0};
-    std::vector<NodePtr> *instanceXfms{nullptr};
-    std::vector<std::tuple<std::string, box3f, affine3f>> *groupBBoxes{nullptr};
-    box3f currentInstBBox{empty};
+    std::shared_ptr<NodeInstanceMap> instMap{nullptr};
+    Node *instRoot;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -81,6 +68,8 @@ namespace ospray {
     xfms.emplace(math::one);
     endXfms.emplace(math::one);
     xfmsDiverged.emplace(false);
+    if (instMap)
+    instMap->clear();
   }
 
   inline RenderScene::~RenderScene()
@@ -88,30 +77,16 @@ namespace ospray {
     groups.clear();
   }
 
-  inline RenderScene::RenderScene(GeomIdMap &geomIdMap,
-      InstanceIdMap &instanceIdMap,
-      affine3f *cameraToWorld,
-      std::vector<NodePtr> &_instanceXfms,
-      std::vector<std::tuple<std::string, box3f, affine3f>> &_groupBBoxes,
-      int cId)
-      : RenderScene()
-  {
-    g = &geomIdMap;
-    in = &instanceIdMap;
-    camXfm = cameraToWorld;
-    camId = cId;
-    instanceXfms = &_instanceXfms;
-    groupBBoxes = &_groupBBoxes;
-  }
-
   inline bool RenderScene::operator()(Node &node, TraversalContext &)
   {
     bool traverseChildren = true;
 
     switch (node.type()) {
-    case NodeType::WORLD:
+    case NodeType::WORLD: {
       world = node.valueAs<cpp::World>();
-      break;
+      auto worldNode = node.nodeAs<World>();
+      instMap = worldNode->instMap;
+    } break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
       break;
@@ -166,10 +141,8 @@ namespace ospray {
       xfmNode->motionBlur = xfmsDiverged.top() || diverged;
       xfmsDiverged.push(xfmNode->motionBlur);
 
-      if (node.hasChild("instanceId"))
-        instanceId = node.child("instanceId").valueAs<std::string>();
-      if (node.hasChild("geomId"))
-        geomId = node.child("geomId").valueAs<std::string>();
+      if (node.hasChild("hasReference")) 
+        instRoot = &node;
       break;
     }
     case NodeType::CAMERA: {
@@ -187,13 +160,8 @@ namespace ospray {
       }
       cam.commit();
 
-      bool useCameraXfm{false};
-      if (node.hasChild("cameraId"))
-        useCameraXfm = camId == node.child("cameraId").valueAs<int>();
-      if (camXfm && useCameraXfm) {
-        auto &outputCamXfm = *camXfm;
-        outputCamXfm = xfms.top();
-      }
+      auto cameraNode = node.nodeAs<Camera>();
+      cameraNode->cameraToWorld = std::make_shared<affine3f>(xfms.top());
     } break;
     default:
       break;
@@ -233,11 +201,8 @@ namespace ospray {
       xfms.pop();
       endXfms.pop();
       xfmsDiverged.pop();
-      if (node.hasChild("instanceID")) {
-          instanceId = "";
-      }
-      if (node.hasChild("geomId"))
-        geomId = "";
+      if (node.hasChild("hasReference"))
+        instRoot = nullptr;
       break;
     default:
       // Nothing
@@ -335,18 +300,6 @@ namespace ospray {
       geomNode->group->commit();
     }
 
-    if (g != nullptr) {
-      auto ospGeometricModel = geomNode->model->handle();
-      // if geometric Id was set by a parent transform node
-      // this happens in very specific cases like BIT reference extensions
-      if (!geomId.empty())
-        g->insert(GeomIdMap::value_type(ospGeometricModel, geomId));
-      else {
-        // add geometry SG node name as unique geometry ID 
-        g->insert(GeomIdMap::value_type(ospGeometricModel, node.name()));
-      }
-    }
-
     groups.push_back(*geomNode->group);
     geomNode->groupIndex = groupIndex;
     groupIndex++;
@@ -415,10 +368,10 @@ namespace ospray {
       inst.commit();
       instances.push_back(inst);
 
-      if (in != nullptr && !instanceId.empty()) {
+      // sg picking
+      if (instMap && instRoot) {
         auto ospInstance = inst.handle();
-        in->insert(InstanceIdMap::value_type(
-            ospInstance, std::make_pair(instanceId, xfms.top())));
+        instMap->insert(NodeInstanceMap::value_type(instRoot, std::make_pair(&node, ospInstance)));
       }
     };
 
@@ -433,21 +386,9 @@ namespace ospray {
         auto geomIdentifier = geomNode->groupIndex;
         if (geomIdentifier >= 0 && geomIdentifier < groups.size()) {
           auto &group = groups[geomIdentifier];
-          if (groupBBoxes && !node.hasChild("instanceId")) {
-            auto box = group.getBounds<box3f>();
-            affine3f xfm =  affine3f::scale(node.child("scale").valueAs<vec3f>());
-            xfm.p = node.child("translation").valueAs<vec3f>();
-            auto xfmdBox = xfmBounds(xfm, box);
-            currentInstBBox.extend(xfmdBox);
-          }
           setInstance(group);
         }
       }
-    }
-
-    if (groupBBoxes && node.hasChild("instanceId")) {
-      groupBBoxes->push_back(std::make_tuple(node.child("instanceId").valueAs<std::string>(), currentInstBBox, xfms.top()));
-      currentInstBBox = empty;
     }
 
     if (node.hasChildOfType(NodeType::VOLUME)) {

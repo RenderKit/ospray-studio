@@ -21,6 +21,8 @@ World::World()
       "bool",
       "tell Embree to enable more robust ray intersection code paths(slightly slower)",
       false);
+
+  instMap = std::make_shared<NodeInstanceMap>();
 }
 
 void World::preCommit()

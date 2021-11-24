@@ -75,6 +75,7 @@ struct GLTFData
   void createAnimations(std::vector<Animation> &);
   void applySceneBackground(NodePtr bgXfm);
   std::vector<NodePtr> lights;
+  std::string geomId{""};
 
  private:
   InstanceConfiguration ic;
@@ -217,6 +218,12 @@ bool GLTFData::parseAsset()
   INFO << "... " << model.scenes.size() << " scenes\n";
   INFO << "... " << model.lights.size() << " lights\n";
 
+  // geomtericId/assetId
+  if (asset.extensions.find("BIT_asset_info") != asset.extensions.end()) {
+    auto BIT_assetInfo = asset.extensions.find("BIT_asset_info")->second;
+    geomId = BIT_assetInfo.Get("id").Get<std::string>();
+  }
+
   return ret;
 }
 
@@ -244,30 +251,30 @@ void GLTFData::applySceneBackground(NodePtr bgXfm)
 void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
 {
   const tinygltf::Node &n = model.nodes[nid];
+  bool hasReference{false};
 
-  auto assetObj = n.extensions.find("BIT_asset_info")->second;
-  // auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
-  // auto &assetId = asset.Get("id").Get<std::string>();
-  auto assetTitle = assetObj.Get("title").Get<std::string>();
-
-  auto refLink = n.extensions.find("BIT_reference_link")->second;
-  auto &refId = refLink.Get("id").Get<std::string>();
-  auto refTitle = refLink.Get("title").Get<std::string>();
-  sgNode->createChild("geomId", "string", refId);
+  // load referenced asset if reference-link found
+  std::string refTitle{""};
+  if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
+    auto refLink = n.extensions.find("BIT_reference_link")->second;
+    refTitle = refLink.Get("title").Get<std::string>();
+    hasReference = true;
+  }
 
   auto node = n.extensions.find("BIT_node_info")->second;
   auto &nodeId = node.Get("id").Get<std::string>();
   sgNode->createChild("instanceId", "string", nodeId);
 
+  if (hasReference) {
+    sgNode->createChild("hasReference");
+    sgNode->child("hasReference").setSGNoUI();
+    sgNode->child("hasReference").setSGOnly();
+  }
+
+  // nothing to import
   if (refTitle.empty())
     return;
 
-  // node has asset Info and asset title should match refernce link title
-  if (!assetTitle.empty() && assetTitle != refTitle) {
-    std::cout << "mistmatch in asset information and reference link "
-              << std::endl;
-    return;
-  }
   std::string refLinkFileName = refTitle + ".gltf";
   std::string refLinkFullPath = fileName.path() + refLinkFileName;
   rkcommon::FileName file(refLinkFullPath);
@@ -683,6 +690,11 @@ void GLTFData::visitNode(NodePtr sgNode,
   sgNode->add(newXfm);
   applyNodeTransform(newXfm, n);
 
+  if (level == 1 && !geomId.empty()) {
+    newXfm->createChild("geomId", "string", geomId);
+    geomId = "";
+  }
+
   // create child animate camera for all camera nodes added to scene hierarchy,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
@@ -694,13 +706,7 @@ void GLTFData::visitNode(NodePtr sgNode,
 
   sgNode = newXfm;
 
-  // while parsing assets from BIT-TS look for BIT_asset_info to add to
-  // assetCatalogue
-  // followed by BIT_node_info for adding that particular instance
-  // followed by BIT_reference_link to load that reference
-  if (n.extensions.find("BIT_asset_info") != n.extensions.end()
-      && n.extensions.find("BIT_node_info") != n.extensions.end()
-      && n.extensions.find("BIT_reference_link") != n.extensions.end())
+  if (n.extensions.find("BIT_node_info") != n.extensions.end())
     loadNodeInfo(nid, sgNode);
 
   // KHR_lights_punctual extension info on nodes
