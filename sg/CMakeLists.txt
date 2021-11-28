@@ -39,6 +39,15 @@ else()
   message(STATUS "Building without OpenEXR support.")
 endif()
 
+## glTF Draco mesh compression support ##
+
+option(ENABLE_GLTF_DRACO "Enable glTF Draco mesh compression support" ON)
+if (ENABLE_GLTF_DRACO)
+  include(draco)
+else()
+  message(STATUS "Building without glTF Draco mesh compression support.")
+endif()
+
 ## Build Library ##
 
 add_library(ospray_sg SHARED
@@ -208,6 +217,15 @@ if (ENABLE_EXR)
 if (ENABLE_OPENVDB)
   target_compile_definitions(ospray_sg PUBLIC -DUSE_OPENVDB)
   target_link_libraries(ospray_sg PUBLIC OpenVDB::openvdb)
+endif()
+
+if (ENABLE_GLTF_DRACO)
+  target_compile_definitions(ospray_sg PRIVATE -DTINYGLTF_ENABLE_DRACO)
+  target_include_directories(ospray_sg PRIVATE ${draco_SOURCE_DIR}/src)
+  # draco_features.h get placed just under the main build dir ???
+  target_include_directories(ospray_sg  PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>)
+  # libdraco.a isn't found otherwise ???
+  target_link_libraries(ospray_sg PRIVATE ${CMAKE_BINARY_DIR}/libdraco.a)
 endif()
 
 ## Version header ##
