@@ -483,7 +483,48 @@ void GLTFData::createCameras()
         sgCamera->child("imageStart").setValue(imageStart);
         sgCamera->child("imageEnd").setValue(imageEnd);
       }
+
+      if (ext.Has("temporal")) {
+        auto temp = ext.Get("temporal");
+        auto copyFloatParam = [&](const char *name) -> float {
+          float ret = 0.0f;
+          if (temp.Has(name)) {
+            ret = (float)temp.Get(name).Get<double>();
+            sgCamera->createChild(name, "float", "", ret);
+            sgCamera->child(name).setSGOnly();
+          }
+          return ret;
+        };
+        copyFloatParam("startTime");
+        float measureTime = copyFloatParam("measureTime");
+        if (measureTime > 0.0f) {
+          sgCamera->child("motion blur").setValue(1.0f);
+          uint8_t shutterType = 0; // default global
+          if (temp.Get("type").Get<std::string>() == "rollingShutter") {
+            shutterType = 1; // default rolling right
+            if (temp.Has("rollingShutter")) {
+              auto rol = temp.Get("rollingShutter");
+              if (rol.Has("direction")) {
+                auto str = rol.Get("direction").Get<std::string>();
+                if (str == "left")
+                  shutterType = 2;
+                if (str == "down")
+                  shutterType = 3;
+                if (str == "up")
+                  shutterType = 4;
+              }
+              float duration = 0.0f;
+              if (rol.Has("measureTime"))
+                duration = (float)rol.Get("measureTime").Get<double>();
+              sgCamera->child("rollingShutterDuration") =
+                  duration / measureTime;
+            }
+          }
+          sgCamera->child("shutterType") = shutterType;
+        }
+      }
     }
+
     sgCamera->createChild("cameraId", "int", ++nCamera);
     sgCamera->child("cameraId").setSGOnly();
     cameras->push_back(sgCamera);

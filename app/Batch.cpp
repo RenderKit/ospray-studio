@@ -394,6 +394,13 @@ void BatchContext::renderAnimation()
   float step = 1.f / fps;
   float time = animationManager->getTimeRange().lower;
 
+  auto &cam = frame->child("camera");
+  if (cam.hasChild("startTime"))
+    time += cam["startTime"].valueAs<float>();
+  float shutter = 0.0f;
+  if (cam.hasChild("measureTime"))
+    shutter = cam["measureTime"].valueAs<float>();
+
   if (!framesRange.empty() && framesRange.upper) {
     time += step * framesRange.lower;
     animationTime = step * framesRange.upper;
@@ -401,7 +408,7 @@ void BatchContext::renderAnimation()
   animationTime += 1e-6;
 
   while (time <= animationTime) {
-    animationManager->update(time);
+    animationManager->update(time, shutter);
     renderFrame();
     time += step;
   }
