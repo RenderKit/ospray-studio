@@ -160,9 +160,12 @@ namespace ospray {
       auto xfmNode = node.nodeAs<Transform>();
       xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
       xfms.push(xfmNode->accumulatedXfm);
-      endXfms.push(endXfms.top() * endXfm * node.valueAs<affine3f>());
-      xfmsDiverged.push(xfmsDiverged.top() || diverged);
-      
+      xfmNode->accumulatedEndXfm =
+          endXfms.top() * endXfm * node.valueAs<affine3f>();
+      endXfms.push(xfmNode->accumulatedEndXfm);
+      xfmNode->motionBlur = xfmsDiverged.top() || diverged;
+      xfmsDiverged.push(xfmNode->motionBlur);
+
       if (node.hasChild("instanceId"))
         instanceId = node.child("instanceId").valueAs<std::string>();
       if (node.hasChild("geomId"))
@@ -259,16 +262,26 @@ namespace ospray {
       auto &joints = geomNode->skin->joints;
       auto &inverseBindMatrices = geomNode->skin->inverseBindMatrices;
       const size_t weightsPerVertex = geomNode->weightsPerVertex;
+      geomNode->skinnedEndPositions.resize(geomNode->skinnedPositions.size());
+      geomNode->skinnedEndNormals.resize(geomNode->skinnedNormals.size());
       size_t weightIdx = 0;
 
-      for (size_t i = 0; i < geomNode->positions.size(); ++i) { // XXX parallel
+      // only worth with huge meshes:
+      // tasking::parallel_in_blocks_of<64>(geomNode->positions.size(),
+      // [&](size_t start, size_t end)
+      for (size_t i = 0; i < geomNode->positions.size(); ++i) {
         affine3f xfm{zero};
+        affine3f endXfm{zero};
         for (size_t j = 0; j < weightsPerVertex; ++j, ++weightIdx) {
           const int idx = geomNode->joints[weightIdx];
           // skinning matrix
           xfm = xfm
               + geomNode->weights[weightIdx]
                   * joints[idx]->nodeAs<Transform>()->accumulatedXfm
+                  * inverseBindMatrices[idx];
+          endXfm = endXfm
+              + geomNode->weights[weightIdx]
+                  * joints[idx]->nodeAs<Transform>()->accumulatedEndXfm
                   * inverseBindMatrices[idx];
         }
         // from gltf docu:
@@ -277,10 +290,46 @@ namespace ospray {
         //                         inverseBindMatrixForJoint(j)
         xfm = rcp(geomNode->skeletonRoot->nodeAs<Transform>()->accumulatedXfm)
             * xfm;
+        endXfm =
+            rcp(geomNode->skeletonRoot->nodeAs<Transform>()->accumulatedEndXfm)
+            * endXfm;
         geomNode->skinnedPositions[i] = xfmPoint(xfm, geomNode->positions[i]);
-        if (geomNode->skinnedNormals.size())
+        geomNode->skinnedEndPositions[i] =
+            xfmPoint(endXfm, geomNode->positions[i]);
+        if (geomNode->skinnedNormals.size()) {
           geomNode->skinnedNormals[i] = xfmNormal(xfm, geomNode->normals[i]);
+          geomNode->skinnedEndNormals[i] =
+              xfmNormal(endXfm, geomNode->normals[i]);
+        }
       }
+
+      bool motionBlur = geomNode->skeletonRoot->nodeAs<Transform>()->motionBlur;
+      for (auto idx : geomNode->joints)
+        motionBlur |= joints[idx]->nodeAs<Transform>()->motionBlur;
+
+      auto &geom = geomNode->valueAs<cpp::Geometry>();
+      if (motionBlur) {
+        std::vector<cpp::SharedData> motionPos;
+        motionPos.push_back(cpp::SharedData(geomNode->skinnedPositions));
+        motionPos.push_back(cpp::SharedData(geomNode->skinnedEndPositions));
+        geom.setParam("motion.vertex.position", cpp::CopiedData(motionPos));
+        geom.removeParam("vertex.position");
+        if (geomNode->skinnedNormals.size()) {
+          std::vector<cpp::SharedData> motionNor;
+          motionNor.push_back(cpp::SharedData(geomNode->skinnedNormals));
+          motionNor.push_back(cpp::SharedData(geomNode->skinnedEndNormals));
+          geom.setParam("motion.vertex.normal", cpp::CopiedData(motionNor));
+          geom.removeParam("vertex.normal");
+        }
+      } else {
+        geom.setParam("vertex.position", cpp::SharedData(geomNode->skinnedPositions));
+        geom.removeParam("motion.vertex.position");
+        if (geomNode->skinnedNormals.size()) {
+          geom.setParam("vertex.normal", cpp::SharedData(geomNode->skinnedNormals));
+          geom.removeParam("motion.vertex.normal");
+        }
+      }
+      geom.commit();
 
       // Recommit the cpp::Group for skinned animation to take effect
       geomNode->group->commit();
