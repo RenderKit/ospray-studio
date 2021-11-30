@@ -290,7 +290,7 @@ inline void from_json(const JSON &j, vec4f &v)
   j.at(0).get_to(v.x);
   j.at(1).get_to(v.y);
   j.at(2).get_to(v.z);
-  j.at(2).get_to(v.w);
+  j.at(3).get_to(v.w);
 }
 
 inline void to_json(JSON &j, const LinearSpace3f &ls)
