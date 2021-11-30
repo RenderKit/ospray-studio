@@ -41,7 +41,7 @@ endif()
 
 ## glTF Draco mesh compression support ##
 
-option(ENABLE_GLTF_DRACO "Enable glTF Draco mesh compression support" ON)
+option(ENABLE_GLTF_DRACO "Enable glTF Draco mesh compression support" OFF)
 if (ENABLE_GLTF_DRACO)
   include(draco)
 else()
