@@ -12,6 +12,7 @@
 #include "sg/generator/Generator.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
+#include "rkcommon/utility/StringManip.h"
 
 #include "app/ospStudio.h"
 
@@ -141,7 +142,7 @@ inline std::shared_ptr<Importer> getImporter(
     NodePtr root, rkcommon::FileName fileName)
 {
   std::string baseName = fileName.name();
-  auto fnd = importerMap.find(fileName.ext());
+  auto fnd = importerMap.find(rkcommon::utility::lowerCase(fileName.ext()));
   if (fnd == importerMap.end()) {
     std::cout << "No importer for " << fileName << std::endl;
     return nullptr;
