@@ -258,7 +258,7 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
     auto refLink = n.extensions.find("BIT_reference_link")->second;
     refTitle = refLink.Get("title").Get<std::string>();
-    hasReference = true;
+    hasReference = refLink.Has("title");
   }
 
   auto node = n.extensions.find("BIT_node_info")->second;

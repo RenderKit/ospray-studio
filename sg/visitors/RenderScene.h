@@ -133,10 +133,11 @@ namespace ospray {
         endXfm.p = xfm.p;
 
       auto xfmNode = node.nodeAs<Transform>();
-      xfmNode->accumulatedXfm = xfms.top() * xfm * node.valueAs<affine3f>();
+      xfmNode->localXfm = xfm * node.valueAs<affine3f>();
+      xfmNode->accumulatedXfm = xfms.top() * xfmNode->localXfm;
       xfms.push(xfmNode->accumulatedXfm);
-      xfmNode->accumulatedEndXfm =
-          endXfms.top() * endXfm * node.valueAs<affine3f>();
+      xfmNode->localEndXfm = endXfm * node.valueAs<affine3f>();
+      xfmNode->accumulatedEndXfm = endXfms.top() * xfmNode->localEndXfm;
       endXfms.push(xfmNode->accumulatedEndXfm);
       xfmNode->motionBlur = xfmsDiverged.top() || diverged;
       xfmsDiverged.push(xfmNode->motionBlur);
