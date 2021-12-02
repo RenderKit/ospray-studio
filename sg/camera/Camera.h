@@ -19,7 +19,7 @@ struct OSPSG_INTERFACE Camera : public OSPNode<cpp::Camera, NodeType::CAMERA>
   virtual void preCommit() override;
 
   // cameraToWorld is set for scene cameras(for eg: GLTF cameras) only in RenderScene
-  std::shared_ptr<affine3f> cameraToWorld{nullptr};
+  affine3f cameraToWorld{one};
 };
 
 } // namespace sg

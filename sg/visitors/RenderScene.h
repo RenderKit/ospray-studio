@@ -162,7 +162,7 @@ namespace ospray {
       cam.commit();
 
       auto cameraNode = node.nodeAs<Camera>();
-      cameraNode->cameraToWorld = std::make_shared<affine3f>(xfms.top());
+      cameraNode->cameraToWorld = xfms.top();
     } break;
     default:
       break;
