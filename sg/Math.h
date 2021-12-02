@@ -8,7 +8,7 @@
 namespace ospray {
 namespace sg {
 
-inline quaternionf getRotationQuaternion(LinearSpace3f &rot)
+inline quaternionf getRotationQuaternion(const LinearSpace3f &rot)
 {
   float t = rot.vx[0] + rot.vy[1] + rot.vz[2];
   float w, x, y, z;
@@ -42,7 +42,7 @@ inline quaternionf getRotationQuaternion(LinearSpace3f &rot)
   return quaternionf(w, x, y, z);
 }
 
-inline LinearSpace3f getRotationMatrix(LinearSpace3f &xfmM) {
+inline LinearSpace3f getRotationMatrix(const LinearSpace3f &xfmM) {
   // Polar decomposition of matrix
   int count(0);
   float norm(0.f);
@@ -80,7 +80,7 @@ inline LinearSpace3f getRotationMatrix(LinearSpace3f &xfmM) {
   return rot;
 }
 
-inline void getRSComponent(affine3f &xfm, LinearSpace3f &R, LinearSpace3f &S)
+inline void getRSComponent(const affine3f &xfm, LinearSpace3f &R, LinearSpace3f &S)
 {
   R = getRotationMatrix(xfm.l);
   S = R.inverse() * xfm.l;
