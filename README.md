@@ -25,6 +25,15 @@ or scivis renderer.
 
 ## Building OSPRay Studio
 
+tl;dr - For most installations, these 5 steps will build a plain vanilla OSPRay Studio
+``` bash
+  1. git clone https://github.com/ospray/ospray_studio.git
+  2. mkdir ospray_studio/build
+  3. cd ospray_studio/build
+  4. cmake ..
+  5. cmake --build .
+```
+
 OSPRay Studio has the following required and optional dependencies.
 
 ### Required dependencies
