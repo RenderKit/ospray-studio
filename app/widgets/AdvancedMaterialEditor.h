@@ -31,7 +31,7 @@ class AdvancedMaterialEditor
     for (auto &c : sourceMat->children()) {
       if (c.second->name() != "handles" && c.second->name() != skipParam) {
         // keep existing textures
-        if (c.second->name().substr(0, 4) == "map_")
+        if (beginsWith(c.second->name(), std::string("map_")))
           newMat->add(c.second);
         else
           newMat->child(c.second->name()).setValue(c.second->value());
