@@ -40,6 +40,7 @@ void AdvancedMaterialEditor::buildUI(NodePtr materialRegistry)
     auto matName = selectedMat->name();
     selectedMat->traverse<ospray::sg::GenerateImGuiWidgets>(
         ospray::sg::TreeState::ROOTOPEN);
+    updateTextureNames(selectedMat);
 
     ImGui::Separator();
 
@@ -105,6 +106,7 @@ void AdvancedMaterialEditor::buildUI(NodePtr materialRegistry)
         auto newMat = copyMaterial(selectedMat, "", paramStr);
         newMat->add(sgTex, paramStr);
         materialRegistry->add(newMat);
+        updateTextureNames(selectedMat);
       }
     }
   }

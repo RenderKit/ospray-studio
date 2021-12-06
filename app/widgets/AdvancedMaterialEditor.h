@@ -4,9 +4,12 @@
 #pragma once
 
 #include "sg/Node.h"
+#include "rkcommon/utility/StringManip.h"
 
 using NodePtr = ospray::sg::NodePtr;
 using WeakNodePtr = std::weak_ptr<ospray::sg::Node>;
+
+using rkcommon::utility::beginsWith;
 
 class AdvancedMaterialEditor
 {
@@ -16,6 +19,8 @@ class AdvancedMaterialEditor
    void buildUI(NodePtr materialRegistry);
 
  private:
+  std::vector<std::string> currentMaterialTextureNames;
+
   inline NodePtr copyMaterial(NodePtr sourceMat,
       const std::string name = "",
       const std::string skipParam = "")
@@ -45,4 +50,12 @@ class AdvancedMaterialEditor
          || WeakNodePtr{}.owner_before(copiedMat);
    }
    WeakNodePtr copiedMat;
+
+   inline void updateTextureNames(NodePtr currentMat)
+   {
+     currentMaterialTextureNames.clear();
+     for (auto child : currentMat->children())
+       if (beginsWith(child.first, std::string("map_")))
+           currentMaterialTextureNames.push_back(child.first);
+   }
 };
