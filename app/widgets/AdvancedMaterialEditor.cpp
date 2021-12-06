@@ -106,8 +106,32 @@ void AdvancedMaterialEditor::buildUI(NodePtr materialRegistry)
         auto newMat = copyMaterial(selectedMat, "", paramStr);
         newMat->add(sgTex, paramStr);
         materialRegistry->add(newMat);
-        updateTextureNames(selectedMat);
       }
+    }
+
+    ImGui::Spacing();
+    ImGui::Text("Remove texture");
+    static int removeIndex = 0;
+    static std::string texToRemove = (currentMaterialTextureNames.size() > 0)
+        ? currentMaterialTextureNames[removeIndex]
+        : "";
+    if (ImGui::BeginCombo("Texture##materialtexture", texToRemove.c_str(), 0)) {
+      for (int i = 0; i < currentMaterialTextureNames.size(); i++) {
+        const bool isSelected = (removeIndex == i);
+        if (ImGui::Selectable(
+                currentMaterialTextureNames[i].c_str(), isSelected)) {
+          removeIndex = i;
+          texToRemove = currentMaterialTextureNames[removeIndex];
+        }
+        if (isSelected)
+          ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+    if (ImGui::Button("Remove##materialtexturebutton")) {
+      auto newMat = copyMaterial(selectedMat, "", texToRemove);
+      materialRegistry->add(newMat);
+      texToRemove = "";
     }
   }
 }
