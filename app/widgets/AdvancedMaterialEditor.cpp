@@ -10,11 +10,14 @@
 #include "sg/visitors/GenerateImGuiWidgets.h" // TreeState
 
 #include "rkcommon/os/FileName.h"
+#include "rkcommon/math/AffineSpace.h"
 
 #include <string>
 #include <vector>
 
 #include <imgui.h>
+
+using namespace rkcommon::math;
 
 void AdvancedMaterialEditor::buildUI(NodePtr materialRegistry)
 {
@@ -105,6 +108,7 @@ void AdvancedMaterialEditor::buildUI(NodePtr materialRegistry)
         sgTex->load(matTexFileName, true, false);
         auto newMat = copyMaterial(selectedMat, "", paramStr);
         newMat->add(sgTex, paramStr);
+        newMat->createChild(paramStr + ".transform", "linear2f") = linear2f(one);
         materialRegistry->add(newMat);
       }
     }
