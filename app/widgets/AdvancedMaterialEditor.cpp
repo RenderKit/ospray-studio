@@ -19,33 +19,11 @@
 
 using namespace rkcommon::math;
 
-void AdvancedMaterialEditor::buildUI(NodePtr materialRegistry)
+void AdvancedMaterialEditor::buildUI(
+    NodePtr materialRegistry, NodePtr &selectedMat)
 {
-  static int currentMaterial = -1;
-  static ListBoxWidget listWidget;
-  std::vector<NodePtr> materialNodes;
-
-  for (auto &mat : materialRegistry->children())
-    if (mat.second->type() == ospray::sg::NodeType::MATERIAL)
-      materialNodes.push_back(mat.second);
-
-  if (materialNodes.empty()) {
-    ImGui::Text("No materials found");
-    return;
-  }
-
-  // ImGui::Separator();
-  if (listWidget.buildUI(
-          "Materials##advanced", &currentMaterial, materialNodes)) {
-  }
-  if (currentMaterial != -1) {
-    auto selectedMat = materialNodes.at(currentMaterial);
     auto matName = selectedMat->name();
-    selectedMat->traverse<ospray::sg::GenerateImGuiWidgets>(
-        ospray::sg::TreeState::ROOTOPEN);
     updateTextureNames(selectedMat);
-
-    ImGui::Separator();
 
     if (ImGui::Button("Copy")) {
       copiedMat = selectedMat;
@@ -137,5 +115,4 @@ void AdvancedMaterialEditor::buildUI(NodePtr materialRegistry)
       materialRegistry->add(newMat);
       texToRemove = "";
     }
-  }
 }

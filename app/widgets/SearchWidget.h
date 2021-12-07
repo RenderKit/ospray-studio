@@ -48,7 +48,10 @@ class SearchWidget
 
   inline NP getSelected()
   {
-    return selectedResult;
+    if (!selectedResult.empty())
+      return lastRoot->children().at(selectedResult);
+    else
+      return nullptr;
   }
 
  private:
@@ -69,7 +72,7 @@ class SearchWidget
   TS displayState;
 
   std::vector<NP> results;
-  NP selectedResult{nullptr};
+  std::string selectedResult{""};
   // These must be references since they contain OSPRay objects.
   // The widget will be destructed *after* ospShutdown and if it
   // contains sg nodes it will trigger warnings on exit

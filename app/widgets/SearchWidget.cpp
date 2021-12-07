@@ -120,7 +120,7 @@ void SearchWidget::addSearchResultsUI(NR root)
       if (results[i])
         if (ImGui::Selectable(results[i]->name().c_str(), isSelected)) {
           selectedIndex = i;
-          selectedResult = results[selectedIndex];
+          selectedResult = results[selectedIndex]->name();
         }
       if (isSelected)
         ImGui::SetItemDefaultFocus();
@@ -132,7 +132,7 @@ void SearchWidget::addSearchResultsUI(NR root)
         const bool isSelected = (selectedIndex == i);
         if (ImGui::Selectable(node.first.c_str(), isSelected)) {
           selectedIndex = i;
-          selectedResult = node.second;
+          selectedResult = node.first;
         }
         if (isSelected)
           ImGui::SetItemDefaultFocus();

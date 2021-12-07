@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "sg/Node.h"
 #include "rkcommon/utility/StringManip.h"
+#include "sg/Node.h"
 
 using NodePtr = ospray::sg::NodePtr;
 using WeakNodePtr = std::weak_ptr<ospray::sg::Node>;
@@ -14,9 +14,9 @@ using rkcommon::utility::beginsWith;
 class AdvancedMaterialEditor
 {
  public:
-   AdvancedMaterialEditor() {}
+  AdvancedMaterialEditor() {}
 
-   void buildUI(NodePtr materialRegistry);
+  void buildUI(NodePtr materialRegistry, NodePtr &selectedMat);
 
  private:
   std::vector<std::string> currentMaterialTextureNames;
