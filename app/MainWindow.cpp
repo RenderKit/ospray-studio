@@ -2490,6 +2490,11 @@ void MainWindow::buildWindowTransformEditor()
   searchWidget.addCustomAction("hide all", hideSearch, hideDisplay, true);
   searchWidget.addSearchResultsUI(warudo);
 
+  auto selected = searchWidget.getSelected();
+  if (selected) {
+    selected->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+  }
+
   ImGui::End();
 }
 
