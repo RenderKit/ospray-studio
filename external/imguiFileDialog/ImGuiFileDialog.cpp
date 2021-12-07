@@ -29,43 +29,52 @@ SOFTWARE.
 
 #ifdef __cplusplus
 
-#include "imgui.h"
-
-#include <float.h>
-#include <string.h> // stricmp / strcasecmp
+#include <cfloat>
+#include <cstring> // stricmp / strcasecmp
+#include <cstdarg> // variadic
 #include <sstream>
 #include <iomanip>
-#include <time.h>
-#include <sys/types.h>
+#include <ctime>
 #include <sys/stat.h>
-#include <stdio.h>
-#include <errno.h>
+#include <cstdio>
+// this option need c++17
+#ifdef USE_STD_FILESYSTEM
+	#include <filesystem>
+#endif
 #if defined (__EMSCRIPTEN__) // EMSCRIPTEN
-#include <emscripten.h>
+	#include <emscripten.h>
 #endif // EMSCRIPTEN
 #if defined(__WIN32__) || defined(_WIN32)
-#ifndef WIN32
-#define WIN32
-#endif // WIN32
-#define stat _stat
-#define stricmp _stricmp
-#include <cctype>
-#include <dirent.h>
-#define PATH_SEP '\\'
-#ifndef PATH_MAX
-#define PATH_MAX 260
-#endif // PATH_MAX
+	#ifndef WIN32
+		#define WIN32
+	#endif // WIN32
+	#define stat _stat
+	#define stricmp _stricmp
+	#include <cctype>
+	// this option need c++17
+	#ifdef USE_STD_FILESYSTEM
+		#include <Windows.h>
+	#else
+		#include "dirent.h" // directly open the dirent file attached to this lib
+	#endif // USE_STD_FILESYSTEM
+	#define PATH_SEP '\\'
+	#ifndef PATH_MAX
+		#define PATH_MAX 260
+	#endif // PATH_MAX
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined (__EMSCRIPTEN__)
-#define UNIX
-#define stricmp strcasecmp
-#include <sys/types.h>
-#include <dirent.h>
-#define PATH_SEP '/'
+	#define UNIX
+	#define stricmp strcasecmp
+	#include <sys/types.h>
+	// this option need c++17
+	#ifndef USE_STD_FILESYSTEM
+		#include <dirent.h> 
+	#endif // USE_STD_FILESYSTEM
+	#define PATH_SEP '/'
 #endif // defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 
 #include "imgui.h"
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
-#define IMGUI_DEFINE_MATH_OPERATORS
+	#define IMGUI_DEFINE_MATH_OPERATORS
 #endif // IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 
@@ -73,21 +82,34 @@ SOFTWARE.
 #include <algorithm>
 #include <iostream>
 
+#ifdef USE_THUMBNAILS
+#ifndef DONT_DEFINE_AGAIN__STB_IMAGE_IMPLEMENTATION
+#ifndef STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#endif // STB_IMAGE_IMPLEMENTATION
+#endif // DONT_DEFINE_AGAIN__STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#ifndef DONT_DEFINE_AGAIN__STB_IMAGE_RESIZE_IMPLEMENTATION
+#ifndef STB_IMAGE_RESIZE_IMPLEMENTATION
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#endif // STB_IMAGE_RESIZE_IMPLEMENTATION
+#endif // DONT_DEFINE_AGAIN__STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize.h"
+#endif // USE_THUMBNAILS
+
 namespace IGFD
 {
-	// float comparisons
+// float comparisons
 #ifndef IS_FLOAT_DIFFERENT
 #define IS_FLOAT_DIFFERENT(a,b) (fabs((a) - (b)) > FLT_EPSILON)
 #endif // IS_FLOAT_DIFFERENT
 #ifndef IS_FLOAT_EQUAL
 #define IS_FLOAT_EQUAL(a,b) (fabs((a) - (b)) < FLT_EPSILON)
 #endif // IS_FLOAT_EQUAL
-
 // width of filter combobox
 #ifndef FILTER_COMBO_WIDTH
 #define FILTER_COMBO_WIDTH 150.0f
 #endif // FILTER_COMBO_WIDTH
-
 // for lets you define your button widget
 // if you have like me a special bi-color button
 #ifndef IMGUI_PATH_BUTTON
@@ -96,7 +118,6 @@ namespace IGFD
 #ifndef IMGUI_BUTTON
 #define IMGUI_BUTTON ImGui::Button
 #endif // IMGUI_BUTTON
-
 // locales
 #ifndef createDirButtonString
 #define createDirButtonString "+"
@@ -113,6 +134,9 @@ namespace IGFD
 #ifndef drivesButtonString
 #define drivesButtonString "Drives"
 #endif // drivesButtonString
+#ifndef editPathButtonString
+#define editPathButtonString "E"
+#endif // editPathButtonString
 #ifndef searchString
 #define searchString "Search :"
 #endif // searchString
@@ -137,6 +161,9 @@ namespace IGFD
 #ifndef buttonDriveString
 #define buttonDriveString "Drives"
 #endif // buttonDriveString
+#ifndef buttonEditPathString
+#define buttonEditPathString "Edit path\nYou can also right click on path buttons"
+#endif // buttonEditPathString
 #ifndef buttonResetPathString
 #define buttonResetPathString "Reset to current directory"
 #endif // buttonResetPathString
@@ -177,9 +204,59 @@ namespace IGFD
 #ifndef DateTimeFormat
 #define DateTimeFormat "%Y/%m/%d %H:%M"
 #endif // DateTimeFormat
+#ifdef USE_THUMBNAILS
+#ifndef tableHeaderFileThumbnailsString
+#define tableHeaderFileThumbnailsString "Thumbnails"
+#endif // tableHeaderFileThumbnailsString
+#ifndef DisplayMode_FilesList_ButtonString
+#define DisplayMode_FilesList_ButtonString "FL"
+#endif // DisplayMode_FilesList_ButtonString
+#ifndef DisplayMode_FilesList_ButtonHelp
+#define DisplayMode_FilesList_ButtonHelp "File List"
+#endif // DisplayMode_FilesList_ButtonHelp
+#ifndef DisplayMode_ThumbailsList_ButtonString
+#define DisplayMode_ThumbailsList_ButtonString "TL"
+#endif // DisplayMode_ThumbailsList_ButtonString
+#ifndef DisplayMode_ThumbailsList_ButtonHelp
+#define DisplayMode_ThumbailsList_ButtonHelp "Thumbnails List"
+#endif // DisplayMode_ThumbailsList_ButtonHelp
+#ifndef DisplayMode_ThumbailsGrid_ButtonString
+#define DisplayMode_ThumbailsGrid_ButtonString "TG"
+#endif // DisplayMode_ThumbailsGrid_ButtonString
+#ifndef DisplayMode_ThumbailsGrid_ButtonHelp
+#define DisplayMode_ThumbailsGrid_ButtonHelp "Thumbnails Grid"
+#endif // DisplayMode_ThumbailsGrid_ButtonHelp
+#ifndef DisplayMode_ThumbailsList_ImageHeight 
+#define DisplayMode_ThumbailsList_ImageHeight 32.0f
+#endif // DisplayMode_ThumbailsList_ImageHeight
+#ifndef IMGUI_RADIO_BUTTON
+	inline bool inRadioButton(const char* vLabel, bool vToggled)
+	{
+		bool pressed = false;
 
+		if (vToggled)
+		{
+			ImVec4 bua = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
+			ImVec4 te = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+			ImGui::PushStyleColor(ImGuiCol_Button, te);
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, te);
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, te);
+			ImGui::PushStyleColor(ImGuiCol_Text, bua);
+		}
+
+		pressed = IMGUI_BUTTON(vLabel);
+
+		if (vToggled)
+		{
+			ImGui::PopStyleColor(4); //-V112
+		}
+
+		return pressed;
+	}
+#define IMGUI_RADIO_BUTTON inRadioButton
+#endif // IMGUI_RADIO_BUTTON
+#endif  // USE_THUMBNAILS
 #ifdef USE_BOOKMARK
-
 #ifndef defaultBookmarkPaneWith
 #define defaultBookmarkPaneWith 150.0f
 #endif // defaultBookmarkPaneWith
@@ -196,7 +273,7 @@ namespace IGFD
 #define removeBookmarkButtonString "-"
 #endif // removeBookmarkButtonString
 #ifndef IMGUI_TOGGLE_BUTTON
-	inline bool ToggleButton(const char* vLabel, bool* vToggled)
+	inline bool inToggleButton(const char* vLabel, bool* vToggled)
 	{
 		bool pressed = false;
 
@@ -224,12 +301,51 @@ namespace IGFD
 
 		return pressed;
 	}
-#define IMGUI_TOGGLE_BUTTON ToggleButton
+#define IMGUI_TOGGLE_BUTTON inToggleButton
 #endif // IMGUI_TOGGLE_BUTTON
 #endif // USE_BOOKMARK
 
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// INLINE FUNCTIONS ///////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+#ifndef USE_STD_FILESYSTEM
+	inline int inAlphaSort(const struct dirent** a, const struct dirent** b)
+	{
+		return strcoll((*a)->d_name, (*b)->d_name);
+	}
+#endif
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// FILE EXTENTIONS INFOS //////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	IGFD::FileStyle::FileStyle() 
+		: color(0, 0, 0, 0)
+	{ 
+
+	}
+	
+	IGFD::FileStyle::FileStyle(const FileStyle& vStyle)
+	{
+		color = vStyle.color;
+		icon = vStyle.icon;
+		font = vStyle.font;
+		flags = vStyle.flags;
+	}
+
+	IGFD::FileStyle::FileStyle(const ImVec4& vColor, const std::string& vIcon, ImFont* vFont) 
+		: color(vColor), icon(vIcon), font(vFont)
+	{ 
+
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// FILE INFOS /////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
 	// https://github.com/ocornut/imgui/issues/1720
-	bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
+	bool IGFD::Utils::Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size)
 	{
 		using namespace ImGui;
 		ImGuiContext& g = *GImGui;
@@ -241,15 +357,8 @@ namespace IGFD
 		return SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 1.0f);
 	}
 
-	static std::string s_fs_root = std::string(1u, PATH_SEP);
-
-	inline int alphaSort(const struct dirent** a, const struct dirent** b)
-	{
-		return strcoll((*a)->d_name, (*b)->d_name);
-	}
-
 #ifdef WIN32
-	inline bool wreplaceString(std::wstring& str, const std::wstring& oldStr, const std::wstring& newStr)
+	bool IGFD::Utils::WReplaceString(std::wstring& str, const std::wstring& oldStr, const std::wstring& newStr)
 	{
 		bool found = false;
 		size_t pos = 0;
@@ -262,7 +371,7 @@ namespace IGFD
 		return found;
 	}
 
-	inline std::vector<std::wstring> wsplitStringToVector(const std::wstring& text, char delimiter, bool pushEmpty)
+	std::vector<std::wstring> IGFD::Utils::WSplitStringToVector(const std::wstring& text, char delimiter, bool pushEmpty)
 	{
 		std::vector<std::wstring> arr;
 		if (!text.empty())
@@ -283,9 +392,39 @@ namespace IGFD
 		}
 		return arr;
 	}
-#endif
 
-	inline bool replaceString(std::string& str, const std::string& oldStr, const std::string& newStr)
+	std::wstring IGFD::Utils::string_to_wstring(const std::string& str)
+	{
+		std::wstring ret;
+		if (!str.empty())
+		{
+			size_t sz = std::mbstowcs(nullptr, str.c_str(), str.size());
+			if (sz)
+			{
+				ret.resize(sz);
+				std::mbstowcs((wchar_t*)ret.data(), str.c_str(), sz);
+			}
+		}
+		return ret;
+	}
+
+	std::string IGFD::Utils::wstring_to_string(const std::wstring& str)
+	{
+		std::string ret;
+		if (!str.empty())
+		{
+			size_t sz = std::wcstombs(nullptr, str.c_str(), str.size());
+			if (sz)
+			{
+				ret.resize(sz);
+				std::wcstombs((char*)ret.data(), str.c_str(), sz);
+			}
+		}
+		return ret;
+	}
+#endif // WIN32
+
+	bool IGFD::Utils::ReplaceString(std::string& str, const std::string& oldStr, const std::string& newStr)
 	{
 		bool found = false;
 		size_t pos = 0;
@@ -298,29 +437,29 @@ namespace IGFD
 		return found;
 	}
 
-	inline std::vector<std::string> splitStringToVector(const std::string& text, char delimiter, bool pushEmpty)
+	std::vector<std::string> IGFD::Utils::SplitStringToVector(const std::string& text, char delimiter, bool pushEmpty)
 	{
 		std::vector<std::string> arr;
 		if (!text.empty())
 		{
-			std::string::size_type start = 0;
-			std::string::size_type end = text.find(delimiter, start);
+			size_t start = 0;
+			size_t end = text.find(delimiter, start);
 			while (end != std::string::npos)
 			{
-				std::string token = text.substr(start, end - start);
+				auto token = text.substr(start, end - start);
 				if (!token.empty() || (token.empty() && pushEmpty)) //-V728
 					arr.push_back(token);
 				start = end + 1;
 				end = text.find(delimiter, start);
 			}
-			std::string token = text.substr(start);
+			auto token = text.substr(start);
 			if (!token.empty() || (token.empty() && pushEmpty)) //-V728
 				arr.push_back(token);
 		}
 		return arr;
 	}
 
-	inline std::vector<std::string> GetDrivesList()
+	std::vector<std::string> IGFD::Utils::GetDrivesList()
 	{
 		std::vector<std::string> res;
 
@@ -333,20 +472,30 @@ namespace IGFD
 		if (countChars > 0)
 		{
 			std::string var = std::string(lpBuffer, (size_t)countChars);
-			replaceString(var, "\\", "");
-			res = splitStringToVector(var, '\0', false);
+			IGFD::Utils::ReplaceString(var, "\\", "");
+			res = IGFD::Utils::SplitStringToVector(var, '\0', false);
 		}
 #endif // WIN32
 
 		return res;
 	}
 
-	inline bool IsDirectoryExist(const std::string& name)
+	bool IGFD::Utils::IsDirectoryExist(const std::string& name)
 	{
 		bool bExists = false;
 
 		if (!name.empty())
 		{
+#ifdef USE_STD_FILESYSTEM
+			namespace fs = std::filesystem;
+#ifdef WIN32
+			std::wstring wname = IGFD::Utils::string_to_wstring(name.c_str());
+			fs::path pathName = fs::path(wname);
+#else
+			fs::path pathName = fs::path(name);
+#endif
+			bExists = fs::is_directory(pathName);
+#else
 			DIR* pDir = nullptr;
 			pDir = opendir(name.c_str());
 			if (pDir != nullptr)
@@ -354,26 +503,13 @@ namespace IGFD
 				bExists = true;
 				(void)closedir(pDir);
 			}
+#endif // USE_STD_FILESYSTEM
 		}
 
 		return bExists;    // this is not a directory!
 	}
 
-#ifdef WIN32
-	inline std::wstring wGetString(const char* str)
-	{
-		std::wstring ret;
-		size_t sz;
-		if (!dirent_mbstowcs_s(&sz, nullptr, 0, str, 0))
-		{
-			ret.resize(sz);
-			dirent_mbstowcs_s(nullptr, (wchar_t*)ret.data(), sz, str, sz - 1);
-		}
-		return ret;
-	}
-#endif
-
-	inline bool CreateDirectoryIfNotExist(const std::string& name)
+	bool IGFD::Utils::CreateDirectoryIfNotExist(const std::string& name)
 	{
 		bool res = false;
 
@@ -382,11 +518,18 @@ namespace IGFD
 			if (!IsDirectoryExist(name))
 			{
 #ifdef WIN32
-				std::wstring wname = wGetString(name.c_str());
+#ifdef USE_STD_FILESYSTEM
+				namespace fs = std::filesystem;
+				std::wstring wname = IGFD::Utils::string_to_wstring(name.c_str());
+				fs::path pathName = fs::path(wname);
+				res = fs::create_directory(pathName);
+#else
+				std::wstring wname = IGFD::Utils::string_to_wstring(name);
 				if (CreateDirectoryW(wname.c_str(), nullptr))
 				{
 					res = true;
 				}
+#endif // USE_STD_FILESYSTEM
 #elif defined(__EMSCRIPTEN__)
 				std::string str = std::string("FS.mkdir('") + name + "');";
 				emscripten_run_script(str.c_str());
@@ -399,31 +542,37 @@ namespace IGFD
 				{
 					res = true;
 				}
-#endif // defined(UNIX)
+#endif // WIN32
 				if (!res) {
 					std::cout << "Error creating directory " << name << std::endl;
 				}
+			}
 		}
-	}
 
 		return res;
 	}
 
-	struct PathStruct
+#ifdef USE_STD_FILESYSTEM
+	// https://github.com/aiekick/ImGuiFileDialog/issues/54
+	IGFD::Utils::PathStruct IGFD::Utils::ParsePathFileName(const std::string& vPathFileName)
 	{
-		std::string path;
-		std::string name;
-		std::string ext;
+		namespace fs = std::filesystem;
+		PathStruct res;
+		if (vPathFileName.empty())
+			return res;
 
-		bool isOk;
+		auto fsPath = fs::path(vPathFileName);
 
-		PathStruct()
-		{
-			isOk = false;
+		if (fs::is_regular_file(fsPath)) {
+			res.name = fsPath.string();
+			res.path = fsPath.parent_path().string();
+			res.isOk = true;
 		}
-	};
 
-	inline PathStruct ParsePathFileName(const std::string& vPathFileName)
+		return res;
+	}
+#else
+	IGFD::Utils::PathStruct IGFD::Utils::ParsePathFileName(const std::string& vPathFileName)
 	{
 		PathStruct res;
 
@@ -431,8 +580,8 @@ namespace IGFD
 		{
 			std::string pfn = vPathFileName;
 			std::string separator(1u, PATH_SEP);
-			replaceString(pfn, "\\", separator);
-			replaceString(pfn, "/", separator);
+			IGFD::Utils::ReplaceString(pfn, "\\", separator);
+			IGFD::Utils::ReplaceString(pfn, "/", separator);
 
 			size_t lastSlash = pfn.find_last_of(separator);
 			if (lastSlash != std::string::npos)
@@ -451,14 +600,20 @@ namespace IGFD
 					res.isOk = true;
 				}
 				res.ext = pfn.substr(lastPoint + 1);
-				replaceString(res.name, "." + res.ext, "");
+				IGFD::Utils::ReplaceString(res.name, "." + res.ext, "");
+			}
+
+			if (!res.isOk)
+			{
+				res.name = std::move(pfn);
+				res.isOk = true;
 			}
 		}
 
 		return res;
 	}
-
-	inline void AppendToBuffer(char* vBuffer, size_t vBufferLen, const std::string& vStr)
+#endif // USE_STD_FILESYSTEM
+	void IGFD::Utils::AppendToBuffer(char* vBuffer, size_t vBufferLen, const std::string& vStr)
 	{
 		std::string st = vStr;
 		size_t len = vBufferLen - 1u;
@@ -466,8 +621,8 @@ namespace IGFD
 
 		if (!st.empty() && st != "\n")
 		{
-			replaceString(st, "\n", "");
-			replaceString(st, "\r", "");
+			IGFD::Utils::ReplaceString(st, "\n", "");
+			IGFD::Utils::ReplaceString(st, "\r", "");
 		}
 		vBuffer[slen] = '\0';
 		std::string str = std::string(vBuffer);
@@ -482,42 +637,2427 @@ namespace IGFD
 		vBuffer[len] = '\0';
 	}
 
-	inline void ResetBuffer(char* vBuffer)
+	void IGFD::Utils::ResetBuffer(char* vBuffer)
 	{
 		vBuffer[0] = '\0';
 	}
 
-	inline void SetBuffer(char* vBuffer, size_t vBufferLen, const std::string& vStr)
+	void IGFD::Utils::SetBuffer(char* vBuffer, size_t vBufferLen, const std::string& vStr)
 	{
 		ResetBuffer(vBuffer);
 		AppendToBuffer(vBuffer, vBufferLen, vStr);
 	}
 
-	IGFD::FileDialog::FileDialog()
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// FILE INFOS /////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	bool IGFD::FileInfos::IsTagFound(const std::string& vTag) const
 	{
-		m_AnyWindowsHovered = false;
-		m_IsOk = false;
-		m_ShowDialog = false;
-		m_ShowDrives = false;
-		m_CreateDirectoryMode = false;
-		dlg_optionsPane = nullptr;
-		dlg_optionsPaneWidth = 250;
-		dlg_filters = "";
-		dlg_userDatas = 0;
+		if (!vTag.empty())
+		{
+			if (fileNameExt_optimized == "..") return true;
+
+			return
+				fileNameExt_optimized.find(vTag) != std::string::npos ||	// first try wihtout case and accents
+				fileNameExt.find(vTag) != std::string::npos;				// second if searched with case and accents
+		}
+
+		// if tag is empty => its a special case but all is found
+		return true;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// SEARCH MANAGER /////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	void IGFD::SearchManager::Clear()
+	{
+		puSearchTag.clear();
+		IGFD::Utils::ResetBuffer(puSearchBuffer);
+	}
+
+	void IGFD::SearchManager::DrawSearchBar(FileDialogInternal& vFileDialogInternal)
+	{
+		// search field
+		if (IMGUI_BUTTON(resetButtonString "##BtnImGuiFileDialogSearchField"))
+		{
+			Clear();
+			vFileDialogInternal.puFileManager.ApplyFilteringOnFileList(vFileDialogInternal);
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(buttonResetSearchString);
+		ImGui::SameLine();
+		ImGui::Text(searchString);
+		ImGui::SameLine();
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+		bool edited = ImGui::InputText("##InputImGuiFileDialogSearchField", puSearchBuffer, MAX_FILE_DIALOG_NAME_BUFFER);
+		if (ImGui::GetItemID() == ImGui::GetActiveID())
+			puSearchInputIsActive = true;
+		ImGui::PopItemWidth();
+		if (edited)
+		{
+			puSearchTag = puSearchBuffer;
+			vFileDialogInternal.puFileManager.ApplyFilteringOnFileList(vFileDialogInternal);
+		}
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// FILTER INFOS ///////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	void IGFD::FilterManager::FilterInfos::clear()
+	{
+		filter.clear(); 
+		collectionfilters.clear();
+	}
+
+	bool IGFD::FilterManager::FilterInfos::empty() const
+	{
+		return filter.empty() && collectionfilters.empty();
+	}
+
+	bool IGFD::FilterManager::FilterInfos::exist(const std::string& vFilter) const
+	{
+		return filter == vFilter || (collectionfilters.find(vFilter) != collectionfilters.end());
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// FILTER MANAGER /////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	void IGFD::FilterManager::ParseFilters(const char* vFilters)
+	{
+		prParsedFilters.clear();
+
+		if (vFilters)
+			puDLGFilters = vFilters;			// file mode
+		else
+			puDLGFilters.clear();				// directory mode
+
+		if (!puDLGFilters.empty())
+		{
+			// ".*,.cpp,.h,.hpp"
+			// "Source files{.cpp,.h,.hpp},Image files{.png,.gif,.jpg,.jpeg},.md"
+
+			bool currentFilterFound = false;
+
+			size_t nan = std::string::npos;
+			size_t p = 0, lp = 0;
+			while ((p = puDLGFilters.find_first_of("{,", p)) != nan)
+			{
+				FilterInfos infos;
+
+				if (puDLGFilters[p] == '{') // {
+				{
+					infos.filter = puDLGFilters.substr(lp, p - lp);
+					p++;
+					lp = puDLGFilters.find('}', p);
+					if (lp != nan)
+					{
+						std::string fs = puDLGFilters.substr(p, lp - p);
+						auto arr = IGFD::Utils::SplitStringToVector(fs, ',', false);
+						for (auto a : arr)
+						{
+							infos.collectionfilters.emplace(a);
+						}
+					}
+					p = lp + 1;
+				}
+				else // ,
+				{
+					infos.filter = puDLGFilters.substr(lp, p - lp);
+					p++;
+				}
+
+				if (!currentFilterFound && prSelectedFilter.filter == infos.filter)
+				{
+					currentFilterFound = true;
+					prSelectedFilter = infos;
+				}
+
+				lp = p;
+				if (!infos.empty())
+					prParsedFilters.emplace_back(infos);
+			}
+
+			std::string token = puDLGFilters.substr(lp);
+			if (!token.empty())
+			{
+				FilterInfos infos;
+				infos.filter = std::move(token);
+				prParsedFilters.emplace_back(infos);
+			}
+
+			if (!currentFilterFound)
+				if (!prParsedFilters.empty())
+					prSelectedFilter = *prParsedFilters.begin();
+		}
+	}
+
+	void IGFD::FilterManager::SetSelectedFilterWithExt(const std::string& vFilter)
+	{
+		if (!prParsedFilters.empty())
+		{
+			if (!vFilter.empty())
+			{
+				// std::map<std::string, FilterInfos>
+				for (const auto& infos : prParsedFilters)
+				{
+					if (vFilter == infos.filter)
+					{
+						prSelectedFilter = infos;
+					}
+					else
+					{
+						// maybe this ext is in an extention so we will 
+						// explore the collections is they are existing
+						for (const auto& filter : infos.collectionfilters)
+						{
+							if (vFilter == filter)
+							{
+								prSelectedFilter = infos;
+							}
+						}
+					}
+				}
+			}
+
+			if (prSelectedFilter.empty())
+				prSelectedFilter = *prParsedFilters.begin();
+		}
+	}
+
+	void IGFD::FilterManager::SetFileStyle(const IGFD_FileStyleFlags& vFlags, const char* vCriteria, const FileStyle& vInfos)
+	{
+		std::string _criteria;
+		if (vCriteria)
+			_criteria = std::string(vCriteria);
+		prFilesStyle[vFlags][_criteria] = std::make_shared<FileStyle>(vInfos);
+		prFilesStyle[vFlags][_criteria]->flags = vFlags;
+	}
+
+	// will be called internally 
+	// will not been exposed to IGFD API
+	bool IGFD::FilterManager::prFillFileStyle(std::shared_ptr<FileInfos> vFileInfos) const
+	{
+		if (vFileInfos.use_count() && !prFilesStyle.empty())
+		{
+			for (const auto& _flag : prFilesStyle)
+			{
+				for (const auto& _file : _flag.second)
+				{
+					if (_flag.first & IGFD_FileStyleByTypeDir && vFileInfos->fileType == 'd')
+					{
+						if (_file.first.empty()) // for all dirs
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+						else if (_file.first == vFileInfos->fileNameExt) // for dirs who are equal to style criteria
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+					}
+					else if (_flag.first & IGFD_FileStyleByTypeFile && vFileInfos->fileType == 'f')
+					{
+						if (_file.first.empty()) // for all files
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+						else if (_file.first == vFileInfos->fileNameExt) // for files who are equal to style criteria
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+					}
+					else if (_flag.first & IGFD_FileStyleByTypeLink && vFileInfos->fileType == 'l')
+					{
+						if (_file.first.empty()) // for all links
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+						else if (_file.first == vFileInfos->fileNameExt) // for links who are equal to style criteria
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+					}
+
+					if (_flag.first & IGFD_FileStyleByExtention)
+					{
+						if (_file.first == vFileInfos->fileExt)
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+
+						// can make sense for some dirs like the hidden by ex ".git"
+						if (_flag.first & IGFD_FileStyleByTypeDir && vFileInfos->fileType == 'd')
+						{
+							if (_file.first == vFileInfos->fileExt)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+						else if (_flag.first & IGFD_FileStyleByTypeFile && vFileInfos->fileType == 'f')
+						{
+							if (_file.first == vFileInfos->fileExt)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+						else if (_flag.first & IGFD_FileStyleByTypeLink && vFileInfos->fileType == 'l')
+						{
+							if (_file.first == vFileInfos->fileExt)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+					}
+					if (_flag.first & IGFD_FileStyleByFullName)
+					{
+						if (_file.first == vFileInfos->fileNameExt)
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+
+						if (_flag.first & IGFD_FileStyleByTypeDir && vFileInfos->fileType == 'd')
+						{
+							if (_file.first == vFileInfos->fileNameExt)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+						else if (_flag.first & IGFD_FileStyleByTypeFile && vFileInfos->fileType == 'f')
+						{
+							if (_file.first == vFileInfos->fileNameExt)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+						else if (_flag.first & IGFD_FileStyleByTypeLink && vFileInfos->fileType == 'l')
+						{
+							if (_file.first == vFileInfos->fileNameExt)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+					}
+					if (_flag.first & IGFD_FileStyleByContainedInFullName)
+					{
+						if (vFileInfos->fileNameExt.find(_file.first) != std::string::npos)
+						{
+							vFileInfos->fileStyle = _file.second;
+						}
+
+						if (_flag.first & IGFD_FileStyleByTypeDir && vFileInfos->fileType == 'd')
+						{
+							if (vFileInfos->fileNameExt.find(_file.first) != std::string::npos)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+						else if (_flag.first & IGFD_FileStyleByTypeFile && vFileInfos->fileType == 'f')
+						{
+							if (vFileInfos->fileNameExt.find(_file.first) != std::string::npos)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+						else if (_flag.first & IGFD_FileStyleByTypeLink && vFileInfos->fileType == 'l')
+						{
+							if (vFileInfos->fileNameExt.find(_file.first) != std::string::npos)
+							{
+								vFileInfos->fileStyle = _file.second;
+							}
+						}
+					}
+
+					if (vFileInfos->fileStyle.use_count())
+						return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	void IGFD::FilterManager::SetFileStyle(const IGFD_FileStyleFlags& vFlags, const char* vCriteria, const ImVec4& vColor, const std::string& vIcon, ImFont* vFont)
+	{
+		std::string _criteria;
+		if (vCriteria)
+			_criteria = std::string(vCriteria);
+		prFilesStyle[vFlags][_criteria] = std::make_shared<FileStyle>(vColor, vIcon, vFont);
+		prFilesStyle[vFlags][_criteria]->flags = vFlags;
+	}
+
+	// todo : to refactor this fucking function
+	bool IGFD::FilterManager::GetFileStyle(const IGFD_FileStyleFlags& vFlags, const std::string& vCriteria, ImVec4* vOutColor, std::string* vOutIcon, ImFont **vOutFont)
+	{
+		if (vOutColor)
+		{
+			if (!prFilesStyle.empty())
+			{
+				if (prFilesStyle.find(vFlags) != prFilesStyle.end()) // found
+				{
+					if (vFlags & IGFD_FileStyleByContainedInFullName)
+					{
+						// search for vCriteria who are containing the criteria
+						for (const auto& _file : prFilesStyle.at(vFlags))
+						{
+							if (vCriteria.find(_file.first) != std::string::npos)
+							{
+								if (_file.second.use_count())
+								{
+									*vOutColor = _file.second->color;
+									if (vOutIcon)
+										*vOutIcon = _file.second->icon;
+									if (vOutFont)
+										*vOutFont = _file.second->font;
+									return true;
+								}
+							}
+						}
+					}
+					else
+					{
+						if (prFilesStyle.at(vFlags).find(vCriteria) != prFilesStyle.at(vFlags).end()) // found
+						{
+							*vOutColor = prFilesStyle[vFlags][vCriteria]->color;
+							if (vOutIcon)
+								*vOutIcon = prFilesStyle[vFlags][vCriteria]->icon;
+							if (vOutFont)
+								*vOutFont = prFilesStyle[vFlags][vCriteria]->font;
+							return true;
+						}
+					}
+				}
+				else
+				{
+					// search for flag composition
+					for (const auto& _flag : prFilesStyle)
+					{
+						if (_flag.first & vFlags)
+						{
+							if (_flag.first & IGFD_FileStyleByContainedInFullName)
+							{
+								// search for vCriteria who are containing the criteria
+								for (const auto& _file : prFilesStyle.at(_flag.first))
+								{
+									if (vCriteria.find(_file.first) != std::string::npos)
+									{
+										if (_file.second.use_count())
+										{
+											*vOutColor = _file.second->color;
+											if (vOutIcon)
+												*vOutIcon = _file.second->icon;
+											if (vOutFont)
+												*vOutFont = _file.second->font;
+											return true;
+										}
+									}
+								}
+							}
+							else
+							{
+								if (prFilesStyle.at(_flag.first).find(vCriteria) != prFilesStyle.at(_flag.first).end()) // found
+								{
+									*vOutColor = prFilesStyle[_flag.first][vCriteria]->color;
+									if (vOutIcon)
+										*vOutIcon = prFilesStyle[_flag.first][vCriteria]->icon;
+									if (vOutFont)
+										*vOutFont = prFilesStyle[_flag.first][vCriteria]->font;
+									return true;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	void IGFD::FilterManager::ClearFilesStyle()
+	{
+		prFilesStyle.clear();
+	}
+		
+	bool IGFD::FilterManager::IsCoveredByFilters(const std::string& vTag) const
+	{
+		if (!puDLGFilters.empty() && !prSelectedFilter.empty())
+		{
+			// check if current file extention is covered by current filter
+			// we do that here, for avoid doing that during filelist display
+			// for better fps
+			if (prSelectedFilter.exist(vTag) || prSelectedFilter.filter == ".*")
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool IGFD::FilterManager::DrawFilterComboBox(FileDialogInternal& vFileDialogInternal)
+	{
+		// combobox of filters
+		if (!puDLGFilters.empty())
+		{
+			ImGui::SameLine();
+
+			bool needToApllyNewFilter = false;
+
+			ImGui::PushItemWidth(FILTER_COMBO_WIDTH);
+			if (ImGui::BeginCombo("##Filters", prSelectedFilter.filter.c_str(), ImGuiComboFlags_None))
+			{
+				intptr_t i = 0;
+				for (const auto& filter : prParsedFilters)
+				{
+					const bool item_selected = (filter.filter == prSelectedFilter.filter);
+					ImGui::PushID((void*)(intptr_t)i++);
+					if (ImGui::Selectable(filter.filter.c_str(), item_selected))
+					{
+						prSelectedFilter = filter;
+						needToApllyNewFilter = true;
+					}
+					ImGui::PopID();
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::PopItemWidth();
+
+			if (needToApllyNewFilter)
+			{
+				vFileDialogInternal.puFileManager.OpenCurrentPath(vFileDialogInternal);
+			}
+
+			return needToApllyNewFilter;
+		}
+
+		return false;
+	}
+
+	IGFD::FilterManager::FilterInfos IGFD::FilterManager::GetSelectedFilter()
+	{
+		return prSelectedFilter;
+	}
+
+	std::string IGFD::FilterManager::ReplaceExtentionWithCurrentFilter(const std::string& vFile) const
+	{
+		auto result = vFile;
+
+		if (!result.empty())
+		{
+			// if not a collection we can replace the filter by the extention we want
+			if (prSelectedFilter.collectionfilters.empty())
+			{
+				size_t lastPoint = vFile.find_last_of('.');
+				if (lastPoint != std::string::npos)
+				{
+					result = result.substr(0, lastPoint);
+				}
+
+				result += prSelectedFilter.filter;
+			}
+		}
+
+		return result;
+	}
+	
+	void IGFD::FilterManager::SetDefaultFilterIfNotDefined()
+	{
+		if (prSelectedFilter.empty() && // no filter selected
+			!prParsedFilters.empty()) // filter exist
+			prSelectedFilter = *prParsedFilters.begin(); // we take the first filter
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// FILE MANAGER ///////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	IGFD::FileManager::FileManager()
+	{
+		puFsRoot = std::string(1u, PATH_SEP);
+	}
+
+	void IGFD::FileManager::OpenCurrentPath(const FileDialogInternal& vFileDialogInternal)
+	{
+		puShowDrives = false;
+		ClearComposer();
+		ClearFileLists();
+		if (puDLGDirectoryMode) // directory mode
+			SetDefaultFileName(".");
+		else
+			SetDefaultFileName(puDLGDefaultFileName);
+		ScanDir(vFileDialogInternal, GetCurrentPath());
+	}
+
+	void IGFD::FileManager::SortFields(const FileDialogInternal& vFileDialogInternal, const SortingFieldEnum& vSortingField, const bool& vCanChangeOrder)
+	{
+		if (vSortingField != SortingFieldEnum::FIELD_NONE)
+		{
+			puHeaderFileName = tableHeaderFileNameString;
+			puHeaderFileType = tableHeaderFileTypeString;
+			puHeaderFileSize = tableHeaderFileSizeString;
+			puHeaderFileDate = tableHeaderFileDateString;
+#ifdef USE_THUMBNAILS
+			puHeaderFileThumbnails = tableHeaderFileThumbnailsString;
+#endif // #ifdef USE_THUMBNAILS
+		}
+
+		if (vSortingField == SortingFieldEnum::FIELD_FILENAME)
+		{
+			if (vCanChangeOrder && puSortingField == vSortingField)
+				puSortingDirection[0] = !puSortingDirection[0];
+
+			if (puSortingDirection[0])
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileName = tableHeaderDescendingIcon + puHeaderFileName;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						// this code fail in c:\\Users with the link "All users". got a invalid comparator
+						/*
+						// use code from https://github.com/jackm97/ImGuiFileDialog/commit/bf40515f5a1de3043e60562dc1a494ee7ecd3571
+						// strict ordering for file/directory types beginning in '.'
+						// common on Linux platforms
+						if (a->fileNameExt[0] == '.' && b->fileNameExt[0] != '.')
+							return false;
+						if (a->fileNameExt[0] != '.' && b->fileNameExt[0] == '.')
+							return true;
+						if (a->fileNameExt[0] == '.' && b->fileNameExt[0] == '.')
+						{
+							return (stricmp(a->fileNameExt.c_str(), b->fileNameExt.c_str()) < 0); // sort in insensitive case
+						}
+						*/
+						if (a->fileType != b->fileType) return (a->fileType == 'd'); // directory in first
+						return (stricmp(a->fileNameExt.c_str(), b->fileNameExt.c_str()) < 0); // sort in insensitive case
+					});
+			}
+			else
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileName = tableHeaderAscendingIcon + puHeaderFileName;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						// this code fail in c:\\Users with the link "All users". got a invalid comparator
+						/*
+						// use code from https://github.com/jackm97/ImGuiFileDialog/commit/bf40515f5a1de3043e60562dc1a494ee7ecd3571
+						// strict ordering for file/directory types beginning in '.'
+						// common on Linux platforms
+						if (a->fileNameExt[0] == '.' && b->fileNameExt[0] != '.')
+							return false;
+						if (a->fileNameExt[0] != '.' && b->fileNameExt[0] == '.')
+							return true;
+						if (a->fileNameExt[0] == '.' && b->fileNameExt[0] == '.')
+						{
+							return (stricmp(a->fileNameExt.c_str(), b->fileNameExt.c_str()) > 0); // sort in insensitive case
+						}
+						*/
+						return (stricmp(a->fileNameExt.c_str(), b->fileNameExt.c_str()) > 0); // sort in insensitive case
+					});
+			}
+		}
+		else if (vSortingField == SortingFieldEnum::FIELD_TYPE)
+		{
+			if (vCanChangeOrder && puSortingField == vSortingField)
+				puSortingDirection[1] = !puSortingDirection[1];
+
+			if (puSortingDirection[1])
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileType = tableHeaderDescendingIcon + puHeaderFileType;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						if (a->fileType != b->fileType) return (a->fileType == 'd'); // directory in first
+						return (a->fileExt < b->fileExt); // else
+					});
+			}
+			else
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileType = tableHeaderAscendingIcon + puHeaderFileType;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						if (a->fileType != b->fileType) return (a->fileType != 'd'); // directory in last
+						return (a->fileExt > b->fileExt); // else
+					});
+			}
+		}
+		else if (vSortingField == SortingFieldEnum::FIELD_SIZE)
+		{
+			if (vCanChangeOrder && puSortingField == vSortingField)
+				puSortingDirection[2] = !puSortingDirection[2];
+
+			if (puSortingDirection[2])
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileSize = tableHeaderDescendingIcon + puHeaderFileSize;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						if (a->fileType != b->fileType) return (a->fileType == 'd'); // directory in first
+						return (a->fileSize < b->fileSize); // else
+					});
+			}
+			else
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileSize = tableHeaderAscendingIcon + puHeaderFileSize;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						if (a->fileType != b->fileType) return (a->fileType != 'd'); // directory in last
+						return (a->fileSize > b->fileSize); // else
+					});
+			}
+		}
+		else if (vSortingField == SortingFieldEnum::FIELD_DATE)
+		{
+			if (vCanChangeOrder && puSortingField == vSortingField)
+				puSortingDirection[3] = !puSortingDirection[3];
+
+			if (puSortingDirection[3])
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileDate = tableHeaderDescendingIcon + puHeaderFileDate;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						if (a->fileType != b->fileType) return (a->fileType == 'd'); // directory in first
+						return (a->fileModifDate < b->fileModifDate); // else
+					});
+			}
+			else
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileDate = tableHeaderAscendingIcon + puHeaderFileDate;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						if (a->fileType != b->fileType) return (a->fileType != 'd'); // directory in last
+						return (a->fileModifDate > b->fileModifDate); // else
+					});
+			}
+		}
+#ifdef USE_THUMBNAILS
+		else if (vSortingField == SortingFieldEnum::FIELD_THUMBNAILS)
+		{
+			if (vCanChangeOrder && puSortingField == vSortingField)
+				puSortingDirection[4] = !puSortingDirection[4];
+
+			// we will compare thumbnails by :
+			// 1) width 
+			// 2) height
+
+			if (puSortingDirection[4])
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileThumbnails = tableHeaderDescendingIcon + puHeaderFileThumbnails;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						if (a->fileType != b->fileType) return (a->fileType == 'd'); // directory in first
+						if (a->thumbnailInfo.textureWidth == b->thumbnailInfo.textureWidth)
+							return (a->thumbnailInfo.textureHeight < b->thumbnailInfo.textureHeight);
+						return (a->thumbnailInfo.textureWidth < b->thumbnailInfo.textureWidth);
+					});
+			}
+
+			else
+			{
+#ifdef USE_CUSTOM_SORTING_ICON
+				puHeaderFileThumbnails = tableHeaderAscendingIcon + puHeaderFileThumbnails;
+#endif // USE_CUSTOM_SORTING_ICON
+				std::sort(prFileList.begin(), prFileList.end(),
+					[](const std::shared_ptr<FileInfos>& a, const std::shared_ptr<FileInfos>& b) -> bool
+					{
+						if (!a.use_count() || !b.use_count())
+							return false;
+
+						if (a->fileType != b->fileType) return (a->fileType != 'd'); // directory in last
+						if (a->thumbnailInfo.textureWidth == b->thumbnailInfo.textureWidth)
+							return (a->thumbnailInfo.textureHeight > b->thumbnailInfo.textureHeight);
+						return (a->thumbnailInfo.textureWidth > b->thumbnailInfo.textureWidth);
+					});
+			}
+		}
+#endif // USE_THUMBNAILS
+
+		if (vSortingField != SortingFieldEnum::FIELD_NONE)
+		{
+			puSortingField = vSortingField;
+		}
+
+		ApplyFilteringOnFileList(vFileDialogInternal);
+	}
+
+	void IGFD::FileManager::ClearFileLists()
+	{
+		prFilteredFileList.clear();
+		prFileList.clear();
+	}
+
+	std::string IGFD::FileManager::prOptimizeFilenameForSearchOperations(const std::string& vFileNameExt)
+	{
+		auto fileNameExt = vFileNameExt;
+		// convert to lower case
+		for (char& c : fileNameExt)
+			c = (char)std::tolower(c);
+		return fileNameExt;
+	}
+
+	void IGFD::FileManager::AddFile(const FileDialogInternal& vFileDialogInternal, const std::string& vPath, const std::string& vFileName, const char& vFileType)
+	{
+		auto infos = std::make_shared<FileInfos>();
+
+		infos->filePath = vPath;
+		infos->fileNameExt = vFileName;
+		infos->fileNameExt_optimized = prOptimizeFilenameForSearchOperations(infos->fileNameExt);
+		infos->fileType = vFileType;
+
+		if (infos->fileNameExt.empty() || (infos->fileNameExt == "." && !vFileDialogInternal.puFilterManager.puDLGFilters.empty())) return; // filename empty or filename is the current dir '.' //-V807
+		if (infos->fileNameExt != ".." && (vFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_DontShowHiddenFiles) && infos->fileNameExt[0] == '.') // dont show hidden files
+			if (!vFileDialogInternal.puFilterManager.puDLGFilters.empty() || (vFileDialogInternal.puFilterManager.puDLGFilters.empty() && infos->fileNameExt != ".")) // except "." if in directory mode //-V728
+				return;
+
+		if (infos->fileType == 'f' ||
+			infos->fileType == 'l') // link can have the same extention of a file
+		{
+			size_t lpt = infos->fileNameExt.find_last_of('.');
+			if (lpt != std::string::npos)
+			{
+				infos->fileExt = infos->fileNameExt.substr(lpt);
+			}
+
+			if (!vFileDialogInternal.puFilterManager.IsCoveredByFilters(infos->fileExt))
+			{
+				return;
+			}
+		}
+
+		vFileDialogInternal.puFilterManager.prFillFileStyle(infos);
+
+		prCompleteFileInfos(infos);
+		prFileList.push_back(infos);
+	}
+
+	void IGFD::FileManager::ScanDir(const FileDialogInternal& vFileDialogInternal, const std::string& vPath)
+	{
+		std::string	path = vPath;
+
+		if (prCurrentPathDecomposition.empty())
+		{
+			SetCurrentDir(path);
+		}
+
+		if (!prCurrentPathDecomposition.empty())
+		{
+#ifdef WIN32
+			if (path == puFsRoot)
+				path += std::string(1u, PATH_SEP);
+#endif // WIN32
+
+			ClearFileLists();
+
+#ifdef USE_STD_FILESYSTEM
+			//const auto wpath = IGFD::Utils::WGetString(path.c_str());
+			const std::filesystem::path fspath(path);
+			const auto dir_iter = std::filesystem::directory_iterator(fspath);
+			AddFile(vFileDialogInternal, path, "..", 'd');
+			for (const auto& file : dir_iter)
+			{
+				char fileType = 0;
+				if (file.is_symlink())
+					fileType = 'l';
+				else if (file.is_directory())
+					fileType = 'd';
+				else
+					fileType = 'f';
+				auto fileNameExt = file.path().filename().string();
+				AddFile(vFileDialogInternal, path, fileNameExt, fileType);
+			}
+#else // dirent
+			struct dirent** files = nullptr;
+			size_t n = scandir(path.c_str(), &files, nullptr, inAlphaSort);
+			if (n)
+			{
+				size_t i;
+
+				for (i = 0; i < n; i++)
+				{
+					struct dirent* ent = files[i];
+
+					char fileType = 0;
+					switch (ent->d_type)
+					{
+					case DT_REG:
+						fileType = 'f'; break;
+					case DT_DIR:
+						fileType = 'd'; break;
+					case DT_LNK:
+						fileType = 'l'; break;
+					}
+
+					auto fileNameExt = ent->d_name;
+
+					AddFile(vFileDialogInternal, path, fileNameExt, fileType);
+				}
+
+				for (i = 0; i < n; i++)
+				{
+					free(files[i]);
+				}
+
+				free(files);
+			}
+#endif // USE_STD_FILESYSTEM
+
+			SortFields(vFileDialogInternal, puSortingField, false);
+		}
+	}
+
+	bool IGFD::FileManager::GetDrives()
+	{
+		auto drives = IGFD::Utils::GetDrivesList();
+		if (!drives.empty())
+		{
+			prCurrentPath.clear();
+			prCurrentPathDecomposition.clear();
+			ClearFileLists();
+			for (auto& drive : drives)
+			{
+				auto info = std::make_shared<FileInfos>();
+				info->fileNameExt = drive;
+				info->fileNameExt_optimized = prOptimizeFilenameForSearchOperations(drive);
+				info->fileType = 'd';
+
+				if (!info->fileNameExt.empty())
+				{
+					prFileList.push_back(info);
+				}
+			}
+			puShowDrives = true;
+			return true;
+		}
+		return false;
+	}
+
+	bool IGFD::FileManager::IsComposerEmpty()
+	{
+		return prCurrentPathDecomposition.empty();
+	}
+	
+	size_t IGFD::FileManager::GetComposerSize()
+	{
+		return prCurrentPathDecomposition.size();
+	}
+
+	bool IGFD::FileManager::IsFileListEmpty()
+	{
+		return prFileList.empty();
+	}
+
+	size_t IGFD::FileManager::GetFullFileListSize()
+	{
+		return prFileList.size();
+	}
+
+	std::shared_ptr<FileInfos> IGFD::FileManager::GetFullFileAt(size_t vIdx)
+	{
+		if (vIdx < prFileList.size())
+			return prFileList[vIdx];
+		return nullptr;
+	}
+
+	bool IGFD::FileManager::IsFilteredListEmpty()
+	{
+		return prFilteredFileList.empty();
+	}
+
+	size_t IGFD::FileManager::GetFilteredListSize()
+	{
+		return prFilteredFileList.size();
+	}
+
+	std::shared_ptr<FileInfos> IGFD::FileManager::GetFilteredFileAt(size_t vIdx)
+	{
+		if (vIdx < prFilteredFileList.size())
+			return prFilteredFileList[vIdx];
+		return nullptr;
+	}
+
+	bool IGFD::FileManager::IsFileNameSelected(const std::string& vFileName)
+	{
+		return prSelectedFileNames.find(vFileName) != prSelectedFileNames.end();
+	}
+
+	std::string IGFD::FileManager::GetBack()
+	{
+		return prCurrentPathDecomposition.back();
+	}
+
+	void IGFD::FileManager::ClearComposer()
+	{
+		prCurrentPathDecomposition.clear();
+	}
+
+	void IGFD::FileManager::ClearAll()
+	{
+		ClearComposer();
+		ClearFileLists();
+	}
+
+	void IGFD::FileManager::ApplyFilteringOnFileList(const FileDialogInternal& vFileDialogInternal)
+	{
+		prFilteredFileList.clear();
+		for (const auto& file : prFileList)
+		{
+			if (!file.use_count())
+				continue;
+			bool show = true;
+			if (!file->IsTagFound(vFileDialogInternal.puSearchManager.puSearchTag))  // if search tag
+				show = false;
+			if (puDLGDirectoryMode && file->fileType != 'd') // directory mode
+				show = false;
+			if (show)
+				prFilteredFileList.push_back(file);
+		}
+	}
+
+	std::string IGFD::FileManager::prRoundNumber(double vvalue, int n)
+	{
+		std::stringstream tmp;
+		tmp << std::setprecision(n) << std::fixed << vvalue;
+		return tmp.str();
+	}
+
+	std::string IGFD::FileManager::prFormatFileSize(size_t vByteSize)
+	{
+		if (vByteSize != 0)
+		{
+			static double lo = 1024.0;
+			static double ko = 1024.0 * 1024.0;
+			static double mo = 1024.0 * 1024.0 * 1024.0;
+
+			auto v = (double)vByteSize;
+
+			if (v < lo)
+				return prRoundNumber(v, 0) + " o"; // octet
+			else if (v < ko)
+				return prRoundNumber(v / lo, 2) + " Ko"; // ko
+			else  if (v < mo)
+				return prRoundNumber(v / ko, 2) + " Mo"; // Mo 
+			else
+				return prRoundNumber(v / mo, 2) + " Go"; // Go 
+		}
+
+		return "";
+	}
+
+	void IGFD::FileManager::prCompleteFileInfos(const std::shared_ptr<FileInfos>& vInfos)
+	{
+		if (!vInfos.use_count())
+			return;
+
+		if (vInfos->fileNameExt != "." &&
+			vInfos->fileNameExt != "..")
+		{
+			// _stat struct :
+			//dev_t     st_dev;     /* ID of device containing file */
+			//ino_t     st_ino;     /* inode number */
+			//mode_t    st_mode;    /* protection */
+			//nlink_t   st_nlink;   /* number of hard links */
+			//uid_t     st_uid;     /* user ID of owner */
+			//gid_t     st_gid;     /* group ID of owner */
+			//dev_t     st_rdev;    /* device ID (if special file) */
+			//off_t     st_size;    /* total size, in bytes */
+			//blksize_t st_blksize; /* blocksize for file system I/O */
+			//blkcnt_t  st_blocks;  /* number of 512B blocks allocated */
+			//time_t    st_atime;   /* time of last access - not sure out of ntfs */
+			//time_t    st_mtime;   /* time of last modification - not sure out of ntfs */
+			//time_t    st_ctime;   /* time of last status change - not sure out of ntfs */
+
+			std::string fpn;
+
+			if (vInfos->fileType == 'f' || vInfos->fileType == 'l' || vInfos->fileType == 'd') // file
+				fpn = vInfos->filePath + std::string(1u, PATH_SEP) + vInfos->fileNameExt;
+
+			struct stat statInfos = {};
+			char timebuf[100];
+			int result = stat(fpn.c_str(), &statInfos);
+			if (!result)
+			{
+				if (vInfos->fileType != 'd')
+				{
+					vInfos->fileSize = (size_t)statInfos.st_size;
+					vInfos->formatedFileSize = prFormatFileSize(vInfos->fileSize);
+				}
+
+				size_t len = 0;
+#ifdef MSVC
+				struct tm _tm;
+				errno_t err = localtime_s(&_tm, &statInfos.st_mtime);
+				if (!err) len = strftime(timebuf, 99, DateTimeFormat, &_tm);
+#else // MSVC
+				struct tm* _tm = localtime(&statInfos.st_mtime);
+				if (_tm) len = strftime(timebuf, 99, DateTimeFormat, _tm);
+#endif // MSVC
+				if (len)
+				{
+					vInfos->fileModifDate = std::string(timebuf, len);
+				}
+			}
+		}
+	}
+
+	void IGFD::FileManager::prRemoveFileNameInSelection(const std::string& vFileName)
+	{
+		prSelectedFileNames.erase(vFileName);
+
+		if (prSelectedFileNames.size() == 1)
+		{
+			snprintf(puFileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, "%s", vFileName.c_str());
+		}
+		else
+		{
+			snprintf(puFileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, "%zu files Selected", prSelectedFileNames.size());
+		}
+	}
+	
+	void IGFD::FileManager::prAddFileNameInSelection(const std::string& vFileName, bool vSetLastSelectionFileName)
+	{
+		prSelectedFileNames.emplace(vFileName);
+
+		if (prSelectedFileNames.size() == 1)
+		{
+			snprintf(puFileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, "%s", vFileName.c_str());
+		}
+		else
+		{
+			snprintf(puFileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, "%zu files Selected", prSelectedFileNames.size());
+		}
+
+		if (vSetLastSelectionFileName)
+			prLastSelectedFileName = vFileName;
+	}
+
+	void IGFD::FileManager::SetCurrentDir(const std::string& vPath)
+	{
+		std::string path = vPath;
+#ifdef WIN32
+		if (puFsRoot == path)
+			path += std::string(1u, PATH_SEP);
+#endif // WIN32
+		
+#ifdef USE_STD_FILESYSTEM
+		namespace fs = std::filesystem;
+		bool dir_opened = fs::is_directory(vPath);
+		if (!dir_opened)
+		{
+			path = ".";
+			dir_opened = fs::is_directory(vPath);
+		}
+		if (dir_opened)
+#else
+		DIR* dir = opendir(path.c_str());
+		if (dir == nullptr)
+		{
+			path = ".";
+			dir = opendir(path.c_str());
+		}
+
+		if (dir != nullptr)
+#endif // USE_STD_FILESYSTEM
+		{
+#ifdef WIN32
+			DWORD numchar = 0;
+			//			numchar = GetFullPathNameA(path.c_str(), PATH_MAX, real_path, nullptr);
+			std::wstring wpath = IGFD::Utils::string_to_wstring(path);
+			numchar = GetFullPathNameW(wpath.c_str(), 0, nullptr, nullptr);
+			std::wstring fpath(numchar, 0);
+			GetFullPathNameW(wpath.c_str(), numchar, (wchar_t*)fpath.data(), nullptr);
+			std::string real_path = IGFD::Utils::wstring_to_string(fpath);
+			if (real_path.back() == '\0') // for fix issue we can have with std::string concatenation.. if there is a \0 at end
+				real_path = real_path.substr(0, real_path.size() - 1U);
+			if (!real_path.empty())
+#elif defined(UNIX) // UNIX is LINUX or APPLE
+			char real_path[PATH_MAX]; 
+			char* numchar = realpath(path.c_str(), real_path);
+			if (numchar != nullptr)
+#endif // WIN32
+			{
+				prCurrentPath = std::move(real_path);
+				if (prCurrentPath[prCurrentPath.size() - 1] == PATH_SEP)
+				{
+					prCurrentPath = prCurrentPath.substr(0, prCurrentPath.size() - 1);
+				}
+				IGFD::Utils::SetBuffer(puInputPathBuffer, MAX_PATH_BUFFER_SIZE, prCurrentPath);
+				prCurrentPathDecomposition = IGFD::Utils::SplitStringToVector(prCurrentPath, PATH_SEP, false);
+#ifdef UNIX // UNIX is LINUX or APPLE
+				prCurrentPathDecomposition.insert(prCurrentPathDecomposition.begin(), std::string(1u, PATH_SEP));
+#endif // UNIX
+				if (!prCurrentPathDecomposition.empty())
+				{
+#ifdef WIN32
+					puFsRoot = prCurrentPathDecomposition[0];
+#endif // WIN32
+				}
+			}
+#ifndef USE_STD_FILESYSTEM
+			closedir(dir);
+#endif
+		}
+	}
+
+	bool IGFD::FileManager::CreateDir(const std::string& vPath)
+	{
+		bool res = false;
+
+		if (!vPath.empty())
+		{
+			std::string path = prCurrentPath + std::string(1u, PATH_SEP) + vPath;
+
+			res = IGFD::Utils::CreateDirectoryIfNotExist(path);
+		}
+
+		return res;
+	}
+
+	void IGFD::FileManager::ComposeNewPath(std::vector<std::string>::iterator vIter)
+	{
+		std::string res;
+
+		while (true)
+		{
+			if (!res.empty())
+			{
+#ifdef WIN32
+				res = *vIter + std::string(1u, PATH_SEP) + res;
+#elif defined(UNIX) // UNIX is LINUX or APPLE
+				if (*vIter == puFsRoot)
+					res = *vIter + res;
+				else
+					res = *vIter + PATH_SEP + res;
+#endif // WIN32
+			}
+			else
+				res = *vIter;
+
+			if (vIter == prCurrentPathDecomposition.begin())
+			{
+#if defined(UNIX) // UNIX is LINUX or APPLE
+				if (res[0] != PATH_SEP)
+					res = PATH_SEP + res;
+#endif // defined(UNIX)
+				break;
+			}
+
+			--vIter;
+		}
+
+		prCurrentPath = std::move(res);
+	}
+
+	bool IGFD::FileManager::SetPathOnParentDirectoryIfAny()
+	{
+		if (prCurrentPathDecomposition.size() > 1)
+		{
+			ComposeNewPath(prCurrentPathDecomposition.end() - 2);
+			return true;
+		}
+		return false;
+	}
+
+	std::string IGFD::FileManager::GetCurrentPath()
+	{
+		if (prCurrentPath.empty())
+			prCurrentPath = ".";
+		return prCurrentPath;
+	}
+
+	void IGFD::FileManager::SetCurrentPath(const std::string& vCurrentPath)
+	{
+		if (vCurrentPath.empty())
+			prCurrentPath = ".";
+		else
+			prCurrentPath = vCurrentPath;
+	}
+
+	bool IGFD::FileManager::IsFileExist(const std::string& vFile)
+	{
+		std::ifstream docFile(vFile, std::ios::in);
+		if (docFile.is_open())
+		{
+			docFile.close();
+			return true;
+		}
+		return false;
+	}
+
+	void IGFD::FileManager::SetDefaultFileName(const std::string& vFileName)
+	{
+		puDLGDefaultFileName = vFileName;
+		IGFD::Utils::SetBuffer(puFileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, vFileName);
+	}
+
+	bool IGFD::FileManager::SelectDirectory(const std::shared_ptr<FileInfos>& vInfos)
+	{
+		if (!vInfos.use_count())
+			return false;
+
+		bool pathClick = false;
+
+		if (vInfos->fileNameExt == "..")
+		{
+			pathClick = SetPathOnParentDirectoryIfAny();
+		}
+		else
+		{
+			std::string newPath;
+
+			if (puShowDrives)
+			{
+				newPath = vInfos->fileNameExt + std::string(1u, PATH_SEP);
+			}
+			else
+			{
+#ifdef __linux__
+				if (puFsRoot == prCurrentPath)
+					newPath = prCurrentPath + vInfos->fileNameExt;
+				else
+#endif // __linux__
+					newPath = prCurrentPath + std::string(1u, PATH_SEP) + vInfos->fileNameExt;
+			}
+
+			if (IGFD::Utils::IsDirectoryExist(newPath))
+			{
+				if (puShowDrives)
+				{
+					prCurrentPath = vInfos->fileNameExt;
+					puFsRoot = prCurrentPath;
+				}
+				else
+				{
+					prCurrentPath = newPath; //-V820
+				}
+				pathClick = true;
+			}
+		}
+
+		return pathClick;
+	}
+
+	void IGFD::FileManager::SelectFileName(const FileDialogInternal& vFileDialogInternal, const std::shared_ptr<FileInfos>& vInfos)
+	{
+		if (!vInfos.use_count())
+			return;
+
+		if (ImGui::GetIO().KeyCtrl)
+		{
+			if (puDLGcountSelectionMax == 0) // infinite selection
+			{
+				if (prSelectedFileNames.find(vInfos->fileNameExt) == prSelectedFileNames.end()) // not found +> add
+				{
+					prAddFileNameInSelection(vInfos->fileNameExt, true);
+				}
+				else // found +> remove
+				{
+					prRemoveFileNameInSelection(vInfos->fileNameExt);
+				}
+			}
+			else // selection limited by size
+			{
+				if (prSelectedFileNames.size() < puDLGcountSelectionMax)
+				{
+					if (prSelectedFileNames.find(vInfos->fileNameExt) == prSelectedFileNames.end()) // not found +> add
+					{
+						prAddFileNameInSelection(vInfos->fileNameExt, true);
+					}
+					else // found +> remove
+					{
+						prRemoveFileNameInSelection(vInfos->fileNameExt);
+					}
+				}
+			}
+		}
+		else if (ImGui::GetIO().KeyShift)
+		{
+			if (puDLGcountSelectionMax != 1)
+			{
+				prSelectedFileNames.clear();
+				// we will iterate filelist and get the last selection after the start selection
+				bool startMultiSelection = false;
+				std::string fileNameToSelect = vInfos->fileNameExt;
+				std::string savedLastSelectedFileName; // for invert selection mode
+				for (const auto& file : prFileList)
+				{
+					if (!file.use_count())
+						continue;
+
+					bool canTake = true;
+					if (!file->IsTagFound(vFileDialogInternal.puSearchManager.puSearchTag)) canTake = false;
+					if (canTake) // if not filtered, we will take files who are filtered by the dialog
+					{
+						if (file->fileNameExt == prLastSelectedFileName)
+						{
+							startMultiSelection = true;
+							prAddFileNameInSelection(prLastSelectedFileName, false);
+						}
+						else if (startMultiSelection)
+						{
+							if (puDLGcountSelectionMax == 0) // infinite selection
+							{
+								prAddFileNameInSelection(file->fileNameExt, false);
+							}
+							else // selection limited by size
+							{
+								if (prSelectedFileNames.size() < puDLGcountSelectionMax)
+								{
+									prAddFileNameInSelection(file->fileNameExt, false);
+								}
+								else
+								{
+									startMultiSelection = false;
+									if (!savedLastSelectedFileName.empty())
+										prLastSelectedFileName = savedLastSelectedFileName;
+									break;
+								}
+							}
+						}
+
+						if (file->fileNameExt == fileNameToSelect)
+						{
+							if (!startMultiSelection) // we are before the last Selected FileName, so we must inverse
+							{
+								savedLastSelectedFileName = prLastSelectedFileName;
+								prLastSelectedFileName = fileNameToSelect;
+								fileNameToSelect = savedLastSelectedFileName;
+								startMultiSelection = true;
+								prAddFileNameInSelection(prLastSelectedFileName, false);
+							}
+							else
+							{
+								startMultiSelection = false;
+								if (!savedLastSelectedFileName.empty())
+									prLastSelectedFileName = savedLastSelectedFileName;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			prSelectedFileNames.clear();
+			IGFD::Utils::ResetBuffer(puFileNameBuffer);
+			prAddFileNameInSelection(vInfos->fileNameExt, true);
+		}
+	}
+
+	void IGFD::FileManager::DrawDirectoryCreation(const FileDialogInternal& vFileDialogInternal)
+	{
+		if (vFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_DisableCreateDirectoryButton)
+			return;
+
+		if (IMGUI_BUTTON(createDirButtonString))
+		{
+			if (!prCreateDirectoryMode)
+			{
+				prCreateDirectoryMode = true;
+				IGFD::Utils::ResetBuffer(puDirectoryNameBuffer);
+			}
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(buttonCreateDirString);
+
+		if (prCreateDirectoryMode)
+		{
+			ImGui::SameLine();
+
+			ImGui::PushItemWidth(100.0f);
+			ImGui::InputText("##DirectoryFileName", puDirectoryNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER);
+			ImGui::PopItemWidth();
+
+			ImGui::SameLine();
+
+			if (IMGUI_BUTTON(okButtonString))
+			{
+				std::string newDir = std::string(puDirectoryNameBuffer);
+				if (CreateDir(newDir))
+				{
+					SetCurrentPath(prCurrentPath + std::string(1u, PATH_SEP) + newDir);
+					OpenCurrentPath(vFileDialogInternal);
+				}
+
+				prCreateDirectoryMode = false;
+			}
+
+			ImGui::SameLine();
+
+			if (IMGUI_BUTTON(cancelButtonString))
+			{
+				prCreateDirectoryMode = false;
+			}
+		}
+	}
+
+	void IGFD::FileManager::DrawPathComposer(const FileDialogInternal& vFileDialogInternal)
+	{
+		if (IMGUI_BUTTON(resetButtonString))
+		{
+			SetCurrentPath(".");
+			OpenCurrentPath(vFileDialogInternal);
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(buttonResetPathString);
+
+#ifdef WIN32
+		ImGui::SameLine();
+
+		if (IMGUI_BUTTON(drivesButtonString))
+		{
+			puDrivesClicked = true;
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(buttonDriveString);
+#endif // WIN32
+
+		ImGui::SameLine();
+		
+		if (IMGUI_BUTTON(editPathButtonString))
+		{
+			puInputPathActivated = true;
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(buttonEditPathString);
+
+		ImGui::SameLine();
+
+		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+
+		// show current path
+		if (!prCurrentPathDecomposition.empty())
+		{
+			ImGui::SameLine();
+
+			if (puInputPathActivated)
+			{
+				ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::InputText("##pathedition", puInputPathBuffer, MAX_PATH_BUFFER_SIZE);
+				ImGui::PopItemWidth();
+			}
+			else
+			{
+				int _id = 0;
+				for (auto itPathDecomp = prCurrentPathDecomposition.begin();
+					itPathDecomp != prCurrentPathDecomposition.end(); ++itPathDecomp)
+				{
+					if (itPathDecomp != prCurrentPathDecomposition.begin())
+						ImGui::SameLine();
+					ImGui::PushID(_id++);
+					bool click = IMGUI_PATH_BUTTON((*itPathDecomp).c_str());
+					ImGui::PopID();
+					if (click)
+					{
+						ComposeNewPath(itPathDecomp);
+						puPathClicked = true;
+						break;
+					}
+					// activate input for path
+					if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+					{
+						ComposeNewPath(itPathDecomp);
+						IGFD::Utils::SetBuffer(puInputPathBuffer, MAX_PATH_BUFFER_SIZE, prCurrentPath);
+						puInputPathActivated = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	std::string IGFD::FileManager::GetResultingPath()
+	{
+		std::string path = prCurrentPath;
+
+		if (puDLGDirectoryMode) // if directory mode
+		{
+			std::string selectedDirectory = puFileNameBuffer;
+			if (!selectedDirectory.empty() &&
+				selectedDirectory != ".")
+				path += std::string(1u, PATH_SEP) + selectedDirectory;
+		}
+
+		return path;
+	}
+
+	std::string IGFD::FileManager::GetResultingFileName(FileDialogInternal& vFileDialogInternal)
+	{
+		if (!puDLGDirectoryMode) // if not directory mode
+		{
+			return vFileDialogInternal.puFilterManager.ReplaceExtentionWithCurrentFilter(std::string(puFileNameBuffer));
+		}
+
+		return ""; // directory mode
+	}
+
+	std::string IGFD::FileManager::GetResultingFilePathName(FileDialogInternal& vFileDialogInternal)
+	{
+		std::string result = GetResultingPath();
+
+		std::string filename = GetResultingFileName(vFileDialogInternal);
+		if (!filename.empty())
+		{
+#ifdef UNIX
+			if (puFsRoot != result)
+#endif // UNIX
+				result += std::string(1u, PATH_SEP);
+
+			result += filename;
+		}
+
+		return result;
+	}
+
+	std::map<std::string, std::string> IGFD::FileManager::GetResultingSelection()
+	{
+		std::map<std::string, std::string> res;
+
+		for (auto& selectedFileName : prSelectedFileNames)
+		{
+			std::string result = GetResultingPath();
+
+#ifdef UNIX
+			if (puFsRoot != result)
+#endif // UNIX
+				result += std::string(1u, PATH_SEP);
+
+			result += selectedFileName;
+
+			res[selectedFileName] = result;
+		}
+
+		return res;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// FILE DIALOG INTERNAL ///////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	void IGFD::FileDialogInternal::NewFrame()
+	{
+		puCanWeContinue = true;	// reset flag for possibily validate the dialog
+		puIsOk = false;				// reset dialog result
+		puFileManager.puDrivesClicked = false;
+		puFileManager.puPathClicked = false;
+		
+		puNeedToExitDialog = false;
+
+#ifdef USE_DIALOG_EXIT_WITH_KEY
+		if (ImGui::IsKeyPressed(IGFD_EXIT_KEY))
+		{
+			// we do that here with the data's defined at the last frame
+			// because escape key can quit input activation and at the end of the frame all flag will be false
+			// so we will detect nothing
+			if (!(puFileManager.puInputPathActivated ||
+				puSearchManager.puSearchInputIsActive ||
+				puFileInputIsActive ||
+				puFileListViewIsActive))
+			{
+				puNeedToExitDialog = true; // need to quit dialog
+			}
+		}
+		else
+#endif
+		{
+			puSearchManager.puSearchInputIsActive = false;
+			puFileInputIsActive = false;
+			puFileListViewIsActive = false;
+		}
+	}
+
+	void IGFD::FileDialogInternal::EndFrame()
+	{
+		// directory change
+		if (puFileManager.puPathClicked)
+		{
+			puFileManager.OpenCurrentPath(*this);
+		}
+
+		if (puFileManager.puDrivesClicked)
+		{
+			if (puFileManager.GetDrives())
+			{
+				puFileManager.ApplyFilteringOnFileList(*this);
+			}
+		}
+
+		if (puFileManager.puInputPathActivated)
+		{
+			auto gio = ImGui::GetIO();
+			if (ImGui::IsKeyReleased(gio.KeyMap[ImGuiKey_Enter]))
+			{
+				puFileManager.SetCurrentPath(std::string(puFileManager.puInputPathBuffer));
+				puFileManager.OpenCurrentPath(*this);
+				puFileManager.puInputPathActivated = false;
+			}
+			if (ImGui::IsKeyReleased(gio.KeyMap[ImGuiKey_Escape]))
+			{
+				puFileManager.puInputPathActivated = false;
+			}
+		}
+	}
+
+	void IGFD::FileDialogInternal::ResetForNewDialog()
+	{
+	
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// THUMBNAIL FEATURE //////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	IGFD::ThumbnailFeature::ThumbnailFeature()
+	{
+#ifdef USE_THUMBNAILS
+		prDisplayMode = DisplayModeEnum::FILE_LIST;
+#endif
+	}
+
+	IGFD::ThumbnailFeature::~ThumbnailFeature()	= default;
+
+	void IGFD::ThumbnailFeature::NewThumbnailFrame(FileDialogInternal& vFileDialogInternal)
+	{
+		(void)vFileDialogInternal;
+
+#ifdef USE_THUMBNAILS
+		prStartThumbnailFileDatasExtraction();
+#endif
+	}
+
+	void IGFD::ThumbnailFeature::EndThumbnailFrame(FileDialogInternal& vFileDialogInternal)
+	{
+#ifdef USE_THUMBNAILS
+		prClearThumbnails(vFileDialogInternal);
+#endif
+	}
+
+	void IGFD::ThumbnailFeature::QuitThumbnailFrame(FileDialogInternal& vFileDialogInternal)
+	{
+#ifdef USE_THUMBNAILS
+		prStopThumbnailFileDatasExtraction();
+		prClearThumbnails(vFileDialogInternal);
+#endif
+	}
+
+#ifdef USE_THUMBNAILS
+	void IGFD::ThumbnailFeature::prStartThumbnailFileDatasExtraction()
+	{
+		const bool res = prThumbnailGenerationThread.use_count() && prThumbnailGenerationThread->joinable();
+		if (!res)
+		{
+			prIsWorking = true;
+			prCountFiles = 0U;
+			prThumbnailGenerationThread = std::shared_ptr<std::thread>(
+				new std::thread(&IGFD::ThumbnailFeature::prThreadThumbnailFileDatasExtractionFunc, this),
+				[this](std::thread* obj)
+				{
+					prIsWorking = false;
+					if (obj)
+						obj->join();
+				});
+		}
+	}
+
+	bool IGFD::ThumbnailFeature::prStopThumbnailFileDatasExtraction()
+	{
+		const bool res = prThumbnailGenerationThread.use_count() && prThumbnailGenerationThread->joinable();
+		if (res)
+		{
+			prThumbnailGenerationThread.reset();
+		}
+
+		return res;
+	}
+	
+	void IGFD::ThumbnailFeature::prThreadThumbnailFileDatasExtractionFunc()
+	{
+		prCountFiles = 0U;
+		prIsWorking = true;
+
+		// infinite loop while is thread working
+		while(prIsWorking)
+		{
+			if (!prThumbnailFileDatasToGet.empty())
+			{
+				std::shared_ptr<FileInfos> file = nullptr;
+				prThumbnailFileDatasToGetMutex.lock();
+				//get the first file in the list
+				file = (*prThumbnailFileDatasToGet.begin());
+				prThumbnailFileDatasToGetMutex.unlock();
+
+				// retrieve datas of the texture file if its an image file
+				if (file.use_count())
+				{
+					if (file->fileType == 'f') //-V522
+					{
+						if (file->fileExt == ".png"
+							|| file->fileExt == ".bmp"
+							|| file->fileExt == ".tga"
+							|| file->fileExt == ".jpg" || file->fileExt == ".jpeg"
+							|| file->fileExt == ".gif"
+							|| file->fileExt == ".psd"
+							|| file->fileExt == ".pic"
+							|| file->fileExt == ".ppm" || file->fileExt == ".pgm"
+							//|| file->fileExt == ".hdr" => format float so in few times
+							)
+						{
+							auto fpn = file->filePath + std::string(1u, PATH_SEP) + file->fileNameExt;
+
+							int w = 0;
+							int h = 0;
+							int chans = 0;
+							uint8_t *datas = stbi_load(fpn.c_str(), &w, &h, &chans, STBI_rgb_alpha);
+							if (datas)
+							{
+								if (w && h)
+								{
+									// resize with respect to glyph ratio
+									const float ratioX = (float)w / (float)h;
+									const float newX = DisplayMode_ThumbailsList_ImageHeight * ratioX;
+									float newY = w / ratioX;
+									if (newX < w) 
+										newY = DisplayMode_ThumbailsList_ImageHeight;
+
+									const auto newWidth = (int)newX;
+									const auto newHeight = (int)newY;
+									const auto newBufSize = (size_t)(newWidth * newHeight * 4U); //-V112 //-V1028
+									auto resizedData = new uint8_t[newBufSize];
+									
+									const int resizeSucceeded = stbir_resize_uint8(
+										datas, w, h, 0,
+										resizedData, newWidth, newHeight, 0,
+										4); //-V112
+
+									if (resizeSucceeded)
+									{
+										auto th = &file->thumbnailInfo;
+
+										th->textureFileDatas = resizedData;
+										th->textureWidth = newWidth;
+										th->textureHeight = newHeight;
+										th->textureChannels = 4; //-V112
+
+										// we set that at least, because will launch the gpu creation of the texture in the main thread
+										th->isReadyToUpload = true;
+
+										// need gpu loading
+										prAddThumbnailToCreate(file);
+									}
+								}
+								else
+								{
+									printf("image loading fail : w:%i h:%i c:%i\n", w, h, 4); //-V112
+								}
+
+								stbi_image_free(datas);
+							}
+						}
+					}
+
+					// peu importe le resultat on vire le fichicer
+					// remove form this list
+					// write => thread concurency issues
+					prThumbnailFileDatasToGetMutex.lock();
+					prThumbnailFileDatasToGet.pop_front();
+					prThumbnailFileDatasToGetMutex.unlock();
+				}
+			}
+		}
+	}
+
+	inline void inVariadicProgressBar(float fraction, const ImVec2& size_arg, const char* fmt, ...)
+	{
+		va_list args;
+		va_start(args, fmt);
+		char TempBuffer[512];
+		const int w = vsnprintf(TempBuffer, 511, fmt, args);
+		va_end(args);
+		if (w)
+		{
+			ImGui::ProgressBar(fraction, size_arg, TempBuffer);
+		}
+	}
+
+	void IGFD::ThumbnailFeature::prDrawThumbnailGenerationProgress()
+	{
+		if (prThumbnailGenerationThread.use_count() && prThumbnailGenerationThread->joinable())
+		{
+			if (!prThumbnailFileDatasToGet.empty())
+			{
+				const auto p = (float)((double)prCountFiles / (double)prThumbnailFileDatasToGet.size()); // read => no thread concurency issues
+				inVariadicProgressBar(p, ImVec2(50, 0), "%u/%u", prCountFiles, (uint32_t)prThumbnailFileDatasToGet.size()); // read => no thread concurency issues
+				ImGui::SameLine();
+			}
+		}
+	}
+
+	void IGFD::ThumbnailFeature::prAddThumbnailToLoad(const std::shared_ptr<FileInfos>& vFileInfos)
+	{
+		if (vFileInfos.use_count())
+		{
+			if (vFileInfos->fileType == 'f')
+			{
+				if (vFileInfos->fileExt == ".png"
+					|| vFileInfos->fileExt == ".bmp"
+					|| vFileInfos->fileExt == ".tga"
+					|| vFileInfos->fileExt == ".jpg" || vFileInfos->fileExt == ".jpeg"
+					|| vFileInfos->fileExt == ".gif"
+					|| vFileInfos->fileExt == ".psd"
+					|| vFileInfos->fileExt == ".pic"
+					|| vFileInfos->fileExt == ".ppm" || vFileInfos->fileExt == ".pgm"
+					//|| file->fileExt == ".hdr" => format float so in few times
+					)
+				{
+					// write => thread concurency issues
+					prThumbnailFileDatasToGetMutex.lock();
+					prThumbnailFileDatasToGet.push_back(vFileInfos);
+					vFileInfos->thumbnailInfo.isLoadingOrLoaded = true;
+					prThumbnailFileDatasToGetMutex.unlock();
+				}
+			}
+		}
+	}
+	
+	void IGFD::ThumbnailFeature::prAddThumbnailToCreate(const std::shared_ptr<FileInfos>& vFileInfos)
+	{
+		if (vFileInfos.use_count())
+		{
+			// write => thread concurency issues
+			prThumbnailToCreateMutex.lock();
+			prThumbnailToCreate.push_back(vFileInfos);
+			prThumbnailToCreateMutex.unlock();
+		}
+	}
+
+	void IGFD::ThumbnailFeature::prAddThumbnailToDestroy(const IGFD_Thumbnail_Info& vIGFD_Thumbnail_Info)
+	{
+		// write => thread concurency issues
+		prThumbnailToDestroyMutex.lock();
+		prThumbnailToDestroy.push_back(vIGFD_Thumbnail_Info);
+		prThumbnailToDestroyMutex.unlock();
+	}
+
+	void IGFD::ThumbnailFeature::prDrawDisplayModeToolBar()
+	{
+		if (IMGUI_RADIO_BUTTON(DisplayMode_FilesList_ButtonString,
+			prDisplayMode == DisplayModeEnum::FILE_LIST))
+			prDisplayMode = DisplayModeEnum::FILE_LIST;
+		if (ImGui::IsItemHovered())	ImGui::SetTooltip(DisplayMode_FilesList_ButtonHelp);
+		ImGui::SameLine();
+		if (IMGUI_RADIO_BUTTON(DisplayMode_ThumbailsList_ButtonString,
+			prDisplayMode == DisplayModeEnum::THUMBNAILS_LIST))
+			prDisplayMode = DisplayModeEnum::THUMBNAILS_LIST;
+		if (ImGui::IsItemHovered())	ImGui::SetTooltip(DisplayMode_ThumbailsList_ButtonHelp);
+		ImGui::SameLine();
+		/* todo
+		if (IMGUI_RADIO_BUTTON(DisplayMode_ThumbailsGrid_ButtonString,
+			prDisplayMode == DisplayModeEnum::THUMBNAILS_GRID))
+			prDisplayMode = DisplayModeEnum::THUMBNAILS_GRID;
+		if (ImGui::IsItemHovered())	ImGui::SetTooltip(DisplayMode_ThumbailsGrid_ButtonHelp);
+		ImGui::SameLine();
+		*/
+		prDrawThumbnailGenerationProgress();
+	}
+
+	void IGFD::ThumbnailFeature::prClearThumbnails(FileDialogInternal& vFileDialogInternal)
+	{
+		// directory wil be changed so the file list will be erased
+		if (vFileDialogInternal.puFileManager.puPathClicked)
+		{
+			size_t count = vFileDialogInternal.puFileManager.GetFullFileListSize();
+			for (size_t idx = 0U; idx < count; idx++)
+			{
+				auto file = vFileDialogInternal.puFileManager.GetFullFileAt(idx);
+				if (file.use_count())
+				{
+					if (file->thumbnailInfo.isReadyToDisplay) //-V522
+					{
+						prAddThumbnailToDestroy(file->thumbnailInfo);
+					}
+				}
+			}
+		}
+	}
+
+	void IGFD::ThumbnailFeature::SetCreateThumbnailCallback(const CreateThumbnailFun& vCreateThumbnailFun)
+	{
+		prCreateThumbnailFun = vCreateThumbnailFun;
+	}
+
+	void IGFD::ThumbnailFeature::SetDestroyThumbnailCallback(const DestroyThumbnailFun& vCreateThumbnailFun)
+	{
+		prDestroyThumbnailFun = vCreateThumbnailFun;
+	}
+
+	void IGFD::ThumbnailFeature::ManageGPUThumbnails()
+	{
+		if (prCreateThumbnailFun)
+		{
+			if (!prThumbnailToCreate.empty())
+			{
+				for (const auto& file : prThumbnailToCreate)
+				{
+					if (file.use_count())
+					{
+						prCreateThumbnailFun(&file->thumbnailInfo);
+					}
+				}
+				prThumbnailToCreateMutex.lock();
+				prThumbnailToCreate.clear();
+				prThumbnailToCreateMutex.unlock();
+			}
+		}
+		else
+		{
+			printf("No Callback found for create texture\nYou need to define the callback with a call to SetCreateThumbnailCallback\n");
+		}
+
+		if (prDestroyThumbnailFun)
+		{
+			if (!prThumbnailToDestroy.empty())
+			{
+				for (auto thumbnail : prThumbnailToDestroy)
+				{
+					prDestroyThumbnailFun(&thumbnail);
+				}
+				prThumbnailToDestroyMutex.lock();
+				prThumbnailToDestroy.clear();
+				prThumbnailToDestroyMutex.unlock();
+			}
+		}
+		else
+		{
+		printf("No Callback found for destroy texture\nYou need to define the callback with a call to SetCreateThumbnailCallback\n");
+		}
+	}
+
+#endif // USE_THUMBNAILS
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// BOOKMARK FEATURE ///////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	IGFD::BookMarkFeature::BookMarkFeature()
+	{
 #ifdef USE_BOOKMARK
-		m_BookmarkPaneShown = false;
-		m_BookmarkWidth = defaultBookmarkPaneWith;
+		prBookmarkWidth = defaultBookmarkPaneWith;
 #endif // USE_BOOKMARK
 	}
 
-	IGFD::FileDialog::~FileDialog() = default;
+#ifdef USE_BOOKMARK
+	void IGFD::BookMarkFeature::prDrawBookmarkButton()
+	{
+		IMGUI_TOGGLE_BUTTON(bookmarksButtonString, &prBookmarkPaneShown);
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	///// CUSTOM SELECTABLE (Flashing Support) ///////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(bookmarksButtonHelpString);
+	}
+	bool IGFD::BookMarkFeature::prDrawBookmarkPane(FileDialogInternal& vFileDialogInternal, const ImVec2& vSize)
+	{
+		bool res = false;
+
+		ImGui::BeginChild("##bookmarkpane", vSize);
+
+		static int selectedBookmarkForEdition = -1;
+
+		if (IMGUI_BUTTON(addBookmarkButtonString "##ImGuiFileDialogAddBookmark"))
+		{
+			if (!vFileDialogInternal.puFileManager.IsComposerEmpty())
+			{
+				BookmarkStruct bookmark;
+				bookmark.name = vFileDialogInternal.puFileManager.GetBack();
+				bookmark.path = vFileDialogInternal.puFileManager.GetCurrentPath();
+				prBookmarks.push_back(bookmark);
+			}
+		}
+		if (selectedBookmarkForEdition >= 0 &&
+			selectedBookmarkForEdition < (int)prBookmarks.size())
+		{
+			ImGui::SameLine();
+			if (IMGUI_BUTTON(removeBookmarkButtonString "##ImGuiFileDialogAddBookmark"))
+			{
+				prBookmarks.erase(prBookmarks.begin() + selectedBookmarkForEdition);
+				if (selectedBookmarkForEdition == (int)prBookmarks.size())
+					selectedBookmarkForEdition--;
+			}
+
+			if (selectedBookmarkForEdition >= 0 &&
+				selectedBookmarkForEdition < (int)prBookmarks.size())
+			{
+				ImGui::SameLine();
+
+				ImGui::PushItemWidth(vSize.x - ImGui::GetCursorPosX());
+				if (ImGui::InputText("##ImGuiFileDialogBookmarkEdit", prBookmarkEditBuffer, MAX_FILE_DIALOG_NAME_BUFFER))
+				{
+					prBookmarks[(size_t)selectedBookmarkForEdition].name = std::string(prBookmarkEditBuffer);
+				}
+				ImGui::PopItemWidth();
+			}
+		}
+
+		ImGui::Separator();
+
+		if (!prBookmarks.empty())
+		{
+			prBookmarkClipper.Begin((int)prBookmarks.size(), ImGui::GetTextLineHeightWithSpacing());
+			while (prBookmarkClipper.Step())
+			{
+				for (int i = prBookmarkClipper.DisplayStart; i < prBookmarkClipper.DisplayEnd; i++)
+				{
+					if (i < 0) continue;
+					const BookmarkStruct& bookmark = prBookmarks[(size_t)i];
+					ImGui::PushID(i);
+					if (ImGui::Selectable(bookmark.name.c_str(), selectedBookmarkForEdition == i,
+						ImGuiSelectableFlags_AllowDoubleClick) |
+						(selectedBookmarkForEdition == -1 &&
+							bookmark.path == vFileDialogInternal.puFileManager.GetCurrentPath())) // select if path is current
+					{
+						selectedBookmarkForEdition = i;
+						IGFD::Utils::ResetBuffer(prBookmarkEditBuffer);
+						IGFD::Utils::AppendToBuffer(prBookmarkEditBuffer, MAX_FILE_DIALOG_NAME_BUFFER, bookmark.name);
+
+						if (ImGui::IsMouseDoubleClicked(0)) // apply path
+						{
+							vFileDialogInternal.puFileManager.SetCurrentPath(bookmark.path);
+							vFileDialogInternal.puFileManager.OpenCurrentPath(vFileDialogInternal);
+							res = true;
+						}
+					}
+					ImGui::PopID();
+					if (ImGui::IsItemHovered())
+						ImGui::SetTooltip("%s", bookmark.path.c_str()); //-V111
+				}
+			}
+			prBookmarkClipper.End();
+		}
+
+		ImGui::EndChild();
+
+		return res;
+	}
+
+	std::string IGFD::BookMarkFeature::SerializeBookmarks()
+	{
+		std::string res;
+
+		size_t idx = 0;
+		for (auto& it : prBookmarks)
+		{
+			if (idx++ != 0)
+				res += "##"; // ## because reserved by imgui, so an input text cant have ##
+			res += it.name + "##" + it.path;
+		}
+
+		return res;
+	}
+
+	void IGFD::BookMarkFeature::DeserializeBookmarks(const std::string& vBookmarks)
+	{
+		if (!vBookmarks.empty())
+		{
+			prBookmarks.clear();
+			auto arr = IGFD::Utils::SplitStringToVector(vBookmarks, '#', false);
+			for (size_t i = 0; i < arr.size(); i += 2)
+			{
+				BookmarkStruct bookmark;
+				bookmark.name = arr[i];
+				if (i + 1 < arr.size()) // for avoid crash if arr size is impair due to user mistake after edition
+				{
+					// if bad format we jump this bookmark
+					bookmark.path = arr[i + 1];
+					prBookmarks.push_back(bookmark);
+				}
+			}
+		}
+	}
+#endif // USE_BOOKMARK
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// KEY EXPLORER FEATURE ///////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	KeyExplorerFeature::KeyExplorerFeature() = default;
+
 #ifdef USE_EXPLORATION_BY_KEYS
-	bool IGFD::FileDialog::FlashableSelectable(const char* label, bool selected,
+	bool IGFD::KeyExplorerFeature::prLocateItem_Loop(FileDialogInternal& vFileDialogInternal, ImWchar vC)
+	{
+		bool found = false;
+
+		auto& fdi = vFileDialogInternal.puFileManager;
+		if (!fdi.IsFilteredListEmpty())
+		{
+			auto countFiles = fdi.GetFilteredListSize();
+			for (size_t i = prLocateFileByInputChar_lastFileIdx; i < countFiles; i++)
+			{
+				auto nfo = fdi.GetFilteredFileAt(i);
+				if (nfo.use_count())
+				{
+					if (nfo->fileNameExt_optimized[0] == vC || // lower case search //-V522
+						nfo->fileNameExt[0] == vC) // maybe upper case search
+					{
+						//float p = ((float)i) * ImGui::GetTextLineHeightWithSpacing();
+						float p = (float)((double)i / (double)countFiles) * ImGui::GetScrollMaxY();
+						ImGui::SetScrollY(p);
+						prLocateFileByInputChar_lastFound = true;
+						prLocateFileByInputChar_lastFileIdx = i;
+						prStartFlashItem(prLocateFileByInputChar_lastFileIdx);
+
+						auto infos = fdi.GetFilteredFileAt(prLocateFileByInputChar_lastFileIdx);
+						if (infos.use_count())
+						{
+							if (infos->fileType == 'd') //-V522
+							{
+								if (fdi.puDLGDirectoryMode) // directory chooser
+								{
+									fdi.SelectFileName(vFileDialogInternal, infos);
+								}
+							}
+							else
+							{
+								fdi.SelectFileName(vFileDialogInternal, infos);
+							}
+
+							found = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		return found;
+	}
+
+	void IGFD::KeyExplorerFeature::prLocateByInputKey(FileDialogInternal& vFileDialogInternal)
+	{
+		ImGuiContext& g = *GImGui;
+		auto& fdi = vFileDialogInternal.puFileManager;
+		if (!g.ActiveId && !fdi.IsFilteredListEmpty())
+		{
+			auto& queueChar = ImGui::GetIO().InputQueueCharacters;
+			auto countFiles = fdi.GetFilteredListSize();
+
+			// point by char
+			if (!queueChar.empty())
+			{
+				ImWchar c = queueChar.back();
+				if (prLocateFileByInputChar_InputQueueCharactersSize != queueChar.size())
+				{
+					if (c == prLocateFileByInputChar_lastChar) // next file starting with same char until
+					{
+						if (prLocateFileByInputChar_lastFileIdx < countFiles - 1U)
+							prLocateFileByInputChar_lastFileIdx++;
+						else
+							prLocateFileByInputChar_lastFileIdx = 0;
+					}
+
+					if (!prLocateItem_Loop(vFileDialogInternal, c))
+					{
+						// not found, loop again from 0 this time
+						prLocateFileByInputChar_lastFileIdx = 0;
+						prLocateItem_Loop(vFileDialogInternal, c);
+					}
+
+					prLocateFileByInputChar_lastChar = c;
+				}
+			}
+
+			prLocateFileByInputChar_InputQueueCharactersSize = queueChar.size();
+		}
+	}
+
+	void IGFD::KeyExplorerFeature::prExploreWithkeys(FileDialogInternal& vFileDialogInternal, ImGuiID vListViewID)
+	{
+		auto& fdi = vFileDialogInternal.puFileManager;
+		if (!fdi.IsFilteredListEmpty())
+		{
+			bool canWeExplore = false;
+			bool hasNav = (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard);
+			
+			ImGuiContext& g = *GImGui;
+			if (!hasNav && !g.ActiveId) // no nav and no activated inputs
+				canWeExplore = true;
+
+			if (g.NavId && g.NavId == vListViewID)
+			{
+				if (ImGui::IsKeyPressedMap(IGFD_KEY_ENTER) ||
+					ImGui::IsKeyPressedMap(ImGuiKey_KeyPadEnter) ||
+					ImGui::IsKeyPressedMap(ImGuiKey_Space))
+				{
+					ImGui::ActivateItem(vListViewID);
+					ImGui::SetActiveID(vListViewID, g.CurrentWindow);
+				}
+			}
+			
+			if (vListViewID == g.LastActiveId-1) // if listview id is the last acticated nav id (ImGui::ActivateItem(vListViewID);)
+				canWeExplore = true;
+
+			if (canWeExplore)
+			{
+				if (ImGui::IsKeyPressedMap(ImGuiKey_Escape))
+				{
+					ImGui::ClearActiveID();
+					g.LastActiveId = 0;
+				}
+
+				auto countFiles = fdi.GetFilteredListSize();
+
+				// explore
+				bool exploreByKey = false;
+				bool enterInDirectory = false;
+				bool exitDirectory = false;
+
+				if ((hasNav && ImGui::IsKeyPressedMap(ImGuiKey_UpArrow)) || (!hasNav && ImGui::IsKeyPressed(IGFD_KEY_UP)))
+				{
+					exploreByKey = true;
+					if (prLocateFileByInputChar_lastFileIdx > 0)
+						prLocateFileByInputChar_lastFileIdx--;
+					else
+						prLocateFileByInputChar_lastFileIdx = countFiles - 1U;
+				}
+				else if ((hasNav && ImGui::IsKeyPressedMap(ImGuiKey_DownArrow)) || (!hasNav && ImGui::IsKeyPressed(IGFD_KEY_DOWN)))
+				{
+					exploreByKey = true;
+					if (prLocateFileByInputChar_lastFileIdx < countFiles - 1U)
+						prLocateFileByInputChar_lastFileIdx++;
+					else
+						prLocateFileByInputChar_lastFileIdx = 0U;
+				}
+				else if (ImGui::IsKeyReleased(IGFD_KEY_ENTER))
+				{
+					exploreByKey = true;
+					enterInDirectory = true;
+				}
+				else if (ImGui::IsKeyReleased(IGFD_KEY_BACKSPACE))
+				{
+					exploreByKey = true;
+					exitDirectory = true;
+				}
+
+				if (exploreByKey)
+				{
+					//float totalHeight = prFilteredFileList.size() * ImGui::GetTextLineHeightWithSpacing();
+					float p = (float)((double)prLocateFileByInputChar_lastFileIdx / (double)(countFiles - 1U)) * ImGui::GetScrollMaxY();// seems not udpated in tables version outside tables
+					//float p = ((float)locateFileByInputChar_lastFileIdx) * ImGui::GetTextLineHeightWithSpacing();
+					ImGui::SetScrollY(p);
+					prStartFlashItem(prLocateFileByInputChar_lastFileIdx);
+
+					auto infos = fdi.GetFilteredFileAt(prLocateFileByInputChar_lastFileIdx);
+					if (infos.use_count())
+					{
+						if (infos->fileType == 'd') //-V522
+						{
+							if (!fdi.puDLGDirectoryMode || enterInDirectory)
+							{
+								if (enterInDirectory)
+								{
+									if (fdi.SelectDirectory(infos))
+									{
+										// changement de repertoire
+										vFileDialogInternal.puFileManager.OpenCurrentPath(vFileDialogInternal);
+										if (prLocateFileByInputChar_lastFileIdx > countFiles - 1U)
+										{
+											prLocateFileByInputChar_lastFileIdx = 0;
+										}
+									}
+								}
+							}
+							else // directory chooser
+							{
+								fdi.SelectFileName(vFileDialogInternal, infos);
+							}
+						}
+						else
+						{
+							fdi.SelectFileName(vFileDialogInternal, infos);
+						}
+
+						if (exitDirectory)
+						{
+							auto nfo = std::make_shared<FileInfos>();
+							nfo->fileNameExt = "..";
+
+							if (fdi.SelectDirectory(nfo))
+							{
+								// changement de repertoire
+								vFileDialogInternal.puFileManager.OpenCurrentPath(vFileDialogInternal);
+								if (prLocateFileByInputChar_lastFileIdx > countFiles - 1U)
+								{
+									prLocateFileByInputChar_lastFileIdx = 0;
+								}
+							}
+#ifdef WIN32
+							else
+							{
+								if (fdi.GetComposerSize() == 1U)
+								{
+									if (fdi.GetDrives())
+									{
+										fdi.ApplyFilteringOnFileList(vFileDialogInternal);
+									}
+								}
+							}
+#endif // WIN32
+						}
+					}
+				}
+			}
+		}
+	}
+
+	bool IGFD::KeyExplorerFeature::prFlashableSelectable(const char* label, bool selected,
 		ImGuiSelectableFlags flags, bool vFlashing, const ImVec2& size_arg)
 	{
 		using namespace ImGui;
@@ -531,18 +3071,18 @@ namespace IGFD
 
 		// Submit label or explicit size to ItemSize(), whereas ItemAdd() will submit a larger/spanning rectangle.
 		ImGuiID id = window->GetID(label);
-		ImVec2 label_size = CalcTextSize(label, NULL, true);
-		ImVec2 size(size_arg.x != 0.0f ? size_arg.x : label_size.x, size_arg.y != 0.0f ? size_arg.y : label_size.y);
+		ImVec2 label_size = CalcTextSize(label, nullptr, true);
+		ImVec2 size(size_arg.x != 0.0f ? size_arg.x : label_size.x, size_arg.y != 0.0f ? size_arg.y : label_size.y); //-V550
 		ImVec2 pos = window->DC.CursorPos;
 		pos.y += window->DC.CurrLineTextBaseOffset;
 		ItemSize(size, 0.0f);
 
 		// Fill horizontal space
-		// We don't support (size < 0.0f) in Selectable() because the ItemSpacing extension would make explicitely right-aligned sizes not visibly match other widgets.
+		// We don't support (size < 0.0f) in Selectable() because the ItemSpacing extension would make explicitly right-aligned sizes not visibly match other widgets.
 		const bool span_all_columns = (flags & ImGuiSelectableFlags_SpanAllColumns) != 0;
 		const float min_x = span_all_columns ? window->ParentWorkRect.Min.x : pos.x;
 		const float max_x = span_all_columns ? window->ParentWorkRect.Max.x : window->WorkRect.Max.x;
-		if (size_arg.x == 0.0f || (flags & ImGuiSelectableFlags_SpanAvailWidth))
+		if (fabs(size_arg.x) < FLT_EPSILON || (flags & ImGuiSelectableFlags_SpanAvailWidth))
 			size.x = ImMax(label_size.x, max_x - min_x);
 
 		// Text stays at the submission position, but bounding box may be extended on both sides
@@ -574,10 +3114,11 @@ namespace IGFD
 		}
 
 		bool item_add;
-		if (flags & ImGuiSelectableFlags_Disabled)
+		const bool disabled_item = (flags & ImGuiSelectableFlags_Disabled) != 0;
+		if (disabled_item)
 		{
 			ImGuiItemFlags backup_item_flags = g.CurrentItemFlags;
-			g.CurrentItemFlags |= ImGuiItemFlags_Disabled | ImGuiItemFlags_NoNavDefaultFocus;
+			g.CurrentItemFlags |= ImGuiItemFlags_Disabled;
 			item_add = ItemAdd(bb, id);
 			g.CurrentItemFlags = backup_item_flags;
 		}
@@ -595,6 +3136,10 @@ namespace IGFD
 		if (!item_add)
 			return false;
 
+		const bool disabled_global = (g.CurrentItemFlags & ImGuiItemFlags_Disabled) != 0;
+		if (disabled_item && !disabled_global) // Only testing this as an optimization
+			BeginDisabled(true);
+
 		// FIXME: We can standardize the behavior of those two, we could also keep the fast path of override ClipRect + full push on render only,
 		// which would be advantageous since most selectable are not selected.
 		if (span_all_columns && window->DC.CurrentColumns)
@@ -607,16 +3152,23 @@ namespace IGFD
 		if (flags & ImGuiSelectableFlags_NoHoldingActiveID) { button_flags |= ImGuiButtonFlags_NoHoldingActiveId; }
 		if (flags & ImGuiSelectableFlags_SelectOnClick) { button_flags |= ImGuiButtonFlags_PressedOnClick; }
 		if (flags & ImGuiSelectableFlags_SelectOnRelease) { button_flags |= ImGuiButtonFlags_PressedOnRelease; }
-		if (flags & ImGuiSelectableFlags_Disabled) { button_flags |= ImGuiButtonFlags_Disabled; }
 		if (flags & ImGuiSelectableFlags_AllowDoubleClick) { button_flags |= ImGuiButtonFlags_PressedOnClickRelease | ImGuiButtonFlags_PressedOnDoubleClick; }
 		if (flags & ImGuiSelectableFlags_AllowItemOverlap) { button_flags |= ImGuiButtonFlags_AllowItemOverlap; }
-
-		if (flags & ImGuiSelectableFlags_Disabled)
-			selected = false;
 
 		const bool was_selected = selected;
 		bool hovered, held;
 		bool pressed = ButtonBehavior(bb, id, &hovered, &held, button_flags);
+
+		// Auto-select when moved into
+		// - This will be more fully fleshed in the range-select branch
+		// - This is not exposed as it won't nicely work with some user side handling of shift/control
+		// - We cannot do 'if (g.NavJustMovedToId != id) { selected = false; pressed = was_selected; }' for two reasons
+		//   - (1) it would require focus scope to be set, need exposing PushFocusScope() or equivalent (e.g. BeginSelection() calling PushFocusScope())
+		//   - (2) usage will fail with clipped items
+		//   The multi-select API aim to fix those issues, e.g. may be replaced with a BeginSelection() API.
+		if ((flags & ImGuiSelectableFlags_SelectOnNav) && g.NavJustMovedToId != 0 && g.NavJustMovedToFocusScopeId == window->DC.NavFocusScopeIdCurrent)
+			if (g.NavJustMovedToId == id)
+				selected = pressed = true;
 
 		// Update NavId when clicking or when Hovering (this doesn't happen on most widgets), so navigation can be resumed with gamepad/keyboard
 		if (pressed || (hovered && (flags & ImGuiSelectableFlags_SetNavIdOnHover)))
@@ -635,7 +3187,7 @@ namespace IGFD
 
 		// In this branch, Selectable() cannot toggle the selection so this will never trigger.
 		if (selected != was_selected) //-V547
-			window->DC.LastItemStatusFlags |= ImGuiItemStatusFlags_ToggledSelection;
+			g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_ToggledSelection;
 
 		// Render
 		if ((held && (flags & ImGuiSelectableFlags_DrawHoveredWhenHeld)) || vFlashing)
@@ -644,117 +3196,168 @@ namespace IGFD
 		{
 			const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
 			RenderFrame(bb.Min, bb.Max, col, false, 0.0f);
-			RenderNavHighlight(bb, id, ImGuiNavHighlightFlags_TypeThin | ImGuiNavHighlightFlags_NoRounding);
 		}
+		RenderNavHighlight(bb, id, ImGuiNavHighlightFlags_TypeThin | ImGuiNavHighlightFlags_NoRounding);
 
 		if (span_all_columns && window->DC.CurrentColumns)
 			PopColumnsBackground();
 		else if (span_all_columns && g.CurrentTable)
 			TablePopBackgroundChannel();
 
-		if (flags & ImGuiSelectableFlags_Disabled) PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
-		RenderTextClipped(text_min, text_max, label, NULL, &label_size, style.SelectableTextAlign, &bb);
-		if (flags & ImGuiSelectableFlags_Disabled) PopStyleColor();
+		RenderTextClipped(text_min, text_max, label, nullptr, &label_size, style.SelectableTextAlign, &bb);
 
 		// Automatically close popups
-		if (pressed && (window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiSelectableFlags_DontClosePopups) && !(g.CurrentItemFlags & ImGuiItemFlags_SelectableDontClosePopup))
+		if (pressed && (window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiSelectableFlags_DontClosePopups) && !(g.LastItemData.InFlags & ImGuiItemFlags_SelectableDontClosePopup))
 			CloseCurrentPopup();
 
-		IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.ItemFlags);
-		return pressed;
+		if (disabled_item && !disabled_global)
+			EndDisabled();
+
+		IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
+		return pressed; //-V1020
+	}
+
+	void IGFD::KeyExplorerFeature::prStartFlashItem(size_t vIdx)
+	{
+		prFlashAlpha = 1.0f;
+		prFlashedItem = vIdx;
+	}
+
+	bool IGFD::KeyExplorerFeature::prBeginFlashItem(size_t vIdx)
+	{
+		bool res = false;
+
+		if (prFlashedItem == vIdx &&
+			std::abs(prFlashAlpha - 0.0f) > 0.00001f)
+		{
+			prFlashAlpha -= prFlashAlphaAttenInSecs * ImGui::GetIO().DeltaTime;
+			if (prFlashAlpha < 0.0f) prFlashAlpha = 0.0f;
+
+			ImVec4 hov = ImGui::GetStyleColorVec4(ImGuiCol_HeaderHovered);
+			hov.w = prFlashAlpha;
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, hov);
+			res = true;
+		}
+
+		return res;
+	}
+
+	void IGFD::KeyExplorerFeature::prEndFlashItem()
+	{
+		ImGui::PopStyleColor();
+	}
+
+	void IGFD::KeyExplorerFeature::SetFlashingAttenuationInSeconds(float vAttenValue)
+	{
+		prFlashAlphaAttenInSecs = 1.0f / ImMax(vAttenValue, 0.01f);
 	}
 #endif // USE_EXPLORATION_BY_KEYS
 
+	/////////////////////////////////////////////////////////////////////////////////////
+	//// FILE DIALOG CONSTRUCTOR / DESTRUCTOR ///////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	IGFD::FileDialog::FileDialog() : BookMarkFeature(), KeyExplorerFeature(), ThumbnailFeature() {}
+	IGFD::FileDialog::~FileDialog() = default;
+
 	//////////////////////////////////////////////////////////////////////////////////////////////////
-	///// STANDARD DIALOG ////////////////////////////////////////////////////////////////////////////
+	///// FILE DIALOG STANDARD DIALOG ////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
-	// path and fileName can be specified
+	// path and fileNameExt can be specified
 	void IGFD::FileDialog::OpenDialog(
-		const std::string& vKey,			
-		const std::string& vTitle,			
-		const char *vFilters,				
-		const std::string& vPath,			
+		const std::string& vKey,
+		const std::string& vTitle,
+		const char* vFilters,
+		const std::string& vPath,
 		const std::string& vFileName,
-		const int& vCountSelectionMax,		
-		UserDatas vUserDatas,				
+		const int& vCountSelectionMax,
+		UserDatas vUserDatas,
 		ImGuiFileDialogFlags vFlags)
 	{
-		if (m_ShowDialog) // if already opened, quit
+		if (prFileDialogInternal.puShowDialog) // if already opened, quit
 			return;
 
-		dlg_key = vKey;
-		dlg_title = vTitle;
-		dlg_path = vPath;
-		dlg_userDatas = vUserDatas;
-		dlg_flags = vFlags;
-		dlg_optionsPane = nullptr;
-		dlg_optionsPaneWidth = 0.0f;
-		dlg_countSelectionMax = vCountSelectionMax;
-		dlg_modal = false;
-		dlg_defaultExt.clear();
+		prFileDialogInternal.ResetForNewDialog();
 
-		ParseFilters(vFilters);
-		SetDefaultFileName(vFileName);
-		SetPath(m_CurrentPath);
+		prFileDialogInternal.puDLGkey = vKey;
+		prFileDialogInternal.puDLGtitle = vTitle;
+		prFileDialogInternal.puDLGuserDatas = vUserDatas;
+		prFileDialogInternal.puDLGflags = vFlags;
+		prFileDialogInternal.puDLGoptionsPane = nullptr;
+		prFileDialogInternal.puDLGoptionsPaneWidth = 0.0f;
+		prFileDialogInternal.puDLGmodal = false;
 
-		m_ShowDialog = true;					// open dialog
-#ifdef USE_BOOKMARK
-		m_BookmarkPaneShown = false;
-#endif // USE_BOOKMARK
+		prFileDialogInternal.puFilterManager.puDLGdefaultExt.clear();
+		prFileDialogInternal.puFilterManager.ParseFilters(vFilters);
+
+		prFileDialogInternal.puFileManager.puDLGDirectoryMode = (vFilters == nullptr);
+		if (vPath.empty())
+			prFileDialogInternal.puFileManager.puDLGpath = prFileDialogInternal.puFileManager.GetCurrentPath();
+		else
+			prFileDialogInternal.puFileManager.puDLGpath = vPath;
+		prFileDialogInternal.puFileManager.SetCurrentPath(vPath);
+		prFileDialogInternal.puFileManager.puDLGcountSelectionMax = (size_t)vCountSelectionMax;
+		prFileDialogInternal.puFileManager.SetDefaultFileName(vFileName);
+
+		prFileDialogInternal.puFileManager.ClearAll();
+		
+		prFileDialogInternal.puShowDialog = true;					// open dialog
 	}
 
 	// path and filename are obtained from filePathName
 	void IGFD::FileDialog::OpenDialog(
-		const std::string& vKey,	
-		const std::string& vTitle,	
-		const char *vFilters,			
-		const std::string& vFilePathName,	
-		const int& vCountSelectionMax,		
-		UserDatas vUserDatas,					
+		const std::string& vKey,
+		const std::string& vTitle,
+		const char* vFilters,
+		const std::string& vFilePathName,
+		const int& vCountSelectionMax,
+		UserDatas vUserDatas,
 		ImGuiFileDialogFlags vFlags)
 	{
-		if (m_ShowDialog) // if already opened, quit
+		if (prFileDialogInternal.puShowDialog) // if already opened, quit
 			return;
 
-		dlg_key = vKey;
-		dlg_title = vTitle;
-		
-		auto ps = ParsePathFileName(vFilePathName);
+		prFileDialogInternal.ResetForNewDialog();
+
+		prFileDialogInternal.puDLGkey = vKey;
+		prFileDialogInternal.puDLGtitle = vTitle;
+		prFileDialogInternal.puDLGoptionsPane = nullptr;
+		prFileDialogInternal.puDLGoptionsPaneWidth = 0.0f;
+		prFileDialogInternal.puDLGuserDatas = vUserDatas;
+		prFileDialogInternal.puDLGflags = vFlags;
+		prFileDialogInternal.puDLGmodal = false;
+
+		auto ps = IGFD::Utils::ParsePathFileName(vFilePathName);
 		if (ps.isOk)
 		{
-			dlg_path = ps.path;
-			SetDefaultFileName(ps.name + "." + ps.ext);
-			m_SelectedFileNames.clear();
-			m_SelectedFileNames.emplace(ps.name + "." + ps.ext);
-			dlg_defaultExt = "." + ps.ext;
+			prFileDialogInternal.puFileManager.puDLGpath = ps.path;
+			prFileDialogInternal.puFileManager.SetDefaultFileName(vFilePathName);
+			prFileDialogInternal.puFilterManager.puDLGdefaultExt = "." + ps.ext;
 		}
 		else
 		{
-			dlg_path = ".";
-			SetDefaultFileName("");
-			dlg_defaultExt.clear();
+			prFileDialogInternal.puFileManager.puDLGpath = prFileDialogInternal.puFileManager.GetCurrentPath();
+			prFileDialogInternal.puFileManager.SetDefaultFileName("");
+			prFileDialogInternal.puFilterManager.puDLGdefaultExt.clear();
 		}
 
-		dlg_optionsPane = nullptr;
-		dlg_optionsPaneWidth = 0.0f;
-		dlg_userDatas = vUserDatas;
-		dlg_flags = vFlags;
-		dlg_countSelectionMax = vCountSelectionMax; //-V101
-		dlg_modal = false;
+		prFileDialogInternal.puFilterManager.ParseFilters(vFilters);
+		prFileDialogInternal.puFilterManager.SetSelectedFilterWithExt(
+			prFileDialogInternal.puFilterManager.puDLGdefaultExt);
+		
+		prFileDialogInternal.puFileManager.SetCurrentPath(prFileDialogInternal.puFileManager.puDLGpath);
 
-		ParseFilters(vFilters);
-		SetSelectedFilterWithExt(dlg_defaultExt);
-		SetPath(m_CurrentPath);
+		prFileDialogInternal.puFileManager.puDLGDirectoryMode = (vFilters == nullptr);
+		prFileDialogInternal.puFileManager.puDLGcountSelectionMax = vCountSelectionMax; //-V101
 
-		m_ShowDialog = true;
-#ifdef USE_BOOKMARK
-		m_BookmarkPaneShown = false;
-#endif // USE_BOOKMARK
+		prFileDialogInternal.puFileManager.ClearAll();
+		
+		prFileDialogInternal.puShowDialog = true;
 	}
-	
+
 	// with pane
-	// path and fileName can be specified
+	// path and fileNameExt can be specified
 	void IGFD::FileDialog::OpenDialog(
 		const std::string& vKey,
 		const std::string& vTitle,
@@ -767,28 +3370,36 @@ namespace IGFD
 		UserDatas vUserDatas,
 		ImGuiFileDialogFlags vFlags)
 	{
-		if (m_ShowDialog) // if already opened, quit
+		if (prFileDialogInternal.puShowDialog) // if already opened, quit
 			return;
 
-		dlg_key = vKey;
-		dlg_title = vTitle;
-		dlg_path = vPath;
-		dlg_userDatas = vUserDatas;
-		dlg_flags = vFlags;
-		dlg_optionsPane = vSidePane;
-		dlg_optionsPaneWidth = vSidePaneWidth;
-		dlg_countSelectionMax = vCountSelectionMax;
-		dlg_modal = false;
-		dlg_defaultExt.clear();
+		prFileDialogInternal.ResetForNewDialog();
 
-		ParseFilters(vFilters);
-		SetDefaultFileName(vFileName);
-		SetPath(m_CurrentPath);
+		prFileDialogInternal.puDLGkey = vKey;
+		prFileDialogInternal.puDLGtitle = vTitle;
+		prFileDialogInternal.puDLGuserDatas = vUserDatas;
+		prFileDialogInternal.puDLGflags = vFlags;
+		prFileDialogInternal.puDLGoptionsPane = vSidePane;
+		prFileDialogInternal.puDLGoptionsPaneWidth = vSidePaneWidth;
+		prFileDialogInternal.puDLGmodal = false;
 
-		m_ShowDialog = true;					// open dialog
-#ifdef USE_BOOKMARK
-		m_BookmarkPaneShown = false;
-#endif // USE_BOOKMARK
+		prFileDialogInternal.puFilterManager.puDLGdefaultExt.clear();
+		prFileDialogInternal.puFilterManager.ParseFilters(vFilters);
+
+		prFileDialogInternal.puFileManager.puDLGcountSelectionMax = (size_t)vCountSelectionMax;
+		prFileDialogInternal.puFileManager.puDLGDirectoryMode = (vFilters == nullptr);
+		if (vPath.empty())
+			prFileDialogInternal.puFileManager.puDLGpath = prFileDialogInternal.puFileManager.GetCurrentPath();
+		else
+			prFileDialogInternal.puFileManager.puDLGpath = vPath;
+
+		prFileDialogInternal.puFileManager.SetCurrentPath(prFileDialogInternal.puFileManager.puDLGpath);
+
+		prFileDialogInternal.puFileManager.SetDefaultFileName(vFileName);
+
+		prFileDialogInternal.puFileManager.ClearAll();
+		
+		prFileDialogInternal.puShowDialog = true;					// open dialog
 	}
 
 	// with pane
@@ -804,60 +3415,61 @@ namespace IGFD
 		UserDatas vUserDatas,
 		ImGuiFileDialogFlags vFlags)
 	{
-		if (m_ShowDialog) // if already opened, quit
+		if (prFileDialogInternal.puShowDialog) // if already opened, quit
 			return;
 
-		dlg_key = vKey;
-		dlg_title = vTitle;
+		prFileDialogInternal.ResetForNewDialog();
 
-		auto ps = ParsePathFileName(vFilePathName);
+		prFileDialogInternal.puDLGkey = vKey;
+		prFileDialogInternal.puDLGtitle = vTitle;
+		prFileDialogInternal.puDLGoptionsPane = vSidePane;
+		prFileDialogInternal.puDLGoptionsPaneWidth = vSidePaneWidth;
+		prFileDialogInternal.puDLGuserDatas = vUserDatas;
+		prFileDialogInternal.puDLGflags = vFlags;
+		prFileDialogInternal.puDLGmodal = false;
+
+		auto ps = IGFD::Utils::ParsePathFileName(vFilePathName);
 		if (ps.isOk)
 		{
-			dlg_path = ps.path;
-			SetDefaultFileName(ps.name + "." + ps.ext);
-			m_SelectedFileNames.clear();
-			m_SelectedFileNames.emplace(ps.name + "." + ps.ext);
-			dlg_defaultExt = "." + ps.ext;
+			prFileDialogInternal.puFileManager.puDLGpath = ps.path;
+			prFileDialogInternal.puFileManager.SetDefaultFileName(vFilePathName);
+			prFileDialogInternal.puFilterManager.puDLGdefaultExt = "." + ps.ext;
 		}
 		else
 		{
-			dlg_path = ".";
-			SetDefaultFileName("");
-			dlg_defaultExt.clear();
+			prFileDialogInternal.puFileManager.puDLGpath = prFileDialogInternal.puFileManager.GetCurrentPath();
+			prFileDialogInternal.puFileManager.SetDefaultFileName("");
+			prFileDialogInternal.puFilterManager.puDLGdefaultExt.clear();
 		}
 
-		dlg_optionsPane = vSidePane;
-		dlg_optionsPaneWidth = vSidePaneWidth;
-		dlg_userDatas = vUserDatas;
-		dlg_flags = vFlags;
-		dlg_countSelectionMax = vCountSelectionMax; //-V101
-		dlg_modal = false;
+		prFileDialogInternal.puFileManager.SetCurrentPath(prFileDialogInternal.puFileManager.puDLGpath);
 
-		ParseFilters(vFilters);
-		SetSelectedFilterWithExt(dlg_defaultExt);
-		SetPath(m_CurrentPath);
+		prFileDialogInternal.puFileManager.puDLGcountSelectionMax = vCountSelectionMax; //-V101
+		prFileDialogInternal.puFileManager.puDLGDirectoryMode = (vFilters == nullptr);
+		prFileDialogInternal.puFilterManager.ParseFilters(vFilters);
+		prFileDialogInternal.puFilterManager.SetSelectedFilterWithExt(
+			prFileDialogInternal.puFilterManager.puDLGdefaultExt);
 
-		m_ShowDialog = true;
-#ifdef USE_BOOKMARK
-		m_BookmarkPaneShown = false;
-#endif // USE_BOOKMARK
+		prFileDialogInternal.puFileManager.ClearAll();
+
+		prFileDialogInternal.puShowDialog = true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
-	///// MODAL DIALOG ///////////////////////////////////////////////////////////////////////////////
+	///// FILE DIALOG MODAL DIALOG ///////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	void IGFD::FileDialog::OpenModal(
-		const std::string& vKey, 
-		const std::string& vTitle, 
+		const std::string& vKey,
+		const std::string& vTitle,
 		const char* vFilters,
-		const std::string& vPath, 
+		const std::string& vPath,
 		const std::string& vFileName,
-		const int& vCountSelectionMax, 
-		UserDatas vUserDatas, 
+		const int& vCountSelectionMax,
+		UserDatas vUserDatas,
 		ImGuiFileDialogFlags vFlags)
 	{
-		if (m_ShowDialog) // if already opened, quit
+		if (prFileDialogInternal.puShowDialog) // if already opened, quit
 			return;
 
 		OpenDialog(
@@ -865,19 +3477,19 @@ namespace IGFD
 			vPath, vFileName,
 			vCountSelectionMax, vUserDatas, vFlags);
 
-		dlg_modal = true;
+		prFileDialogInternal.puDLGmodal = true;
 	}
 
 	void IGFD::FileDialog::OpenModal(
-		const std::string& vKey, 
-		const std::string& vTitle, 
-		const char *vFilters,
+		const std::string& vKey,
+		const std::string& vTitle,
+		const char* vFilters,
 		const std::string& vFilePathName,
-		const int& vCountSelectionMax, 
-		UserDatas vUserDatas, 
+		const int& vCountSelectionMax,
+		UserDatas vUserDatas,
 		ImGuiFileDialogFlags vFlags)
 	{
-		if (m_ShowDialog) // if already opened, quit
+		if (prFileDialogInternal.puShowDialog) // if already opened, quit
 			return;
 
 		OpenDialog(
@@ -885,11 +3497,11 @@ namespace IGFD
 			vFilePathName,
 			vCountSelectionMax, vUserDatas, vFlags);
 
-		dlg_modal = true;
+		prFileDialogInternal.puDLGmodal = true;
 	}
 
 	// with pane
-	// path and fileName can be specified
+	// path and fileNameExt can be specified
 	void IGFD::FileDialog::OpenModal(
 		const std::string& vKey,
 		const std::string& vTitle,
@@ -902,16 +3514,16 @@ namespace IGFD
 		UserDatas vUserDatas,
 		ImGuiFileDialogFlags vFlags)
 	{
-		if (m_ShowDialog) // if already opened, quit
+		if (prFileDialogInternal.puShowDialog) // if already opened, quit
 			return;
 
 		OpenDialog(
 			vKey, vTitle, vFilters,
-			vPath, vFileName, 
+			vPath, vFileName,
 			vSidePane, vSidePaneWidth,
 			vCountSelectionMax, vUserDatas, vFlags);
 
-		dlg_modal = true;
+		prFileDialogInternal.puDLGmodal = true;
 	}
 
 	// with pane
@@ -927,7 +3539,7 @@ namespace IGFD
 		UserDatas vUserDatas,
 		ImGuiFileDialogFlags vFlags)
 	{
-		if (m_ShowDialog) // if already opened, quit
+		if (prFileDialogInternal.puShowDialog) // if already opened, quit
 			return;
 
 		OpenDialog(
@@ -936,161 +3548,247 @@ namespace IGFD
 			vSidePane, vSidePaneWidth,
 			vCountSelectionMax, vUserDatas, vFlags);
 
-		dlg_modal = true;
+		prFileDialogInternal.puDLGmodal = true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
-	///// MAIN FUNCTION //////////////////////////////////////////////////////////////////////////////
+	///// FILE DIALOG DISPLAY FUNCTION ///////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
 	bool IGFD::FileDialog::Display(const std::string& vKey, ImGuiWindowFlags vFlags, ImVec2 vMinSize, ImVec2 vMaxSize)
 	{
-		if (m_ShowDialog && dlg_key == vKey)
+		bool res = false;
+
+		if (prFileDialogInternal.puShowDialog && prFileDialogInternal.puDLGkey == vKey)
 		{
-			bool res = false;
+			if (prFileDialogInternal.puUseCustomLocale)
+				setlocale(prFileDialogInternal.puLocaleCategory, prFileDialogInternal.puLocaleBegin.c_str());
+
+			auto& fdFile = prFileDialogInternal.puFileManager;
+			auto& fdFilter = prFileDialogInternal.puFilterManager;
+
+			static ImGuiWindowFlags flags;
 
 			// to be sure than only one dialog is displayed per frame
 			ImGuiContext& g = *GImGui;
-			if (g.FrameCount == m_LastImGuiFrameCount) // one instance was displayed this frame before for this key +> quit
+			if (g.FrameCount == prFileDialogInternal.puLastImGuiFrameCount) // one instance was displayed this frame before for this key +> quit
 				return res;
-			m_LastImGuiFrameCount = g.FrameCount; // mark this instance as used this frame
+			prFileDialogInternal.puLastImGuiFrameCount = g.FrameCount; // mark this instance as used this frame
 
-			std::string name = dlg_title + "##" + dlg_key;
-			if (m_Name != name)
+			std::string name = prFileDialogInternal.puDLGtitle + "##" + prFileDialogInternal.puDLGkey;
+			if (prFileDialogInternal.puName != name)
 			{
-				m_FileList.clear();
-				m_CurrentPath_Decomposition.clear();
+				fdFile.ClearComposer();
+				fdFile.ClearFileLists();
+				flags = vFlags;
 			}
 
-			m_IsOk = false;			// reset dialog result
-			m_WantToQuit = false;	// reset var used for start the dialog quit process from anywhere
+			NewFrame();
 
-			ResetEvents();
+#ifdef IMGUI_HAS_VIEWPORT
+			if (!ImGui::GetIO().ConfigViewportsNoDecoration)
+			{
+				// https://github.com/ocornut/imgui/issues/4534
+				ImGuiWindowClass window_class;
+				window_class.ViewportFlagsOverrideClear = ImGuiViewportFlags_NoDecoration;
+				ImGui::SetNextWindowClass(&window_class);
+			}
+#endif // IMGUI_HAS_VIEWPORT
 
 			ImGui::SetNextWindowSizeConstraints(vMinSize, vMaxSize);
 
 			bool beg = false;
-			if (dlg_modal &&
-				!m_OkResultToConfirm) // disable modal because the confirm dialog for overwrite is a new modal
+			if (prFileDialogInternal.puDLGmodal &&
+				!prFileDialogInternal.puOkResultToConfirm) // disable modal because the confirm dialog for overwrite is a new modal
 			{
 				ImGui::OpenPopup(name.c_str());
 				beg = ImGui::BeginPopupModal(name.c_str(), (bool*)nullptr,
-					vFlags | ImGuiWindowFlags_NoScrollbar);
+					flags | ImGuiWindowFlags_NoScrollbar);
 			}
 			else
 			{
-				beg = ImGui::Begin(name.c_str(), (bool*)nullptr, vFlags | ImGuiWindowFlags_NoScrollbar);
+				beg = ImGui::Begin(name.c_str(), (bool*)nullptr, flags | ImGuiWindowFlags_NoScrollbar);
 			}
 			if (beg)
 			{
-				m_Name = name; //-V820
-				m_AnyWindowsHovered |= ImGui::IsWindowHovered();
+#ifdef IMGUI_HAS_VIEWPORT
+				// if decoration is enabled we disable the resizing feature of imgui for avoid crash with SDL2 and GLFW3
+				if (ImGui::GetIO().ConfigViewportsNoDecoration)
+				{
+					flags = vFlags;
+				}
+				else
+				{
+					auto win = ImGui::GetCurrentWindowRead();
+					if (win->Viewport->Idx != 0)
+						flags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+					else
+						flags = vFlags;
+				}
+#endif // IMGUI_HAS_VIEWPORT
 
-				if (dlg_path.empty()) dlg_path = "."; // defaut path is '.'
-				if (m_SelectedFilter.empty() && // no filter selected
-					!m_Filters.empty()) // filter exist
-					m_SelectedFilter = *m_Filters.begin(); // we take the first filter
+				prFileDialogInternal.puName = name; //-V820
+				puAnyWindowsHovered |= ImGui::IsWindowHovered();
+
+				if (fdFile.puDLGpath.empty())
+					fdFile.puDLGpath = "."; // defaut path is '.'
+
+				fdFilter.SetDefaultFilterIfNotDefined();
 
 				// init list of files
-				if (m_FileList.empty() && !m_ShowDrives)
+				if (fdFile.IsFileListEmpty() && !fdFile.puShowDrives)
 				{
-					replaceString(dlg_defaultFileName, dlg_path, ""); // local path
-					if (!dlg_defaultFileName.empty())
+					IGFD::Utils::ReplaceString(fdFile.puDLGDefaultFileName, fdFile.puDLGpath, ""); // local path
+					if (!fdFile.puDLGDefaultFileName.empty())
 					{
-						SetDefaultFileName(dlg_defaultFileName);
-						SetSelectedFilterWithExt(dlg_defaultExt);
+						fdFile.SetDefaultFileName(fdFile.puDLGDefaultFileName);
+						fdFilter.SetSelectedFilterWithExt(fdFilter.puDLGdefaultExt);
 					}
-					else if (dlg_filters.empty()) // directory mode
-						SetDefaultFileName(".");
-					ScanDir(dlg_path);
+					else if (fdFile.puDLGDirectoryMode) // directory mode
+						fdFile.SetDefaultFileName(".");
+					fdFile.ScanDir(prFileDialogInternal, fdFile.puDLGpath);
 				}
 
 				// draw dialog parts
-				DrawHeader(); // bookmark, directory, path
-				DrawContent(); // bookmark, files view, side pane 
-				res = DrawFooter(); // file field, filter combobox, ok/cancel buttons
+				prDrawHeader(); // bookmark, directory, path
+				prDrawContent(); // bookmark, files view, side pane 
+				res = prDrawFooter(); // file field, filter combobox, ok/cancel buttons
+
+				EndFrame();
 
 				// for display in dialog center, the confirm to overwrite dlg
-				m_DialogCenterPos = ImGui::GetCurrentWindowRead()->ContentRegionRect.GetCenter();
+				prFileDialogInternal.puDialogCenterPos = ImGui::GetCurrentWindowRead()->ContentRegionRect.GetCenter();
 
 				// when the confirm to overwrite dialog will appear we need to 
 				// disable the modal mode of the main file dialog
-				// see m_OkResultToConfirm under
-				if (dlg_modal &&
-					!m_OkResultToConfirm)
+				// see prOkResultToConfirm under
+				if (prFileDialogInternal.puDLGmodal &&
+					!prFileDialogInternal.puOkResultToConfirm)
 					ImGui::EndPopup();
 			}
 
-			// same things here regarding m_OkResultToConfirm
-			if (!dlg_modal || m_OkResultToConfirm)
+			// same things here regarding prOkResultToConfirm
+			if (!prFileDialogInternal.puDLGmodal || prFileDialogInternal.puOkResultToConfirm)
 				ImGui::End();
 
 			// confirm the result and show the confirm to overwrite dialog if needed
-			return Confirm_Or_OpenOverWriteFileDialog_IfNeeded(res, vFlags);
+			res =  prConfirm_Or_OpenOverWriteFileDialog_IfNeeded(res, vFlags);
+			
+			if (prFileDialogInternal.puUseCustomLocale)
+				setlocale(prFileDialogInternal.puLocaleCategory, prFileDialogInternal.puLocaleEnd.c_str());
 		}
 
-		return false;
+		return res;
 	}
 
-	void IGFD::FileDialog::ResetEvents()
+	void IGFD::FileDialog::NewFrame()
 	{
-		// reset events
-		m_DrivesClicked = false;
-		m_PathClicked = false;
-		m_CanWeContinue = true;
+		prFileDialogInternal.NewFrame();
+		NewThumbnailFrame(prFileDialogInternal);
+	}
+	
+	void IGFD::FileDialog::EndFrame()
+	{
+		EndThumbnailFrame(prFileDialogInternal);
+		prFileDialogInternal.EndFrame();
+		
+	}
+	void IGFD::FileDialog::QuitFrame()
+	{
+		QuitThumbnailFrame(prFileDialogInternal);
 	}
 
-	void IGFD::FileDialog::DrawHeader()
+	void IGFD::FileDialog::prDrawHeader()
 	{
 #ifdef USE_BOOKMARK
-		DrawBookMark();
+		prDrawBookmarkButton();
 		ImGui::SameLine();
 #endif // USE_BOOKMARK
-		DrawDirectoryCreation();
-		DrawPathComposer();
-		DrawSearchBar();
+
+		prFileDialogInternal.puFileManager.DrawDirectoryCreation(prFileDialogInternal);
+		ImGui::SameLine();
+		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+		ImGui::SameLine();
+		prFileDialogInternal.puFileManager.DrawPathComposer(prFileDialogInternal);
+
+#ifdef USE_THUMBNAILS
+		if (!(prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_DisableThumbnailMode))
+		{
+			prDrawDisplayModeToolBar();
+			ImGui::SameLine();
+			ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+			ImGui::SameLine();
+		}
+#endif // USE_THUMBNAILS
+
+		prFileDialogInternal.puSearchManager.DrawSearchBar(prFileDialogInternal);
 	}
 
-	void IGFD::FileDialog::DrawContent()
+	void IGFD::FileDialog::prDrawContent()
 	{
-		ImVec2 size = ImGui::GetContentRegionAvail() - ImVec2(0.0f, m_FooterHeight);
+		ImVec2 size = ImGui::GetContentRegionAvail() - ImVec2(0.0f, prFileDialogInternal.puFooterHeight);
 
 #ifdef USE_BOOKMARK
-		if (m_BookmarkPaneShown)
+		if (prBookmarkPaneShown)
 		{
-			//size.x -= m_BookmarkWidth;
+			//size.x -= prBookmarkWidth;
+			float otherWidth = size.x - prBookmarkWidth;
 			ImGui::PushID("##splitterbookmark");
-			float otherWidth = size.x - m_BookmarkWidth;
-			Splitter(true, 4.0f, &m_BookmarkWidth, &otherWidth, 10.0f, 10.0f + dlg_optionsPaneWidth, size.y);
+			IGFD::Utils::Splitter(true, 4.0f,
+				&prBookmarkWidth, &otherWidth, 10.0f,
+				10.0f + prFileDialogInternal.puDLGoptionsPaneWidth, size.y);
 			ImGui::PopID();
 			size.x -= otherWidth;
-			DrawBookmarkPane(size);
+			prDrawBookmarkPane(prFileDialogInternal, size);
 			ImGui::SameLine();
 		}
 #endif // USE_BOOKMARK
 
-		size.x = ImGui::GetContentRegionAvail().x - dlg_optionsPaneWidth;
+		size.x = ImGui::GetContentRegionAvail().x - prFileDialogInternal.puDLGoptionsPaneWidth;
 
-		if (dlg_optionsPane)
+		if (prFileDialogInternal.puDLGoptionsPane)
 		{
 			ImGui::PushID("##splittersidepane");
-			Splitter(true, 4.0f, &size.x, &dlg_optionsPaneWidth, 10.0f, 10.0f, size.y);
+			IGFD::Utils::Splitter(true, 4.0f, &size.x, &prFileDialogInternal.puDLGoptionsPaneWidth, 10.0f, 10.0f, size.y);
 			ImGui::PopID();
 		}
 
-		DrawFileListView(size);
-
-		if (dlg_optionsPane)
+#ifdef USE_THUMBNAILS
+		if (prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_DisableThumbnailMode)
 		{
-			DrawSidePane(size.y);
+			prDrawFileListView(size);
+		}
+		else
+		{
+			switch (prDisplayMode)
+			{
+			case DisplayModeEnum::FILE_LIST:
+				prDrawFileListView(size);
+				break;
+			case DisplayModeEnum::THUMBNAILS_LIST:
+				prDrawThumbnailsListView(size);
+				break;
+			case DisplayModeEnum::THUMBNAILS_GRID:
+				prDrawThumbnailsGridView(size);
+			}
+		}
+#else
+		prDrawFileListView(size);
+#endif // USE_THUMBNAILS
+
+		if (prFileDialogInternal.puDLGoptionsPane)
+		{
+			prDrawSidePane(size.y);
 		}
 	}
 
-	bool IGFD::FileDialog::DrawFooter()
+	bool IGFD::FileDialog::prDrawFooter()
 	{
+		auto& fdFile = prFileDialogInternal.puFileManager;
+		
 		float posY = ImGui::GetCursorPos().y; // height of last bar calc
 
-		if (!dlg_filters.empty())
+		if (!fdFile.puDLGDirectoryMode)
 			ImGui::Text(fileNameString);
 		else // directory chooser
 			ImGui::Text(dirNameString);
@@ -1099,53 +3797,25 @@ namespace IGFD
 
 		// Input file fields
 		float width = ImGui::GetContentRegionAvail().x;
-		if (!dlg_filters.empty())
+		if (!fdFile.puDLGDirectoryMode)
 			width -= FILTER_COMBO_WIDTH;
 		ImGui::PushItemWidth(width);
-		ImGui::InputText("##FileName", FileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER);
+		ImGui::InputText("##FileName", fdFile.puFileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER);
+		if (ImGui::GetItemID() == ImGui::GetActiveID())
+			prFileDialogInternal.puFileInputIsActive = true;
 		ImGui::PopItemWidth();
 
 		// combobox of filters
-		if (!dlg_filters.empty())
-		{
-			ImGui::SameLine();
-
-			bool needToApllyNewFilter = false;
-
-			ImGui::PushItemWidth(FILTER_COMBO_WIDTH);
-			if (ImGui::BeginCombo("##Filters", m_SelectedFilter.filter.c_str(), ImGuiComboFlags_None))
-			{
-				intptr_t i = 0;
-				for (auto filter : m_Filters)
-				{
-					const bool item_selected = (filter.filter == m_SelectedFilter.filter);
-					ImGui::PushID((void*)(intptr_t)i++);
-					if (ImGui::Selectable(filter.filter.c_str(), item_selected))
-					{
-						m_SelectedFilter = filter;
-						needToApllyNewFilter = true;
-					}
-					ImGui::PopID();
-				}
-
-				ImGui::EndCombo();
-			}
-			ImGui::PopItemWidth();
-
-			if (needToApllyNewFilter)
-			{
-				SetPath(m_CurrentPath);
-			}
-		}
+		prFileDialogInternal.puFilterManager.DrawFilterComboBox(prFileDialogInternal);
 
 		bool res = false;
 
 		// OK Button
-		if (m_CanWeContinue && strlen(FileNameBuffer))
+		if (prFileDialogInternal.puCanWeContinue && strlen(fdFile.puFileNameBuffer))
 		{
-			if (IMGUI_BUTTON(okButtonString))
+			if (IMGUI_BUTTON(okButtonString "##validationdialog"))
 			{
-				m_IsOk = true;
+				prFileDialogInternal.puIsOk = true;
 				res = true;
 			}
 
@@ -1153,174 +3823,126 @@ namespace IGFD
 		}
 
 		// Cancel Button
-		if (IMGUI_BUTTON(cancelButtonString))
+		if (IMGUI_BUTTON(cancelButtonString "##validationdialog") || 
+			prFileDialogInternal.puNeedToExitDialog) // dialog exit asked
 		{
-			m_IsOk = false;
+			prFileDialogInternal.puIsOk = false;
 			res = true;
 		}
 
-		m_FooterHeight = ImGui::GetCursorPosY() - posY;
-
-		if (m_WantToQuit && m_IsOk)
-		{
-			res = true;
-		}
+		prFileDialogInternal.puFooterHeight = ImGui::GetCursorPosY() - posY;
 
 		return res;
 	}
-#ifdef USE_BOOKMARK
-	void IGFD::FileDialog::DrawBookMark()
+
+	bool IGFD::FileDialog::prSelectableItem(int vidx, std::shared_ptr<FileInfos> vInfos, bool vSelected, const char* vFmt, ...)
 	{
-		IMGUI_TOGGLE_BUTTON(bookmarksButtonString, &m_BookmarkPaneShown);
+		if (!vInfos.use_count())
+			return false;
 
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(bookmarksButtonHelpString);
-	}
-#endif // USE_BOOKMARK
+		auto& fdi = prFileDialogInternal.puFileManager;
 
-	void IGFD::FileDialog::DrawDirectoryCreation()
-	{
-		if (dlg_flags & ImGuiFileDialogFlags_DisableCreateDirectoryButton)
-			return;
+		static ImGuiSelectableFlags selectableFlags = ImGuiSelectableFlags_AllowDoubleClick |
+			ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SpanAvailWidth;
 
-		if (IMGUI_BUTTON(createDirButtonString))
+		va_list args;
+		va_start(args, vFmt);
+		vsnprintf(fdi.puVariadicBuffer, MAX_FILE_DIALOG_NAME_BUFFER, vFmt, args);
+		va_end(args);
+
+		float h = 0.0f;
+#ifdef USE_THUMBNAILS
+		if (prDisplayMode == DisplayModeEnum::THUMBNAILS_LIST)
+			h = DisplayMode_ThumbailsList_ImageHeight;
+#endif // USE_THUMBNAILS
+#ifdef USE_EXPLORATION_BY_KEYS
+		bool flashed = prBeginFlashItem((size_t)vidx);
+		bool res = prFlashableSelectable(fdi.puVariadicBuffer, vSelected, selectableFlags,
+			flashed, ImVec2(-1.0f, h));
+		if (flashed)
+			prEndFlashItem();
+#else // USE_EXPLORATION_BY_KEYS
+		(void)vidx; // remove a warnings ofr unused var
+
+		bool res = ImGui::Selectable(fdi.puVariadicBuffer, vSelected, selectableFlags, ImVec2(-1.0f, h));
+#endif // USE_EXPLORATION_BY_KEYS
+		if (res)
 		{
-			if (!m_CreateDirectoryMode)
+			if (vInfos->fileType == 'd')
 			{
-				m_CreateDirectoryMode = true;
-				ResetBuffer(DirectoryNameBuffer);
-			}
-		}
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(buttonCreateDirString);
-
-		if (m_CreateDirectoryMode)
-		{
-			ImGui::SameLine();
-
-			ImGui::PushItemWidth(100.0f);
-			ImGui::InputText("##DirectoryFileName", DirectoryNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER);
-			ImGui::PopItemWidth();
-
-			ImGui::SameLine();
-
-			if (IMGUI_BUTTON(okButtonString))
-			{
-				std::string newDir = std::string(DirectoryNameBuffer);
-				if (CreateDir(newDir))
+				// nav system, selectebale cause open directory or select directory
+				if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard)
 				{
-					SetPath(m_CurrentPath + PATH_SEP + newDir);
+					if (fdi.puDLGDirectoryMode) // directory chooser
+					{
+						fdi.SelectFileName(prFileDialogInternal, vInfos);
+					}
+					else
+					{
+						fdi.puPathClicked = fdi.SelectDirectory(vInfos);
+					}
+				}
+				else // no nav system => classic behavior
+				{
+					if (ImGui::IsMouseDoubleClicked(0)) // 0 -> left mouse button double click
+					{
+						fdi.puPathClicked = fdi.SelectDirectory(vInfos);
+					}
+					else if (fdi.puDLGDirectoryMode) // directory chooser
+					{
+						fdi.SelectFileName(prFileDialogInternal, vInfos);
+					}
 				}
 
-				m_CreateDirectoryMode = false;
-			}
-
-			ImGui::SameLine();
-
-			if (IMGUI_BUTTON(cancelButtonString))
-			{
-				m_CreateDirectoryMode = false;
-			}
-		}
-
-		ImGui::SameLine();
-
-		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-
-		ImGui::SameLine();
-	}
-
-	void IGFD::FileDialog::DrawPathComposer()
-	{
-		if (IMGUI_BUTTON(resetButtonString))
-		{
-			SetPath(".");
-		}
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(buttonResetPathString);
-
-#ifdef WIN32
-		ImGui::SameLine();
-
-		if (IMGUI_BUTTON(drivesButtonString))
-		{
-			m_DrivesClicked = true;
-		}
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(buttonDriveString);
-#endif // WIN32
-
-		ImGui::SameLine();
-
-		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-
-		// show current path
-		if (!m_CurrentPath_Decomposition.empty())
-		{
-			ImGui::SameLine();
-
-			if (m_InputPathActivated)
-			{
-				ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-				ImGui::InputText("##pathedition", InputPathBuffer, MAX_PATH_BUFFER_SIZE);
-				ImGui::PopItemWidth();
+				return true; // needToBreakTheloop
 			}
 			else
 			{
-				int _id = 0;
-				for (auto itPathDecomp = m_CurrentPath_Decomposition.begin();
-					itPathDecomp != m_CurrentPath_Decomposition.end(); ++itPathDecomp)
-				{
-					if (itPathDecomp != m_CurrentPath_Decomposition.begin())
-						ImGui::SameLine();
-					ImGui::PushID(_id++);
-					bool click = IMGUI_PATH_BUTTON((*itPathDecomp).c_str());
-					ImGui::PopID();
-					if (click)
-					{
-						m_CurrentPath = ComposeNewPath(itPathDecomp);
-						m_PathClicked = true;
-						break;
-					}
-					// activate input for path
-					if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-					{
-						SetBuffer(InputPathBuffer, MAX_PATH_BUFFER_SIZE, ComposeNewPath(itPathDecomp));
-						m_InputPathActivated = true;
-						break;
-					}
-				}
+				fdi.SelectFileName(prFileDialogInternal, vInfos);
 			}
 		}
+
+		return false;
 	}
 
-	void IGFD::FileDialog::DrawSearchBar()
+	void IGFD::FileDialog::prBeginFileColorIconStyle(std::shared_ptr<FileInfos> vFileInfos, bool& vOutShowColor, std::string& vOutStr, ImFont** vOutFont)
 	{
-		// search field
-		if (IMGUI_BUTTON(resetButtonString "##BtnImGuiFileDialogSearchField"))
+		vOutStr.clear();
+		vOutShowColor = false;
+
+		if (vFileInfos->fileStyle.use_count()) //-V807 //-V522
 		{
-			ResetBuffer(SearchBuffer);
-			searchTag.clear();
-			ApplyFilteringOnFileList();
+			vOutShowColor = true;
+
+			*vOutFont = vFileInfos->fileStyle->font;
 		}
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(buttonResetSearchString);
-		ImGui::SameLine();
-		ImGui::Text(searchString);
-		ImGui::SameLine();
-		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-		bool edited = ImGui::InputText("##InputImGuiFileDialogSearchField", SearchBuffer, MAX_FILE_DIALOG_NAME_BUFFER);
-		ImGui::PopItemWidth();
-		if (edited)
-		{
-			searchTag = SearchBuffer;
-			ApplyFilteringOnFileList();
-		}
+
+		if (vOutShowColor && !vFileInfos->fileStyle->icon.empty()) vOutStr = vFileInfos->fileStyle->icon;
+		else if (vFileInfos->fileType == 'd') vOutStr = dirEntryString;
+		else if (vFileInfos->fileType == 'l') vOutStr = linkEntryString;
+		else if (vFileInfos->fileType == 'f') vOutStr = fileEntryString;
+
+		vOutStr += " " + vFileInfos->fileNameExt;
+
+		if (vOutShowColor)
+			ImGui::PushStyleColor(ImGuiCol_Text, vFileInfos->fileStyle->color);
+		if (*vOutFont)
+			ImGui::PushFont(*vOutFont);
 	}
 
-	void IGFD::FileDialog::DrawFileListView(ImVec2 vSize)
+	void IGFD::FileDialog::prEndFileColorIconStyle(const bool& vShowColor, ImFont* vFont)
 	{
-		ImGui::BeginChild("##FileDialog_FileList", vSize);
+		if (vFont)
+			ImGui::PopFont();
+		if (vShowColor)
+			ImGui::PopStyleColor();
+	}
+
+	void IGFD::FileDialog::prDrawFileListView(ImVec2 vSize)
+	{
+		auto& fdi = prFileDialogInternal.puFileManager;
+
+		ImGui::PushID(this);
 
 		static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg |
 			ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
@@ -1329,28 +3951,32 @@ namespace IGFD
 			| ImGuiTableFlags_Sortable
 #endif // USE_CUSTOM_SORTING_ICON
 			;
-		if (ImGui::BeginTable("##fileTable", 4, flags, vSize))
+		auto listViewID = ImGui::GetID("##FileDialog_fileTable");
+		if (ImGui::BeginTableEx("##FileDialog_fileTable", listViewID, 4, flags, vSize, 0.0f)) //-V112
 		{
 			ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
-			ImGui::TableSetupColumn(m_HeaderFileName.c_str(), ImGuiTableColumnFlags_WidthStretch, -1, 0);
-			ImGui::TableSetupColumn(m_HeaderFileType.c_str(), ImGuiTableColumnFlags_WidthFixed | ((dlg_flags & ImGuiFileDialogFlags_HideColumnType) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 1);
-			ImGui::TableSetupColumn(m_HeaderFileSize.c_str(), ImGuiTableColumnFlags_WidthFixed | ((dlg_flags & ImGuiFileDialogFlags_HideColumnSize) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 2);
-			ImGui::TableSetupColumn(m_HeaderFileDate.c_str(), ImGuiTableColumnFlags_WidthFixed | ((dlg_flags & ImGuiFileDialogFlags_HideColumnDate) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 3);
+			ImGui::TableSetupColumn(fdi.puHeaderFileName.c_str(), ImGuiTableColumnFlags_WidthStretch, -1, 0);
+			ImGui::TableSetupColumn(fdi.puHeaderFileType.c_str(), ImGuiTableColumnFlags_WidthFixed | 
+				((prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_HideColumnType) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 1);
+			ImGui::TableSetupColumn(fdi.puHeaderFileSize.c_str(), ImGuiTableColumnFlags_WidthFixed | 
+				((prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_HideColumnSize) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 2);
+			ImGui::TableSetupColumn(fdi.puHeaderFileDate.c_str(), ImGuiTableColumnFlags_WidthFixed | 
+				((prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_HideColumnDate) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 3);
 
 #ifndef USE_CUSTOM_SORTING_ICON
 			// Sort our data if sort specs have been changed!
 			if (ImGuiTableSortSpecs* sorts_specs = ImGui::TableGetSortSpecs())
 			{
-				if (sorts_specs->SpecsDirty && !m_FileList.empty())
+				if (sorts_specs->SpecsDirty && !fdi.IsFileListEmpty())
 				{
 					if (sorts_specs->Specs->ColumnUserID == 0)
-						SortFields(SortingFieldEnum::FIELD_FILENAME, true);
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_FILENAME, true);
 					else if (sorts_specs->Specs->ColumnUserID == 1)
-						SortFields(SortingFieldEnum::FIELD_TYPE, true);
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_TYPE, true);
 					else if (sorts_specs->Specs->ColumnUserID == 2)
-						SortFields(SortingFieldEnum::FIELD_SIZE, true);
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_SIZE, true);
 					else //if (sorts_specs->Specs->ColumnUserID == 3) => alwayd true for the moment, to uncomment if we add a fourth column
-						SortFields(SortingFieldEnum::FIELD_DATE, true);
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_DATE, true);
 
 					sorts_specs->SpecsDirty = false;
 				}
@@ -1359,7 +3985,7 @@ namespace IGFD
 			ImGui::TableHeadersRow();
 #else // USE_CUSTOM_SORTING_ICON
 			ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
-			for (int column = 0; column < 4; column++)
+			for (int column = 0; column < 4; column++) //-V112
 			{
 				ImGui::TableSetColumnIndex(column);
 				const char* column_name = ImGui::TableGetColumnName(column); // Retrieve name passed to TableSetupColumn()
@@ -1369,45 +3995,36 @@ namespace IGFD
 				if (ImGui::IsItemClicked())
 				{
 					if (column == 0)
-						SortFields(SortingFieldEnum::FIELD_FILENAME, true);
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_FILENAME, true);
 					else if (column == 1)
-						SortFields(SortingFieldEnum::FIELD_TYPE, true);
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_TYPE, true);
 					else if (column == 2)
-						SortFields(SortingFieldEnum::FIELD_SIZE, true);
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_SIZE, true);
 					else //if (column == 3) => alwayd true for the moment, to uncomment if we add a fourth column
-						SortFields(SortingFieldEnum::FIELD_DATE, true);
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_DATE, true);
 				}
 			}
 #endif // USE_CUSTOM_SORTING_ICON
-			
-			if (!m_FilteredFileList.empty())
+			if (!fdi.IsFilteredListEmpty())
 			{
-				m_FileListClipper.Begin((int)m_FilteredFileList.size(), ImGui::GetTextLineHeightWithSpacing());
-				while (m_FileListClipper.Step())
+				std::string _str;
+				ImFont* _font = nullptr;
+				bool _showColor = false;
+				
+				prFileListClipper.Begin((int)fdi.GetFilteredListSize(), ImGui::GetTextLineHeightWithSpacing());
+				while (prFileListClipper.Step())
 				{
-					for (int i = m_FileListClipper.DisplayStart; i < m_FileListClipper.DisplayEnd; i++)
+					for (int i = prFileListClipper.DisplayStart; i < prFileListClipper.DisplayEnd; i++)
 					{
 						if (i < 0) continue;
 
-						const FileInfoStruct& infos = m_FilteredFileList[i];
+						auto infos = fdi.GetFilteredFileAt((size_t)i);
+						if (!infos.use_count())
+							continue;
 
-						ImVec4 c;
-						std::string icon;
-						bool showColor = GetExtentionInfos(infos.ext, &c, &icon);
-						if (showColor)
-							ImGui::PushStyleColor(ImGuiCol_Text, c);
-
-						std::string str = " " + infos.fileName;
-						if (infos.type == 'd') str = dirEntryString + str;
-						else if (infos.type == 'l') str = linkEntryString + str;
-						else if (infos.type == 'f')
-						{
-							if (showColor && !icon.empty())
-								str = icon + str;
-							else
-								str = fileEntryString + str;
-						}
-						bool selected = (m_SelectedFileNames.find(infos.fileName) != m_SelectedFileNames.end()); // found
+						prBeginFileColorIconStyle(infos, _showColor, _str, &_font);
+					
+						bool selected = fdi.IsFileNameSelected(infos->fileNameExt); // found
 
 						ImGui::TableNextRow();
 
@@ -1415,1492 +4032,401 @@ namespace IGFD
 
 						if (ImGui::TableNextColumn()) // file name
 						{
-							needToBreakTheloop = SelectableItem(i, infos, selected, "%s", str.c_str());
+							needToBreakTheloop = prSelectableItem(i, infos, selected, _str.c_str());
 						}
 						if (ImGui::TableNextColumn()) // file type
 						{
-							ImGui::Text("%s", infos.ext.c_str());
+							ImGui::Text("%s", infos->fileExt.c_str());
 						}
 						if (ImGui::TableNextColumn()) // file size
 						{
-							if (infos.type != 'd')
+							if (infos->fileType != 'd')
 							{
-								ImGui::Text("%s ", infos.formatedFileSize.c_str());
+								ImGui::Text("%s ", infos->formatedFileSize.c_str());
 							}
 							else
 							{
-								ImGui::Text("%s ", "");
+								ImGui::Text("%s", "");
 							}
 						}
 						if (ImGui::TableNextColumn()) // file date + time
 						{
-							ImGui::Text("%s", infos.fileModifDate.c_str());
+							ImGui::Text("%s", infos->fileModifDate.c_str());
 						}
 
-						if (showColor)
-							ImGui::PopStyleColor();
+						prEndFileColorIconStyle(_showColor, _font);
 
 						if (needToBreakTheloop)
 							break;
 					}
 				}
-				m_FileListClipper.End();
+				prFileListClipper.End();
 			}
 
-			if (m_InputPathActivated)
-			{
-				auto gio = ImGui::GetIO();
-				if (ImGui::IsKeyReleased(gio.KeyMap[ImGuiKey_Enter]))
-				{
-					SetPath(std::string(InputPathBuffer));
-					m_InputPathActivated = false;
-				}
-				if (ImGui::IsKeyReleased(gio.KeyMap[ImGuiKey_Escape]))
-				{
-					m_InputPathActivated = false;
-				}
-			}
 #ifdef USE_EXPLORATION_BY_KEYS
-			else
+			if (!fdi.puInputPathActivated)
 			{
-				LocateByInputKey();
-				ExploreWithkeys();
+				prLocateByInputKey(prFileDialogInternal);
+				prExploreWithkeys(prFileDialogInternal, listViewID);
 			}
 #endif // USE_EXPLORATION_BY_KEYS
+
+			ImGuiContext& g = *GImGui;
+			if (g.LastActiveId - 1 == listViewID || g.LastActiveId == listViewID)
+			{
+				prFileDialogInternal.puFileListViewIsActive = true;
+			}
+
 			ImGui::EndTable();
 		}
-		// changement de repertoire
-		if (m_PathClicked)
+
+		ImGui::PopID();
+	}
+
+#ifdef USE_THUMBNAILS
+	void IGFD::FileDialog::prDrawThumbnailsListView(ImVec2 vSize)
+	{
+		auto& fdi = prFileDialogInternal.puFileManager;
+
+		ImGui::PushID(this);
+
+		static ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg |
+			ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY |
+			ImGuiTableFlags_NoHostExtendY
+#ifndef USE_CUSTOM_SORTING_ICON
+			| ImGuiTableFlags_Sortable
+#endif // USE_CUSTOM_SORTING_ICON
+			;
+		auto listViewID = ImGui::GetID("##FileDialog_fileTable");
+		if (ImGui::BeginTableEx("##FileDialog_fileTable", listViewID, 5, flags, vSize, 0.0f))
 		{
-			SetPath(m_CurrentPath);
+			ImGui::TableSetupScrollFreeze(0, 1); // Make header always visible
+			ImGui::TableSetupColumn(fdi.puHeaderFileName.c_str(), ImGuiTableColumnFlags_WidthStretch, -1, 0);
+			ImGui::TableSetupColumn(fdi.puHeaderFileType.c_str(), ImGuiTableColumnFlags_WidthFixed |
+				((prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_HideColumnType) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 1);
+			ImGui::TableSetupColumn(fdi.puHeaderFileSize.c_str(), ImGuiTableColumnFlags_WidthFixed |
+				((prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_HideColumnSize) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 2);
+			ImGui::TableSetupColumn(fdi.puHeaderFileDate.c_str(), ImGuiTableColumnFlags_WidthFixed |
+				((prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_HideColumnDate) ? ImGuiTableColumnFlags_DefaultHide : 0), -1, 3);
+			// not needed to have an option for hide the thumbnails since this is why this view is used
+			ImGui::TableSetupColumn(fdi.puHeaderFileThumbnails.c_str(), ImGuiTableColumnFlags_WidthFixed, -1, 4); //-V112
+
+#ifndef USE_CUSTOM_SORTING_ICON
+			// Sort our data if sort specs have been changed!
+			if (ImGuiTableSortSpecs* sorts_specs = ImGui::TableGetSortSpecs())
+			{
+				if (sorts_specs->SpecsDirty && !fdi.IsFileListEmpty())
+				{
+					if (sorts_specs->Specs->ColumnUserID == 0)
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_FILENAME, true);
+					else if (sorts_specs->Specs->ColumnUserID == 1)
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_TYPE, true);
+					else if (sorts_specs->Specs->ColumnUserID == 2)
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_SIZE, true);
+					else if (sorts_specs->Specs->ColumnUserID == 3)
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_DATE, true);
+					else // if (sorts_specs->Specs->ColumnUserID == 4) = > always true for the moment, to uncomment if we add another column
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_THUMBNAILS, true);
+					sorts_specs->SpecsDirty = false;
+				}
+			}
+
+			ImGui::TableHeadersRow();
+#else // USE_CUSTOM_SORTING_ICON
+			ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+			for (int column = 0; column < 5; column++)
+			{
+				ImGui::TableSetColumnIndex(column);
+				const char* column_name = ImGui::TableGetColumnName(column); // Retrieve name passed to TableSetupColumn()
+				ImGui::PushID(column);
+				ImGui::TableHeader(column_name);
+				ImGui::PopID();
+				if (ImGui::IsItemClicked())
+				{
+					if (column == 0)
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_FILENAME, true);
+					else if (column == 1)
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_TYPE, true);
+					else if (column == 2)
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_SIZE, true);
+					else if (column == 3)
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_DATE, true);
+					else // if (column == 4) = > always true for the moment, to uncomment if we add another column
+						fdi.SortFields(prFileDialogInternal, IGFD::FileManager::SortingFieldEnum::FIELD_THUMBNAILS, true);
+				}
+			}
+#endif // USE_CUSTOM_SORTING_ICON
+			if (!fdi.IsFilteredListEmpty())
+			{
+				std::string _str;
+				ImFont* _font = nullptr;
+				bool _showColor = false;
+
+				ImGuiContext& g = *GImGui;
+				const float itemHeight = ImMax(g.FontSize, DisplayMode_ThumbailsList_ImageHeight) + g.Style.ItemSpacing.y;
+
+				prFileListClipper.Begin((int)fdi.GetFilteredListSize(), itemHeight);
+				while (prFileListClipper.Step())
+				{
+					for (int i = prFileListClipper.DisplayStart; i < prFileListClipper.DisplayEnd; i++)
+					{
+						if (i < 0) continue;
+
+						auto infos = fdi.GetFilteredFileAt((size_t)i);
+						if (!infos.use_count())
+							continue;
+
+						prBeginFileColorIconStyle(infos, _showColor, _str, &_font);
+
+						bool selected = fdi.IsFileNameSelected(infos->fileNameExt); // found
+
+						ImGui::TableNextRow();
+
+						bool needToBreakTheloop = false;
+
+						if (ImGui::TableNextColumn()) // file name
+						{
+							needToBreakTheloop = prSelectableItem(i, infos, selected, _str.c_str());
+						}
+						if (ImGui::TableNextColumn()) // file type
+						{
+							ImGui::Text("%s", infos->fileExt.c_str());
+						}
+						if (ImGui::TableNextColumn()) // file size
+						{
+							if (infos->fileType != 'd')
+							{
+								ImGui::Text("%s ", infos->formatedFileSize.c_str());
+							}
+							else
+							{
+								ImGui::Text("%s", "");
+							}
+						}
+						if (ImGui::TableNextColumn()) // file date + time
+						{
+							ImGui::Text("%s", infos->fileModifDate.c_str());
+						}
+						if (ImGui::TableNextColumn()) // file thumbnails
+						{
+							auto th = &infos->thumbnailInfo;
+
+							if (!th->isLoadingOrLoaded)
+							{
+								prAddThumbnailToLoad(infos);
+							}
+							if (th->isReadyToDisplay &&
+								th->textureID)
+							{
+								ImGui::Image((ImTextureID)th->textureID,
+									ImVec2((float)th->textureWidth,
+										(float)th->textureHeight));
+							}
+						}
+
+						prEndFileColorIconStyle(_showColor, _font);
+
+						if (needToBreakTheloop)
+							break;
+					}
+				}
+				prFileListClipper.End();
+			}
+
+#ifdef USE_EXPLORATION_BY_KEYS
+			if (!fdi.puInputPathActivated)
+			{
+				prLocateByInputKey(prFileDialogInternal);
+				prExploreWithkeys(prFileDialogInternal, listViewID);
+			}
+#endif // USE_EXPLORATION_BY_KEYS
+
+			ImGuiContext& g = *GImGui;
+			if (g.LastActiveId - 1 == listViewID || g.LastActiveId == listViewID)
+			{
+				prFileDialogInternal.puFileListViewIsActive = true;
+			}
+
+			ImGui::EndTable();
 		}
 
-		if (m_DrivesClicked)
+		ImGui::PopID();
+	}
+
+	void IGFD::FileDialog::prDrawThumbnailsGridView(ImVec2 vSize)
+	{
+		if (ImGui::BeginChild("##thumbnailsGridsFiles", vSize))
 		{
-			GetDrives();
+			// todo
 		}
 
 		ImGui::EndChild();
 	}
 
-	bool IGFD::FileDialog::SelectableItem(int vidx, const FileInfoStruct& vInfos, bool vSelected, const char* vFmt, ...)
-	{
-		static ImGuiSelectableFlags selectableFlags = ImGuiSelectableFlags_AllowDoubleClick | 
-			ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SpanAvailWidth;
+#endif
 
-		va_list args;
-		va_start(args, vFmt);
-		vsnprintf(VariadicBuffer, MAX_FILE_DIALOG_NAME_BUFFER, vFmt, args);
-		va_end(args);
-
-#ifdef USE_EXPLORATION_BY_KEYS
-		bool flashed = BeginFlashItem(vidx);
-		bool res = FlashableSelectable(VariadicBuffer, vSelected, selectableFlags,
-			flashed);
-		if (flashed)
-			EndFlashItem();
-#else // USE_EXPLORATION_BY_KEYS
-		(void)vidx; // remove a warnings ofr unused var
-		bool res = ImGui::Selectable(VariadicBuffer, vSelected, selectableFlags);
-#endif // USE_EXPLORATION_BY_KEYS
-		if (res)
-		{
-			if (vInfos.type == 'd')
-			{
-				if (ImGui::IsMouseDoubleClicked(0)) // 0 -> left mouse button double click
-				{
-					m_PathClicked = SelectDirectory(vInfos); 
-					return true; // needToBreakTheloop
-				}
-				else if (dlg_filters.empty()) // directory chooser
-				{
-					SelectFileName(vInfos);
-				}
-			}
-			else
-			{
-				SelectFileName(vInfos);
-
-				if (ImGui::IsMouseDoubleClicked(0))
-				{
-					m_WantToQuit = true;
-					m_IsOk = true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	void IGFD::FileDialog::DrawSidePane(float vHeight)
+	void IGFD::FileDialog::prDrawSidePane(float vHeight)
 	{
 		ImGui::SameLine();
 
 		ImGui::BeginChild("##FileTypes", ImVec2(0, vHeight));
 
-		dlg_optionsPane(m_SelectedFilter.filter.c_str(), dlg_userDatas, &m_CanWeContinue);
+		prFileDialogInternal.puDLGoptionsPane(
+			prFileDialogInternal.puFilterManager.GetSelectedFilter().filter.c_str(), 
+			prFileDialogInternal.puDLGuserDatas, &prFileDialogInternal.puCanWeContinue);
 
 		ImGui::EndChild();
 	}
 
 	void IGFD::FileDialog::Close()
 	{
-		dlg_key.clear();
-		m_ShowDialog = false;
+		prFileDialogInternal.puDLGkey.clear();
+		prFileDialogInternal.puShowDialog = false;
 	}
 
-	bool IGFD::FileDialog::WasOpenedThisFrame(const std::string& vKey)
+	bool IGFD::FileDialog::WasOpenedThisFrame(const std::string& vKey) const
 	{
-		bool res = m_ShowDialog && dlg_key == vKey;
+		bool res = prFileDialogInternal.puShowDialog && prFileDialogInternal.puDLGkey == vKey;
 		if (res)
 		{
 			ImGuiContext& g = *GImGui;
-			res &= m_LastImGuiFrameCount == g.FrameCount; // return true if a dialog was displayed in this frame
+			res &= prFileDialogInternal.puLastImGuiFrameCount == g.FrameCount; // return true if a dialog was displayed in this frame
 		}
 		return res;
 	}
 
-	bool IGFD::FileDialog::WasOpenedThisFrame()
+	bool IGFD::FileDialog::WasOpenedThisFrame() const
 	{
-		bool res = m_ShowDialog;
+		bool res = prFileDialogInternal.puShowDialog;
 		if (res)
 		{
 			ImGuiContext& g = *GImGui;
-			res &= m_LastImGuiFrameCount == g.FrameCount; // return true if a dialog was displayed in this frame
+			res &= prFileDialogInternal.puLastImGuiFrameCount == g.FrameCount; // return true if a dialog was displayed in this frame
 		}
 		return res;
 	}
 
-	bool IGFD::FileDialog::IsOpened(const std::string& vKey)
+	bool IGFD::FileDialog::IsOpened(const std::string& vKey) const
 	{
-		return (m_ShowDialog && dlg_key == vKey);
+		return (prFileDialogInternal.puShowDialog && prFileDialogInternal.puDLGkey == vKey);
 	}
 
-	bool IGFD::FileDialog::IsOpened()
+	bool IGFD::FileDialog::IsOpened() const
 	{
-		return m_ShowDialog;
+		return prFileDialogInternal.puShowDialog;
 	}
 
-	std::string IGFD::FileDialog::GetOpenedKey()
+	std::string IGFD::FileDialog::GetOpenedKey() const
 	{
-		if (m_ShowDialog)
-			return dlg_key;
+		if (prFileDialogInternal.puShowDialog)
+			return prFileDialogInternal.puDLGkey;
 		return "";
 	}
 
 	std::string IGFD::FileDialog::GetFilePathName()
 	{
-		std::string result = GetCurrentPath();
-
-		std::string filename = GetCurrentFileName();
-		if (!filename.empty())
-		{
-#ifdef UNIX
-			if (s_fs_root != result)
-#endif // UNIX
-				result += PATH_SEP;
-
-			result += filename;
-		}
-
-		return result;
+		return prFileDialogInternal.puFileManager.GetResultingFilePathName(prFileDialogInternal);
 	}
 
 	std::string IGFD::FileDialog::GetCurrentPath()
 	{
-		std::string path = m_CurrentPath;
-
-		if (dlg_filters.empty()) // if directory mode
-		{
-			std::string selectedDirectory = FileNameBuffer;
-			if (!selectedDirectory.empty() && selectedDirectory != ".")
-			{
-				if (path.empty())
-					path = selectedDirectory;
-				else
-					path += PATH_SEP + selectedDirectory;
-			}
-		}
-
-		return path;
+		return prFileDialogInternal.puFileManager.GetResultingPath();
 	}
 
 	std::string IGFD::FileDialog::GetCurrentFileName()
 	{
-		if (!dlg_filters.empty()) // if not directory mode
-		{
-			std::string result = FileNameBuffer;
-
-			// if not a collection we can replace the filter by the extention we want
-			if (m_SelectedFilter.collectionfilters.empty())
-			{
-				if (m_SelectedFilter.filter.find('*') == std::string::npos && result != m_SelectedFilter.filter)
-				{
-					size_t lastPoint = result.find_last_of('.');
-					if (lastPoint != std::string::npos)
-					{
-						result = result.substr(0, lastPoint);
-					}
-
-					result += m_SelectedFilter.filter;
-				}
-			}
-
-			return result;
-		}
-
-		return ""; // directory mode
+		return prFileDialogInternal.puFileManager.GetResultingFileName(prFileDialogInternal);
 	}
 
 	std::string IGFD::FileDialog::GetCurrentFilter()
 	{
-		return m_SelectedFilter.filter;
-	}
-
-	UserDatas IGFD::FileDialog::GetUserDatas()
-	{
-		return dlg_userDatas;
-	}
-
-	bool IGFD::FileDialog::IsOk()
-	{
-		return m_IsOk;
+		return prFileDialogInternal.puFilterManager.GetSelectedFilter().filter;
 	}
 
 	std::map<std::string, std::string> IGFD::FileDialog::GetSelection()
 	{
-		std::map<std::string, std::string> res;
-
-		for (auto& it : m_SelectedFileNames)
-		{
-			std::string result = GetCurrentPath();
-
-#ifdef UNIX
-			if (s_fs_root != result)
-#endif // UNIX
-				result += PATH_SEP;
-
-			result += it;
-
-			res[it] = result;
-		}
-
-		return res;
+		return prFileDialogInternal.puFileManager.GetResultingSelection();
 	}
 
-	void IGFD::FileDialog::SetExtentionInfos(const std::string& vFilter, const FileExtentionInfosStruct& vInfos)
+	UserDatas IGFD::FileDialog::GetUserDatas() const
 	{
-		m_FileExtentionInfos[vFilter] = vInfos;
+		return prFileDialogInternal.puDLGuserDatas;
 	}
 
-	void IGFD::FileDialog::SetExtentionInfos(const std::string& vFilter, const ImVec4& vColor, const std::string& vIcon)
+	bool IGFD::FileDialog::IsOk() const
 	{
-		m_FileExtentionInfos[vFilter] = FileExtentionInfosStruct(vColor, vIcon);
+		return prFileDialogInternal.puIsOk;
 	}
 
-	bool IGFD::FileDialog::GetExtentionInfos(const std::string& vFilter, ImVec4* vOutColor, std::string* vOutIcon)
+	void IGFD::FileDialog::SetFileStyle(const IGFD_FileStyleFlags& vFlags, const char* vCriteria, const FileStyle& vInfos)
 	{
-		if (vOutColor)
-		{
-			if (m_FileExtentionInfos.find(vFilter) != m_FileExtentionInfos.end()) // found
-			{
-				*vOutColor = m_FileExtentionInfos[vFilter].color;
-				if (vOutIcon)
-				{
-					*vOutIcon = m_FileExtentionInfos[vFilter].icon;
-				}
-				return true;
-			}
-		}
-		return false;
+		prFileDialogInternal.puFilterManager.SetFileStyle(vFlags, vCriteria, vInfos);
 	}
 
-	void IGFD::FileDialog::ClearExtentionInfos()
+	void IGFD::FileDialog::SetFileStyle(const IGFD_FileStyleFlags& vFlags, const char* vCriteria, const ImVec4& vColor, const std::string& vIcon, ImFont* vFont)
 	{
-		m_FileExtentionInfos.clear();
+		prFileDialogInternal.puFilterManager.SetFileStyle(vFlags, vCriteria, vColor, vIcon, vFont);
 	}
 
-	void IGFD::FileDialog::SetDefaultFileName(const std::string& vFileName)
+	bool IGFD::FileDialog::GetFileStyle(const IGFD_FileStyleFlags& vFlags, const std::string& vCriteria, ImVec4* vOutColor, std::string* vOutIcon, ImFont **vOutFont)
 	{
-		dlg_defaultFileName = vFileName;
-		SetBuffer(FileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, vFileName);
+		return prFileDialogInternal.puFilterManager.GetFileStyle(vFlags, vCriteria, vOutColor, vOutIcon, vOutFont);
 	}
 
-	bool IGFD::FileDialog::SelectDirectory(const FileInfoStruct& vInfos)
+	void IGFD::FileDialog::ClearFilesStyle()
 	{
-		bool pathClick = false;
-
-		if (vInfos.fileName == "..")
-		{
-			if (m_CurrentPath_Decomposition.size() > 1)
-			{
-				m_CurrentPath = ComposeNewPath(m_CurrentPath_Decomposition.end() - 2);
-				pathClick = true;
-			}
-		}
-		else
-		{
-			std::string newPath;
-
-			if (m_ShowDrives)
-			{
-				newPath = vInfos.fileName + PATH_SEP;
-			}
-			else
-			{
-#ifdef __linux__
-				if (s_fs_root == m_CurrentPath)
-					newPath = m_CurrentPath + vInfos.fileName;
-				else
-#endif // __minux__
-					newPath = m_CurrentPath + PATH_SEP + vInfos.fileName;
-			}
-
-			if (IsDirectoryExist(newPath))
-			{
-				if (m_ShowDrives)
-				{
-					m_CurrentPath = vInfos.fileName;
-					s_fs_root = m_CurrentPath;
-				}
-				else
-				{
-					m_CurrentPath = newPath; //-V820
-				}
-				pathClick = true;
-			}
-		}
-
-		return pathClick;
+		prFileDialogInternal.puFilterManager.ClearFilesStyle();
 	}
 
-	void IGFD::FileDialog::SelectFileName(const FileInfoStruct& vInfos)
+	void IGFD::FileDialog::SetLocales(const int& vLocaleCategory, const std::string& vLocaleBegin, const std::string& vLocaleEnd)
 	{
-		if (ImGui::GetIO().KeyCtrl)
-		{
-			if (dlg_countSelectionMax == 0) // infinite selection
-			{
-				if (m_SelectedFileNames.find(vInfos.fileName) == m_SelectedFileNames.end()) // not found +> add
-				{
-					AddFileNameInSelection(vInfos.fileName, true);
-				}
-				else // found +> remove
-				{
-					RemoveFileNameInSelection(vInfos.fileName);
-				}
-			}
-			else // selection limited by size
-			{
-				if (m_SelectedFileNames.size() < dlg_countSelectionMax)
-				{
-					if (m_SelectedFileNames.find(vInfos.fileName) == m_SelectedFileNames.end()) // not found +> add
-					{
-						AddFileNameInSelection(vInfos.fileName, true);
-					}
-					else // found +> remove
-					{
-						RemoveFileNameInSelection(vInfos.fileName);
-					}
-				}
-			}
-		}
-		else if (ImGui::GetIO().KeyShift)
-		{
-			if (dlg_countSelectionMax != 1)
-			{
-				m_SelectedFileNames.clear();
-				// we will iterate filelist and get the last selection after the start selection
-				bool startMultiSelection = false;
-				std::string fileNameToSelect = vInfos.fileName;
-				std::string savedLastSelectedFileName; // for invert selection mode
-				for (auto& it : m_FileList)
-				{
-					const FileInfoStruct& infos = it;
-
-					bool canTake = true;
-					if (!searchTag.empty() && infos.fileName.find(searchTag) == std::string::npos) canTake = false;
-					if (canTake) // if not filtered, we will take files who are filtered by the dialog
-					{
-						if (infos.fileName == m_LastSelectedFileName)
-						{
-							startMultiSelection = true;
-							AddFileNameInSelection(m_LastSelectedFileName, false);
-						}
-						else if (startMultiSelection)
-						{
-							if (dlg_countSelectionMax == 0) // infinite selection
-							{
-								AddFileNameInSelection(infos.fileName, false);
-							}
-							else // selection limited by size
-							{
-								if (m_SelectedFileNames.size() < dlg_countSelectionMax)
-								{
-									AddFileNameInSelection(infos.fileName, false);
-								}
-								else
-								{
-									startMultiSelection = false;
-									if (!savedLastSelectedFileName.empty())
-										m_LastSelectedFileName = savedLastSelectedFileName;
-									break;
-								}
-							}
-						}
-
-						if (infos.fileName == fileNameToSelect)
-						{
-							if (!startMultiSelection) // we are before the last Selected FileName, so we must inverse
-							{
-								savedLastSelectedFileName = m_LastSelectedFileName;
-								m_LastSelectedFileName = fileNameToSelect;
-								fileNameToSelect = savedLastSelectedFileName;
-								startMultiSelection = true;
-								AddFileNameInSelection(m_LastSelectedFileName, false);
-							}
-							else
-							{
-								startMultiSelection = false;
-								if (!savedLastSelectedFileName.empty())
-									m_LastSelectedFileName = savedLastSelectedFileName;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			m_SelectedFileNames.clear();
-			ResetBuffer(FileNameBuffer);
-			AddFileNameInSelection(vInfos.fileName, true);
-		}
+		prFileDialogInternal.puUseCustomLocale = true;
+		prFileDialogInternal.puLocaleBegin = vLocaleBegin;
+		prFileDialogInternal.puLocaleEnd = vLocaleEnd;
 	}
-
-	void IGFD::FileDialog::RemoveFileNameInSelection(const std::string& vFileName)
-	{
-		m_SelectedFileNames.erase(vFileName);
-
-		if (m_SelectedFileNames.size() == 1)
-		{
-			snprintf(FileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, "%s", vFileName.c_str());
-		}
-		else
-		{
-			snprintf(FileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, "%zu files Selected", m_SelectedFileNames.size());
-		}
-	}
-
-	void IGFD::FileDialog::AddFileNameInSelection(const std::string& vFileName, bool vSetLastSelectionFileName)
-	{
-		m_SelectedFileNames.emplace(vFileName);
-
-		if (m_SelectedFileNames.size() == 1)
-		{
-			snprintf(FileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, "%s", vFileName.c_str());
-		}
-		else
-		{
-			snprintf(FileNameBuffer, MAX_FILE_DIALOG_NAME_BUFFER, "%zu files Selected", m_SelectedFileNames.size());
-		}
-
-		if (vSetLastSelectionFileName)
-			m_LastSelectedFileName = vFileName;
-	}
-
-	void IGFD::FileDialog::SetPath(const std::string& vPath)
-	{
-		m_ShowDrives = false;
-		m_CurrentPath = vPath;
-		m_FileList.clear();
-		m_CurrentPath_Decomposition.clear();
-		if (dlg_filters.empty()) // directory mode
-			SetDefaultFileName(".");
-		ScanDir(m_CurrentPath);
-	}
-
-	static std::string round_n(double vvalue, int n)
-	{
-		std::stringstream tmp;
-		tmp << std::setprecision(n) << std::fixed << vvalue;
-		return tmp.str();
-	}
-
-	static void FormatFileSize(size_t vByteSize, std::string* vFormat)
-	{
-		if (vFormat && vByteSize != 0)
-		{
-			static double lo = 1024.0;
-			static double ko = 1024.0 * 1024.0;
-			static double mo = 1024.0 * 1024.0 * 1024.0;
-
-			double v = (double)vByteSize;
-
-			if (v < lo)
-				*vFormat = round_n(v, 0) + " o"; // octet
-			else if (v < ko)
-				*vFormat = round_n(v / lo, 2) + " Ko"; // ko
-			else  if (v < mo)
-				*vFormat = round_n(v / ko, 2) + " Mo"; // Mo 
-			else
-				*vFormat = round_n(v / mo, 2) + " Go"; // Go 
-		}
-	}
-
-	void IGFD::FileDialog::CompleteFileInfos(FileInfoStruct* vFileInfoStruct)
-	{
-		if (vFileInfoStruct && 
-			vFileInfoStruct->fileName != "." && 
-			vFileInfoStruct->fileName != "..")
-		{
-			// _stat struct :
-			//dev_t     st_dev;     /* ID of device containing file */
-			//ino_t     st_ino;     /* inode number */
-			//mode_t    st_mode;    /* protection */
-			//nlink_t   st_nlink;   /* number of hard links */
-			//uid_t     st_uid;     /* user ID of owner */
-			//gid_t     st_gid;     /* group ID of owner */
-			//dev_t     st_rdev;    /* device ID (if special file) */
-			//off_t     st_size;    /* total size, in bytes */
-			//blksize_t st_blksize; /* blocksize for file system I/O */
-			//blkcnt_t  st_blocks;  /* number of 512B blocks allocated */
-			//time_t    st_atime;   /* time of last access - not sure out of ntfs */
-			//time_t    st_mtime;   /* time of last modification - not sure out of ntfs */
-			//time_t    st_ctime;   /* time of last status change - not sure out of ntfs */
-
-			std::string fpn;
-
-			if (vFileInfoStruct->type == 'f') // file
-				fpn = vFileInfoStruct->filePath + PATH_SEP + vFileInfoStruct->fileName;
-			else if (vFileInfoStruct->type == 'l') // link
-				fpn = vFileInfoStruct->filePath + PATH_SEP + vFileInfoStruct->fileName;
-			else if (vFileInfoStruct->type == 'd') // directory
-				fpn = vFileInfoStruct->filePath + PATH_SEP + vFileInfoStruct->fileName;
-
-			struct stat statInfos;
-			char timebuf[100];
-			int result = stat(fpn.c_str(), &statInfos);
-			if (!result)
-			{
-				if (vFileInfoStruct->type != 'd')
-				{
-					vFileInfoStruct->fileSize = (size_t)statInfos.st_size;
-					FormatFileSize(vFileInfoStruct->fileSize,
-						&vFileInfoStruct->formatedFileSize);
-				}
-
-				size_t len = 0;
-#ifdef MSVC
-				struct tm _tm;
-				errno_t err = localtime_s(&_tm, &statInfos.st_mtime);
-				if (!err) len = strftime(timebuf, 99, DateTimeFormat, &_tm);
-#else // MSVC
-				struct tm* _tm = localtime(&statInfos.st_mtime);
-				if (_tm) len = strftime(timebuf, 99, DateTimeFormat, _tm);
-#endif // MSVC
-				if (len)
-				{
-					vFileInfoStruct->fileModifDate = std::string(timebuf, len);
-				}
-			}
-		}
-	}
-
-	void IGFD::FileDialog::SortFields(SortingFieldEnum vSortingField, bool vCanChangeOrder)
-	{
-		if (vSortingField != SortingFieldEnum::FIELD_NONE)
-		{
-			m_HeaderFileName = tableHeaderFileNameString;
-			m_HeaderFileType = tableHeaderFileTypeString;
-			m_HeaderFileSize = tableHeaderFileSizeString;
-			m_HeaderFileDate = tableHeaderFileDateString;
-		}
-
-		if (vSortingField == SortingFieldEnum::FIELD_FILENAME)
-		{
-			if (vCanChangeOrder && m_SortingField == vSortingField)
-				m_SortingDirection[0] = !m_SortingDirection[0];
-
-			if (m_SortingDirection[0])
-			{
-#ifdef USE_CUSTOM_SORTING_ICON
-				m_HeaderFileName = tableHeaderDescendingIcon + m_HeaderFileName;
-#endif // USE_CUSTOM_SORTING_ICON
-				std::sort(m_FileList.begin(), m_FileList.end(),
-					[](const FileInfoStruct& a, const FileInfoStruct& b) -> bool
-					{
-					  	if (a.fileName[0] == '.' && b.fileName[0] != '.') return true;
-					  	if (a.fileName[0] != '.' && b.fileName[0] == '.') return false;
-					  	if (a.fileName[0] == '.' && b.fileName[0] == '.')
-					  	{
-						  	if (a.fileName.length() == 1) return false;
-						  	if (b.fileName.length() == 1) return true;
-						  	return (stricmp(a.fileName.c_str() + 1, b.fileName.c_str() + 1) < 0);
-					  	}
-
-						if (a.type != b.type) return (a.type == 'd'); // directory in first
-						return (stricmp(a.fileName.c_str(), b.fileName.c_str()) < 0); // sort in insensitive case
-					});
-			}
-			else
-			{
-#ifdef USE_CUSTOM_SORTING_ICON
-				m_HeaderFileName = tableHeaderAscendingIcon + m_HeaderFileName;
-#endif // USE_CUSTOM_SORTING_ICON
-				std::sort(m_FileList.begin(), m_FileList.end(),
-					[](const FileInfoStruct& a, const FileInfoStruct& b) -> bool
-					{
-					  	if (a.fileName[0] == '.' && b.fileName[0] != '.') return false;
-					  	if (a.fileName[0] != '.' && b.fileName[0] == '.') return true;
-					  	if (a.fileName[0] == '.' && b.fileName[0] == '.')
-					  	{
-						  	if (a.fileName.length() == 1) return true;
-						  	if (b.fileName.length() == 1) return false;
-						  	return (stricmp(a.fileName.c_str() + 1, b.fileName.c_str() + 1) > 0);
-					  	}
-
-						if (a.type != b.type) return (a.type != 'd'); // directory in last
-						return (stricmp(a.fileName.c_str(), b.fileName.c_str()) > 0); // sort in insensitive case
-					});
-			}
-		}
-		else if (vSortingField == SortingFieldEnum::FIELD_TYPE)
-		{
-			if (vCanChangeOrder && m_SortingField == vSortingField)
-				m_SortingDirection[1] = !m_SortingDirection[1];
-
-			if (m_SortingDirection[1])
-			{
-#ifdef USE_CUSTOM_SORTING_ICON
-				m_HeaderFileType = tableHeaderDescendingIcon + m_HeaderFileType;
-#endif // USE_CUSTOM_SORTING_ICON
-				std::sort(m_FileList.begin(), m_FileList.end(),
-					[](const FileInfoStruct& a, const FileInfoStruct& b) -> bool
-					{
-						if (a.type != b.type) return (a.type == 'd'); // directory in first
-						return (a.ext < b.ext); // else
-					});
-			}
-			else
-			{
-#ifdef USE_CUSTOM_SORTING_ICON
-				m_HeaderFileType = tableHeaderAscendingIcon + m_HeaderFileType;
-#endif // USE_CUSTOM_SORTING_ICON
-				std::sort(m_FileList.begin(), m_FileList.end(),
-					[](const FileInfoStruct& a, const FileInfoStruct& b) -> bool
-					{
-						if (a.type != b.type) return (a.type != 'd'); // directory in last
-						return (a.ext > b.ext); // else
-					});
-			}
-		}
-		else if (vSortingField == SortingFieldEnum::FIELD_SIZE)
-		{
-			if (vCanChangeOrder && m_SortingField == vSortingField)
-				m_SortingDirection[2] = !m_SortingDirection[2];
-
-			if (m_SortingDirection[2])
-			{
-#ifdef USE_CUSTOM_SORTING_ICON
-				m_HeaderFileSize = tableHeaderDescendingIcon + m_HeaderFileSize;
-#endif // USE_CUSTOM_SORTING_ICON
-				std::sort(m_FileList.begin(), m_FileList.end(),
-					[](const FileInfoStruct& a, const FileInfoStruct& b) -> bool
-					{
-						if (a.type != b.type) return (a.type == 'd'); // directory in first
-						return (a.fileSize < b.fileSize); // else
-					});
-			}
-			else
-			{
-#ifdef USE_CUSTOM_SORTING_ICON
-				m_HeaderFileSize = tableHeaderAscendingIcon + m_HeaderFileSize;
-#endif // USE_CUSTOM_SORTING_ICON
-				std::sort(m_FileList.begin(), m_FileList.end(),
-					[](const FileInfoStruct& a, const FileInfoStruct& b) -> bool
-					{
-						if (a.type != b.type) return (a.type != 'd'); // directory in last
-						return (a.fileSize > b.fileSize); // else
-					});
-			}
-		}
-		else if (vSortingField == SortingFieldEnum::FIELD_DATE)
-		{
-			if (vCanChangeOrder && m_SortingField == vSortingField)
-				m_SortingDirection[3] = !m_SortingDirection[3];
-
-			if (m_SortingDirection[3])
-			{
-#ifdef USE_CUSTOM_SORTING_ICON
-				m_HeaderFileDate = tableHeaderDescendingIcon + m_HeaderFileDate;
-#endif // USE_CUSTOM_SORTING_ICON
-				std::sort(m_FileList.begin(), m_FileList.end(),
-					[](const FileInfoStruct& a, const FileInfoStruct& b) -> bool
-					{
-						if (a.type != b.type) return (a.type == 'd'); // directory in first
-						return (a.fileModifDate < b.fileModifDate); // else
-					});
-			}
-			else
-			{
-#ifdef USE_CUSTOM_SORTING_ICON
-				m_HeaderFileDate = tableHeaderAscendingIcon + m_HeaderFileDate;
-#endif // USE_CUSTOM_SORTING_ICON
-				std::sort(m_FileList.begin(), m_FileList.end(),
-					[](const FileInfoStruct& a, const FileInfoStruct& b) -> bool
-					{
-						if (a.type != b.type) return (a.type != 'd'); // directory in last
-						return (a.fileModifDate > b.fileModifDate); // else
-					});
-			}
-		}
-
-		if (vSortingField != SortingFieldEnum::FIELD_NONE)
-		{
-			m_SortingField = vSortingField;
-		}
-
-		ApplyFilteringOnFileList();
-	}
-
-	void IGFD::FileDialog::ScanDir(const std::string& vPath)
-	{
-		struct dirent** files = nullptr;
-		int          i = 0;
-		int          n = 0;
-		std::string		path = vPath;
-
-		if (m_CurrentPath_Decomposition.empty())
-		{
-			SetCurrentDir(path);
-		}
-
-		if (!m_CurrentPath_Decomposition.empty())
-		{
-#ifdef WIN32
-			if (path == s_fs_root)
-				path += PATH_SEP;
-#endif // WIN32
-			n = scandir(path.c_str(), &files, nullptr, alphaSort);
-
-			m_FileList.clear();
-
-			if (n > 0)
-			{
-				for (i = 0; i < n; i++)
-				{
-					struct dirent* ent = files[i];
-
-					FileInfoStruct infos;
-
-					infos.filePath = path;
-					infos.fileName = ent->d_name;
-					infos.fileName_optimized = OptimizeFilenameForSearchOperations(infos.fileName);
-
-					if (infos.fileName.empty() || (infos.fileName == "." && !dlg_filters.empty())) continue; // filename empty or filename is the current dir '.'
-					if (infos.fileName != ".." && (dlg_flags & ImGuiFileDialogFlags_DontShowHiddenFiles) && infos.fileName[0] == '.') // dont show hidden files
-						if (!dlg_filters.empty() || (dlg_filters.empty() && infos.fileName != ".")) // except "." if in directory mode
-							continue;
-					
-					switch (ent->d_type)
-					{
-					case DT_REG:
-						infos.type = 'f'; break;
-					case DT_DIR:
-						infos.type = 'd'; break;
-					case DT_LNK:
-						infos.type = 'l'; break;
-					}
-
-					if (infos.type == 'f' ||
-						infos.type == 'l') // link can have the same extention of a file
-					{
-						size_t lpt = infos.fileName.find_last_of('.');
-						if (lpt != std::string::npos)
-						{
-							infos.ext = infos.fileName.substr(lpt);
-						}
-
-						if (!dlg_filters.empty())
-						{
-							// check if current file extention is covered by current filter
-							// we do that here, for avoid doing that during filelist display
-							// for better fps
-							if (!m_SelectedFilter.empty() && // selected filter exist
-								(!m_SelectedFilter.filterExist(infos.ext) && // filter not found
-									m_SelectedFilter.filter != ".*"))
-							{
-								continue;
-							}
-						}
-					}
-
-					CompleteFileInfos(&infos);
-					m_FileList.push_back(infos);
-				}
-
-				for (i = 0; i < n; i++)
-				{
-					free(files[i]);
-				}
-
-				free(files);
-			}
-
-			SortFields(m_SortingField);
-		}
-	}
-
-	void IGFD::FileDialog::SetCurrentDir(const std::string& vPath)
-	{
-		std::string path = vPath;
-#ifdef WIN32
-		if (s_fs_root == path)
-			path += PATH_SEP;
-#endif // WIN32
-		char real_path[PATH_MAX];
-		DIR* dir = opendir(path.c_str());
-		if (dir == nullptr)
-		{
-			path = ".";
-			dir = opendir(path.c_str());
-		}
-
-		if (dir != nullptr)
-		{
-#ifdef WIN32
-			DWORD numchar = 0;
-			//			numchar = GetFullPathNameA(path.c_str(), PATH_MAX, real_path, nullptr);
-			std::wstring wpath = wGetString(path.c_str());
-			numchar = GetFullPathNameW(wpath.c_str(), 0, nullptr, nullptr);
-			std::wstring fpath(numchar, 0);
-			GetFullPathNameW(wpath.c_str(), numchar, (wchar_t*)fpath.data(), nullptr);
-			int error = dirent_wcstombs_s(nullptr, real_path, PATH_MAX, fpath.c_str(), PATH_MAX - 1);
-			if (error)numchar = 0;
-			if (!numchar)
-			{
-				std::cout << "fail to obtain FullPathName " << path << std::endl;
-			}
-#elif defined(UNIX) // UNIX is LINUX or APPLE
-			char* numchar = realpath(path.c_str(), real_path);
-#endif // defined(UNIX)
-			if (numchar != 0)
-			{
-				m_CurrentPath = real_path;
-				if (m_CurrentPath[m_CurrentPath.size() - 1] == PATH_SEP)
-				{
-					m_CurrentPath = m_CurrentPath.substr(0, m_CurrentPath.size() - 1);
-				}
-				SetBuffer(InputPathBuffer, MAX_PATH_BUFFER_SIZE, m_CurrentPath);
-				m_CurrentPath_Decomposition = splitStringToVector(m_CurrentPath, PATH_SEP, false);
-#if defined(UNIX) // UNIX is LINUX or APPLE
-				m_CurrentPath_Decomposition.insert(m_CurrentPath_Decomposition.begin(), std::string(1u, PATH_SEP));
-#endif // defined(UNIX)
-				if (!m_CurrentPath_Decomposition.empty())
-				{
-#ifdef WIN32
-					s_fs_root = m_CurrentPath_Decomposition[0];
-#endif // WIN32
-				}
-			}
-
-			closedir(dir);
-		}
-	}
-
-	bool IGFD::FileDialog::CreateDir(const std::string& vPath)
-	{
-		bool res = false;
-
-		if (!vPath.empty())
-		{
-			std::string path = m_CurrentPath + PATH_SEP + vPath;
-
-			res = CreateDirectoryIfNotExist(path);
-		}
-
-		return res;
-	}
-
-	std::string IGFD::FileDialog::ComposeNewPath(std::vector<std::string>::iterator vIter)
-	{
-		std::string res;
-
-		while (true)
-		{
-			if (!res.empty())
-			{
-#ifdef WIN32
-				res = *vIter + PATH_SEP + res;
-#elif defined(UNIX) // UNIX is LINUX or APPLE
-				if (*vIter == s_fs_root)
-				{
-					res = *vIter + res;
-				}
-				else
-				{
-					res = *vIter + PATH_SEP + res;
-				}
-#endif // defined(UNIX)
-			}
-			else
-			{
-				res = *vIter;
-			}
-
-			if (vIter == m_CurrentPath_Decomposition.begin())
-			{
-#if defined(UNIX) // UNIX is LINUX or APPLE
-				if (res[0] != PATH_SEP)
-					res = PATH_SEP + res;
-#endif // defined(UNIX)
-				break;
-			}
-
-			--vIter;
-		}
-
-		return res;
-	}
-
-	void IGFD::FileDialog::GetDrives()
-	{
-		auto drives = GetDrivesList();
-		if (!drives.empty())
-		{
-			m_CurrentPath.clear();
-			m_CurrentPath_Decomposition.clear();
-			m_FileList.clear();
-			for (auto& drive : drives)
-			{
-				FileInfoStruct infos;
-				infos.fileName = drive;
-				infos.fileName_optimized = OptimizeFilenameForSearchOperations(drive);
-				infos.type = 'd';
-
-				if (!infos.fileName.empty())
-				{
-					m_FileList.push_back(infos);
-				}
-			}
-			m_ShowDrives = true;
-			ApplyFilteringOnFileList();
-		}
-	}
-
-	void IGFD::FileDialog::ParseFilters(const char* vFilters)
-	{
-		m_Filters.clear();
-
-		if (vFilters)
-			dlg_filters = vFilters;				// file mode
-		else
-			dlg_filters.clear();				// directtory mode
-
-		if (!dlg_filters.empty())
-		{
-			// ".*,.cpp,.h,.hpp"
-			// "Source files{.cpp,.h,.hpp},Image files{.png,.gif,.jpg,.jpeg},.md"
-
-			bool currentFilterFound = false;
-
-			size_t nan = std::string::npos;
-			size_t p = 0, lp = 0;
-			while ((p = dlg_filters.find_first_of("{,", p)) != nan)
-			{
-				FilterInfosStruct infos;
-
-				if (dlg_filters[p] == '{') // {
-				{
-					infos.filter = dlg_filters.substr(lp, p - lp);
-					p++;
-					lp = dlg_filters.find('}', p);
-					if (lp != nan)
-					{
-						std::string fs = dlg_filters.substr(p, lp - p);
-						auto arr = splitStringToVector(fs, ',', false);
-						for (auto a : arr)
-						{
-							infos.collectionfilters.emplace(a);
-						}
-					}
-					p = lp + 1;
-				}
-				else // ,
-				{
-					infos.filter = dlg_filters.substr(lp, p - lp);
-					p++;
-				}
-
-				if (!currentFilterFound && m_SelectedFilter.filter == infos.filter)
-				{
-					currentFilterFound = true;
-					m_SelectedFilter = infos;
-				}
-
-				lp = p;
-				if (!infos.empty())
-					m_Filters.emplace_back(infos);
-			}
-
-			std::string token = dlg_filters.substr(lp);
-			if (!token.empty())
-			{
-				FilterInfosStruct infos;
-				infos.filter = token;
-				m_Filters.emplace_back(infos);
-			}
-
-			if (!currentFilterFound)
-				if (!m_Filters.empty())
-					m_SelectedFilter = *m_Filters.begin();
-		}
-	}
-
-	void IGFD::FileDialog::SetSelectedFilterWithExt(const std::string& vFilter)
-	{
-		if (!m_Filters.empty())
-		{
-			if (!vFilter.empty())
-			{
-				// std::map<std::string, FilterInfosStruct>
-				for (const auto& infos : m_Filters)
-				{
-					if (vFilter == infos.filter)
-					{
-						m_SelectedFilter = infos;
-					}
-					else
-					{
-						// maybe this ext is in an extention so we will 
-						// explore the collections is they are existing
-						for (const auto& filter : infos.collectionfilters)
-						{
-							if (vFilter == filter)
-							{
-								m_SelectedFilter = infos;
-							}
-						}
-					}
-				}
-			}
-
-			if (m_SelectedFilter.empty())
-				m_SelectedFilter = *m_Filters.begin();
-		}
-	}
-
-	std::string IGFD::FileDialog::OptimizeFilenameForSearchOperations(std::string vFileName)
-	{
-		// convert to lower case
-		for (char& c : vFileName)
-			c = (char)std::tolower(c);
-		return vFileName;
-	}
-
-	void IGFD::FileDialog::ApplyFilteringOnFileList()
-	{
-		m_FilteredFileList.clear();
-
-		for (auto& it : m_FileList)
-		{
-			const FileInfoStruct& infos = it;
-
-			bool show = true;
-
-			// if search tag
-			if (!searchTag.empty() &&
-				infos.fileName_optimized.find(searchTag) == std::string::npos && // first try wihtout case and accents
-				infos.fileName.find(searchTag) == std::string::npos) // second if searched with case and accents
-			{
-				show = false;
-			}
-
-			if (dlg_filters.empty() && infos.type != 'd') // directory mode
-			{
-				show = false;
-			}
-
-			if (show)
-			{
-				m_FilteredFileList.push_back(infos);
-			}
-		}
-	}
-
-#ifdef USE_EXPLORATION_BY_KEYS
-
-	//////////////////////////////////////////////////////////////////////////////
-	//// LOCATE / EXPLORE WITH KEYS //////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-
-	bool IGFD::FileDialog::LocateItem_Loop(ImWchar vC)
-	{
-		bool found = false;
-
-		for (size_t i =m_LocateFileByInputChar_lastFileIdx; i < m_FilteredFileList.size(); i++)
-		{
-			if (m_FilteredFileList[i].fileName_optimized[0] == vC || // lower case search
-				m_FilteredFileList[i].fileName[0] == vC) // maybe upper case search
-			{
-				//float p = ((float)i) * ImGui::GetTextLineHeightWithSpacing();
-				float p = (float)((double)i / (double)m_FilteredFileList.size()) * ImGui::GetScrollMaxY();
-				ImGui::SetScrollY(p);
-				m_LocateFileByInputChar_lastFound = true;
-				m_LocateFileByInputChar_lastFileIdx = i;
-				StartFlashItem(m_LocateFileByInputChar_lastFileIdx);
-
-				auto infos = &m_FilteredFileList[m_LocateFileByInputChar_lastFileIdx];
-
-				if (infos->type == 'd')
-				{
-					if (dlg_filters.empty()) // directory chooser
-					{
-						SelectFileName(*infos);
-					}
-				}
-				else
-				{
-					SelectFileName(*infos);
-				}
-
-				found = true;
-
-				break;
-			}
-		}
-
-		return found;
-	}
-
-	void IGFD::FileDialog::LocateByInputKey()
-	{
-		ImGuiContext& g = *GImGui;
-		if (!g.ActiveId && !m_FilteredFileList.empty())
-		{
-			auto& queueChar = ImGui::GetIO().InputQueueCharacters;
-
-			// point by char
-			if (!queueChar.empty())
-			{
-				ImWchar c = queueChar.back();
-				if (m_LocateFileByInputChar_InputQueueCharactersSize != queueChar.size())
-				{
-					if (c == m_LocateFileByInputChar_lastChar) // next file starting with same char until
-					{
-						if (m_LocateFileByInputChar_lastFileIdx < m_FilteredFileList.size() - 1)
-							m_LocateFileByInputChar_lastFileIdx++;
-						else
-							m_LocateFileByInputChar_lastFileIdx = 0;
-					}
-
-					if (!LocateItem_Loop(c))
-					{
-						// not found, loop again from 0 this time
-						m_LocateFileByInputChar_lastFileIdx = 0;
-						LocateItem_Loop(c);
-					}
-
-					m_LocateFileByInputChar_lastChar = c;
-				}
-			}
-
-			m_LocateFileByInputChar_InputQueueCharactersSize = queueChar.size();
-		}
-	}
-
-	void IGFD::FileDialog::ExploreWithkeys()
-	{
-		ImGuiContext& g = *GImGui;
-		if (!g.ActiveId && !m_FilteredFileList.empty())
-		{
-			// explore
-			bool exploreByKey = false;
-			bool enterInDirectory = false;
-			bool exitDirectory = false;
-			if (ImGui::IsKeyPressed(IGFD_KEY_UP))
-			{
-				exploreByKey = true;
-				if (m_LocateFileByInputChar_lastFileIdx > 0)
-					m_LocateFileByInputChar_lastFileIdx--;
-			}
-			else if (ImGui::IsKeyPressed(IGFD_KEY_DOWN))
-			{
-				exploreByKey = true;
-				if (m_LocateFileByInputChar_lastFileIdx < m_FilteredFileList.size() - 1)
-					m_LocateFileByInputChar_lastFileIdx++;
-			}
-			else if (ImGui::IsKeyReleased(IGFD_KEY_ENTER) && ImGui::IsWindowHovered())
-			{
-				exploreByKey = true;
-				enterInDirectory = true;
-			}
-			else if (ImGui::IsKeyReleased(IGFD_KEY_BACKSPACE) && ImGui::IsWindowHovered())
-			{
-				exploreByKey = true;
-				exitDirectory = true;
-			}
-
-			if (exploreByKey)
-			{
-				//float totalHeight = m_FilteredFileList.size() * ImGui::GetTextLineHeightWithSpacing();
-				float p = (float)((double)m_LocateFileByInputChar_lastFileIdx / (double)m_FilteredFileList.size()) * ImGui::GetScrollMaxY();// seems not udpated in tables version outside tables
-				//float p = ((float)locateFileByInputChar_lastFileIdx) * ImGui::GetTextLineHeightWithSpacing();
-				ImGui::SetScrollY(p);
-				StartFlashItem(m_LocateFileByInputChar_lastFileIdx);
-
-				auto infos = &m_FilteredFileList[m_LocateFileByInputChar_lastFileIdx];
-
-				if (infos->type == 'd')
-				{
-					if (!dlg_filters.empty() || enterInDirectory)
-					{
-						if (enterInDirectory)
-						{
-							if (SelectDirectory(*infos))
-							{
-								// changement de repertoire
-								SetPath(m_CurrentPath);
-								if (m_LocateFileByInputChar_lastFileIdx > m_FilteredFileList.size() - 1)
-								{
-									m_LocateFileByInputChar_lastFileIdx = 0;
-								}
-							}
-						}
-					}
-					else // directory chooser
-					{
-						SelectFileName(*infos);
-					}
-				}
-				else
-				{
-					SelectFileName(*infos);
-				}
-
-				if (exitDirectory)
-				{
-					FileInfoStruct nfo;
-					nfo.fileName = "..";
-
-					if (SelectDirectory(nfo))
-					{
-						// changement de repertoire
-						SetPath(m_CurrentPath);
-						if (m_LocateFileByInputChar_lastFileIdx > m_FilteredFileList.size() - 1)
-						{
-							m_LocateFileByInputChar_lastFileIdx = 0;
-						}
-					}
-#ifdef WIN32
-					else
-					{
-						if (m_CurrentPath_Decomposition.size() == 1)
-						{
-							GetDrives(); // display drives
-						}
-					}
-#endif // WIN32
-				}
-			}
-		}
-	}
-
-	void IGFD::FileDialog::StartFlashItem(size_t vIdx)
-	{
-		m_FlashAlpha = 1.0f;
-		m_FlashedItem = vIdx;
-	}
-
-	bool IGFD::FileDialog::BeginFlashItem(size_t vIdx)
-	{
-		bool res = false;
-
-		if (m_FlashedItem == vIdx &&
-			std::abs(m_FlashAlpha - 0.0f) > 0.00001f)
-		{
-			m_FlashAlpha -= m_FlashAlphaAttenInSecs * ImGui::GetIO().DeltaTime;
-			if (m_FlashAlpha < 0.0f) m_FlashAlpha = 0.0f;
-
-			ImVec4 hov = ImGui::GetStyleColorVec4(ImGuiCol_HeaderHovered);
-			hov.w = m_FlashAlpha;
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, hov);
-			res = true;
-		}
-
-		return res;
-	}
-
-	void IGFD::FileDialog::EndFlashItem()
-	{
-		ImGui::PopStyleColor();
-	}
-
-	void IGFD::FileDialog::SetFlashingAttenuationInSeconds(float vAttenValue)
-	{
-		m_FlashAlphaAttenInSecs = 1.0f / ImMax(vAttenValue, 0.01f);
-	}
-#endif // USE_EXPLORATION_BY_KEYS
-
-#ifdef USE_BOOKMARK
-
-	//////////////////////////////////////////////////////////////////////////////
-	//// BOOKMARK FEATURE ////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-
-	void IGFD::FileDialog::DrawBookmarkPane(ImVec2 vSize)
-	{
-		ImGui::BeginChild("##bookmarkpane", vSize);
-
-		static int selectedBookmarkForEdition = -1;
-
-		if (IMGUI_BUTTON(addBookmarkButtonString "##ImGuiFileDialogAddBookmark"))
-		{
-			if (!m_CurrentPath_Decomposition.empty())
-			{
-				BookmarkStruct bookmark;
-				bookmark.name = m_CurrentPath_Decomposition.back();
-				bookmark.path = m_CurrentPath;
-				m_Bookmarks.push_back(bookmark);
-			}
-		}
-		if (selectedBookmarkForEdition >= 0 &&
-			selectedBookmarkForEdition < (int)m_Bookmarks.size())
-		{
-			ImGui::SameLine();
-			if (IMGUI_BUTTON(removeBookmarkButtonString "##ImGuiFileDialogAddBookmark"))
-			{
-				m_Bookmarks.erase(m_Bookmarks.begin() + selectedBookmarkForEdition);
-				if (selectedBookmarkForEdition == (int)m_Bookmarks.size())
-					selectedBookmarkForEdition--;
-			}
-
-			if (selectedBookmarkForEdition >= 0 &&
-				selectedBookmarkForEdition < (int)m_Bookmarks.size())
-			{
-				ImGui::SameLine();
-
-				ImGui::PushItemWidth(vSize.x - ImGui::GetCursorPosX());
-				if (ImGui::InputText("##ImGuiFileDialogBookmarkEdit", BookmarkEditBuffer, MAX_FILE_DIALOG_NAME_BUFFER))
-				{
-					m_Bookmarks[selectedBookmarkForEdition].name = std::string(BookmarkEditBuffer);
-				}
-				ImGui::PopItemWidth();
-			}
-		}
-
-		ImGui::Separator();
-
-		if (!m_Bookmarks.empty())
-		{
-			m_BookmarkClipper.Begin((int)m_Bookmarks.size(), ImGui::GetTextLineHeightWithSpacing());
-			while (m_BookmarkClipper.Step())
-			{
-				for (int i = m_BookmarkClipper.DisplayStart; i < m_BookmarkClipper.DisplayEnd; i++)
-				{
-					if (i < 0) continue;
-					const BookmarkStruct& bookmark = m_Bookmarks[i];
-					ImGui::PushID(i);
-					if (ImGui::Selectable(bookmark.name.c_str(), selectedBookmarkForEdition == i,
-						ImGuiSelectableFlags_AllowDoubleClick) |
-						(selectedBookmarkForEdition == -1 &&
-							bookmark.path == m_CurrentPath)) // select if path is current
-					{
-						selectedBookmarkForEdition = i;
-						ResetBuffer(BookmarkEditBuffer);
-						AppendToBuffer(BookmarkEditBuffer, MAX_FILE_DIALOG_NAME_BUFFER, bookmark.name);
-
-						if (ImGui::IsMouseDoubleClicked(0)) // apply path
-						{
-							SetPath(bookmark.path);
-						}
-					}
-					ImGui::PopID();
-					if (ImGui::IsItemHovered())
-						ImGui::SetTooltip("%s", bookmark.path.c_str());
-				}
-			}
-			m_BookmarkClipper.End();
-		}
-
-		ImGui::EndChild();
-	}
-
-	std::string IGFD::FileDialog::SerializeBookmarks()
-	{
-		std::string res;
-
-		size_t idx = 0;
-		for (auto& it : m_Bookmarks)
-		{
-			if (idx++ != 0)
-				res += "##"; // ## because reserved by imgui, so an input text cant have ##
-			res += it.name + "##" + it.path;
-		}
-
-		return res;
-	}
-
-	void IGFD::FileDialog::DeserializeBookmarks(const std::string& vBookmarks)
-	{
-		if (!vBookmarks.empty())
-		{
-			m_Bookmarks.clear();
-			auto arr = splitStringToVector(vBookmarks, '#', false);
-			for (size_t i = 0; i < arr.size(); i += 2)
-			{
-				BookmarkStruct bookmark;
-				bookmark.name = arr[i];
-				if (i + 1 < arr.size()) // for avoid crash if arr size is impair due to user mistake after edition
-				{
-					// if bad format we jump this bookmark
-					bookmark.path = arr[i + 1];
-					m_Bookmarks.push_back(bookmark);
-				}
-			}
-		}
-	}
-#endif // USE_BOOKMARK
 
 	//////////////////////////////////////////////////////////////////////////////
 	//// OVERWRITE DIALOG ////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	bool IGFD::FileDialog::Confirm_Or_OpenOverWriteFileDialog_IfNeeded(bool vLastAction, ImGuiWindowFlags vFlags)
+	bool IGFD::FileDialog::prConfirm_Or_OpenOverWriteFileDialog_IfNeeded(bool vLastAction, ImGuiWindowFlags vFlags)
 	{
 		// if confirmation => return true for confirm the overwrite et quit the dialog
 		// if cancel => return false && set IsOk to false for keep inside the dialog
 
 		// if IsOk == false => return false for quit the dialog
-		if (!m_IsOk && vLastAction)
+		if (!prFileDialogInternal.puIsOk && vLastAction)
 		{
+			QuitFrame();
 			return true;
 		}
 
 		// if IsOk == true && no check of overwrite => return true for confirm the dialog
-		if (m_IsOk && vLastAction && !(dlg_flags & ImGuiFileDialogFlags_ConfirmOverwrite))
+		if (prFileDialogInternal.puIsOk && vLastAction && !(prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_ConfirmOverwrite))
 		{
+			QuitFrame();
 			return true;
 		}
 
 		// if IsOk == true && check of overwrite => return false and show confirm to overwrite dialog
-		if ((m_OkResultToConfirm || (m_IsOk && vLastAction)) && (dlg_flags & ImGuiFileDialogFlags_ConfirmOverwrite))
+		if ((prFileDialogInternal.puOkResultToConfirm || (prFileDialogInternal.puIsOk && vLastAction)) && 
+			(prFileDialogInternal.puDLGflags & ImGuiFileDialogFlags_ConfirmOverwrite))
 		{
-			if (m_IsOk) // catched only one time
+			if (prFileDialogInternal.puIsOk) // catched only one time
 			{
-				if (!IsFileExist(GetFilePathName())) // not existing => quit dialog
+				if (!prFileDialogInternal.puFileManager.IsFileExist(GetFilePathName())) // not existing => quit dialog
 				{
+					QuitFrame();
 					return true;
 				}
 				else // existing => confirm dialog to open
 				{
-					m_IsOk = false;
-					m_OkResultToConfirm = true;
+					prFileDialogInternal.puIsOk = false;
+					prFileDialogInternal.puOkResultToConfirm = true;
 				}
 			}
 
-			std::string name = OverWriteDialogTitleString "##" + dlg_title + dlg_key + "OverWriteDialog";
+			std::string name = OverWriteDialogTitleString "##" + prFileDialogInternal.puDLGtitle + prFileDialogInternal.puDLGkey + "OverWriteDialog";
 
 			bool res = false;
 
@@ -2909,14 +4435,14 @@ namespace IGFD
 				vFlags | ImGuiWindowFlags_AlwaysAutoResize |
 				ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove))
 			{
-				ImGui::SetWindowPos(m_DialogCenterPos - ImGui::GetWindowSize() * 0.5f); // next frame needed for GetWindowSize to work
+				ImGui::SetWindowPos(prFileDialogInternal.puDialogCenterPos - ImGui::GetWindowSize() * 0.5f); // next frame needed for GetWindowSize to work
 
 				ImGui::Text("%s", OverWriteDialogMessageString);
 
 				if (IMGUI_BUTTON(OverWriteDialogConfirmButtonString))
 				{
-					m_OkResultToConfirm = false;
-					m_IsOk = true;
+					prFileDialogInternal.puOkResultToConfirm = false;
+					prFileDialogInternal.puIsOk = true;
 					res = true;
 					ImGui::CloseCurrentPopup();
 				}
@@ -2925,8 +4451,8 @@ namespace IGFD
 
 				if (IMGUI_BUTTON(OverWriteDialogCancelButtonString))
 				{
-					m_OkResultToConfirm = false;
-					m_IsOk = false;
+					prFileDialogInternal.puOkResultToConfirm = false;
+					prFileDialogInternal.puIsOk = false;
 					res = false;
 					ImGui::CloseCurrentPopup();
 				}
@@ -2934,21 +4460,13 @@ namespace IGFD
 				ImGui::EndPopup();
 			}
 
+			if (res)
+			{
+				QuitFrame();
+			}
 			return res;
 		}
 
-
-		return false;
-	}
-
-	bool IGFD::FileDialog::IsFileExist(const std::string& vFile)
-	{
-		std::ifstream docFile(vFile, std::ios::in);
-		if (docFile.is_open())
-		{
-			docFile.close();
-			return true;
-		}
 		return false;
 	}
 }
@@ -2962,9 +4480,9 @@ namespace IGFD
 // Return an initialized IGFD_Selection_Pair
 IMGUIFILEDIALOG_API IGFD_Selection_Pair IGFD_Selection_Pair_Get(void)
 {
-	IGFD_Selection_Pair res;
-	res.fileName = 0;
-	res.filePathName = 0;
+	IGFD_Selection_Pair res = {};
+	res.fileName = nullptr;
+	res.filePathName = nullptr;
 	return res;
 }
 
@@ -2973,17 +4491,15 @@ IMGUIFILEDIALOG_API void IGFD_Selection_Pair_DestroyContent(IGFD_Selection_Pair*
 {
 	if (vSelection_Pair)
 	{
-		if (vSelection_Pair->fileName)
-			delete[] vSelection_Pair->fileName;
-		if (vSelection_Pair->filePathName)
-			delete[] vSelection_Pair->filePathName;
+		delete[] vSelection_Pair->fileName;
+		delete[] vSelection_Pair->filePathName;
 	}
 }
 
 // Return an initialized IGFD_Selection
 IMGUIFILEDIALOG_API IGFD_Selection IGFD_Selection_Get(void)
 {
-	return { 0, 0U };
+	return { nullptr, 0U };
 }
 
 // destroy only the content of vSelection
@@ -3022,13 +4538,13 @@ IMGUIFILEDIALOG_API void IGFD_Destroy(ImGuiFileDialog* vContext)
 // standard dialog
 IMGUIFILEDIALOG_API void IGFD_OpenDialog(
 	ImGuiFileDialog* vContext,
-	const char* vKey, 
-	const char* vTitle, 
-	const char* vFilters, 
+	const char* vKey,
+	const char* vTitle,
+	const char* vFilters,
 	const char* vPath,
-	const char* vFileName, 
-	const int vCountSelectionMax, 
-	void* vUserDatas, 
+	const char* vFileName,
+	const int vCountSelectionMax,
+	void* vUserDatas,
 	ImGuiFileDialogFlags flags)
 {
 	if (vContext)
@@ -3041,12 +4557,12 @@ IMGUIFILEDIALOG_API void IGFD_OpenDialog(
 
 IMGUIFILEDIALOG_API void IGFD_OpenDialog2(
 	ImGuiFileDialog* vContext,
-	const char* vKey, 
-	const char* vTitle, 
-	const char* vFilters, 
+	const char* vKey,
+	const char* vTitle,
+	const char* vFilters,
 	const char* vFilePathName,
-	const int vCountSelectionMax, 
-	void* vUserDatas, 
+	const int vCountSelectionMax,
+	void* vUserDatas,
 	ImGuiFileDialogFlags flags)
 {
 	if (vContext)
@@ -3059,21 +4575,21 @@ IMGUIFILEDIALOG_API void IGFD_OpenDialog2(
 
 IMGUIFILEDIALOG_API void IGFD_OpenPaneDialog(
 	ImGuiFileDialog* vContext,
-	const char* vKey, 
-	const char* vTitle, 
-	const char* vFilters, 
+	const char* vKey,
+	const char* vTitle,
+	const char* vFilters,
 	const char* vPath,
-	const char* vFileName, 
-	IGFD_PaneFun vSidePane, 
+	const char* vFileName,
+	IGFD_PaneFun vSidePane,
 	const float vSidePaneWidth,
-	const int vCountSelectionMax, 
-	void* vUserDatas, 
+	const int vCountSelectionMax,
+	void* vUserDatas,
 	ImGuiFileDialogFlags flags)
 {
 	if (vContext)
 	{
 		vContext->OpenDialog(
-			vKey, vTitle, vFilters, 
+			vKey, vTitle, vFilters,
 			vPath, vFileName,
 			vSidePane, vSidePaneWidth,
 			vCountSelectionMax, vUserDatas, flags);
@@ -3082,20 +4598,20 @@ IMGUIFILEDIALOG_API void IGFD_OpenPaneDialog(
 
 IMGUIFILEDIALOG_API void IGFD_OpenPaneDialog2(
 	ImGuiFileDialog* vContext,
-	const char* vKey, 
-	const char* vTitle, 
-	const char* vFilters, 
-	const char* vFilePathName, 
-	IGFD_PaneFun vSidePane, 
+	const char* vKey,
+	const char* vTitle,
+	const char* vFilters,
+	const char* vFilePathName,
+	IGFD_PaneFun vSidePane,
 	const float vSidePaneWidth,
-	const int vCountSelectionMax, 
-	void* vUserDatas, 
+	const int vCountSelectionMax,
+	void* vUserDatas,
 	ImGuiFileDialogFlags flags)
 {
 	if (vContext)
 	{
 		vContext->OpenDialog(
-			vKey, vTitle, vFilters, 
+			vKey, vTitle, vFilters,
 			vFilePathName,
 			vSidePane, vSidePaneWidth,
 			vCountSelectionMax, vUserDatas, flags);
@@ -3177,7 +4693,7 @@ IMGUIFILEDIALOG_API void IGFD_OpenPaneModal2(
 {
 	if (vContext)
 	{
-		vContext->OpenDialog(
+		vContext->OpenModal(
 			vKey, vTitle, vFilters,
 			vFilePathName,
 			vSidePane, vSidePaneWidth,
@@ -3185,7 +4701,7 @@ IMGUIFILEDIALOG_API void IGFD_OpenPaneModal2(
 	}
 }
 
-IMGUIFILEDIALOG_API bool IGFD_DisplayDialog(ImGuiFileDialog* vContext, 
+IMGUIFILEDIALOG_API bool IGFD_DisplayDialog(ImGuiFileDialog* vContext,
 	const char* vKey, ImGuiWindowFlags vFlags, ImVec2 vMinSize, ImVec2 vMaxSize)
 {
 	if (vContext)
@@ -3214,7 +4730,7 @@ IMGUIFILEDIALOG_API bool IGFD_IsOk(ImGuiFileDialog* vContext)
 	return false;
 }
 
-IMGUIFILEDIALOG_API bool IGFD_WasKeyOpenedThisFrame(ImGuiFileDialog* vContext, 
+IMGUIFILEDIALOG_API bool IGFD_WasKeyOpenedThisFrame(ImGuiFileDialog* vContext,
 	const char* vKey)
 {
 	if (vContext)
@@ -3235,7 +4751,7 @@ IMGUIFILEDIALOG_API bool IGFD_WasOpenedThisFrame(ImGuiFileDialog* vContext)
 	return false;
 }
 
-IMGUIFILEDIALOG_API bool IGFD_IsKeyOpened(ImGuiFileDialog* vContext, 
+IMGUIFILEDIALOG_API bool IGFD_IsKeyOpened(ImGuiFileDialog* vContext,
 	const char* vCurrentOpenedKey)
 {
 	if (vContext)
@@ -3269,11 +4785,11 @@ IMGUIFILEDIALOG_API IGFD_Selection IGFD_GetSelection(ImGuiFileDialog* vContext)
 			res.table = new IGFD_Selection_Pair[res.count];
 
 			size_t idx = 0U;
-			for (auto s : sel)
+			for (const auto& s : sel)
 			{
 				IGFD_Selection_Pair* pair = res.table + idx++;
 
-				// fileName
+				// fileNameExt
 				if (!s.first.empty())
 				{
 					size_t siz = s.first.size() + 1U;
@@ -3309,7 +4825,7 @@ IMGUIFILEDIALOG_API IGFD_Selection IGFD_GetSelection(ImGuiFileDialog* vContext)
 
 IMGUIFILEDIALOG_API char* IGFD_GetFilePathName(ImGuiFileDialog* vContext)
 {
-	char* res = 0;
+	char* res = nullptr;
 
 	if (vContext)
 	{
@@ -3332,7 +4848,7 @@ IMGUIFILEDIALOG_API char* IGFD_GetFilePathName(ImGuiFileDialog* vContext)
 
 IMGUIFILEDIALOG_API char* IGFD_GetCurrentFileName(ImGuiFileDialog* vContext)
 {
-	char* res = 0;
+	char* res = nullptr;
 
 	if (vContext)
 	{
@@ -3355,7 +4871,7 @@ IMGUIFILEDIALOG_API char* IGFD_GetCurrentFileName(ImGuiFileDialog* vContext)
 
 IMGUIFILEDIALOG_API char* IGFD_GetCurrentPath(ImGuiFileDialog* vContext)
 {
-	char* res = 0;
+	char* res = nullptr;
 
 	if (vContext)
 	{
@@ -3378,7 +4894,7 @@ IMGUIFILEDIALOG_API char* IGFD_GetCurrentPath(ImGuiFileDialog* vContext)
 
 IMGUIFILEDIALOG_API char* IGFD_GetCurrentFilter(ImGuiFileDialog* vContext)
 {
-	char* res = 0;
+	char* res = nullptr;
 
 	if (vContext)
 	{
@@ -3409,31 +4925,31 @@ IMGUIFILEDIALOG_API void* IGFD_GetUserDatas(ImGuiFileDialog* vContext)
 	return nullptr;
 }
 
-IMGUIFILEDIALOG_API void IGFD_SetExtentionInfos(ImGuiFileDialog* vContext,
-	const char* vFilter, ImVec4 vColor, const char* vIcon)
+IMGUIFILEDIALOG_API void IGFD_SetFileStyle(ImGuiFileDialog* vContext,
+	IGFD_FileStyleFlags vFlags, const char* vCriteria, ImVec4 vColor, const char* vIcon, ImFont* vFont) //-V813
 {
 	if (vContext)
 	{
-		vContext->SetExtentionInfos(vFilter, vColor, vIcon);
+		vContext->SetFileStyle(vFlags, vCriteria, vColor, vIcon, vFont);
 	}
 }
 
-IMGUIFILEDIALOG_API void IGFD_SetExtentionInfos2(ImGuiFileDialog* vContext,
-	const char* vFilter, float vR, float vG, float vB, float vA, const char* vIcon)
+IMGUIFILEDIALOG_API void IGFD_SetFileStyle2(ImGuiFileDialog* vContext,
+	IGFD_FileStyleFlags vFlags, const char* vCriteria, float vR, float vG, float vB, float vA, const char* vIcon, ImFont* vFont)
 {
 	if (vContext)
 	{
-		vContext->SetExtentionInfos(vFilter, ImVec4(vR, vG, vB, vA), vIcon);
+		vContext->SetFileStyle(vFlags, vCriteria, ImVec4(vR, vG, vB, vA), vIcon, vFont);
 	}
 }
 
-IMGUIFILEDIALOG_API bool IGFD_GetExtentionInfos(ImGuiFileDialog* vContext,
-	const char* vFilter, ImVec4* vOutColor, char** vOutIcon)
+IMGUIFILEDIALOG_API bool IGFD_GetFileStyle(ImGuiFileDialog* vContext,
+	IGFD_FileStyleFlags vFlags, const char* vCriteria, ImVec4* vOutColor, char** vOutIcon, ImFont** vOutFont)
 {
 	if (vContext)
 	{
 		std::string icon;
-		bool res = vContext->GetExtentionInfos(vFilter, vOutColor, &icon);
+		bool res = vContext->GetFileStyle(vFlags, vCriteria, vOutColor, &icon, vOutFont);
 		if (!icon.empty() && vOutIcon)
 		{
 			size_t siz = icon.size() + 1U;
@@ -3443,7 +4959,7 @@ IMGUIFILEDIALOG_API bool IGFD_GetExtentionInfos(ImGuiFileDialog* vContext,
 #else
 			strncpy_s(*vOutIcon, siz, icon.c_str(), siz);
 #endif
-			*vOutIcon[siz - 1U] = '\0';
+			(*vOutIcon)[siz - 1U] = '\0';
 		}
 		return res;
 	}
@@ -3451,11 +4967,19 @@ IMGUIFILEDIALOG_API bool IGFD_GetExtentionInfos(ImGuiFileDialog* vContext,
 	return false;
 }
 
-IMGUIFILEDIALOG_API void IGFD_ClearExtentionInfos(ImGuiFileDialog* vContext)
+IMGUIFILEDIALOG_API void IGFD_ClearFilesStyle(ImGuiFileDialog* vContext)
 {
 	if (vContext)
 	{
-		vContext->ClearExtentionInfos();
+		vContext->ClearFilesStyle();
+	}
+}
+
+IMGUIFILEDIALOG_API void SetLocales(ImGuiFileDialog* vContext, const int vCategory, const char* vBeginLocale, const char* vEndLocale)
+{
+	if (vContext)
+	{
+		vContext->SetLocales(vCategory, (vBeginLocale ? vBeginLocale : ""), (vEndLocale ? vEndLocale : ""));
 	}
 }
 
@@ -3472,8 +4996,8 @@ IMGUIFILEDIALOG_API void IGFD_SetFlashingAttenuationInSeconds(ImGuiFileDialog* v
 #ifdef USE_BOOKMARK
 IMGUIFILEDIALOG_API char* IGFD_SerializeBookmarks(ImGuiFileDialog* vContext)
 {
-	char *res = 0;
-	
+	char* res = nullptr;
+
 	if (vContext)
 	{
 		auto s = vContext->SerializeBookmarks();
@@ -3501,3 +5025,29 @@ IMGUIFILEDIALOG_API void IGFD_DeserializeBookmarks(ImGuiFileDialog* vContext, co
 	}
 }
 #endif
+
+#ifdef USE_THUMBNAILS
+IMGUIFILEDIALOG_API void SetCreateThumbnailCallback(ImGuiFileDialog* vContext, const IGFD_CreateThumbnailFun vCreateThumbnailFun)
+{
+	if (vContext)
+	{
+		vContext->SetCreateThumbnailCallback(vCreateThumbnailFun);
+	}
+}
+
+IMGUIFILEDIALOG_API void SetDestroyThumbnailCallback(ImGuiFileDialog* vContext, const IGFD_DestroyThumbnailFun vDestroyThumbnailFun)
+{
+	if (vContext)
+	{
+		vContext->SetDestroyThumbnailCallback(vDestroyThumbnailFun);
+	}
+}
+
+IMGUIFILEDIALOG_API void ManageGPUThumbnails(ImGuiFileDialog* vContext)
+{
+	if (vContext)
+	{
+		vContext->ManageGPUThumbnails();
+	}
+}
+#endif // USE_THUMBNAILS
