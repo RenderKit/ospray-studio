@@ -2224,6 +2224,10 @@ void MainWindow::buildWindowMaterialEditor()
     if (ImGui::BeginTabItem("Materials")) {
       searchWidget.addSearchBarUI(*baseMaterialRegistry);
       searchWidget.addSearchResultsUI(*baseMaterialRegistry);
+      auto selected = searchWidget.getSelected();
+      if (selected) {
+        selected->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+      }
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("Advanced")) {

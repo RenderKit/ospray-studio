@@ -46,6 +46,11 @@ class SearchWidget
       std::function<void()> displayOp,
       bool sameLine = false);
 
+  inline NP getSelected()
+  {
+    return selectedResult;
+  }
+
  private:
   void search(NR root);
   void clear();
@@ -56,14 +61,15 @@ class SearchWidget
 
   const char *numItemsOpt[4]{"10", "25", "50", "100"};
   int numItemsInd{1};
-  int numItemsPerPage{25};
+  int numItemsPerPage{10};
   int numPages{0};
   int currentPage{1};
   std::string paginateLabel{""};
 
   TS displayState;
 
-  std::vector<ospray::sg::NodePtr> results;
+  std::vector<NP> results;
+  NP selectedResult{nullptr};
   // These must be references since they contain OSPRay objects.
   // The widget will be destructed *after* ospShutdown and if it
   // contains sg nodes it will trigger warnings on exit
