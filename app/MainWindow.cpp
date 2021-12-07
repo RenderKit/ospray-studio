@@ -2220,29 +2220,20 @@ void MainWindow::buildWindowMaterialEditor()
   static SearchWidget searchWidget(types, types, sg::TreeState::ALLCLOSED);
   static AdvancedMaterialEditor advMaterialEditor;
 
-  if (ImGui::BeginTabBar("Material editor##tabs")) {
-    if (ImGui::BeginTabItem("Materials")) {
-      searchWidget.addSearchBarUI(*baseMaterialRegistry);
-      searchWidget.addSearchResultsUI(*baseMaterialRegistry);
-      auto selected = searchWidget.getSelected();
-      if (selected) {
-        selected->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(245, 200, 66, 255));
-        if (ImGui::TreeNodeEx(
-                "Advanced options##materials", ImGuiTreeNodeFlags_None)) {
-          ImGui::PopStyleColor();
-          advMaterialEditor.buildUI(baseMaterialRegistry, selected);
-          ImGui::TreePop();
-        } else {
-          ImGui::PopStyleColor();
-        }
-      }
-      ImGui::EndTabItem();
+  searchWidget.addSearchBarUI(*baseMaterialRegistry);
+  searchWidget.addSearchResultsUI(*baseMaterialRegistry);
+  auto selected = searchWidget.getSelected();
+  if (selected) {
+    selected->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(245, 200, 66, 255));
+    if (ImGui::TreeNodeEx(
+            "Advanced options##materials", ImGuiTreeNodeFlags_None)) {
+      ImGui::PopStyleColor();
+      advMaterialEditor.buildUI(baseMaterialRegistry, selected);
+      ImGui::TreePop();
+    } else {
+      ImGui::PopStyleColor();
     }
-    if (ImGui::BeginTabItem("Advanced")) {
-      ImGui::EndTabItem();
-    }
-    ImGui::EndTabBar();
   }
 
   ImGui::End();
