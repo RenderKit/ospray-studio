@@ -113,6 +113,7 @@ add_library(ospray_sg SHARED
   scene/geometry/Isosurfaces.cpp
   scene/geometry/Planes.cpp
   scene/geometry/Spheres.cpp
+  scene/geometry/Subdivision.cpp
   scene/geometry/Triangles.cpp
   scene/geometry/Curves.cpp
 
