@@ -163,6 +163,7 @@ namespace ospray {
 
       auto cameraNode = node.nodeAs<Camera>();
       cameraNode->cameraToWorld = xfms.top();
+      cameraNode->cameraToWorldEnd = endXfms.top();
     } break;
     default:
       break;
