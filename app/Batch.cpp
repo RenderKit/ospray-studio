@@ -176,7 +176,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     [&](const std::vector<std::string> val) {
       cameraRange.lower = std::stoi(val[0]);
       cameraRange.upper = std::stoi(val[1]);
-      useCameraRange = true;
       return true;
     },
     "Set the camera range"
@@ -184,7 +183,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_option(
     "--frameRange",
     [&](const std::vector<std::string> val) {
-      framesRange.lower = std::stoi(val[0]);
+      framesRange.lower = std::max(0, std::stoi(val[0]));
       framesRange.upper = std::stoi(val[1]);
       return true;
     },
@@ -390,9 +389,15 @@ void BatchContext::renderFrame()
 
 void BatchContext::renderAnimation()
 {
-  float animationTime = animationManager->getTimeRange().upper;
+  float endTime = animationManager->getTimeRange().upper;
   float step = 1.f / fps;
   float time = animationManager->getTimeRange().lower;
+
+  if (framesRange.upper >= 0) {
+    endTime = std::min(animationManager->getTimeRange().upper,
+        time + step * framesRange.upper + 1e-6f);
+    time += step * framesRange.lower;
+  }
 
   auto &cam = frame->child("camera");
   if (cam.hasChild("startTime"))
@@ -401,13 +406,7 @@ void BatchContext::renderAnimation()
   if (cam.hasChild("measureTime"))
     shutter = cam["measureTime"].valueAs<float>();
 
-  if (!framesRange.empty() && framesRange.upper) {
-    time += step * framesRange.lower;
-    animationTime = step * framesRange.upper;
-  }
-  animationTime += 1e-6;
-
-  while (time <= animationTime) {
+  while (time <= endTime) {
     animationManager->update(time, shutter);
     renderFrame();
     time += step;

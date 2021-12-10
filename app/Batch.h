@@ -52,9 +52,8 @@ class BatchContext : public StudioContext
 
   int fps{0};
   bool forceRewrite{false};
-  range1i framesRange{0, 0};
+  range1i framesRange{0, -1}; // empty
   range1i cameraRange{0, 0};
-  bool useCameraRange{false};
 
   // list of cameras imported with the scene definition
   std::vector<sg::NodePtr> cameras;
