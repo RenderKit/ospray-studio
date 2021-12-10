@@ -87,6 +87,7 @@ namespace ospray {
       world = node.valueAs<cpp::World>();
       auto worldNode = node.nodeAs<World>();
       instMap = worldNode->instMap;
+      instMap->clear();
     } break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
@@ -378,7 +379,8 @@ namespace ospray {
       // sg picking
       if (instMap && !instanceId.empty()) {
         auto ospInstance = inst.handle();
-        instMap->insert(InstanceIDMap::value_type(std::make_pair(ospInstance, instanceId)));
+        instMap->insert(
+            InstanceIDMap::value_type(std::make_pair(ospInstance, instanceId)));
       }
     };
 
