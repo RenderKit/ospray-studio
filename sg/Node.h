@@ -288,7 +288,7 @@ namespace sg {
 
   // SG Instance Picking //////////////////////////////////////////////////////
   
-  typedef std::unordered_multimap<Node*, std::pair<Node*, OSPInstance>> NodeInstanceMap;
+  typedef std::unordered_map<OSPInstance, std::string> InstanceIDMap;
 
   /////////////////////////////////////////////////////////////////////////////
   // Nodes with a strongly-typed value ////////////////////////////////////////

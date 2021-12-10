@@ -57,8 +57,8 @@ namespace ospray {
     std::stack<bool> xfmsDiverged;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
-    std::shared_ptr<NodeInstanceMap> instMap{nullptr};
-    Node *instRoot;
+    std::shared_ptr<InstanceIDMap> instMap{nullptr};
+    std::string instanceId{""};
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -142,8 +142,8 @@ namespace ospray {
       xfmNode->motionBlur = xfmsDiverged.top() || diverged;
       xfmsDiverged.push(xfmNode->motionBlur);
 
-      if (node.hasChild("hasReference")) 
-        instRoot = &node;
+      if (node.hasChild("instanceId"))
+        instanceId = node.child("instanceId").valueAs<std::string>();
       break;
     }
     case NodeType::CAMERA: {
@@ -203,8 +203,8 @@ namespace ospray {
       xfms.pop();
       endXfms.pop();
       xfmsDiverged.pop();
-      if (node.hasChild("hasReference"))
-        instRoot = nullptr;
+      if (node.hasChild("instanceId"))
+        instanceId = "";
       break;
     default:
       // Nothing
@@ -371,9 +371,9 @@ namespace ospray {
       instances.push_back(inst);
 
       // sg picking
-      if (instMap && instRoot) {
+      if (instMap && !instanceId.empty()) {
         auto ospInstance = inst.handle();
-        instMap->insert(NodeInstanceMap::value_type(instRoot, std::make_pair(&node, ospInstance)));
+        instMap->insert(InstanceIDMap::value_type(std::make_pair(ospInstance, instanceId)));
       }
     };
 

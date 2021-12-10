@@ -16,7 +16,7 @@ struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
   virtual void preCommit() override;
   virtual void postCommit() override;
 
-  std::shared_ptr<NodeInstanceMap> instMap;
+  std::shared_ptr<InstanceIDMap> instMap;
 };
 
 } // namespace sg
