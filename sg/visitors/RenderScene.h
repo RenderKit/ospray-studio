@@ -59,6 +59,7 @@ namespace ospray {
     std::stack<cpp::TransferFunction> tfns;
     std::shared_ptr<InstanceIDMap> instMap{nullptr};
     std::string instanceId{""};
+    Node *instRoot{nullptr};
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -142,8 +143,10 @@ namespace ospray {
       xfmNode->motionBlur = xfmsDiverged.top() || diverged;
       xfmsDiverged.push(xfmNode->motionBlur);
 
-      if (node.hasChild("instanceId"))
+      if (!instRoot && node.hasChild("instanceId")) {
+        instRoot = &node;
         instanceId = node.child("instanceId").valueAs<std::string>();
+      }
       break;
     }
     case NodeType::CAMERA: {
@@ -203,8 +206,10 @@ namespace ospray {
       xfms.pop();
       endXfms.pop();
       xfmsDiverged.pop();
-      if (node.hasChild("instanceId"))
+      if (&node == instRoot && node.hasChild("instanceId")) {
+        instRoot = nullptr;
         instanceId = "";
+      }
       break;
     default:
       // Nothing
