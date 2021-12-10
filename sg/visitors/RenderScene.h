@@ -145,7 +145,7 @@ namespace ospray {
 
       if (!instRoot && node.hasChild("instanceId")) {
         instRoot = &node;
-        instanceId = node.child("instanceId").valueAs<std::string>();
+        instanceId = node["instanceId"].valueAs<std::string>();
       }
       break;
     }
@@ -206,7 +206,7 @@ namespace ospray {
       xfms.pop();
       endXfms.pop();
       xfmsDiverged.pop();
-      if (&node == instRoot && node.hasChild("instanceId")) {
+      if (&node == instRoot) {
         instRoot = nullptr;
         instanceId = "";
       }

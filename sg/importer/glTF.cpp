@@ -251,19 +251,19 @@ void GLTFData::applySceneBackground(NodePtr bgXfm)
 void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
 {
   const tinygltf::Node &n = model.nodes[nid];
-  bool hasReference{false};
 
   // load referenced asset if reference-link found
   std::string refTitle{""};
   if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
     auto refLink = n.extensions.find("BIT_reference_link")->second;
     refTitle = refLink.Get("title").Get<std::string>();
-    hasReference = refLink.Has("title");
   }
 
   auto node = n.extensions.find("BIT_node_info")->second;
-  auto &nodeId = node.Get("id").Get<std::string>();
-  sgNode->createChild("instanceId", "string", nodeId);
+  if (node.Has("id")) {
+    auto &nodeId = node.Get("id").Get<std::string>();
+    sgNode->createChild("instanceId", "string", nodeId);
+  }
 
   // nothing to import
   if (refTitle.empty())
