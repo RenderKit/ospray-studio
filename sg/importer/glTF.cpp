@@ -41,6 +41,9 @@ OSP_REGISTER_SG_NODE_NAME(glTFImporter, importer_glb);
 
 static const auto prefix = "#importGLTF";
 
+// global recursion depth counter
+static int recursion{0};
+
 struct GLTFData
 {
   GLTFData(NodePtr rootNode,
@@ -224,6 +227,9 @@ bool GLTFData::parseAsset()
     geomId = BIT_assetInfo.Get("id").Get<std::string>();
   }
 
+  // set recursion depth
+  recursion++;
+
   return ret;
 }
 
@@ -260,15 +266,10 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
     refTitle = refLink.Get("title").Get<std::string>();
     hasReference = refLink.Has("title");
   }
-
-  auto node = n.extensions.find("BIT_node_info")->second;
-  auto &nodeId = node.Get("id").Get<std::string>();
-  sgNode->createChild("instanceId", "string", nodeId);
-
-  if (hasReference) {
-    sgNode->createChild("hasReference");
-    sgNode->child("hasReference").setSGNoUI();
-    sgNode->child("hasReference").setSGOnly();
+  if (recursion == 1) {
+    auto node = n.extensions.find("BIT_node_info")->second;
+    auto &nodeId = node.Get("id").Get<std::string>();
+    sgNode->createChild("instanceId", "string", nodeId);
   }
 
   // nothing to import
@@ -1762,6 +1763,9 @@ void glTFImporter::importScene()
 
   // Finally, add node hierarchy to importer parent
   add(rootNode);
+
+  // set back the recursion counter 
+  recursion--;
 
   INFO << "finished import!\n";
 }
