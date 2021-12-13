@@ -102,7 +102,10 @@ void pysg_vec2Type(py::module &sg, const char *name)
 template <typename T>
 void pysg_vec3Type(py::module &sg, const char *name)
 {
-  py::class_<vec_t<T, 3>>(sg, name).def(py::init<T>()).def(py::init<T, T, T>());
+  py::class_<vec_t<T, 3>>(sg, name).def(py::init<T>()).def(py::init<T, T, T>())
+      .def_readwrite("x", &vec_t<T, 3>::x)
+      .def_readwrite("y", &vec_t<T, 3>::y)
+      .def_readwrite("z", &vec_t<T, 3>::z);
 }
 
 template <typename T>
@@ -320,8 +323,10 @@ PYBIND11_MODULE(pysg, sg)
   // rkcommon::math specializations ////////////////
 
   py::class_<rkcommon::math::box3f>(sg, "box3f")
-      .def(py::init<>());
-
+      .def(py::init<>())
+      .def_readwrite("lower", &box3f::lower)
+      .def_readwrite("upper", &box3f::upper);
+  
   // Generic Node class definition ////////////////////////////////////////////
 
   py::class_<Node, std::shared_ptr<Node>>(sg, "Node")

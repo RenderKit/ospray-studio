@@ -11,6 +11,8 @@
 #include "sg/camera/Camera.h"
 #include "sg/scene/volume/Volume.h"
 #include "sg/scene/World.h"
+#include "sg/Mpi.h"
+
 // std
 #include <stack>
 
@@ -48,6 +50,7 @@ namespace ospray {
     } current;
     bool setTextureVolume{false};
     cpp::World world;
+    std::vector<box3f> worldRegions;
     std::vector<cpp::Instance> instances;
     // string identifier associated with a geometry
     std::vector<cpp::Group> groups;
@@ -181,6 +184,11 @@ namespace ospray {
     switch (node.type()) {
     case NodeType::WORLD:
       placeInstancesInWorld();
+      if (sgUsingMpi()) {
+        if (worldRegions.size()) {
+          world.setParam("region", cpp::CopiedData(worldRegions));
+        }
+      }
       world.commit();
       break;
     case NodeType::TRANSFER_FUNCTION:
@@ -308,6 +316,13 @@ namespace ospray {
       geomNode->group->commit();
     }
 
+    if (sgUsingMpi()) {
+      if (node.hasChild("mpiRegion")) {
+        box3f mpiRegion = node.child("mpiRegion").valueAs<box3f>();
+        worldRegions.push_back(mpiRegion);
+      }
+    }
+
     groups.push_back(*geomNode->group);
     geomNode->groupIndex = groupIndex;
     groupIndex++;
@@ -351,10 +366,19 @@ namespace ospray {
     cpp::Group group;
     group.setParam("volume", cpp::CopiedData(model));
 
+    if (sgUsingMpi()) {
+      if (node.hasChild("mpiRegion")) {
+        box3f mpiRegion = node.child("mpiRegion").valueAs<box3f>();
+        worldRegions.push_back(mpiRegion);
+      }
+    }
+
     group.commit();
     groups.push_back(group);
     volNode->groupIndex = groupIndex;
     groupIndex++;
+
+
   }
 
   inline void RenderScene::createInstanceFromGroup(Node &node)

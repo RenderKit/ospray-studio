@@ -161,43 +161,71 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   bool showInstBBoxFrame{false};
 
  protected:
+  virtual box3f getSceneBounds();
+
   bool sgScene{false}; // whether we are loading a scene file
 
 };
 
-inline OSPError initializeOSPRay(int &argc, const char **argv)
+inline OSPError initializeOSPRay(int &argc, const char **argv, bool use_mpi)
 {
-  // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
-  // e.g. "--osp:debug"
-  OSPError initError = ospInit(&argc, argv);
+  OSPDevice device;
 
-  if (initError != OSP_NO_ERROR) {
-    std::cerr << "OSPRay not initialized correctly!" << std::endl;
-    return initError;
+  if (use_mpi)
+  {
+    //TODO: calling ospInit seems to be required, 
+    //even though the OSPRay MPI warns us not to do this...
+    OSPError initError = ospInit(&argc, argv);
+
+    if (initError != OSP_NO_ERROR) {
+      std::cerr << "OSPRay not initialized correctly!" << std::endl;
+      return initError;
+    }
+
+    device = ospGetCurrentDevice();
+    if (!device) {
+      std::cerr << "OSPRay device could not be fetched!" << std::endl;
+      return OSP_UNKNOWN_ERROR;
+    }
+
+    //TODO: setErrorCallback and ospDeviceSetParam calls seem to break mpi. Why?
   }
+  else 
+  {
+    // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
+    // e.g. "--osp:debug"
 
-  OSPDevice device = ospGetCurrentDevice();
-  if (!device) {
-    std::cerr << "OSPRay device could not be fetched!" << std::endl;
-    return OSP_UNKNOWN_ERROR;
+    OSPError initError = ospInit(&argc, argv);
+
+    if (initError != OSP_NO_ERROR) {
+      std::cerr << "OSPRay not initialized correctly!" << std::endl;
+      return initError;
+    }
+
+    device = ospGetCurrentDevice();
+
+    if (!device) {
+      std::cerr << "OSPRay device could not be fetched!" << std::endl;
+      return OSP_UNKNOWN_ERROR;
+    }
+
+    // set an error callback to catch any OSPRay errors
+    ospDeviceSetErrorCallback(
+        device,
+        [](void *, OSPError, const char *errorDetails) {
+          std::cerr << "OSPRay error: " << errorDetails << std::endl;
+        },
+        nullptr);
+
+    ospDeviceSetStatusCallback(
+        device, [](void *, const char *msg) { std::cout << msg; }, nullptr);
+
+    bool warnAsErrors = true;
+    auto logLevel = OSP_LOG_WARNING;
+
+    ospDeviceSetParam(device, "warnAsError", OSP_BOOL, &warnAsErrors);
+    ospDeviceSetParam(device, "logLevel", OSP_INT, &logLevel);
   }
-
-  // set an error callback to catch any OSPRay errors
-  ospDeviceSetErrorCallback(
-      device,
-      [](void *, OSPError, const char *errorDetails) {
-        std::cerr << "OSPRay error: " << errorDetails << std::endl;
-      },
-      nullptr);
-
-  ospDeviceSetStatusCallback(
-      device, [](void *, const char *msg) { std::cout << msg; }, nullptr);
-
-  bool warnAsErrors = true;
-  auto logLevel = OSP_LOG_WARNING;
-
-  ospDeviceSetParam(device, "warnAsError", OSP_BOOL, &warnAsErrors);
-  ospDeviceSetParam(device, "logLevel", OSP_INT, &logLevel);
 
   ospDeviceCommit(device);
   ospDeviceRelease(device);

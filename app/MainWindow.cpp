@@ -68,8 +68,13 @@ static const std::vector<std::string> g_scenes = {"tutorial_scene",
     "unstructured_volume",
     "multilevel_hierarchy"};
 
+#ifdef USE_MPI
+static const std::vector<std::string> g_renderers = {
+    "scivis", "pathtracer", "ao", "debug", "mpiRaycast"};
+#else
 static const std::vector<std::string> g_renderers = {
     "scivis", "pathtracer", "ao", "debug"};
+#endif
 
 // list of cameras imported with the scene definition
 static rkcommon::containers::FlatMap<std::string, sg::NodePtr> g_sceneCameras;
@@ -1677,6 +1682,8 @@ void MainWindow::buildWindowRendererEditor()
       rendererType = OSPRayRendererType::AO;
     else if (rendererTypeStr == "debug")
       rendererType = OSPRayRendererType::DEBUGGER;
+    if (rendererTypeStr == "mpiRaycast")
+      rendererType = OSPRayRendererType::MPIRAYCAST;
     else
       rendererType = OSPRayRendererType::OTHER;
 

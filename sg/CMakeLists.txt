@@ -43,6 +43,7 @@ endif()
 
 add_library(ospray_sg SHARED
   Data.cpp
+  Mpi.cpp
   Node.cpp
   Frame.cpp
   PluginCore.cpp
@@ -85,6 +86,7 @@ add_library(ospray_sg SHARED
 
   renderer/Material.cpp
   renderer/MaterialReference.cpp
+  renderer/MpiRaycast.cpp
   renderer/PathTracer.cpp
   renderer/Renderer.cpp
   renderer/SciVis.cpp
@@ -177,6 +179,10 @@ target_include_directories(ospray_sg
 if (ENABLE_OPENIMAGEIO)
   target_compile_definitions(ospray_sg PRIVATE -DUSE_OPENIMAGEIO)
   target_link_libraries(ospray_sg PUBLIC OpenImageIO::OpenImageIO)
+endif()
+
+if (USE_MPI)
+  target_link_libraries(ospray_sg PUBLIC MPI::MPI_CXX)
 endif()
 
 target_compile_definitions(ospray_sg

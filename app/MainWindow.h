@@ -44,6 +44,7 @@ enum class OSPRayRendererType
   PATHTRACER,
   AO,
   DEBUGGER,
+  MPIRAYCAST,
   OTHER
 };
 

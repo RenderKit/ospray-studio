@@ -8,6 +8,8 @@
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/World.h"
 
+#include "sg/Mpi.h"
+
 namespace ospray {
 namespace sg {
 
@@ -141,6 +143,9 @@ void FrameBuffer::updateToneMapper(bool enabled)
 
 void FrameBuffer::updateImageOperations()
 {
+  if (sgUsingMpi() && sgMpiRank() != 0)
+      return;
+
   // Only update imageOperation if necessary
   if (!updateImageOps)
     return;
@@ -179,6 +184,9 @@ void FrameBuffer::updateImageOperations()
 
 void FrameBuffer::saveFrame(std::string filename, int flags)
 {
+  if (sgUsingMpi() && sgMpiRank() != 0)
+      return;
+
   auto exporter = getExporter(FileName(filename));
   if (exporter == "") {
     std::cout << "No exporter found for type " << FileName(filename).ext()

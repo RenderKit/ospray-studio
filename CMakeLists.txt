@@ -77,6 +77,13 @@ endif()
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
 
+## Optional MPI Support ##
+option(USE_MPI "Enable MPI" OFF)
+if (USE_MPI)
+  find_package(MPI REQUIRED)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MPI=1")
+endif()
+
 add_subdirectory(external)
 add_subdirectory(sg)
 

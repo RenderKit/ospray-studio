@@ -10,6 +10,8 @@
 #include "sg/visitors/PrintNodes.h"
 #include "sg/camera/Camera.h"
 #include "sg/scene/volume/Volume.h"
+#include "sg/Mpi.h"
+
 // rkcommon
 #include "rkcommon/utility/SaveImage.h"
 // json
@@ -255,7 +257,7 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
   if (resetArcball) {
     frame->child("windowSize") = optResolution;
     arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), optResolution));
+        new ArcballCamera(getSceneBounds(), optResolution));
   }
   int hasParents{0};
 
@@ -321,7 +323,7 @@ void BatchContext::render()
     // Determine world bounds to calculate grid offsets
     frame->child("world").remove(importedModels);
 
-    box3f bounds = frame->child("world").bounds();
+    box3f bounds = getSceneBounds();
     float tx = bounds.size().x * 1.2f;
     float ty = bounds.size().y * 1.2f;
     float tz = bounds.size().z * 1.2f;
@@ -365,24 +367,28 @@ void BatchContext::renderFrame()
     resetFileId = false;
   }
 
-  std::string filename;
-  char filenumber[8];
-  if (!forceRewrite)
-    do {
+  if (!sgUsingMpi() || sgMpiRank() == 0)
+  {
+    std::string filename;
+    char filenumber[8];
+    if (!forceRewrite)
+      do {
+        std::snprintf(filenumber, 8, ".%05d.", filenum++);
+        filename = optImageName + cameraId + filenumber + optImageFormat;
+      } while (std::ifstream(filename.c_str()).good());
+    else {
       std::snprintf(filenumber, 8, ".%05d.", filenum++);
       filename = optImageName + cameraId + filenumber + optImageFormat;
-    } while (std::ifstream(filename.c_str()).good());
-  else {
-    std::snprintf(filenumber, 8, ".%05d.", filenum++);
-    filename = optImageName + cameraId + filenumber + optImageFormat;
+    }
+
+    int screenshotFlags = saveLayers << 3
+        | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
+
+    frame->saveFrame(filename, screenshotFlags);
+
+    this->outputFilename = filename;
   }
 
-  int screenshotFlags = saveLayers << 3
-      | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
-
-  frame->saveFrame(filename, screenshotFlags);
-
-  this->outputFilename = filename;
   
   pluginManager->main(shared_from_this());
 }
@@ -442,7 +448,7 @@ void BatchContext::refreshScene(bool resetCam)
 
   if (resetCam && !sgScene)
     arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), optResolution));
+        new ArcballCamera(getSceneBounds(), optResolution));
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();

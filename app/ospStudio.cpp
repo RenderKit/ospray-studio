@@ -6,6 +6,8 @@
 #include "MainWindow.h"
 #include "Batch.h"
 #include "TimeSeriesWindow.h"
+#include "sg/Mpi.h"
+
 // CLI
 #include <CLI11.hpp>
 
@@ -63,7 +65,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "--renderer",
     optRendererTypeStr,
     "set the renderer type"
-  )->check(CLI::IsMember({"scivis", "pathtracer", "ao", "debug"}));
+  )->check(CLI::IsMember({"scivis", "pathtracer", "ao", "debug", "mpiRaycast"}));
   app->add_option(
     "--spp",
     optSPP,
@@ -161,6 +163,27 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   );
 }
 
+box3f StudioContext::getSceneBounds()
+{
+  box3f bounds;
+
+#ifdef USE_MPI
+  box3f localBounds = frame->child("world").bounds();
+  if (sgUsingMpi()){
+      MPI_Allreduce(
+          &localBounds.lower, &bounds.lower, 3, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(
+          &localBounds.upper, &bounds.upper, 3, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+  }
+  else
+#endif
+  {
+    bounds = frame->child("world").bounds();
+  }
+
+  return bounds;
+}
+
 int main(int argc, const char *argv[])
 {
   std::cout << "OSPRay Studio" << std::endl;
@@ -169,6 +192,7 @@ int main(int argc, const char *argv[])
   // will remove OSPRay specific args, parse fully down further
   bool version = false;
   bool verify_install = false;
+  bool use_mpi = false;
   for (int i = 1; i < argc; i++) {
     const auto arg = std::string(argv[i]);
     if (arg == "--version") {
@@ -179,6 +203,10 @@ int main(int argc, const char *argv[])
       verify_install = true;
       removeArgs(argc, argv, i, 1);
     }
+    else if (arg == "--mpi") {
+      use_mpi = true;
+      removeArgs(argc, argv, i, 1);
+    }
   }
 
   if (version) {
@@ -187,8 +215,28 @@ int main(int argc, const char *argv[])
     return 0;
   }
 
+  if (use_mpi) {
+
+#ifdef USE_MPI
+    use_mpi = ospLoadModule("mpi") == OSP_NO_ERROR;
+    if (!use_mpi) {
+      std::cout << "Fatal: ospStudio launched with --mpi, but could not load the OSPRay MPI module." << std::endl;
+      return 1;
+    }
+    else {
+      sgInitializeMPI(argc, argv);
+      std::cout << "ospStudio --mpi, rank " << sgMpiRank() << "/" << sgMpiWorldSize() << "\n";
+    }
+
+#else //USE_MPI
+    std::cout << "Fatal: ospStudio launched with --mpi, but has not been compiled with MPI support." << std::endl;
+    return 1;
+#endif
+
+  }
+
   // Initialize OSPRay
-  OSPError error = initializeOSPRay(argc, argv);
+  OSPError error = initializeOSPRay(argc, argv, use_mpi);
 
   // Verify install then exit
   if (verify_install) {
@@ -271,6 +319,14 @@ int main(int argc, const char *argv[])
   }
 
   ospShutdown();
+
+#ifdef USE_MPI
+  if (sgUsingMpi()) {
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
+  }
+#endif
+
 
   return 0;
 }

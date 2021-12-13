@@ -10,6 +10,7 @@
 
 #include "Generator.h"
 #include "WaveletField.h"
+#include "sg/Mpi.h"
 
 // std
 #include <random>
@@ -81,7 +82,19 @@ void WaveletSlices::generateData()
   std::vector<vec4f> color;
   std::vector<vec3ui> index;
 
-  for (int s = 0; s < numSlices; s++) {
+  int startSlice = 0;
+  int endSlice = numSlices;
+
+  //Distribute over slices.
+  //TODO: not the best for load balancing, but simple.
+  if (sgUsingMpi())
+  {
+    int mpiChunks = int(ceilf(numSlices / float(sgMpiWorldSize())));
+    startSlice = sgMpiRank() * mpiChunks;
+    endSlice = std::min<int>(numSlices, startSlice + mpiChunks);
+  }
+  
+  for (int s = startSlice; s < endSlice; s++) {
       int tslice = requestedTriangles/tr * ratios[s];
       expectedTriangles = expectedTriangles + tslice;
 
