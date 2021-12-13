@@ -34,7 +34,8 @@ class AdvancedMaterialEditor
         if (beginsWith(c.second->name(), std::string("map_")))
           newMat->add(c.second);
         else
-          newMat->child(c.second->name()).setValue(c.second->value());
+          if (!newMat->hasChild(c.second->name()))
+            newMat->child(c.second->name()).setValue(c.second->value());
       }
     }
 

@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "../Material.h"
@@ -44,6 +44,7 @@ namespace ospray {
     createChild("coatColor", "rgb", "clearcoat tint", vec3f(1.f));
     createChild("coatThickness", "float", "clearcoat attenuation amount", 1.f);
     createChild("coatRoughness", "float", "clearcoat roughness [0-1] (0 is smooth)", 0.f).setMinMax(0.f, 1.f);
+    createChild("coatNormal", "float", "clearcoat normal [0-1]", 1.f).setMinMax(0.f, 1.f);
     createChild("sheen", "float", "sheen layer weight [0-1] (emulates velvet)", 0.f).setMinMax(0.f, 1.f);
     createChild("sheenColor", "rgb", "sheen color", vec3f(1.f));
     createChild("sheenTint", "float", "amount of tint from sheenColor to baseColor", 0.f);
