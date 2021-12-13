@@ -159,7 +159,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_option(
     "--framesPerSecond",
     fps,
-    "Set the number of frames per second (integer)"
+    "Set the number of frames per second"
   );
   app->add_flag(
     "--forceRewrite",

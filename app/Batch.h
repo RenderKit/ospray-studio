@@ -50,7 +50,7 @@ class BatchContext : public StudioContext
   bool saveMetaData{true};
   std::string optImageFormat{"png"};
 
-  int fps{0};
+  float fps{0.0f};
   bool forceRewrite{false};
   range1i framesRange{0, -1}; // empty
   range1i cameraRange{0, 0};
