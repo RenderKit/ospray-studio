@@ -2236,6 +2236,11 @@ void MainWindow::buildWindowMaterialEditor()
     }
   }
 
+  if (baseMaterialRegistry->isModified()) {
+    frame->cancelFrame();
+    frame->waitOnFrame();
+  }
+
   ImGui::End();
 }
 
