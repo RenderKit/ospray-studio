@@ -1020,6 +1020,8 @@ void MainWindow::refreshRenderer()
 
   r.child("pixelSamples").setValue(optSPP);
   r.child("varianceThreshold").setValue(optVariance);
+  if (r.hasChild("maxContribution") && maxContribution < (float)math::inf)
+    r["maxContribution"].setValue(maxContribution);
 
   // Re-add the backplate on renderer change
   if (backPlateTexture != "") {
@@ -1032,6 +1034,8 @@ void MainWindow::refreshRenderer()
 
 void MainWindow::refreshScene(bool resetCam)
 {
+  if (frameAccumLimit)
+    frame->accumLimit = frameAccumLimit;
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");

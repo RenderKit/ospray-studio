@@ -161,6 +161,16 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     pointSize,
     "Set the importer's point size"
   );
+  app->add_option(
+    "--maxContribution",
+    maxContribution,
+    "Set max value for samples before accumulation into the framebuffer"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--accumLimit",
+    frameAccumLimit,
+    "Set accumulation limit for the frame"
+  )->check(CLI::PositiveNumber);
 }
 
 box3f StudioContext::getSceneBounds()

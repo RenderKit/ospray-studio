@@ -224,6 +224,9 @@ void BatchContext::refreshRenderer()
 
   renderer.child("pixelSamples").setValue(optSPP);
   renderer.child("varianceThreshold").setValue(optVariance);
+
+  if (renderer.hasChild("maxContribution") && maxContribution < (float)math::inf)
+    renderer["maxContribution"].setValue(maxContribution);
 }
 
 void BatchContext::reshape()
@@ -359,7 +362,20 @@ void BatchContext::renderFrame()
   if (studioCommon.denoiserAvailable && optDenoiser)
     frame->denoiseFB = true;
   frame->immediatelyWait = true;
-  frame->startNewFrame();
+
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto &v = frame->childAs<sg::Renderer>("renderer")["varianceThreshold"];
+  auto varianceThreshold = v.valueAs<float>();
+  float fbVariance{inf};
+
+  // continue accumulation till variance threshold or accumulation limit is
+  // reached
+  do {
+    frame->startNewFrame();
+    fbVariance = fb.variance();
+    std::cout << "frame " << frame->currentAccum << " ";
+    std::cout << "variance " << fbVariance << std::endl;
+  } while (fbVariance >= varianceThreshold && !frame->accumLimitReached());
 
   static int filenum;
   if (resetFileId) {
@@ -388,7 +404,6 @@ void BatchContext::renderFrame()
 
     this->outputFilename = filename;
   }
-
   
   pluginManager->main(shared_from_this());
 }
@@ -421,6 +436,12 @@ void BatchContext::renderAnimation()
 
 void BatchContext::refreshScene(bool resetCam)
 {
+  if (frameAccumLimit)
+    frame->accumLimit = frameAccumLimit;
+  else if (optVariance)
+    frame->accumLimit = 0;
+  else
+    frame->accumLimit = 1;
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
