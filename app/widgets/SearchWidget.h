@@ -48,7 +48,8 @@ class SearchWidget
 
   inline NP getSelected()
   {
-    if (!selectedResult.empty())
+    if (!selectedResult.empty()
+        && lastRoot->children().contains(selectedResult))
       return lastRoot->children().at(selectedResult);
     else
       return nullptr;

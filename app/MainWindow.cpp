@@ -1938,14 +1938,13 @@ void MainWindow::buildWindowKeyframes()
     static bool showCameraPath = false;
     if (ImGui::Checkbox("show camera path", &showCameraPath)) {
       if (!showCameraPath) {
-        frame->child("world").remove("cameraPath");
-        frame->child("world").remove("cameraPathCaps");
+        frame->child("world").remove("cameraPath_xfm");
         refreshScene(false);
       } else {
-        auto path = sg::createNode("cameraPath", "geometry_curves");
+        auto pathXfm = sg::createNode("cameraPath_xfm", "transform");
 
         const auto &worldBounds = frame->child("world").bounds();
-        float pathRad = 0.005f * reduce_min(worldBounds.size());
+        float pathRad = 0.0075f * reduce_min(worldBounds.size());
         std::vector<CameraState> cameraPath =
             buildPath(cameraStack, g_camPathSpeed * 0.01f);
         std::vector<vec4f> vertexes; // position and radius
@@ -1956,7 +1955,7 @@ void MainWindow::buildWindowKeyframes()
         std::vector<uint32_t> indexes(vertexes.size());
         std::iota(indexes.begin(), indexes.end(), 0);
 
-        std::vector<vec4f> colors(vertexes);
+        std::vector<vec4f> colors(vertexes.size());
         std::fill(colors.begin(), colors.end(), vec4f(0.8f, 0.4f, 0.4f, 1.f));
 
         const std::vector<uint32_t> mID = {
@@ -1964,18 +1963,15 @@ void MainWindow::buildWindowKeyframes()
         auto mat = sg::createNode("pathGlass", "thinGlass");
         baseMaterialRegistry->add(mat);
 
-        path->remove("radius");
+        auto path = sg::createNode("cameraPath", "geometry_curves");
         path->createChildData("vertex.position_radius", vertexes);
         path->createChildData("vertex.color", colors);
         path->createChildData("index", indexes);
         path->createChild("type", "uchar", (unsigned char)OSP_ROUND);
-        path->createChild("basis", "uchar", (unsigned char)OSP_LINEAR);
+        path->createChild("basis", "uchar", (unsigned char)OSP_CATMULL_ROM);
         path->createChildData("material", mID);
         path->child("material").setSGOnly();
 
-        frame->child("world").add(path);
-
-        auto caps = sg::createNode("cameraPathCaps", "geometry_spheres");
 
         std::vector<vec3f> capVertexes;
         std::vector<vec4f> capColors;
@@ -1987,6 +1983,7 @@ void MainWindow::buildWindowKeyframes()
             capColors.push_back(vec4f(vec3f(0.8f), 1.f));
         }
 
+        auto caps = sg::createNode("cameraPathCaps", "geometry_spheres");
         caps->createChildData("sphere.position", capVertexes);
         caps->createChildData("color", capColors);
         caps->child("color").setSGOnly();
@@ -1994,7 +1991,10 @@ void MainWindow::buildWindowKeyframes()
         caps->createChildData("material", mID);
         caps->child("material").setSGOnly();
 
-        frame->child("world").add(caps);
+        pathXfm->add(path);
+        pathXfm->add(caps);
+
+        frame->child("world").add(pathXfm);
       }
     }
   }
