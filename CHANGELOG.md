@@ -1,6 +1,19 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v0.9.1
+
+-   Compatible with OSPRay release v2.8.0
+
+- Features and Improvements
+  - Added simplified basic 5-step build instructions to README.md
+<br>
+
+- Bug Fixes:
+  - Fixed compatibility with Intel® C++ Compiler Classic on Windows OS.
+  - Fixed potential crash in FileDialog selection widget.
+  - Fixed "gray screen" no-image issue seen on some older architectures
+
 ### Changes in OSPRay Studio v0.9.0
 
 -   Compatible with OSPRay release v2.8.0

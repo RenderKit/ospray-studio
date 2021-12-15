@@ -1,6 +1,6 @@
 # OSPRay Studio
 
-This is release v0.9.0 of Intel® OSPRay Studio. It is released under the
+This is release v0.9.1 of Intel® OSPRay Studio. It is released under the
 Apache 2.0 license.
 
 Visit [**OSPRay Studio**](http://www.ospray.org/ospray_studio)
@@ -24,6 +24,15 @@ support. The scenes can then be rendered either with OSPRay's pathtracer
 or scivis renderer.
 
 ## Building OSPRay Studio
+
+tl;dr - For most installations, these 5 steps will build a plain vanilla OSPRay Studio
+``` bash
+  1. git clone https://github.com/ospray/ospray_studio.git
+  2. mkdir ospray_studio/build
+  3. cd ospray_studio/build
+  4. cmake ..
+  5. cmake --build .
+```
 
 OSPRay Studio has the following required and optional dependencies.
 
