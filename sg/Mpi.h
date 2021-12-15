@@ -28,6 +28,15 @@ struct OSPSG_INTERFACE SgMPI
 
 extern OSPSG_INTERFACE SgMPI sgMPI;
 
+inline void sgAssignMPI(int rank, int size)
+{
+#ifdef USE_MPI
+  sgMPI.usingMpi = 1;
+  sgMPI.mpiRank = rank;
+  sgMPI.mpiWorldSize = size;
+#endif
+}
+
 inline void sgInitializeMPI(int argc, const char *argv[])
 {
 #ifdef USE_MPI

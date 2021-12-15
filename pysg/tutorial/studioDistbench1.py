@@ -21,6 +21,8 @@ comm = MPI.COMM_WORLD
 mpiRank = comm.Get_rank()
 mpiWorldSize = comm.Get_size()
 
+sg.assignMPI(mpiRank, mpiWorldSize)
+
 #optional command line arguments
 scalarRange = None
 colors = None
@@ -111,7 +113,7 @@ else:
   importer.setMaterialRegistry(baseMaterialRegistry)
   importer.importScene()
 
-  print("loading "+myFilename)
+  print(mpiRank,"loading ",myFilename)
   if filetype == ".vti" or filetype == ".vtu":
     #it is a good idea to standardadize LUT range to keep picture consistent
     #traverse scenegraph to the place we need to hange LUT on

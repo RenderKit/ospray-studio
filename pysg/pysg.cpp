@@ -15,6 +15,7 @@
 #include <sg/camera/Camera.h>
 #include <sg/fb/FrameBuffer.h>
 #include <sg/importer/Importer.h>
+#include <sg/Mpi.h>
 #include <sg/renderer/MaterialRegistry.h>
 #include <sg/renderer/Renderer.h>
 #include <sg/scene/World.h>
@@ -64,6 +65,11 @@ bool loadPlugin(const std::string &name)
 {
   void *plugin = loadPluginCore(name);
   return plugin != nullptr;
+}
+
+void assignMPI(int rank, int size)
+{
+  sgAssignMPI(rank, size);
 }
 
 // OSPNode typedefs //////////////////////////////////////////////////////
@@ -275,6 +281,11 @@ PYBIND11_MODULE(pysg, sg)
   // Plugins ////////////////////////////////////////////
   sg.def(
     "loadPlugin", py::overload_cast<const std::string &>(&loadPlugin));
+
+
+  // MPI ////////////////////////////////////////////
+  sg.def(
+    "assignMPI", py::overload_cast<int, int>(&assignMPI));
 
   // Importer functions ////////////////////////////////////////////////////
   sg.def("getImporter",
