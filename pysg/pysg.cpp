@@ -335,6 +335,7 @@ PYBIND11_MODULE(pysg, sg)
 
   py::class_<rkcommon::math::box3f>(sg, "box3f")
       .def(py::init<>())
+      .def(py::init<vec3f, vec3f>())
       .def_readwrite("lower", &box3f::lower)
       .def_readwrite("upper", &box3f::upper);
   
