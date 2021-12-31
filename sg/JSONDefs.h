@@ -293,6 +293,18 @@ inline void from_json(const JSON &j, vec4f &v)
   j.at(3).get_to(v.w);
 }
 
+inline void to_json(JSON &j, const LinearSpace2f &ls)
+{
+  j = JSON{{"x", ls.vx}, {"y", ls.vy}};
+}
+
+inline void from_json(const JSON &j, LinearSpace2f &ls)
+{
+  j.at("x").get_to(ls.vx);
+  j.at("y").get_to(ls.vy);
+}
+
+
 inline void to_json(JSON &j, const LinearSpace3f &ls)
 {
   j = JSON{{"x", ls.vx}, {"y", ls.vy}, {"z", ls.vz}};
