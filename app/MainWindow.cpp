@@ -1027,8 +1027,12 @@ void MainWindow::refreshRenderer()
   if (backPlateTexture != "") {
     auto backplateTex =
       sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
-    backplateTex->load(backPlateTexture, false, false);
-    r.add(backplateTex);
+    if (backplateTex->load(backPlateTexture, false, false))
+      r.add(backplateTex);
+    else {
+      backplateTex = nullptr;
+      backPlateTexture = "";
+    }
   }
 }
 
@@ -1511,6 +1515,8 @@ void MainWindow::buildMainMenuView()
           "current: %s",
           backPlateTexture.base().c_str());
       if (ImGui::MenuItem("Clear background texture")) {
+        frame->cancelFrame();
+        frame->waitOnFrame();
         backPlateTexture = "";
         // Needs to be removed from the renderer node and its OSPRay params
         auto &renderer = frame->childAs<sg::Renderer>("renderer");
@@ -1614,8 +1620,12 @@ void MainWindow::buildMainMenuView()
 
         auto backplateTex =
             sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
-        backplateTex->load(backPlateTexture, false, false);
-        frame->child("renderer").add(backplateTex);
+        if (backplateTex->load(backPlateTexture, false, false))
+          frame->child("renderer").add(backplateTex);
+        else {
+          backplateTex = nullptr;
+          backPlateTexture = "";
+        }
       }
     }
   }

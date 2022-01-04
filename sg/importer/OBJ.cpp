@@ -71,7 +71,9 @@ namespace ospray {
         std::static_pointer_cast<sg::Texture2D>(
             sg::createNode(map_name, "texture_2d"));
 
-    sgTex->load(containingPath + texName, preferLinear, nearestFilter);
+    // If load fails, remove the texture node
+    if (!sgTex->load(containingPath + texName, preferLinear, nearestFilter))
+      sgTex = nullptr;
 
     return sgTex;
   }
@@ -221,9 +223,8 @@ namespace ospray {
                 paramNodes.push_back(createNode(
                     paramName + ".translation", "vec2f", translation));
               }
+              paramNodes.push_back(map_misc);
             }
-
-            paramNodes.push_back(map_misc);
 
           } else {
             rkcommon::utility::Any paramValue;
@@ -250,7 +251,8 @@ namespace ospray {
                         << " " << paramValueStr << std::endl;
               auto map_misc =
                   createSGTex(paramName, paramValueStr, containingPath);
-              paramNodes.push_back(map_misc);
+              if (map_misc)
+                paramNodes.push_back(map_misc);
             }
           }
         }

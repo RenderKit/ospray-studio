@@ -1621,8 +1621,12 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
     ospTex.params.flip = false; // glTF textures are not vertically flipped
 
     // use same path as gltf scene file
-    ospTex.load(
-        fileName.path() + img.uri, preferLinear, nearestFilter, colorChannel);
+    // If load fails, remove the texture node
+    if (!ospTex.load(fileName.path() + img.uri,
+            preferLinear,
+            nearestFilter,
+            colorChannel))
+      ospTexNode = nullptr;
   }
 
   return ospTexNode;

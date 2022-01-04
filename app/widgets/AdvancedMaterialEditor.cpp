@@ -83,11 +83,18 @@ void AdvancedMaterialEditor::buildUI(
       std::shared_ptr<ospray::sg::Texture2D> sgTex =
           std::static_pointer_cast<ospray::sg::Texture2D>(
               ospray::sg::createNode(paramStr, "texture_2d"));
-      sgTex->load(matTexFileName, true, false);
-      auto newMat = copyMaterial(selectedMat, "", paramStr);
-      newMat->add(sgTex, paramStr);
-      newMat->createChild(paramStr + ".transform", "linear2f") = linear2f(one);
-      materialRegistry->add(newMat);
+      // If load fails, remove the texture node
+      if (!sgTex->load(matTexFileName, true, false))
+        sgTex = nullptr;
+      else {
+        auto newMat = copyMaterial(selectedMat, "", paramStr);
+        newMat->add(sgTex, paramStr);
+        newMat->createChild(paramStr + ".transform", "linear2f") =
+            linear2f(one);
+        newMat->createChild(paramStr + ".translation", "vec2f") = vec2f(0.f);
+        newMat->child(paramStr + ".translation").setMinMax(-1.f, 1.f);
+        materialRegistry->add(newMat);
+      }
     }
   }
 

@@ -55,7 +55,8 @@ void HDRILight::preCommit()
     if (filename != mapFilename) {
       auto &hdriTex = createChild("map", "texture_2d");
       auto texture = hdriTex.nodeAs<sg::Texture2D>();
-      texture->load(filename, false, false);
+      if (!texture->load(filename, false, false))
+        remove("map");
     }
   }
 }

@@ -454,11 +454,12 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
 
 // Texture2D public methods /////////////////////////////////////////////////
 
-void Texture2D::load(const FileName &_fileName,
+bool Texture2D::load(const FileName &_fileName,
     const bool _preferLinear,
     const bool _nearestFilter,
     const int _colorChannel)
 {
+  bool success = false;
   fileName = _fileName;
 
   // Check the cache before creating a new texture
@@ -516,16 +517,21 @@ void Texture2D::load(const FileName &_fileName,
       child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
       child("filter").setMinMax(
           (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+
+      success = true;
     } else
       std::cerr << "Failed texture " << fileName << std::endl;
   }
+
+  return success;
 }
 
-void Texture2D::load(void *memory,
+bool Texture2D::load(void *memory,
     const bool _preferLinear,
     const bool _nearestFilter,
     const int _colorChannel)
 {
+  bool success = false;
   std::stringstream ss;
   ss << "memory: " << std::hex << memory;
   fileName = ss.str();
@@ -578,9 +584,13 @@ void Texture2D::load(void *memory,
       child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
       child("filter").setMinMax(
           (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+
+      success = true;
     } else
       std::cerr << "Failed texture " << fileName << std::endl;
   }
+
+  return success;
 }
 
 // Texture2D definitions ////////////////////////////////////////////////////
