@@ -223,6 +223,7 @@ build-windows-icl:
   artifacts:
     paths:
         - build-win-icl
+  when: manual
 
 build-kw-dev:
   stage: build
