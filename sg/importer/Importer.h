@@ -20,7 +20,7 @@ namespace ospray {
 namespace sg {
 
 // map of asset Titles and corresponding original importer nodes
-typedef std::map<std::string, NodePtr> AssetsCatalogue;
+typedef std::map<std::string, std::weak_ptr<Node>> AssetsCatalogue;
 
 enum InstanceConfiguration {
     STATIC = 0,
@@ -141,7 +141,17 @@ extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 inline std::shared_ptr<Importer> getImporter(
     NodePtr root, rkcommon::FileName fileName)
 {
-  std::string baseName = fileName.base();
+  // Get the absolute path to the file for use in AssetsCatalogue
+  char *cTemp = nullptr;
+#ifdef _WIN32 // XXX Candidate to move into rkCommon os/FileName
+  cTemp = _fullpath(NULL, fileName.c_str(), 0);
+#else
+  cTemp = realpath(fileName.c_str(), NULL);
+#endif
+  rkcommon::FileName fullName(cTemp ? cTemp : "");
+  free(cTemp);
+
+  std::string baseName = fileName.name();
   auto fnd = importerMap.find(rkcommon::utility::lowerCase(fileName.ext()));
   if (fnd == importerMap.end()) {
     std::cout << "No importer for " << fileName << std::endl;
@@ -150,12 +160,12 @@ inline std::shared_ptr<Importer> getImporter(
   std::string importer = fnd->second;
   std::string nodeName = baseName + "_importer";
 
-  if (cat.find(baseName) != cat.end()) {
+  if (cat.find(fullName) != cat.end()) {
     // Existing import, instance it!
     std::cout << "Instancing: " << nodeName << std::endl;
 
     // Importer node and its rootXfm
-    auto &origNode = cat[baseName];
+    auto origNode = cat[fullName].lock();
     std::string rootXfmName = baseName + "_rootXfm";
 
     if (!origNode->hasChild(rootXfmName)) {
@@ -190,7 +200,7 @@ inline std::shared_ptr<Importer> getImporter(
       importNode->setVolumeParams(vp);
     }
     importNode->setFileName(fileName);
-    cat.insert(AssetsCatalogue::value_type(baseName, importNode));
+    cat.insert(AssetsCatalogue::value_type(fullName, importNode));
     root->add(importNode);
     return importNode;
   }
