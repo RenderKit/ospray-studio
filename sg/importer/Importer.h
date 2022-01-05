@@ -141,7 +141,7 @@ extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 inline std::shared_ptr<Importer> getImporter(
     NodePtr root, rkcommon::FileName fileName)
 {
-  std::string baseName = fileName.name();
+  std::string baseName = fileName.base();
   auto fnd = importerMap.find(rkcommon::utility::lowerCase(fileName.ext()));
   if (fnd == importerMap.end()) {
     std::cout << "No importer for " << fileName << std::endl;
