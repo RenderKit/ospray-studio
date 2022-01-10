@@ -1693,8 +1693,10 @@ void MainWindow::buildWindowRendererEditor()
       rendererType = OSPRayRendererType::AO;
     else if (rendererTypeStr == "debug")
       rendererType = OSPRayRendererType::DEBUGGER;
+#ifdef USE_MPI
     if (rendererTypeStr == "mpiRaycast")
       rendererType = OSPRayRendererType::MPIRAYCAST;
+#endif
     else
       rendererType = OSPRayRendererType::OTHER;
 

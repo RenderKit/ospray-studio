@@ -44,7 +44,9 @@ enum class OSPRayRendererType
   PATHTRACER,
   AO,
   DEBUGGER,
+#ifdef USE_MPI
   MPIRAYCAST,
+#endif
   OTHER
 };
 
