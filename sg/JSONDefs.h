@@ -33,6 +33,8 @@ void from_json(
     const JSON &j, FlatMap<std::string, ospray::sg::NodePtr> &fm);
 } // namespace containers
 namespace math {
+inline void to_json(JSON &j, const LinearSpace2f &as);
+inline void from_json(const JSON &j, LinearSpace2f &as);
 inline void to_json(JSON &j, const AffineSpace3f &as);
 inline void from_json(const JSON &j, AffineSpace3f &as);
 inline void to_json(JSON &j, const quaternionf &q);
@@ -110,29 +112,31 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
 
   // If the json doesn't contain a valid value, just ignore the node
   // :^) was used as a sentinel for unhandled types.
-  bool valueValid = !(j.contains("value") && j["value"].is_string()
-      && j["value"].get<std::string>() == ":^)");
+  if ((j.contains("value") && j["value"].is_string()
+          && j["value"].get<std::string>() == ":^)"))
+    return nullptr;
 
-  if (j.contains("value") && valueValid) {
-    if (j.contains("description")) {
-      n = createNode(
-          j["name"], j["subType"], j["description"], j["value"].get<Any>());
-    }
-    // XXX these two checks are a temporary fix for saving the RST xform
-    // children. Without these, they will be loaded as a JSON object, which
-    // we do not support. Ideally these RST nodes should be loaded as basic
-    // child nodes with a special type
-    else if (j["subType"] == "transform") {
-      n = createNode(j["name"],
-          j["subType"],
-          j["value"].get<rkcommon::math::AffineSpace3f>());
+  if (j.contains("value")) {
+    Any value;
+
+    // Stored in scene file as basic JSON objects.  Rather than trying to infer
+    // their subType in generic from_json(), it's easier to handle type here.
+    if (j["subType"] == "transform") {
+      value = j["value"].get<rkcommon::math::AffineSpace3f>();
     } else if (j["subType"] == "quaternionf") {
-      n = createNode(j["name"],
-          j["subType"],
-          j["value"].get<rkcommon::math::quaternionf>());
+      value = j["value"].get<rkcommon::math::quaternionf>();
+    } else if (j["subType"] == "linear2f") {
+      value = j["value"].get<rkcommon::math::LinearSpace2f>();
     } else {
-      n = createNode(j["name"], j["subType"], j["value"].get<Any>());
+      // Any other data type
+      value = j["value"].get<Any>();
     }
+
+    // Create node with optional description
+    if (j.contains("description"))
+      n = createNode(j["name"], j["subType"], j["description"], value);
+    else
+      n = createNode(j["name"], j["subType"], value);
 
     if (j.contains("sgOnly") && j["sgOnly"].get<bool>())
       n->setSGOnly();
@@ -159,7 +163,6 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
       if (n->hasMinMax())
         n->setMinMax(range1f(n->minAs<float>()), range1f(n->maxAs<float>()));
     }
-
   } else {
     n = createNode(j["name"], j["subType"]);
   }
@@ -324,8 +327,15 @@ inline void to_json(JSON &j, const AffineSpace3f &as)
 
 inline void from_json(const JSON &j, AffineSpace3f &as)
 {
-  j.at("linear").get_to(as.l);
-  j.at("affine").get_to(as.p);
+  if (j.contains("linear") && j.contains("affine")) {
+    j.at("linear").get_to(as.l);
+    j.at("affine").get_to(as.p);
+  } else {
+    std::vector<float> xfm;
+    for (auto &val : j)
+      xfm.push_back(val.get<float>());
+    as = rkcommon::math::affine3f(&xfm[0], &xfm[4], &xfm[8], &xfm[12]);
+  }
 }
 
 inline void to_json(JSON &j, const quaternionf &q)
@@ -369,12 +379,16 @@ inline void to_json(JSON &j, const Any &a)
     j = a.get<math::vec3f>();
   else if (a.is<math::vec4f>())
     j = a.get<math::vec4f>();
+  else if (a.is<math::LinearSpace2f>())
+    j = a.get<math::LinearSpace2f>();
   else if (a.is<math::AffineSpace3f>())
     j = a.get<math::AffineSpace3f>();
   else if (a.is<math::quaternionf>())
     j = a.get<math::quaternionf>();
-  else
+  else {
+    std::cerr << "JSONDefs.h: :^) strikes back!!!" << std::endl;
     j = ":^)";
+  }
 }
 
 inline void from_json(const JSON &j, Any &a)
@@ -408,9 +422,14 @@ inline void from_json(const JSON &j, Any &a)
         a = j.get<math::vec4f>();
       else
         a = j.get<math::vec4i>();
-    } else if (j.is_object())
+    } else if (j.is_object()) {
       std::cout << "cannot load object types from json" << std::endl;
-    else
+      for (auto &jI : j.items()) {
+        auto &key = jI.key();
+        auto &val = jI.value();
+        std::cout << ": " << key << ":" << val << std::endl;
+      }
+    } else
       std::cout << "unhandled structured type in json " << std::endl;
   } else { // something is wrong
     std::cout << "unidentified type in json" << std::endl;
