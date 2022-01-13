@@ -272,27 +272,38 @@ namespace ospray {
         // keeping texture names consistent with ospray's; lowercase snakecase
         // ospray documentation inconsistent
         if (!m.diffuse_texname.empty()) {
-          mat.add(
-              createSGTex("map_kd", m.diffuse_texname, containingPath, true));
+          auto tex =
+              createSGTex("map_kd", m.diffuse_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
 
         if (!m.specular_texname.empty()) {
-          mat.add(
-              createSGTex("map_ks", m.specular_texname, containingPath, true));
+          auto tex =
+              createSGTex("map_ks", m.specular_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
 
         if (!m.specular_highlight_texname.empty()) {
-          mat.add(createSGTex(
-              "map_ns", m.specular_highlight_texname, containingPath, true));
+          auto tex = createSGTex(
+              "map_ns", m.specular_highlight_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
 
         if (!m.bump_texname.empty()) {
-          mat.add(
-              createSGTex("map_bump", m.bump_texname, containingPath, true));
+          auto tex =
+              createSGTex("map_bump", m.bump_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
 
         if (!m.alpha_texname.empty()) {
-          mat.add(createSGTex("map_d", m.alpha_texname, containingPath, true));
+          auto tex =
+              createSGTex("map_d", m.alpha_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
         for (auto &param : paramNodes)
           mat.add(param);
