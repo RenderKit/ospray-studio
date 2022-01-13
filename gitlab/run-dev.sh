@@ -4,7 +4,7 @@
 
 # XXX This script is transitional
 # !!! This script only builds ospray and rkcommon devel branches !!!
-# Override veresions set by CI
+# Override versions set by CI
 OSPRAY_VER="devel"
 
 set -e

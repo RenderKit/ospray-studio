@@ -43,7 +43,7 @@ namespace ospray {
       std::vector<cpp::Texture> textures;
       std::vector<cpp::Material> materials;
       // cpp::Group group;
-      // Apperance information:
+      // Appearance information:
       //     - Material
       //     - TransferFunction
       //     - ...others?

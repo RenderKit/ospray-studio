@@ -79,7 +79,7 @@ void SunSky::preCommit()
     if (!(std::isnan(direction.x) || std::isnan(direction.y)
             || std::isnan(direction.z))) {
       // this overwrites the "direction" child parameters, making that UI
-      // element not directly useable...
+      // element not directly usable...
       auto &directionNode = child("direction");
       directionNode.setValue(direction);
     }

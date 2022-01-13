@@ -15,7 +15,7 @@ log_file=$CI_PROJECT_DIR/klocwork/build.log
 
 # # XXX This script is transitional
 # # !!! This script only builds ospray and rkcommon devel branches !!!
-# # Override veresions set by CI
+# # Override versions set by CI
 # OSPRAY_VER="devel"
 # RKCOMMON_VER="devel"
 

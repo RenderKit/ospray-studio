@@ -380,7 +380,7 @@ size_t dtype_stride(DTYPE type)
     default:
         break;
     }
-    std::cerr << "UNKOWN DATATYPE" << std::endl;
+    std::cerr << "UNKNOWN DATATYPE" << std::endl;
     return 0;
 }
 

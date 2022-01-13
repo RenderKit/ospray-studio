@@ -26,7 +26,7 @@ Version History
   - Added ability for python scripts to define transfer functions and load Studio plugins
   - Enabled .sg scene files can now contain an HDRI light
   - Much improved command line parsing in all modes
-  - Added support for several new KHR_materials extentions
+  - Added support for several new KHR_materials extensions
     (`KHR_materials_volume`, `KHR_materials_specular`, `KHR_materials_ior`)
     and  `KHR_texture_transform`
   - Improved UI controls for adjusting model transforms
@@ -55,7 +55,7 @@ Version History
 -   Compatible with OSPRay release v2.7.x
 -   GitHub release binaries are built with python bindings for Python 3.7
  
--   Features/Improvments
+-   Features/Improvements
     -   Support for OSPRay's camera Motion Blur and Transformation Motion Blur for animated glTF scenes
     -   Support for UDIM texture tiling workflow
     -   New transfer functions and color maps for volume rendering
@@ -94,7 +94,7 @@ Version History
 
 -   glTF and camera animation improvements
 
--   UI improvments
+-   UI improvements
     Camera manipulator dolly and focal distance/depth-of-field
     Quick select common frame sizes
     Denoiser can be enabled/disabled without resetting accumulation

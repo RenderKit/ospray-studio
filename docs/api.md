@@ -78,7 +78,7 @@ API to add/remove lights. Complex functionality, such as updating,
 committing, and rendering is handled by *visitors*, which traverse the
 graph, performing various actions based on nodes visited.
 
-The general SG design is to build the scene heirarchy with nodes, then
+The general SG design is to build the scene hierarchy with nodes, then
 traverse the SG with visitors.
 
 #### Nodes
@@ -274,7 +274,7 @@ myParentNode["radius"] = 1.f;
 ```
 
 There are also two methods that allow access to the derived node type.
-They are indentical except that the first returns a reference, and the
+They are identical except that the first returns a reference, and the
 second a pointer.
 
 ``` cpp

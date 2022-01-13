@@ -362,7 +362,7 @@ namespace ospray {
       size_t i = 0;
       for (int numVertsInFace : shape.mesh.num_face_vertices) {
         auto isQuad = (numVertsInFace == 4);
-        // when a Quad then use same splitting diagonale in OSPRay/Embree as
+        // when a Quad then use same splitting diagonal in OSPRay/Embree as
         // tinyOBJ would use
         auto prim_indices = isQuad ? vec4ui(3, 0, 1, 2) : vec4ui(0, 1, 2, 2);
         vi.push_back(i + prim_indices);

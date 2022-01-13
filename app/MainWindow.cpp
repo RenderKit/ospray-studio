@@ -724,7 +724,7 @@ void MainWindow::mouseWheel(const vec2f &scroll)
   if (!scroll || frame->pauseRendering)
     return;
 
-  // scroll is +/- 1 for horizontal/vertical mouseWheel motion
+  // scroll is +/- 1 for horizontal/vertical mouse-wheel motion
 
   auto sensitivity = maxMoveSpeed;
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
@@ -914,7 +914,7 @@ void MainWindow::display()
   glDisable(GL_FRAMEBUFFER_SRGB);
 
   if (showUi) {
-    // Notifiy ImGui of the colorspace for color picker widgets
+    // Notify ImGui of the colorspace for color picker widgets
     // (to match the colorspace of the framebuffer)
     if (uiDisplays_sRGB || frameBuffer.isSRGB())
       ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_IsSRGB;
@@ -1214,7 +1214,7 @@ void MainWindow::saveCurrentFrame()
   auto fbFloatFormat = fb["floatFormat"].valueAs<bool>();
   if (screenshotFlags > 0 && !fbFloatFormat)
     std::cout
-        << " *** Cannot save additional information wihtout changing FB format to float ***"
+        << " *** Cannot save additional information without changing FB format to float ***"
         << std::endl;
   frame->saveFrame(std::string(filename), screenshotFlags);
 }
@@ -1552,7 +1552,7 @@ void MainWindow::buildMainMenuView()
     // Allows the user to cancel long frame renders, such as too-many spp or
     // very large resolution.  Don't wait on the frame-cancel completion as
     // this locks up the UI.  Note: Next frame-start following frame
-    // cancelation isn't immediate.
+    // cancellation isn't immediate.
     if (ImGui::MenuItem("Cancel frame"))
       frame->cancelFrame();
 
@@ -1588,7 +1588,7 @@ void MainWindow::buildMainMenuView()
     ImGui::EndMenu();
   }
 
-#if 1 // Guizmo shows outsize menu windo
+#if 1 // Guizmo shows outsize menu window
   if (guizmoOn) {
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration
       | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings
@@ -1963,15 +1963,15 @@ void MainWindow::buildWindowKeyframes()
         float pathRad = 0.0075f * reduce_min(worldBounds.size());
         std::vector<CameraState> cameraPath =
             buildPath(cameraStack, g_camPathSpeed * 0.01f);
-        std::vector<vec4f> vertexes; // position and radius
+        std::vector<vec4f> pathVertices; // position and radius
         for (const auto &state : cameraPath)
-          vertexes.emplace_back(state.position(), pathRad);
-        vertexes.emplace_back(cameraStack.back().position(), pathRad);
+          pathVertices.emplace_back(state.position(), pathRad);
+        pathVertices.emplace_back(cameraStack.back().position(), pathRad);
 
-        std::vector<uint32_t> indexes(vertexes.size());
+        std::vector<uint32_t> indexes(pathVertices.size());
         std::iota(indexes.begin(), indexes.end(), 0);
 
-        std::vector<vec4f> colors(vertexes.size());
+        std::vector<vec4f> colors(pathVertices.size());
         std::fill(colors.begin(), colors.end(), vec4f(0.8f, 0.4f, 0.4f, 1.f));
 
         const std::vector<uint32_t> mID = {
@@ -1980,7 +1980,7 @@ void MainWindow::buildWindowKeyframes()
         baseMaterialRegistry->add(mat);
 
         auto path = sg::createNode("cameraPath", "geometry_curves");
-        path->createChildData("vertex.position_radius", vertexes);
+        path->createChildData("vertex.position_radius", pathVertices);
         path->createChildData("vertex.color", colors);
         path->createChildData("index", indexes);
         path->createChild("type", "uchar", (unsigned char)OSP_ROUND);

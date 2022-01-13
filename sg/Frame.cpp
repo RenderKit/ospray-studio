@@ -181,7 +181,7 @@ void Frame::preCommit()
     fb["size"] = newSize;
 
   // The materials list needs to know of any change in renderer type.
-  // Yet, the renderer has no direct way of notifying the material registery,
+  // Yet, the renderer has no direct way of notifying the material registry,
   // so update the rendererType here.
   auto &renderer = childAs<Renderer>("renderer");
   if (renderer.isModified())

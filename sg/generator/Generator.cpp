@@ -18,7 +18,7 @@ namespace ospray {
 
   void Generator::preCommit()
   {
-    // Re-run generator on paramater changes in the UI
+    // Re-run generator on parameter changes in the UI
     if (child("parameters").isModified())
       generateData();
   }

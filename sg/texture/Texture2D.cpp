@@ -224,7 +224,7 @@ void Texture2D::loadTexture_PFM(const std::string &fileName)
                 "file to reproduce the error.");
     }
 
-    // read scale factor/endiannes
+    // read scale factor/endianness
     float scaleEndian = 0.0;
     rc = fscanf(file, "%f\n", &scaleEndian);
 
