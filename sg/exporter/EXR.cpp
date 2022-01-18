@@ -168,8 +168,8 @@ namespace ospray {
   void EXRExporter::doExportAsSeparateFiles()
   {
     auto file = FileName(child("file").valueAs<std::string>());
-    auto base = file.name();
-    auto ext  = file.ext();
+    auto base = file.dropExt().str();
+    auto ext = file.ext();
 
     vec2i size     = child("size").valueAs<vec2i>();
     const void *fb = child("data").valueAs<const void *>();
