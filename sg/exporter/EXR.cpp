@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2020-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #if defined(USE_OPENEXR)
@@ -217,7 +217,6 @@ namespace ospray {
       albedoHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
       albedoHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
       albedoHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
-      albedoHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *albedo       = child("albedo").valueAs<const void *>();
       flippedBuffers["albedo"] = flipBuffer<float>(albedo, 3);
@@ -226,7 +225,6 @@ namespace ospray {
       albedoFb.insert("R", makeSlice(flippedBuffers["albedo"], 0, 3));
       albedoFb.insert("G", makeSlice(flippedBuffers["albedo"], 1, 3));
       albedoFb.insert("B", makeSlice(flippedBuffers["albedo"], 2, 3));
-      albedoFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
 
       std::string albedoFilename = base + ".alb." + ext;
       Imf::OutputFile albedoFile(albedoFilename.c_str(), albedoHeader);
@@ -238,14 +236,12 @@ namespace ospray {
     if (hasChild("Z")) {
       Imf::Header depthHeader(size.x, size.y);
       depthHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
-      depthHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *z       = child("Z").valueAs<const void *>();
       flippedBuffers["Z"] = flipBuffer<float>(z, 1);
 
       Imf::FrameBuffer depthFb;
       depthFb.insert("R", makeSlice(flippedBuffers["Z"], 0, 1));
-      depthFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
 
       std::string depthFilename = base + ".z." + ext;
       Imf::OutputFile depthFile(depthFilename.c_str(), depthHeader);
@@ -259,7 +255,6 @@ namespace ospray {
       normalHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
       normalHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
       normalHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
-      normalHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *normal       = child("normal").valueAs<const void *>();
       flippedBuffers["normal"] = flipBuffer<float>(normal, 3);
@@ -268,7 +263,6 @@ namespace ospray {
       normalFb.insert("R", makeSlice(flippedBuffers["normal"], 0, 3));
       normalFb.insert("G", makeSlice(flippedBuffers["normal"], 1, 3));
       normalFb.insert("B", makeSlice(flippedBuffers["normal"], 2, 3));
-      normalFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
 
       std::string normalFilename = base + ".nrm." + ext;
       Imf::OutputFile normalFile(normalFilename.c_str(), normalHeader);
