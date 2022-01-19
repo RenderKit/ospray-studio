@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Intel Corporation
+// Copyright 2018-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -165,7 +165,7 @@ class MainWindow : public StudioContext
   bool screenshotAlbedo{false};
   bool screenshotDepth{false};
   bool screenshotNormal{false};
-  bool screenshotLayers{false};
+  bool screenshotLayersSeparatly{false};
 
   // Option to always show a gamma corrected display to user.  Native sRGB
   // buffer is untouched, linear buffers are displayed as sRGB.

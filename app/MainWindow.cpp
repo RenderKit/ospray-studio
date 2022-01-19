@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Intel Corporation
+// Copyright 2018-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "MainWindow.h"
@@ -1207,7 +1207,7 @@ void MainWindow::saveCurrentFrame()
   do
     std::snprintf(filename, 64, "studio.%04d.%s", filenum++, ext);
   while (std::ifstream(filename).good());
-  int screenshotFlags = screenshotLayers << 3
+  int screenshotFlags = screenshotLayersSeparatly << 3
       | screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -1344,7 +1344,7 @@ void MainWindow::buildMainMenuFile()
         if (fbFloatFormat) {
           ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
           ImGui::SameLine();
-          ImGui::Checkbox("layers as separate files", &screenshotLayers);
+          ImGui::Checkbox("layers as separate files", &screenshotLayersSeparatly);
           ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
           ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
         }

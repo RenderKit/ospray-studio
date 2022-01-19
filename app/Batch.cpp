@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Batch.h"
@@ -150,9 +150,8 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   );
   app->add_flag(
     "--saveLayers",
-    saveLayers,
-    "Save all layers"
-  );
+    saveLayersSeparatly,
+    "Save layers in separate files");
   app->add_flag(
     "--saveMetadata",
     saveMetaData,
@@ -397,8 +396,8 @@ void BatchContext::renderFrame()
       filename = optImageName + cameraId + filenumber + optImageFormat;
     }
 
-    int screenshotFlags = saveLayers << 3
-        | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
+    int screenshotFlags = saveLayersSeparatly << 3 | saveNormal << 2
+        | saveDepth << 1 | saveAlbedo;
 
     frame->saveFrame(filename, screenshotFlags);
 

@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -46,7 +46,7 @@ class BatchContext : public StudioContext
   bool saveAlbedo{false};
   bool saveDepth{false};
   bool saveNormal{false};
-  bool saveLayers{false};
+  bool saveLayersSeparatly{false};
   bool saveMetaData{true};
   std::string optImageFormat{"png"};
 

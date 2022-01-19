@@ -46,10 +46,10 @@ namespace ospray {
       charToFloat();
     }
 
-    if (child("asLayers").valueAs<bool>())
-      doExportAsLayers();
-    else
+    if (child("layersAsSeparateFiles").valueAs<bool>())
       doExportAsSeparateFiles();
+    else
+      doExportAsLayers();
   }
 
   void EXRExporter::doExportAsLayers()

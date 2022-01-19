@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "FrameBuffer.h"
@@ -208,7 +208,7 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
   bool albedo = flags & 0b1;
   bool depth = flags & 0b10;
   bool normal = flags & 0b100;
-  bool asLayers = flags & 0b1000;
+  bool layersAsSeparateFiles = flags & 0b1000;
 
   if (albedo) {
     abuf = (void *)map(OSP_FB_ALBEDO);
@@ -231,11 +231,7 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
     exp->clearLayer("normal");
   }
 
-  if (asLayers) {
-    exp->createChild("asLayers", "bool", false);
-  } else {
-    exp->createChild("asLayers", "bool", true);
-  }
+  exp->createChild("layersAsSeparateFiles", "bool", layersAsSeparateFiles);
 
   exp->doExport();
 
