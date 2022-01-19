@@ -21,7 +21,7 @@
 #define DEBUG std::cout << prefix << "(D): "
 #define INFO std::cout << prefix << "(I): "
 #define WARN std::cout << prefix << "(W): "
-#define ERROR std::cerr << prefix << "(E): "
+#define ERR std::cerr << prefix << "(E): "
 
 namespace ospray {
 namespace sg {
@@ -165,12 +165,12 @@ bool GLTFData::parseAsset()
   }
 
   if (!err.empty()) {
-    ERROR << "gltf parsing errors(s)...\n" << err << std::endl;
+    ERR << "gltf parsing errors(s)...\n" << err << std::endl;
   }
 #endif
 
   if (!ret) {
-    ERROR << "FATAL error parsing gltf file,"
+    ERR << "FATAL error parsing gltf file,"
           << " no geometry added to the scene!" << std::endl;
     return false;
   }
@@ -178,7 +178,7 @@ bool GLTFData::parseAsset()
   auto asset = model.asset;
 
   if (std::stof(asset.version) < 2.0) {
-    ERROR << "FATAL: incompatible glTF file, version " << asset.version
+    ERR << "FATAL: incompatible glTF file, version " << asset.version
           << std::endl;
     return false;
   }
@@ -809,7 +809,7 @@ NodePtr GLTFData::createOSPMesh(
     // points as spheres
     ospGeom = createNodeAs<Geometry>(primName + "_object", "geometry_spheres");
   } else {
-    ERROR << "Unsupported primitive mode! File must contain only "
+    ERR << "Unsupported primitive mode! File must contain only "
              "triangles or points\n";
     throw std::runtime_error(
         "Unsupported primitive mode! Only triangles are supported");
@@ -847,7 +847,7 @@ NodePtr GLTFData::createOSPMesh(
             index_accessor[i * 3 + 1],
             index_accessor[i * 3 + 2]));
     } else {
-      ERROR << "Unsupported index type: "
+      ERR << "Unsupported index type: "
             << model.accessors[prim.indices].componentType << "\n";
       throw std::runtime_error("Unsupported index component type");
     }
@@ -884,7 +884,7 @@ NodePtr GLTFData::createOSPMesh(
       for (size_t i = 0; i < col_accessor.size(); ++i)
         vc.emplace_back(col_accessor[i]);
     } else {
-      ERROR << "Unsupported color type: "
+      ERR << "Unsupported color type: "
             << model.accessors[col_attrib].componentType << "\n";
       throw std::runtime_error("Unsupported color component type");
     }

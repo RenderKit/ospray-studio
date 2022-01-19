@@ -214,7 +214,6 @@ build-windows-icl:
   stage: build
   extends:
     - .windows
-  tags: [ win, icc19_2 ]
   script:
     - mkdir build-win-icl
     - cd build-win-icl
