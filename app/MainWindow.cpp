@@ -182,6 +182,8 @@ MainWindow::MainWindow(StudioCommon &_common)
     throw std::runtime_error("Cannot create more than one MainWindow!");
   }
 
+  scheduler = std::make_shared<Scheduler>();
+
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
 
   activeWindow = this;
@@ -517,6 +519,12 @@ void MainWindow::mainLoop()
     ImGui_ImplOpenGL2_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+
+    while (scheduler->execute(off_thread))
+      ;
+
+    while (scheduler->execute(on_thread))
+      ;
 
     display();
 

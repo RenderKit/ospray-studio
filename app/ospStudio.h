@@ -17,6 +17,7 @@
 // studio app
 #include "AnimationManager.h"
 #include "ArcballCamera.h"
+#include "Scheduler.h"
 // ospcommon
 #include "rkcommon/common.h"
 
@@ -127,6 +128,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<sg::LightsManager> lightsManager;
   std::shared_ptr<AnimationManager> animationManager{nullptr};
   std::shared_ptr<PluginManager> pluginManager;
+  std::shared_ptr<Scheduler> scheduler;
 
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
