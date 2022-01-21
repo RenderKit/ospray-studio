@@ -9,6 +9,9 @@
 #include <queue>
 #include <thread>
 
+namespace ospray {
+namespace sg {
+
 struct scheduler_tag_t {};
 
 struct on_thread_t : std::integral_constant<size_t, 0>, scheduler_tag_t {};
@@ -36,8 +39,23 @@ public:
     schedule((size_t)tag, std::make_shared<Task>(fcn));
   }
 
+  TaskPtr steal(on_thread_t tag) {
+    return steal((size_t)tag);
+  }
+
+  TaskPtr steal(off_thread_t tag) {
+    return steal((size_t)tag);
+  }
+
   bool execute(on_thread_t tag) {
-    TaskPtr task = steal((size_t)tag);
+    return execute(tag, steal(tag));
+  }
+
+  bool execute(off_thread_t tag) {
+    return execute(tag, steal(tag));
+  }
+
+  bool execute(on_thread_t tag, TaskPtr task) {
     if (!task) {
       return false;
     }
@@ -47,8 +65,7 @@ public:
     return true;
   }
 
-  bool execute(off_thread_t tag) {
-    TaskPtr task = steal((size_t)tag);
+  bool execute(off_thread_t tag, TaskPtr task) {
     if (!task) {
       return false;
     }
@@ -91,3 +108,6 @@ private:
   std::array<std::mutex, 2> mutexes;
   std::array<std::queue<TaskPtr>, 2> tasks;
 };
+
+} // namespace sg
+} // namespace ospray

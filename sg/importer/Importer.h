@@ -5,6 +5,7 @@
 
 // sg
 #include "sg/Node.h"
+#include "sg/Scheduler.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/Animation.h"
 #include "sg/texture/Texture2D.h"
@@ -116,6 +117,10 @@ struct OSPSG_INTERFACE Importer : public Node
     argv = _argv;
   }
 
+  inline void setScheduler(SchedulerPtr _scheduler) {
+    scheduler = _scheduler;
+  }
+
   float pointSize{0.0f};
 
  protected:
@@ -130,6 +135,7 @@ struct OSPSG_INTERFACE Importer : public Node
   InstanceConfiguration ic{STATIC};
   int argc{0};
   char ** argv{nullptr};
+  SchedulerPtr scheduler{nullptr};
 };
 
 // global assets catalogue

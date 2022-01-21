@@ -12,12 +12,12 @@
 #include "ospray/ospray_util.h"
 // ospray sg
 #include "sg/Frame.h"
+#include "sg/Scheduler.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/lights/LightsManager.h"
 // studio app
 #include "AnimationManager.h"
 #include "ArcballCamera.h"
-#include "Scheduler.h"
 // ospcommon
 #include "rkcommon/common.h"
 
@@ -128,7 +128,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<sg::LightsManager> lightsManager;
   std::shared_ptr<AnimationManager> animationManager{nullptr};
   std::shared_ptr<PluginManager> pluginManager;
-  std::shared_ptr<Scheduler> scheduler;
+  std::shared_ptr<sg::Scheduler> scheduler;
 
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;

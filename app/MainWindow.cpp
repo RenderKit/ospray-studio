@@ -182,7 +182,7 @@ MainWindow::MainWindow(StudioCommon &_common)
     throw std::runtime_error("Cannot create more than one MainWindow!");
   }
 
-  scheduler = std::make_shared<Scheduler>();
+  scheduler = std::make_shared<sg::Scheduler>();
 
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
 
@@ -520,11 +520,27 @@ void MainWindow::mainLoop()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    while (scheduler->execute(off_thread))
+    while (scheduler->execute(sg::off_thread))
       ;
 
-    while (scheduler->execute(on_thread))
-      ;
+    sg::Scheduler::TaskPtr task = scheduler->steal(sg::on_thread);
+    if (task) {
+      // if a task wants to run on-thread, then we need to cancel any currently
+      // rendering frame to make sure we don't get any segfaults
+      frame->pauseRendering = true;
+      frame->cancelFrame();
+      frame->waitOnFrame();
+
+      while (scheduler->execute(sg::on_thread, task)) {
+        task = scheduler->steal(sg::on_thread);
+      }
+
+      // after running on-thread tasks, make sure to re-enable rendering and
+      // update the scene and camera for any newly added or modified objects in
+      // the scene
+      frame->pauseRendering = false;
+      refreshScene(true);
+    }
 
     display();
 
@@ -1169,6 +1185,7 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
+          importer->setScheduler(scheduler);
           if (animationManager)
             importer->setAnimationList(animationManager->getAnimations());
           if (optInstanceConfig == "dynamic")
