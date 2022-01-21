@@ -24,12 +24,14 @@ OSP_REGISTER_SG_NODE_NAME(RawImporter, importer_raw);
 
 void RawImporter::importScene()
 {
+  using namespace std::string_literals;
+
   auto self = shared_from_this();
 
   std::vector<Node *> parents = this->parents();
   this->removeAllParents();
 
-  scheduler->schedule(off_thread, [&, self, this, parents](SchedulerPtr scheduler) {
+  scheduler->push(background, "RawImporter "s + fileName.name(), [&, self, this, parents](SchedulerPtr scheduler) {
     // Create a root Transform/Instance off the Importer, then place the volume
     // under this.
     auto rootName = fileName.name() + "_rootXfm";
@@ -70,7 +72,7 @@ void RawImporter::importScene()
     // Finally, add node hierarchy to importer parent
     add(rootNode);
 
-    scheduler->schedule(on_thread, [&, self, this, parents](SchedulerPtr scheduler) {
+    scheduler->push(foreground, "RawImporter "s + fileName.name(), [&, self, this, parents](SchedulerPtr scheduler) {
       for (auto &parent : parents) {
         parent->add(*this);
       }

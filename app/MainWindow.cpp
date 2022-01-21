@@ -520,10 +520,11 @@ void MainWindow::mainLoop()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    while (scheduler->execute(sg::off_thread))
-      ;
+    auto task = scheduler->pop(sg::background);
+    for (; task; task = scheduler->pop(sg::background))
+      task->operator()();
 
-    sg::Scheduler::TaskPtr task = scheduler->steal(sg::on_thread);
+    task = scheduler->pop(sg::foreground);
     if (task) {
       // if a task wants to run on-thread, then we need to cancel any currently
       // rendering frame to make sure we don't get any segfaults
@@ -531,9 +532,8 @@ void MainWindow::mainLoop()
       frame->cancelFrame();
       frame->waitOnFrame();
 
-      while (scheduler->execute(sg::on_thread, task)) {
-        task = scheduler->steal(sg::on_thread);
-      }
+      for (; task; task = scheduler->pop(sg::foreground))
+        task->operator()();
 
       // after running on-thread tasks, make sure to re-enable rendering and
       // update the scene and camera for any newly added or modified objects in
