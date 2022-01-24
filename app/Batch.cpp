@@ -96,12 +96,12 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_option(
     "--format",
     optImageFormat,
-    "Set the image format"
+    "Sets the image format for color components(RGBA)"
   )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
   app->add_option(
     "--image",
     optImageName,
-    "Set the image name"
+    "Sets the image name (inclusive of path and filename)"
   );
   app->add_option(
     "--interpupillaryDistance",

@@ -177,19 +177,12 @@ namespace ospray {
     // use general EXR file API for 32-bit float support
     namespace IMF   = OPENEXR_IMF_NAMESPACE;
     namespace IMATH = IMATH_NAMESPACE;
-
-    Imf::Header beautyHeader(size.x, size.y);
-    beautyHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
-    beautyHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
-    beautyHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
-    beautyHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
-
     auto makeSlice = [&](const void *fb, int offset, int ncomp = 4) {
       // flip the data
       return Imf::Slice(IMF::FLOAT,
-                        (char *)((float *)fb + offset),
-                        sizeof(float) * ncomp,
-                        size.x * sizeof(float) * ncomp);
+          (char *)((float *)fb + offset),
+          sizeof(float) * ncomp,
+          size.x * sizeof(float) * ncomp);
     };
 
     // although openexr provides a LineOrder parameter, it doesn't seem to
@@ -197,20 +190,30 @@ namespace ospray {
     // This map will hold any channels we need until we write the image;
     // only then can we free the pointers. Not pretty, I know
     std::map<std::string, float *> flippedBuffers;
-    flippedBuffers["fb"] = flipBuffer<float>(fb);
 
-    Imf::FrameBuffer beautyFb;
-    beautyFb.insert("R", makeSlice(flippedBuffers["fb"], 0));
-    beautyFb.insert("G", makeSlice(flippedBuffers["fb"], 1));
-    beautyFb.insert("B", makeSlice(flippedBuffers["fb"], 2));
-    beautyFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
+    if (child("saveColor").valueAs<bool>()) {
+      Imf::Header beautyHeader(size.x, size.y);
+      beautyHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
+      beautyHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
+      beautyHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
+      beautyHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
-    std::string beautyFilename = base + ".hdr." + ext;
-    Imf::OutputFile beautyFile(beautyFilename.c_str(), beautyHeader);
-    beautyFile.setFrameBuffer(beautyFb);
-    beautyFile.writePixels(size.y);
 
-    std::cout << "Saved to " << beautyFilename << std::endl;
+      flippedBuffers["fb"] = flipBuffer<float>(fb);
+
+      Imf::FrameBuffer beautyFb;
+      beautyFb.insert("R", makeSlice(flippedBuffers["fb"], 0));
+      beautyFb.insert("G", makeSlice(flippedBuffers["fb"], 1));
+      beautyFb.insert("B", makeSlice(flippedBuffers["fb"], 2));
+      beautyFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
+
+      std::string beautyFilename = base + ".hdr." + ext;
+      Imf::OutputFile beautyFile(beautyFilename.c_str(), beautyHeader);
+      beautyFile.setFrameBuffer(beautyFb);
+      beautyFile.writePixels(size.y);
+
+      std::cout << "Saved to " << beautyFilename << std::endl;
+    }
 
     if (hasChild("albedo")) {
       Imf::Header albedoHeader(size.x, size.y);

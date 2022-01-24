@@ -191,16 +191,13 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
   auto file = FileName(filename);
   
   if (flags && file.ext() != "exr") {
-    auto base = file.base();
-    auto name = base.substr(0, base.find_last_of('.'));
-    auto exrFile = file.path() + name + ".exr";
+    auto exrFile = file.dropExt().str() + ".exr";
     filenames.push_back(exrFile);
   }
   filenames.push_back(filename);
 
   for (auto &f : filenames) {
-    auto file = FileName(f);
-    auto exporter = getExporter(file);
+    auto exporter = getExporter(FileName(f));
 
     if (exporter == "") {
       std::cout << "No exporter found for type " << FileName(filename).ext()
@@ -246,6 +243,7 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
     }
 
     exp->createChild("layersAsSeparateFiles", "bool", layersAsSeparateFiles);
+    exp->createChild("saveColor", "bool", file.ext() == "exr");
 
     exp->doExport();
 
