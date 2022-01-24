@@ -357,8 +357,6 @@ void GLTFData::createLights()
       newLight->child("position").setValue(vec3f(0));
     if (newLight->hasChild("direction"))
       newLight->child("direction").setValue(vec3f(0.f, 0.f, -1.f));
-    if (newLight->hasChild("up"))
-      newLight->child("up").setValue(vec3f(0.f, 1.f, 0.f));
 
     // Color is optional, default:[1.0,1.0,1.0]
     auto lightColor = rgb(1.f);
