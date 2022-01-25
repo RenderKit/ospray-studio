@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -418,6 +418,8 @@ void GLTFData::createCameras()
         sgCamera->child(
             "aspect") = (float)m.perspective.aspectRatio;
 
+    } else if (m.type == "panoramic") { // custom extension
+      sgCamera = createNode("camera", "camera_panoramic");
     } else {
       sgCamera = createNode("camera", "camera_orthographic");
       sgCamera->child("height") = (float)m.orthographic.ymag;
