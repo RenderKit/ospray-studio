@@ -143,6 +143,7 @@ add_library(ospray_sg SHARED
   scene/lights/Photometric.cpp
   scene/lights/DirectionalLight.cpp
   scene/lights/AmbientLight.cpp
+  scene/lights/CylinderLight.cpp
   scene/lights/SpotLight.cpp
   scene/lights/PointLight.cpp
   scene/lights/QuadLight.cpp
