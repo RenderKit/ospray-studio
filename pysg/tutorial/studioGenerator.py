@@ -53,8 +53,8 @@ sg.updateCamera(cam, arcballCamera)
   
 # First frame will be "navigation" resolution.
 # Render again for full sized frame.
-frame.startNewFrame(bool(0))
-frame.startNewFrame(bool(0))
+frame.startNewFrame()
+frame.startNewFrame()
 frame.waitOnFrame()
 outputName = "wavelet.png"
 

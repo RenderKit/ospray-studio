@@ -62,7 +62,7 @@ world.render()
 
 # First frame will be "navigation" resolution.
 # Render again for full sized frame.
-frame.startNewFrame(bool(0))
-frame.startNewFrame(bool(0))
+frame.startNewFrame()
+frame.startNewFrame()
 frame.waitOnFrame()
 frame.saveFrame("sgTutorial.png", 0)

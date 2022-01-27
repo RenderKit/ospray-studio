@@ -6,12 +6,16 @@ An example of using python to benchmark studio rendering of vtk data files.
 Example use:
  python3 studioDistbench1.py -numFrames 200 -colors 2 0 0 0 1 1 1 filename.filetype
  filename should be in the format filename$(RankID).filetype
+
+To pack data set blocks into a cube use the -pack flag as the following
+mpirun -np 3 python3 studioDistbench1-pack.py -numFrames 200 -colors 2 1 0 0 0 1 0 -pack filename.pvd
+
 """
 
 import sys, numpy, math, time, atexit, resource
 from mpi4py import MPI
 import pysg as sg
-from pysg import Any, vec3f, Data, FileName, Importer, MaterialRegistry, ArcballCamera, vec2i, box3f, vec2f, vec3i
+from pysg import Any, vec3f, Data, FileName, Importer, MaterialRegistry, ArcballCamera, vec2i, box3f, vec2f, vec3i, affine3f
 
 args = sg.init(sys.argv)
 
@@ -29,10 +33,12 @@ colors = None
 opacities = None
 numTriangles = 1000000
 dim = 200
-pathname = "."
 W = 1024
 H = 768
 numFrames = 100
+packData = False 
+numDataFiles = 0
+imgPath = ""
   
 for idx in range(0, len(args)):
   a = args[idx]
@@ -61,6 +67,10 @@ for idx in range(0, len(args)):
     H = int(args[idx+2])
   if a == "-numFrames":
     numFrames = int(args[idx+1])
+  if a == "-pack":
+    packData = True
+  if a == "-imgPath":
+    imgPath = args[idx+1] + "/"
 
 filename = args[len(args)-1]
 volumename = ""
@@ -96,6 +106,7 @@ world = frame.child("world")
 lightsMan = frame.child("lights")
 baseMaterialRegistry = frame.child("baseMaterialRegistry")
 
+ 
 if filename == "slices":
   ws = world.createChildAs("generator", "generator_wavelet_slices")
   params = ws.child("parameters")
@@ -112,8 +123,8 @@ else:
   importer.setLightsManager(lightsMan)
   importer.setMaterialRegistry(baseMaterialRegistry)
   importer.importScene()
+  print("loading "+myFilename)
 
-  print(mpiRank,"loading ",myFilename)
   if filetype == ".vti" or filetype == ".vtu":
     #it is a good idea to standardadize LUT range to keep picture consistent
     #traverse scenegraph to the place we need to hange LUT on
@@ -143,13 +154,59 @@ else:
       npOpacities = numpy.array(opacities,dtype=numpy.float32)
       importer.remove("opacity")
       importer.createChildData("opacity", Data(npOpacities))
+  if packData is True:
+    world.render()
+    filenames = []
+    with open(filename) as f:
+      lines = f.readlines()
+      for line in lines:
+        if "DataSet" in line:
+          currLine = line.split("file=")[1].split("/")
+          currLine = currLine[len(currLine)-2].split('"')
+          currFileName = currLine[len(currLine)-2]
+          filenames.append(currFileName)
+     
+    numDataFiles = len(filenames) 
+    cubed = int(pow(numDataFiles, 1.0/3.0) + 0.99)
+    fid = 0
+    for i in range(0, cubed):
+      for j in range(0, cubed):
+        for k in range(0, cubed):
+          if fid < numDataFiles and int(fid % mpiWorldSize)  == mpiRank:
+              fileName = filenames[fid]
+              localBounds = world.bounds()
+              dims = vec3f(localBounds.upper.x - localBounds.lower.x, localBounds.upper.y - localBounds.lower.y, localBounds.upper.z - localBounds.lower.z)
+              maxes = [dims.x, dims.y, dims.z]
+              localBounds.lower = vec3f(maxes[0]*k,maxes[1]*j,maxes[2]*i)
+              localBounds.upper.x = localBounds.lower.x + dims.x
+              localBounds.upper.y = localBounds.lower.y + dims.y
+              localBounds.upper.z = localBounds.lower.z + dims.z
+
+              if fileName.rfind("vti") == len(fileName)-3:
+                subimporter = importer.child(path + "/" + fileName)
+                volNode = subimporter.child("transferFunction").child("vti")
+                volNode.createChild("gridOrigin", "vec3f", Any(localBounds.lower) )
+                volNode.createChild("mpiRegion", "box3f", Any(localBounds))
+              else:
+                subimporter = importer.child(path + "/" + fileName)
+                subimporter.setValue(affine3f.translate(localBounds.lower), True)
+                geomNode = subimporter.child("vtk_polydata")
+                bds = geomNode.child("vtkbounds").valueAsBox3f()
+                bds.lower.x = bds.lower.x + localBounds.lower.x
+                bds.lower.y = bds.lower.y + localBounds.lower.y
+                bds.lower.z = bds.lower.z + localBounds.lower.z
+                bds.upper.x = bds.upper.x + localBounds.lower.x
+                bds.upper.y = bds.upper.y + localBounds.lower.y
+                bds.upper.z = bds.upper.z + localBounds.lower.z
+                geomNode.createChild("mpiRegion","box3f", Any(bds))
+
+          fid = fid + 1
 
 world.render()
 
 bounds = world.bounds()
 '''
 #this is how to get bounds information
-
 l = bounds.lower
 u = bounds.upper
 print(l.x)
@@ -159,6 +216,7 @@ print(u.x)
 print(u.y)
 print(u.z)
 '''
+
 arcballCamera = ArcballCamera(bounds, window_size)
 cam = frame.child("camera")
 cam.createChild("aspect", "float", aspect)
@@ -167,10 +225,10 @@ sg.updateCamera(cam, arcballCamera)
   
 # First frame will be "navigation" resolution.
 # Render again for full sized frame.
-frame.startNewFrame(bool(0))
-frame.startNewFrame(bool(0))
+frame.startNewFrame()
+frame.startNewFrame()
 frame.waitOnFrame()
-outputName = "benchmarkDist_initial" + str(mpiRank) + ".png"
+outputName = imgPath + "benchmarkDist_initial" + str(mpiRank) + ".png"
 
 if mpiRank == 0:
     frame.saveFrame(outputName, 0)
@@ -181,9 +239,9 @@ for frameNum in range(0,numFrames):
   ts = time.time()
   arcballCamera.rotate(vec2f(-2.0/numFrames, 0.0),vec2f(2.0/numFrames, 0.0))
   sg.updateCamera(cam, arcballCamera)
-  frame.startNewFrame(bool(0))
+  frame.startNewFrame()
   frame.waitOnFrame()
-  frame.startNewFrame(bool(0))
+  frame.startNewFrame()
   frame.waitOnFrame()
   te = time.time()-ts
   elapsed = elapsed+te
@@ -192,14 +250,13 @@ for frameNum in range(0,numFrames):
   if te > max:
     max = te
   if mpiRank == 0:
-      frame.saveFrame("benchmarkDist_"+str(frameNum)+".png", 0)
+      frame.saveFrame(imgPath + "benchmarkDist_"+str(frameNum)+".png", 0)
 
-outputName = "benchmarkDist_final" + str(mpiRank) + ".png"
+outputName = imgPath + "benchmarkDist_final" + str(mpiRank) + ".png"
 if mpiRank == 0:
     frame.saveFrame(outputName, 0)
 
 print("TIMES min %f avg %f max %f [sec]" % (min, elapsed/numFrames, max))
 mem = (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss+resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)/1024.0
 print("MAXMEM %d [MB]" % mem)
-
 
