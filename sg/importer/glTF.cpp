@@ -449,7 +449,6 @@ void GLTFData::createCameraTemplates()
             imageSensor.Get("pixelSize").Get<tinygltf::Value::Array>();
         int x = pixels[0].Get<int>();
         int y = pixels[1].Get<int>();
-        fb->child("size").setValue(vec2i(x, y));
         len_x = x * (float)pixelSize[0].Get<double>();
         len_y = y * (float)pixelSize[1].Get<double>();
         sgCamera->child("aspect").setValue(len_x / len_y);
@@ -732,7 +731,7 @@ void GLTFData::visitNode(NodePtr sgNode,
   // create child animate camera for all camera nodes added to scene hierarchy,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
-  if (n.camera != -1 && cameraTemplates.size()) {
+  if (n.camera != -1 && n.camera < cameraTemplates.size() && cameras) {
     auto cameraTemplate = cameraTemplates[n.camera];
     static auto nCamera = 0;
     auto camera = createNode("camera", cameraTemplate->subType());
