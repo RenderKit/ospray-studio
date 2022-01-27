@@ -67,7 +67,7 @@ struct GLTFData
   void createSkins();
   void finalizeSkins();
   void createGeometries();
-  void createCameras();
+  void createCameraTemplates();
   void createLights();
   void buildScene();
   void loadNodeInfo(const int nid, NodePtr sgNode);
@@ -83,6 +83,7 @@ struct GLTFData
   NodePtr rootNode;
   sg::FrameBuffer *fb{nullptr};
   std::vector<NodePtr> *cameras{nullptr};
+  std::vector<NodePtr> cameraTemplates;
   std::vector<SkinPtr> skins;
   std::vector<std::vector<NodePtr>> ospMeshes;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry;
@@ -214,7 +215,7 @@ bool GLTFData::parseAsset()
   INFO << "... " << model.images.size() << " images\n";
   INFO << "... " << model.skins.size() << " skins\n";
   INFO << "... " << model.samplers.size() << " samplers\n";
-  INFO << "... " << model.cameras.size() << " cameras\n";
+  INFO << "... " << model.cameras.size() << " cameraTemplates\n";
   INFO << "... " << model.scenes.size() << " scenes\n";
   INFO << "... " << model.lights.size() << " lights\n";
 
@@ -397,9 +398,9 @@ void GLTFData::createMaterials()
     materialRegistry->add(m);
 }
 
-void GLTFData::createCameras()
+void GLTFData::createCameraTemplates()
 {
-  cameras->reserve(model.cameras.size());
+  cameraTemplates.reserve(model.cameras.size());
   NodePtr sgCamera;
 
   for (auto &m : model.cameras) {
@@ -519,9 +520,7 @@ void GLTFData::createCameras()
       }
     }
 
-    sgCamera->createChild("cameraId", "int", ++nCamera);
-    sgCamera->child("cameraId").setSGOnly();
-    cameras->push_back(sgCamera);
+    cameraTemplates.push_back(sgCamera);
   }
 }
 
@@ -733,9 +732,27 @@ void GLTFData::visitNode(NodePtr sgNode,
   // create child animate camera for all camera nodes added to scene hierarchy,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
-  if (n.camera != -1 && cameras != nullptr) {
-    auto &listCameras = *cameras;
-    auto &camera = listCameras[n.camera];
+  if (n.camera != -1 && cameraTemplates.size()) {
+    auto cameraTemplate = cameraTemplates[n.camera];
+    static auto nCamera = 0;
+    auto camera = createNode("camera", cameraTemplate->subType());
+    for (auto &c : cameraTemplate->children()) {
+      if (camera->hasChild(c.first))
+        camera->child(c.first) = c.second->value();
+      else {
+        camera->createChild(c.first, c.second->subType(), c.second->value());
+        if (cameraTemplate->child(c.first).sgOnly())
+          camera->child(c.first).setSGOnly();
+      }
+
+      auto uniqueCamName =
+          n.name != "" ? n.name : "camera_" + std::to_string(nCamera);
+      camera->child("uniqueCameraName") = uniqueCamName;
+      camera->createChild("cameraId", "int", ++nCamera);
+
+      camera->child("cameraId").setSGOnly();
+      cameras->push_back(camera);
+    }
     newXfm->add(camera);
   }
 
@@ -1744,7 +1761,7 @@ void glTFImporter::importScene()
   gltf.createLights();
 
   if (importCameras)
-    gltf.createCameras();
+    gltf.createCameraTemplates();
 
   gltf.createSkins();
   gltf.createGeometries(); // needs skins
