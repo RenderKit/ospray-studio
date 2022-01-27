@@ -1,4 +1,4 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
@@ -23,9 +23,16 @@ PointLight::PointLight() : Light("sphere")
       "center of the sphere light, in world-space",
       vec3f(0.f));
   createChild("radius", "float", "size of the sphere light", 0.f);
+  createChild("direction",
+      "vec3f",
+      "main orientation of `intensityDistribution`",
+      vec3f(0.f, 0.f, 1.f));
 
   child("intensityQuantity")
       .setValue(uint8_t(OSP_INTENSITY_QUANTITY_INTENSITY));
+
+  // PointLight supports a photometric measuredSource
+  addMeasuredSource();
 }
 
 } // namespace sg
