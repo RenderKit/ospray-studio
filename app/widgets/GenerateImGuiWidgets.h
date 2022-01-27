@@ -1,9 +1,15 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "../Node.h"
+// ospray_sg
+#include "sg/Node.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
+// widgets
+#include "app/widgets/FileBrowserWidget.h"
+
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -526,7 +532,51 @@ inline bool generateWidget_string(const std::string &, Node &node)
 {
   std::string s = node.valueAs<std::string>();
 
+  // All strings are read-only in this widget
   ImGui::Text("%s", (node.name() + ": \"" + s + "\"").c_str());
+  nodeTooltip(node);
+  return false;
+}
+
+inline bool generateWidget_filename(const std::string &title, Node &node)
+{
+  std::string f = node.valueAs<filename>();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s", (node.name() + ": \"" + f + "\" (filename)").c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  bool remove = (f != "");
+  if (remove) {
+    if (ImGui::Checkbox("##remove", &remove)) {
+      node.setValue(std::string(""));
+      return true;
+    }
+    showTooltip("remove value");
+    ImGui::SameLine();
+  }
+
+  static bool showFileBrowser = false;
+  // This field won't be typed into.
+  ImGui::InputTextWithHint(
+      node.name().c_str(), (char *)f.c_str(), (char *)f.c_str(), 0);
+  if (ImGui::IsItemClicked())
+    showFileBrowser = true;
+
+  // Leave the fileBrowser open until file is selected
+  if (showFileBrowser) {
+    ospray_studio::FileList fileList = {};
+    if (ospray_studio::fileBrowser(fileList, "Select file")) {
+      showFileBrowser = false;
+      if (!fileList.empty()) {
+        node.setValue(std::string(fileList[0]));
+        return true;
+      }
+    }
+  }
+
   nodeTooltip(node);
   return false;
 }
@@ -549,6 +599,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"range1f", generateWidget_range1f},
     {"quaternionf", generateWidget_quaternionf},
     {"string", generateWidget_string},
+    {"filename", generateWidget_filename},
 };
 
 // Inlined definitions ////////////////////////////////////////////////////

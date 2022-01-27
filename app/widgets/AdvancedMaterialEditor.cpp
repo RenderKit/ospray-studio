@@ -1,13 +1,13 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "AdvancedMaterialEditor.h"
 #include "FileBrowserWidget.h"
+#include "GenerateImGuiWidgets.h" // TreeState
 #include "ListBoxWidget.h"
 
 #include "sg/NodeType.h"
 #include "sg/texture/Texture2D.h"
-#include "sg/visitors/GenerateImGuiWidgets.h" // TreeState
 
 #include "rkcommon/math/AffineSpace.h"
 #include "rkcommon/os/FileName.h"

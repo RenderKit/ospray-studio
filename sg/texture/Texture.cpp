@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Texture.h"
@@ -11,8 +11,8 @@ namespace ospray {
   {
     auto handle = ospNewTexture(type.c_str());
     setHandle(handle);
-    createChild("filename", "string", "texture filename", std::string(""));
-    child("filename").setSGOnly();
+    createChild("filename", "filename", "texture filename", std::string(""))
+        .setSGOnly();
   }
 
   NodeType Texture::type() const

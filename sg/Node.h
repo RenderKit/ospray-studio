@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -50,6 +50,8 @@ namespace sg {
   template <typename K, typename V>
   using FlatMap = rkcommon::containers::FlatMap<K, V>;
 
+  // "filename" specialization allows differentiating purpose of string node.
+  using filename = std::string;
   using rgb  = vec3f;
   using rgba = vec4f;
 

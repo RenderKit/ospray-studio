@@ -234,7 +234,7 @@ void GLTFData::applySceneBackground(NodePtr bgXfm)
   auto &bgFileName = background.Get("background-uri").Get<std::string>();
   rkcommon::FileName bgTexture = fileName.path() + bgFileName;
   auto bgNode = createNode("background", "hdri");
-  bgNode->createChild("filename") = std::string(bgTexture);
+  bgNode->createChild("filename", "filename", bgTexture.str());
 
   if (background.Has("rotation")) {
     const auto &r = background.Get("rotation").Get<tinygltf::Value::Array>();

@@ -1,11 +1,11 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
 #include "sg/Node.h"
 #include "sg/NodeType.h"
-#include "sg/visitors/GenerateImGuiWidgets.h" // TreeState
+#include "GenerateImGuiWidgets.h" // TreeState
 
 #include <string>
 #include <vector>

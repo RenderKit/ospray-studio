@@ -20,7 +20,6 @@
 #include "sg/scene/World.h"
 #include "sg/scene/lights/LightsManager.h"
 #include "sg/visitors/Commit.h"
-#include "sg/visitors/GenerateImGuiWidgets.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/Search.h"
 #include "sg/visitors/SetParamByNode.h"

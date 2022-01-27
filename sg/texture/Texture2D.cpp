@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Texture2D.h"
@@ -511,8 +511,7 @@ bool Texture2D::load(const FileName &_fileName,
       createChild("format", "int", (int)ospTexFormat);
       createChild("filter", "int", (int)texFilter);
 
-      createChild("filename", "string", fileName);
-      child("filename").setSGOnly();
+      createChild("filename", "filename", fileName).setSGOnly();
 
       child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
       child("filter").setMinMax(
@@ -573,13 +572,12 @@ bool Texture2D::load(void *memory,
       auto ospTexFormat =
           osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
       auto texFilter = params.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-        : OSP_TEXTURE_FILTER_BILINEAR;
+                                            : OSP_TEXTURE_FILTER_BILINEAR;
 
       createChild("format", "int", (int)ospTexFormat);
       createChild("filter", "int", (int)texFilter);
 
-      createChild("filename", "string", fileName);
-      child("filename").setSGOnly();
+      createChild("filename", "filename", fileName).setSGOnly();
 
       child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
       child("filter").setMinMax(

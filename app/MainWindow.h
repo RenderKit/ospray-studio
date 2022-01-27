@@ -16,6 +16,7 @@
 
 #include <map>
 #include "widgets/AnimationWidget.h"
+#include "widgets/GenerateImGuiWidgets.h"
 #include "PluginManager.h"
 #include "sg/importer/Importer.h"
 
