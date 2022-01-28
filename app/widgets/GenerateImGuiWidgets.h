@@ -548,22 +548,20 @@ inline bool generateWidget_filename(const std::string &title, Node &node)
     return false;
   }
 
-  bool remove = (f != "");
-  if (remove) {
-    if (ImGui::Checkbox("##remove", &remove)) {
-      node.setValue(std::string(""));
-      return true;
-    }
-    showTooltip("remove value");
-    ImGui::SameLine();
-  }
-
   static bool showFileBrowser = false;
   // This field won't be typed into.
   ImGui::InputTextWithHint(
       node.name().c_str(), (char *)f.c_str(), (char *)f.c_str(), 0);
   if (ImGui::IsItemClicked())
     showFileBrowser = true;
+
+  if (f != "") {
+    ImGui::SameLine();
+    if (ImGui::Button("remove##texfile")) {
+      node.setValue(std::string(""));
+      return true;
+    }
+  }
 
   // Leave the fileBrowser open until file is selected
   if (showFileBrowser) {
