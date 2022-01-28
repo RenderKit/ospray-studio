@@ -26,7 +26,7 @@ PointLight::PointLight() : Light("sphere")
   createChild("direction",
       "vec3f",
       "main orientation of `intensityDistribution`",
-      vec3f(0.f, 0.f, 1.f));
+      vec3f(0.f, 0.f, 1.f)).setMinMax(-1.f, 1.f);
 
   child("intensityQuantity")
       .setValue(uint8_t(OSP_INTENSITY_QUANTITY_INTENSITY));

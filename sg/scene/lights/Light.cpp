@@ -46,7 +46,7 @@ NodeType Light::type() const
 void Light::addMeasuredSource(std::string fileName)
 {
   createChild("measuredSource",
-      "string",
+      "filename",
       "File containing intensityDistribution data to modulate\n"
       "the intensity per direction. (EULUMDAT format)",
       fileName)
@@ -60,6 +60,8 @@ void Light::preCommit()
   if (hasChild("measuredSource") && child("measuredSource").isModified()) {
     remove("intensityDistribution");
     remove("c0");
+    handle().removeParam("intensityDistribution");
+    handle().removeParam("c0");
     auto fileName = child("measuredSource").valueAs<std::string>();
     std::ifstream f(fileName);
     if (f.good()) {
