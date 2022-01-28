@@ -142,7 +142,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   int optSPP                     = 32;
   float optVariance              = 0.f; // varianceThreshold
   int optPF                      = -1; // use default
-  int optDenoiser                = 0;
+  bool optDenoiser{false};
   bool optGridEnable             = false;
   vec3i optGridSize              = {1, 1, 1};
   // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes

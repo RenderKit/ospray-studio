@@ -49,6 +49,7 @@ class BatchContext : public StudioContext
   bool saveLayersSeparatly{false};
   bool saveMetaData{true};
   std::string optImageFormat{"png"};
+  rgba bgColor{vec3f(0.1f), 1.f};
 
   float fps{0.0f};
   bool forceRewrite{false};

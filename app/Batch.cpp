@@ -113,17 +113,11 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     optStereoMode,
     "Set the stereo mode"
   )->check(CLI::PositiveNumber);
-  app->add_option_function<int>(
+  app->add_flag(
     "--denoiser",
-    [&](const int denoiser) {
-      if (studioCommon.denoiserAvailable) {
-        optDenoiser = denoiser;
-        return true;
-      }
-      return false;
-    },
+    optDenoiser,
     "Set the denoiser"
-  )->check(CLI::Range(0, 2+1));
+  );
   app->add_option(
     "--grid",
     [&](const std::vector<std::string> val) {
@@ -190,6 +184,17 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     },
     "Set the frames range"
   )->expected(2);
+  app->add_option(
+    "--bgColor",
+    [&](const std::vector<std::string> val) {
+      bgColor = rgba(std::stof(val[0]),
+        std::stof(val[1]),
+        std::stof(val[2]),
+        std::stof(val[3]));
+      return true;
+    },
+    "Set the renderer background color"
+    )->expected(4);
 }
 
 bool BatchContext::parseCommandLine()
@@ -226,6 +231,8 @@ void BatchContext::refreshRenderer()
 
   if (renderer.hasChild("maxContribution") && maxContribution < (float)math::inf)
     renderer["maxContribution"].setValue(maxContribution);
+
+  renderer["backgroundColor"] = bgColor;
 }
 
 void BatchContext::reshape()
@@ -300,7 +307,12 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
   } else {
     std::cout << "No cameras imported or invalid camera index specified"
               << std::endl;
-    std::cout << "using default camera..." << std::endl;
+    if (optCameraTypeStr != "perspective") {
+      auto optCamera = createNode("camera", "camera_" + optCameraTypeStr);
+      frame->remove("camera");
+      frame->add(optCamera);
+    } else
+      std::cout << "using default camera..." << std::endl;
   }
 
   reshape(); // resets aspect
@@ -354,10 +366,6 @@ void BatchContext::render()
 
 void BatchContext::renderFrame()
 {
-  // Only denoise the final frame
-  // XXX TODO if optDenoiser == 2, save both the noisy and denoised color
-  // buffers.  How best to do that since the frame op will alter the final
-  // buffer?
   if (studioCommon.denoiserAvailable && optDenoiser)
     frame->denoiseFB = true;
   frame->immediatelyWait = true;
