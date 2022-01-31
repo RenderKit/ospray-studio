@@ -3,7 +3,7 @@
 
 #include "PanelExample.h"
 
-#include "sg/visitors/GenerateImGuiWidgets.h"
+#include "app/widgets/GenerateImGuiWidgets.h"
 
 #include "imgui.h"
 
