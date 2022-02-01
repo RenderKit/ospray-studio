@@ -54,6 +54,7 @@ class BatchContext : public StudioContext
   float fps{0.0f};
   bool forceRewrite{false};
   range1i framesRange{0, -1}; // empty
+  int frameStep{1};
   range1i cameraRange{0, 0};
 
   // list of cameras imported with the scene definition

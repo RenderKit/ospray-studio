@@ -185,6 +185,11 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "Set the frames range"
   )->expected(2);
   app->add_option(
+    "--frameStep",
+    frameStep,
+    "Set the frames step when (frameRange is used)"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
     "--bgColor",
     [&](const std::vector<std::string> val) {
       bgColor = rgba(std::stof(val[0]),
@@ -394,15 +399,17 @@ void BatchContext::renderFrame()
   {
     std::string filename;
     char filenumber[8];
-    if (!forceRewrite)
+    if (!forceRewrite) {
+      int filenum_ = filenum;
       do {
-        std::snprintf(filenumber, 8, ".%05d.", filenum++);
+        std::snprintf(filenumber, 8, ".%05d.", filenum_++);
         filename = optImageName + cameraId + filenumber + optImageFormat;
       } while (std::ifstream(filename.c_str()).good());
-    else {
-      std::snprintf(filenumber, 8, ".%05d.", filenum++);
+    } else {
+      std::snprintf(filenumber, 8, ".%05d.", filenum);
       filename = optImageName + cameraId + filenumber + optImageFormat;
     }
+    filenum += frameStep;
 
     int screenshotFlags = saveLayersSeparatly << 3 | saveNormal << 2
         | saveDepth << 1 | saveAlbedo;
@@ -426,6 +433,7 @@ void BatchContext::renderAnimation()
         time + step * framesRange.upper + 1e-6f);
     time += step * framesRange.lower;
   }
+  step *= frameStep;
 
   auto &cam = frame->child("camera");
   if (cam.hasChild("startTime"))
