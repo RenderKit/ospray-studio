@@ -29,9 +29,6 @@ CylinderLight::CylinderLight() : Light("cylinder")
   createChild("radius", "float", "radius of the cylinder", 1.f);
 
   child("intensityQuantity").setValue(uint8_t(OSP_INTENSITY_QUANTITY_RADIANCE));
-
-  // CylinderLight supports a photometric measuredSource
-  addMeasuredSource();
 }
 
 } // namespace sg
