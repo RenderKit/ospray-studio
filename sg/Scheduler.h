@@ -7,180 +7,137 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <thread>
+#include <functional>
+#include <map>
 
 namespace ospray {
 namespace sg {
-
-#define CONTEXTLIST                                                            \
-  X(foreground)                                                                \
-  X(background)
-
-#define X(context) context,
-enum class SchedulerContextType {
-  CONTEXTLIST
-};
-#undef X
-
-#define X(context) {SchedulerContextType::context, #context},
-static std::map<SchedulerContextType, std::string> SchedulerContextTypeToString = {
-  CONTEXTLIST
-};
-#undef X
-
-#define X(context) {#context, SchedulerContextType::context},
-static std::map<std::string, SchedulerContextType> SchedulerContextTypeFromString = {
-  CONTEXTLIST
-};
-#undef X
-
-#define X(context) struct context##_t : public std::integral_constant<SchedulerContextType, SchedulerContextType::context> {};
-CONTEXTLIST
-#undef X
-
-#define X(context) static const context##_t context = context##_t();
-CONTEXTLIST
-#undef X
-
-#undef CONTEXTLIST
+namespace scheduler {
 
 
 class Scheduler;
 using SchedulerPtr = std::shared_ptr<Scheduler>;
 
+class Instance;
+using InstancePtr = std::shared_ptr<Instance>;
+
+class Task;
+using TaskPtr = std::shared_ptr<Task>;
+
+using Function = std::function<void(SchedulerPtr)>;
+using FunctionPtr = std::shared_ptr<Function>;
+
+
 class Scheduler : public std::enable_shared_from_this<Scheduler> {
+protected:
+  // passkey idiom https://chromium.googlesource.com/chromium/src/+/HEAD/docs/patterns/passkey.md
+  //
+  // This allows the constructor to be public while also only allowing this
+  // class to call the constructor. This is needed to allow std::make_shared
+  // calls within this class to access the constructor without allowing access
+  // to everyone.
+  struct key { explicit key() = default; };
+
 public:
-
-  class Task;
-  using TaskPtr = std::shared_ptr<Task>;
-
-  using Function = std::function<void(SchedulerPtr)>;
-  using FunctionPtr = std::shared_ptr<Function>;
-
-  class Task : public std::enable_shared_from_this<Task> {
-    friend Scheduler;
-
-  public:
-    Task() = delete;
-    ~Task() = default;
-    Task(const Task &) = delete;
-    Task &operator=(const Task &) = delete;
-
-    void operator()() {
-      if (context == SchedulerContextType::background) {
-        // this level of indirection (the "self" variable) is necessary or else
-        // this Task may be destroyed before or during the execute call and lead
-        // to a segfault
-        auto self = shared_from_this();
-        std::thread t([self]() { self->execute(); });
-        t.detach();
-
-      } else if (context == SchedulerContextType::foreground) {
-        execute();
-      }
-    }
-
-  private:
-    Task(SchedulerPtr _scheduler, SchedulerContextType _context, std::string _name, FunctionPtr _function)
-      : scheduler(_scheduler)
-      , context(_context)
-      , name(_name)
-      , function(_function)
-    {};
-
-    void execute() {
-      logStart();
-
-      try {
-        function->operator()(scheduler);
-      } catch (std::exception &e) {
-        std::cerr << "Scheduler::Task encountered exception:" << std::endl;
-        std::cerr << "    " << e.what() << std::endl;
-      } catch (...) {
-        std::cerr << "Scheduler::Task encountered unknown exception" << std::endl;
-      }
-
-      logFinish();
-    }
-
-    void logCreate() {
-      std::fprintf(stderr, "Scheduler:%s: task %s created\n", SchedulerContextTypeToString[context].c_str(), name.c_str());
-    }
-
-    void logStart() {
-      std::fprintf(stderr, "Scheduler:%s: task %s started\n", SchedulerContextTypeToString[context].c_str(), name.c_str());
-    }
-
-    void logFinish() {
-      std::fprintf(stderr, "Scheduler:%s: task %s finished\n", SchedulerContextTypeToString[context].c_str(), name.c_str());
-    }
-
-    SchedulerPtr scheduler;
-    SchedulerContextType context;
-    FunctionPtr function;
-    std::string name;
+  enum {
+    OSPRAY = 1001,
+    STUDIO = 1002,
+    BACKGROUND = 1003,
   };
 
-  Scheduler() = default;
+  Scheduler(key) {}
   ~Scheduler() = default;
+  Scheduler(const Scheduler &) = delete;
+  Scheduler &operator=(const Scheduler &) = delete;
 
-  void push(foreground_t tag, std::string name, Function fcn) {
-    auto task = make_shared_task(tag.value, name, std::make_shared<Function>(fcn));
-    push(foregroundMutex, foregroundTasks, task);
+  static SchedulerPtr create();
+  InstancePtr lookup(size_t id);
+  InstancePtr lookup(const std::string &name);
+
+  InstancePtr ospray() const {
+    return osprayInstance;
   }
 
-  void push(foreground_t tag, Function fcn) {
-    push(tag, "<unnamed foreground task>", fcn);
+  InstancePtr studio() const {
+    return studioInstance;
   }
 
-  void push(background_t tag, std::string name, Function fcn) {
-    auto task = make_shared_task(tag.value, name, std::make_shared<Function>(fcn));
-    push(backgroundMutex, backgroundTasks, task);
-  }
-
-  void push(background_t tag, Function fcn) {
-    push(tag, "<unnamed background task>", fcn);
-  }
-
-  TaskPtr pop(foreground_t) {
-    return pop(foregroundMutex, foregroundTasks);
-  }
-
-  TaskPtr pop(background_t) {
-    return pop(backgroundMutex, backgroundTasks);
+  InstancePtr background() const {
+    return backgroundInstance;
   }
 
 private:
-  TaskPtr make_shared_task(SchedulerContextType context, std::string name, FunctionPtr fcn) {
-    return TaskPtr(new Task(shared_from_this(), context, name, fcn));
-  }
+  InstancePtr lookupById(size_t id) const;
+  InstancePtr lookupByName(const std::string &name) const;
+  InstancePtr addByName(const std::string &name);
 
-  void push(std::mutex &mutex, std::queue<TaskPtr> &tasks, TaskPtr task) {
-    {
-      std::lock_guard<std::mutex> lock(mutex);
-      tasks.emplace(task);
-    }
-    task->logCreate();
-  }
+  std::mutex mutex{};
+  size_t nextId{1};
+  std::map<std::string, size_t> nameToId{};
+  std::map<size_t, InstancePtr> idToInstance{};
 
-  TaskPtr pop(std::mutex &mutex, std::queue<TaskPtr> &tasks) {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (tasks.empty()) {
-      return nullptr;
-    }
-
-    TaskPtr task = tasks.front();
-    tasks.pop();
-
-    return task;
-  }
-
-  std::mutex foregroundMutex{};
-  std::queue<TaskPtr> foregroundTasks{};
-
-  std::mutex backgroundMutex{};
-  std::queue<TaskPtr> backgroundTasks{};
+  InstancePtr osprayInstance{};
+  InstancePtr studioInstance{};
+  InstancePtr backgroundInstance{};
 };
+
+
+class Instance : public std::enable_shared_from_this<Instance> {
+public:
+  Instance(SchedulerPtr _scheduler, size_t _id, const std::string &_name)
+    : scheduler(_scheduler)
+    , id(_id)
+    , name(_name)
+  {}
+
+  ~Instance() = default;
+  Instance(const Instance &) = delete;
+  Instance &operator=(const Instance &) = delete;
+
+  void push(const Function &fcn);
+  void push(const std::string &name, const Function &fcn);
+  TaskPtr pop();
+
+  SchedulerPtr scheduler;
+  size_t id;
+  std::string name;
+
+private:
+  std::mutex mutex{};
+  std::queue<TaskPtr> tasks{};
+};
+
+
+class Task : public std::enable_shared_from_this<Task> {
+public:
+  Task(InstancePtr _instance, const std::string &_name, FunctionPtr _fcn)
+    : instance(_instance)
+    , name(_name)
+    , fcn(_fcn)
+  {}
+
+  ~Task() = default;
+  Task(const Task &) = delete;
+  Task &operator=(const Task &) = delete;
+
+  void operator()() const;
+
+  InstancePtr instance;
+  std::string name;
+
+private:
+  FunctionPtr fcn;
+};
+
+
+} // namespace scheduler
+
+
+using Scheduler = scheduler::Scheduler;
+using SchedulerPtr = scheduler::SchedulerPtr;
+
 
 } // namespace sg
 } // namespace ospray

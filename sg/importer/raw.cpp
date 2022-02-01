@@ -26,12 +26,11 @@ void RawImporter::importScene()
 {
   using namespace std::string_literals;
 
+  // Keep this object alive for the duration of any lambdas
   auto self = shared_from_this();
 
-  std::vector<Node *> parents = this->parents();
-  this->removeAllParents();
-
-  scheduler->push(background, "RawImporter "s + fileName.name(), [&, self, this, parents](SchedulerPtr scheduler) {
+  auto name = "load raw volume from "s + fileName.str();
+  scheduler->background()->push(name, [&, self](SchedulerPtr scheduler) {
     // Create a root Transform/Instance off the Importer, then place the volume
     // under this.
     auto rootName = fileName.name() + "_rootXfm";
@@ -69,14 +68,10 @@ void RawImporter::importScene()
 
     rootNode->add(volumeImport);
 
-    // Finally, add node hierarchy to importer parent
-    add(rootNode);
-
-    scheduler->push(foreground, "RawImporter "s + fileName.name(), [&, self, this, parents](SchedulerPtr scheduler) {
-      for (auto &parent : parents) {
-        parent->add(*this);
-      }
-      std::cout << "...finished import!\n";
+    auto name = "add raw volume from "s + fileName.str() + " to scene"s;
+    scheduler->ospray()->push(name, [&, self, rootNode](SchedulerPtr scheduler) {
+      // Finally, add node hierarchy to importer parent
+      add(rootNode);
     });
   });
 }

@@ -108,6 +108,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
     lightsManager = frame->lightsManager;
     mode = _mode;
     optResolution = _common.defaultSize;
+    scheduler = sg::Scheduler::create();
   }
 
   virtual ~StudioContext() {}

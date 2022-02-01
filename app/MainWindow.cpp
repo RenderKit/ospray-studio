@@ -182,8 +182,6 @@ MainWindow::MainWindow(StudioCommon &_common)
     throw std::runtime_error("Cannot create more than one MainWindow!");
   }
 
-  scheduler = std::make_shared<sg::Scheduler>();
-
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
 
   activeWindow = this;
@@ -520,24 +518,37 @@ void MainWindow::mainLoop()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    auto task = scheduler->pop(sg::background);
-    for (; task; task = scheduler->pop(sg::background))
-      task->operator()();
+    auto task = scheduler->background()->pop();
+    for (; task; task = scheduler->background()->pop()) {
+      // the callback takes the task (task is an std::shared_ptr) by value,
+      // increasing the refcount, and ensuring the object stays alive throughout
+      // the function call
+      auto callback = [task]() { (*task)(); };
 
-    task = scheduler->pop(sg::foreground);
+      std::thread t(callback);
+      t.detach();
+    }
+
+    task = scheduler->studio()->pop();
+    for (; task; task = scheduler->studio()->pop()) {
+      (*task)();
+    }
+
+    task = scheduler->ospray()->pop();
     if (task) {
-      // if a task wants to run on-thread, then we need to cancel any currently
-      // rendering frame to make sure we don't get any segfaults
+      // if a task wants to modify ospray properties, then we need to cancel any
+      // currently rendering frame to make sure we don't get any segfaults
       frame->pauseRendering = true;
       frame->cancelFrame();
       frame->waitOnFrame();
 
-      for (; task; task = scheduler->pop(sg::foreground))
-        task->operator()();
+      for (; task; task = scheduler->ospray()->pop()) {
+        (*task)();
+      }
 
-      // after running on-thread tasks, make sure to re-enable rendering and
-      // update the scene and camera for any newly added or modified objects in
-      // the scene
+      // after running ospray tasks, make sure to re-enable rendering and update
+      // the scene and camera for any newly added or modified objects in the
+      // scene
       frame->pauseRendering = false;
       refreshScene(true);
     }
