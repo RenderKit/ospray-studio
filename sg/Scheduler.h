@@ -12,6 +12,8 @@
 #include <functional>
 #include <map>
 
+#include "Node.h" // for OSPSG_INTERFACE
+
 namespace ospray {
 namespace sg {
 namespace scheduler {
@@ -30,7 +32,7 @@ using Function = std::function<void(SchedulerPtr)>;
 using FunctionPtr = std::shared_ptr<Function>;
 
 
-class Scheduler : public std::enable_shared_from_this<Scheduler> {
+class OSPSG_INTERFACE Scheduler : public std::enable_shared_from_this<Scheduler> {
 protected:
   // passkey idiom https://chromium.googlesource.com/chromium/src/+/HEAD/docs/patterns/passkey.md
   //
@@ -84,7 +86,7 @@ private:
 };
 
 
-class Instance : public std::enable_shared_from_this<Instance> {
+class OSPSG_INTERFACE Instance : public std::enable_shared_from_this<Instance> {
 public:
   Instance(SchedulerPtr _scheduler, size_t _id, const std::string &_name)
     : scheduler(_scheduler)
@@ -110,7 +112,7 @@ private:
 };
 
 
-class Task : public std::enable_shared_from_this<Task> {
+class OSPSG_INTERFACE Task : public std::enable_shared_from_this<Task> {
 public:
   Task(InstancePtr _instance, const std::string &_name, FunctionPtr _fcn)
     : instance(_instance)
