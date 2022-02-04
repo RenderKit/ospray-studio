@@ -16,8 +16,6 @@
 
 #include "app/ospStudio.h"
 
-#include <sys/stat.h>
-
 namespace ospray {
 namespace sg {
 
@@ -138,12 +136,6 @@ struct OSPSG_INTERFACE Importer : public Node
 extern OSPSG_INTERFACE AssetsCatalogue cat;
 extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 
-inline bool checkFilepath(const char *file) 
-{
-  struct stat buffer;
-  return stat(file, &buffer) == 0 && (buffer.st_mode & S_IFDIR) == 0;
-}
-
 // Providing a unique transform instance as root to add existing imported model to, 
 // should probably be the responsibility of the calling routine
 inline std::shared_ptr<Importer> getImporter(
@@ -160,12 +152,6 @@ inline std::shared_ptr<Importer> getImporter(
   free(cTemp);
 
   std::string baseName = fileName.name();
-
-  if (!checkFilepath(fileName.c_str())) {
-    std::cerr << "#osp:sg: Filepath does not exist for '" << fileName.base()
-              << "'" << std::endl;
-    return nullptr;
-  }
 
   auto fnd = importerMap.find(rkcommon::utility::lowerCase(fileName.ext()));
   if (fnd == importerMap.end()) {
