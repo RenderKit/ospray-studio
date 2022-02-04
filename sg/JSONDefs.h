@@ -67,8 +67,10 @@ inline void to_json(JSON &j, const Node &n)
       {"type", NodeTypeToString[n.type()]},
       {"subType", n.subType()}};
 
-  if (n.description() != "<no description>")
-    j["description"] = n.description();
+  // Don't export the node descriptions to JSON.  They take a lot of space, yet
+  // provide little value. (20-25% of a .sg file for descriptions)
+  //if (n.description() != "<no description>")
+  //  j["description"] = n.description();
 
   // we only want the importer and its root transform, not the hierarchy of
   // geometry under it
