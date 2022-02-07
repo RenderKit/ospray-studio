@@ -168,7 +168,8 @@ inline std::shared_ptr<Importer> getImporter(
     std::string rootXfmName = baseName + "_rootXfm";
 
     if (!origNode->hasChild(rootXfmName)) {
-      std::cout << "!!! error... importer rootXfm is missing?!" << std::endl;
+      std::cout << "!!! error... importer rootXfm is missing?! Is async tasking enabled? --no-async-tasking to disable" << std::endl;
+      return nullptr;
     }
     auto &rootXfmNode = origNode->child(rootXfmName);
 

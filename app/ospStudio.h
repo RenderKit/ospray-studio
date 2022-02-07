@@ -156,6 +156,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   vec2i optResolution{0, 0};
   std::string optSceneConfig{""};
   std::string optInstanceConfig{""};
+  bool optDoAsyncTasking{false};
   float maxContribution{math::inf};
   int frameAccumLimit{0};
 

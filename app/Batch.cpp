@@ -483,23 +483,27 @@ void BatchContext::refreshScene(bool resetCam)
       shouldContinue = true;
 
       for (; task; task = scheduler->background()->pop()) {
-        running.emplace(task);
+        if (optDoAsyncTasking) {
+          running.emplace(task);
 
-        // the callback takes the task (the type of task is an std::shared_ptr)
-        // by value, increasing the refcount, and ensuring the object stays
-        // alive throughout the function call
-        auto callback = [&running, task]() {
-          try {
-            (*task)();
-          } catch (...) {
+          // the callback takes the task (the type of task is an std::shared_ptr)
+          // by value, increasing the refcount, and ensuring the object stays
+          // alive throughout the function call
+          auto callback = [&running, task]() {
+            try {
+              (*task)();
+            } catch (...) {
+              running.erase(task);
+              throw;
+            }
             running.erase(task);
-            throw;
-          }
-          running.erase(task);
-        };
+          };
 
-        std::thread t(callback);
-        t.detach();
+          std::thread t(callback);
+          t.detach();
+        } else {
+          (*task)();
+        }
       }
     }
 

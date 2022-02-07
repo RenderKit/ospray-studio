@@ -171,6 +171,11 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     frameAccumLimit,
     "Set accumulation limit for the frame"
   )->check(CLI::PositiveNumber);
+  app->add_flag(
+    "--async-tasking{true},--no-async-tasking{false}",
+    optDoAsyncTasking,
+    "Disable asynchronous tasking (and asynchronous dataset loading)"
+  );
 }
 
 box3f StudioContext::getSceneBounds()

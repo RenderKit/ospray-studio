@@ -520,13 +520,17 @@ void MainWindow::mainLoop()
 
     auto task = scheduler->background()->pop();
     for (; task; task = scheduler->background()->pop()) {
-      // the callback takes the task (task is an std::shared_ptr) by value,
-      // increasing the refcount, and ensuring the object stays alive throughout
-      // the function call
-      auto callback = [task]() { (*task)(); };
+      if (optDoAsyncTasking) {
+        // the callback takes the task (task is an std::shared_ptr) by value,
+        // increasing the refcount, and ensuring the object stays alive throughout
+        // the function call
+        auto callback = [task]() { (*task)(); };
 
-      std::thread t(callback);
-      t.detach();
+        std::thread t(callback);
+        t.detach();
+      } else {
+        (*task)();
+      }
     }
 
     task = scheduler->studio()->pop();
