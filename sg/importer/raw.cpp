@@ -40,55 +40,56 @@ void RawImporter::importScene()
     auto volumeTypeExt = fileName.base().substr(last, fileName.base().length());
 
     auto rootNode = createNode(rootName, "transform");
-    NodePtr volumeImport;
+    NodePtr volume;
 
-    if (volumeTypeExt == ".spherical") {
-      auto volume = createNode(nodeName, "structuredSpherical");
-      for (auto &c : volumeParams->children())
-        volume->add(c.second);
+    bool isSpherical = volumeTypeExt == ".spherical";
 
+    if (isSpherical) {
+      volume = createNode(nodeName, "structuredSpherical");
+    } else {
+      volume = createNode(nodeName, "structuredRegular");
+    }
+
+    for (auto &c : volumeParams->children()) {
+      // Need to make a copy of the volume parameter here. If multiple threads
+      // are using the same VolumeParams children objects, then because of the
+      // book keeping involved with a node remembering its parents, multiple
+      // threads could modify the parents vector within a Node object.
+      //
+      // Example: Threads "foo" and "bar" are running at the same time.
+      // First, Foo adds a VolumeParams child to its own Volume object. Foo
+      // recognizes that it will need to resize the Node::properties::parents
+      // vector. Foo allocates a new parents vector. Next, Bar follows the
+      // same process and allocates a new parents vector. Foo deallocates the
+      // old pointer and so does Bar, leading to a double-free.
+      //
+      // The actual reason this happens is because although the
+      // Importer::volumeParams object is newly created each time
+      // Importer::getImporter() is called, the children of each of the
+      // separate Importer::volumeParams objects are all references to the
+      // exact same Node object.
+
+      // Preferably this code would be something like:
+      //   volume->add(createNodeLike(c.second))
+      auto &p = c.second;
+      volume->createChild(p->name(), p->subType(), p->description(), p->value());
+    }
+
+    if (isSpherical) {
       auto sphericalVolume =
           std::static_pointer_cast<StructuredSpherical>(volume);
       sphericalVolume->load(fileName);
-      volumeImport = sphericalVolume;
     } else {
-      auto volume = createNode(nodeName, "structuredRegular");
-      for (auto &c : volumeParams->children()) {
-        // Need to make a copy of the volume parameter here. If multiple threads
-        // are using the same VolumeParams children objects, then because of the
-        // book keeping involved with a node remembering its parents, multiple
-        // threads could modify the parents vector within a Node object.
-        //
-        // Example: Threads "foo" and "bar" are running at the same time.
-        // First, Foo adds a VolumeParams child to its own Volume object. Foo
-        // recognizes that it will need to resize the Node::properties::parents
-        // vector. Foo allocates a new parents vector. Next, Bar follows the
-        // same process and allocates a new parents vector. Foo deallocates the
-        // old pointer and so does Bar, leading to a double-free.
-        //
-        // The actual reason this happens is because although the
-        // Importer::volumeParams object is newly created each time
-        // Importer::getImporter() is called, the children of each of the
-        // separate Importer::volumeParams objects are all references to the
-        // exact same Node object.
-
-        // Preferably this code would be something like:
-        //   volume->add(createNodeLike(c.second))
-        auto &p = c.second;
-        volume->createChild(p->name(), p->subType(), p->description(), p->value());
-      }
-
       auto structuredVolume = std::static_pointer_cast<StructuredVolume>(volume);
       structuredVolume->load(fileName);
-      volumeImport = structuredVolume;
     }
 
     auto tf = createNode("transferFunction", "transfer_function_turbo");
-    auto valueRange = volumeImport->child("valueRange").valueAs<range1f>();
+    auto valueRange = volume->child("valueRange").valueAs<range1f>();
     tf->child("valueRange") = valueRange.toVec2();
-    volumeImport->add(tf);
+    volume->add(tf);
 
-    rootNode->add(volumeImport);
+    rootNode->add(volume);
 
     auto name = "add raw volume from "s + fileName.str() + " to scene"s;
     scheduler->ospray()->push(name, [&, self, rootNode](SchedulerPtr scheduler) {
