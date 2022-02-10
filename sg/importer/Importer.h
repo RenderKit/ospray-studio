@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -141,16 +141,8 @@ extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 inline std::shared_ptr<Importer> getImporter(
     NodePtr root, rkcommon::FileName fileName)
 {
-  // Get the absolute path to the file for use in AssetsCatalogue
-  char *cTemp = nullptr;
-#ifdef _WIN32 // XXX Candidate to move into rkCommon os/FileName
-  cTemp = _fullpath(NULL, fileName.c_str(), 0);
-#else
-  cTemp = realpath(fileName.c_str(), NULL);
-#endif
-  rkcommon::FileName fullName(cTemp ? cTemp : "");
-  free(cTemp);
-
+  // Get the absolute path to the file for use in AssetsCatalogue 
+  rkcommon::FileName fullName = fileName.canonical();
   std::string baseName = fileName.name();
 
   auto fnd = importerMap.find(rkcommon::utility::lowerCase(fileName.ext()));

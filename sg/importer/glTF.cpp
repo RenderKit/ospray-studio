@@ -1580,21 +1580,27 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
     const int colorChannel,
     const bool preferLinear)
 {
-  static auto nTex = 0;
-
   if (tex.source == -1)
     return nullptr;
 
   tinygltf::Image &img = model.images[tex.source];
 
-  if (img.uri.length() < 256) { // The uri can be a stream of data!
-    img.name = FileName(img.uri).name();
+  // The uri can be a stream of base64-encoded data!  If it is not, it
+  // contains the base filename, whereas sometimes the img.name is less
+  // descriptive.
+  if (img.uri.length() < 256) {
+    // XXX should decode the uri before using it as a filename.  Otherwise
+    // FileName::canonical() returns "" for names containing '%20', etc.
+    std::string fileName = FileName(img.uri).canonical();
+    img.name = fileName != "" ? fileName : img.uri;
   }
-  auto texName = img.name + "_" + pad(std::to_string(nTex++)) + "_tex";
+
+  // If the texture comes from a bufferView give it that name.
+  if (img.bufferView >= 0)
+    img.name = "texture_" + pad(std::to_string(img.bufferView));
 
 #if 0
-    DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
-    DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
+    DEBUG << pad("", '.', 9) << "image name: |" << img.name << "|\n";
     DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
     DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
     DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
@@ -1603,9 +1609,9 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
      DEBUG << pad("", '.', 9) << "image uri: " << img.uri << "\n";
     DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView << "\n";
     DEBUG << pad("", '.', 9) << "image data: " << img.image.size() << "\n";
-
     DEBUG << pad("", '.', 9) << "texParam: " << texParam << "\n";
     DEBUG << pad("", '.', 9) << "colorChannel: " << colorChannel << "\n";
+    DEBUG << pad("", '.', 9) << "\n";
 #endif
 
   NodePtr ospTexNode = createNode(texParam, "texture_2d");
@@ -1618,7 +1624,7 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
 
   // If texture name (uri) is a UDIM set, ignore tiny_gltf loaded image and
   // reload from file as udim tiles
-  if (ospTex.checkForUDIM(fileName.path() + img.uri))
+  if (ospTex.checkForUDIM(img.name))
     img.image.clear();
 
   // Pre-loaded texture image (loaded by tinygltf)
@@ -1627,9 +1633,12 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
     ospTex.params.components = img.component;
     ospTex.params.depth =
         img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
-
-    ospTex.load(
-        (void *)img.image.data(), preferLinear, nearestFilter, colorChannel);
+    if (!ospTex.load(img.name,
+            preferLinear,
+            nearestFilter,
+            colorChannel,
+            img.image.data()))
+      ospTexNode = nullptr;
 
   } else {
     // Load texture from file (external uri or udim tiles)
@@ -1637,7 +1646,7 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
 
     // use same path as gltf scene file
     // If load fails, remove the texture node
-    if (!ospTex.load(fileName.path() + img.uri,
+    if (!ospTex.load(img.name,
             preferLinear,
             nearestFilter,
             colorChannel))

@@ -34,11 +34,8 @@ struct OSPSG_INTERFACE Texture2D : public Texture
   bool load(const FileName &fileName,
       const bool preferLinear = false,
       const bool nearestFilter = false,
-      const int colorChannel = 4); // default to sampling all channels
-  bool load(void *memory,
-      const bool preferLinear = false,
-      const bool nearestFilter = false,
-      const int colorChannel = 4); // default to sampling all channels
+      const int colorChannel = 4, // default to sampling all channels
+      const void *memory = nullptr);
 
   std::string fileName;
 
