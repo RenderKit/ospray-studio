@@ -1222,6 +1222,20 @@ void MainWindow::importFiles(sg::NodePtr world)
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
     }
+
+    if (!optDoAsyncTasking) {
+      for (;;) {
+        size_t numTasksExecuted = 0;
+
+        numTasksExecuted += scheduler->background()->executeAllTasksSync();
+        numTasksExecuted += scheduler->ospray()->executeAllTasksSync();
+        numTasksExecuted += scheduler->studio()->executeAllTasksSync();
+
+        if (numTasksExecuted == 0) {
+          break;
+        }
+      }
+    }
   }
   filesToImport.clear();
 
