@@ -106,6 +106,89 @@ TaskPtr Instance::pop() {
   return task;
 }
 
+size_t Instance::executeAllTasksSync() {
+  TaskPtr task = pop();
+  return executeAllTasksSync(task);
+}
+
+size_t Instance::executeAllTasksSync(const TaskPtr &first) {
+  size_t numTasksExecuted = 0;
+
+  for (TaskPtr task = first; task; task = pop()) {
+    ++numTasksExecuted;
+    (*task)();
+  }
+
+  return numTasksExecuted;
+}
+
+size_t Instance::executeAllTasksAsync() {
+  TaskPtr task = pop();
+  return executeAllTasksAsync(task);
+}
+
+size_t Instance::executeAllTasksAsync(const TaskPtr &first) {
+  size_t numTasksExecuted = 0;
+
+  // ensure this object survives through all lambdas
+  auto self = shared_from_this();
+
+  for (TaskPtr task = first; task; task = pop()) {
+    ++numTasksExecuted;
+
+    // the callback takes the task (task is an std::shared_ptr) by value,
+    // increasing the refcount, and ensuring the object stays alive throughout
+    // the function call
+    auto callback = [task, self]() {
+      try {
+        (*task)();
+
+      } catch (...) {
+        std::lock_guard<std::mutex> lock(self->mutex);
+        self->running.erase(task);
+        throw;
+      }
+      std::lock_guard<std::mutex> lock(self->mutex);
+      self->running.erase(task);
+    };
+
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      running.emplace(task);
+    }
+
+    std::thread t(callback);
+    t.detach();
+  }
+
+  return numTasksExecuted;
+}
+
+size_t Instance::wait() {
+  using namespace std::chrono_literals;
+  size_t numTasksWaited = 0;
+
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    numTasksWaited = running.size();
+  }
+
+  if (numTasksWaited == 0) {
+    return numTasksWaited;
+  }
+
+  for (;;) {
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (running.empty()) {
+        return numTasksWaited;
+      }
+    }
+
+    std::this_thread::sleep_for(100ms);
+  }
+}
+
 
 void Task::operator()() const {
   std::fprintf(stderr, "Scheduler(%s): start task with name: %s\n",

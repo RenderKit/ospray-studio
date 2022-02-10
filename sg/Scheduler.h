@@ -11,6 +11,7 @@
 #include <thread>
 #include <functional>
 #include <map>
+#include <set>
 
 #include "Node.h" // for OSPSG_INTERFACE
 
@@ -101,6 +102,11 @@ public:
   void push(const Function &fcn);
   void push(const std::string &name, const Function &fcn);
   TaskPtr pop();
+  size_t executeAllTasksSync();
+  size_t executeAllTasksSync(const TaskPtr &first);
+  size_t executeAllTasksAsync();
+  size_t executeAllTasksAsync(const TaskPtr &first);
+  size_t wait();
 
   SchedulerPtr scheduler;
   size_t id;
@@ -109,6 +115,7 @@ public:
 private:
   std::mutex mutex{};
   std::queue<TaskPtr> tasks{};
+  std::set<TaskPtr> running{};
 };
 
 

@@ -472,72 +472,6 @@ void BatchContext::refreshScene(bool resetCam)
   if (!filesToImport.empty())
     importFiles(world);
 
-  bool shouldContinue;
-  std::set<sg::scheduler::TaskPtr> running;
-  do {
-    // Continue running scheduled tasks until none are left
-    shouldContinue = false;
-
-    auto task = scheduler->background()->pop();
-    if (task) {
-      shouldContinue = true;
-
-      for (; task; task = scheduler->background()->pop()) {
-        if (optDoAsyncTasking) {
-          running.emplace(task);
-
-          // the callback takes the task (the type of task is an std::shared_ptr)
-          // by value, increasing the refcount, and ensuring the object stays
-          // alive throughout the function call
-          auto callback = [&running, task]() {
-            try {
-              (*task)();
-            } catch (...) {
-              running.erase(task);
-              throw;
-            }
-            running.erase(task);
-          };
-
-          std::thread t(callback);
-          t.detach();
-        } else {
-          (*task)();
-        }
-      }
-    }
-
-    task = scheduler->studio()->pop();
-    if (task) {
-      shouldContinue = true;
-
-      for (; task; task = scheduler->studio()->pop()) {
-        (*task)();
-      }
-    }
-
-    task = scheduler->ospray()->pop();
-    if (task) {
-      shouldContinue = true;
-
-      for (; task; task = scheduler->ospray()->pop()) {
-        (*task)();
-      }
-    }
-
-    // if we didn't just run a task, then there might be some still running
-    if (!shouldContinue) {
-      if (!running.empty()) {
-        shouldContinue = true;
-
-        // since we're just waiting on background tasks, we should sleep to
-        // relieve some CPU pressure
-        using namespace std::chrono_literals;
-        std::this_thread::sleep_for(100ms);
-      }
-    }
-  } while (shouldContinue);
-
   if (world->isModified()) {
     // Cancel any in-progress frame as world->render() will modify live device
     // parameters
@@ -630,7 +564,6 @@ void BatchContext::importFiles(sg::NodePtr world)
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::ROBUST);
           importer->importScene();
-          world->add(importer);
         }
       }
     } catch (const std::exception &e) {
@@ -638,6 +571,43 @@ void BatchContext::importFiles(sg::NodePtr world)
       std::cerr << "   " << e.what() << std::endl;
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
+    }
+
+    if (!optDoAsyncTasking) {
+      for (;;) {
+        size_t numTasksExecuted = 0;
+
+        numTasksExecuted += scheduler->background()->executeAllTasksSync();
+        numTasksExecuted += scheduler->ospray()->executeAllTasksSync();
+        numTasksExecuted += scheduler->studio()->executeAllTasksSync();
+
+        if (numTasksExecuted == 0) {
+          break;
+        }
+      }
+    }
+  }
+
+  for (;;) {
+    size_t numTasksExecuted = 0;
+
+    if (optDoAsyncTasking) {
+      numTasksExecuted += scheduler->background()->executeAllTasksAsync();
+
+      if (numTasksExecuted == 0) {
+        if (scheduler->background()->wait() > 0) {
+          continue;
+        }
+      }
+    } else {
+      numTasksExecuted += scheduler->background()->executeAllTasksSync();
+    }
+
+    numTasksExecuted += scheduler->ospray()->executeAllTasksSync();
+    numTasksExecuted += scheduler->studio()->executeAllTasksSync();
+
+    if (numTasksExecuted == 0) {
+      break;
     }
   }
 

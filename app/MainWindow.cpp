@@ -518,37 +518,37 @@ void MainWindow::mainLoop()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    auto task = scheduler->background()->pop();
-    for (; task; task = scheduler->background()->pop()) {
+    bool hasPausedRendering = false;
+    size_t numTasksExecuted;
+    do {
+      numTasksExecuted = 0;
+
       if (optDoAsyncTasking) {
-        // the callback takes the task (task is an std::shared_ptr) by value,
-        // increasing the refcount, and ensuring the object stays alive throughout
-        // the function call
-        auto callback = [task]() { (*task)(); };
-
-        std::thread t(callback);
-        t.detach();
+        numTasksExecuted += scheduler->background()->executeAllTasksAsync();
       } else {
-        (*task)();
+        numTasksExecuted += scheduler->background()->executeAllTasksSync();
       }
-    }
 
-    task = scheduler->studio()->pop();
-    for (; task; task = scheduler->studio()->pop()) {
-      (*task)();
-    }
+      numTasksExecuted += scheduler->studio()->executeAllTasksSync();
 
-    task = scheduler->ospray()->pop();
-    if (task) {
-      // if a task wants to modify ospray properties, then we need to cancel any
-      // currently rendering frame to make sure we don't get any segfaults
-      frame->pauseRendering = true;
-      frame->cancelFrame();
-      frame->waitOnFrame();
+      auto task = scheduler->ospray()->pop();
+      if (task) {
+        if (!hasPausedRendering) {
+          hasPausedRendering = true;
 
-      for (; task; task = scheduler->ospray()->pop()) {
-        (*task)();
+          // if a task wants to modify ospray properties, then we need to cancel any
+          // currently rendering frame to make sure we don't get any segfaults
+          frame->pauseRendering = true;
+          frame->cancelFrame();
+          frame->waitOnFrame();
+        }
+
+        numTasksExecuted += scheduler->ospray()->executeAllTasksSync(task);
       }
+    } while (numTasksExecuted > 0);
+
+    if (hasPausedRendering) {
+      hasPausedRendering = false;
 
       // after running ospray tasks, make sure to re-enable rendering and update
       // the scene and camera for any newly added or modified objects in the
