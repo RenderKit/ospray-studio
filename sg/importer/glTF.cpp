@@ -743,15 +743,14 @@ void GLTFData::visitNode(NodePtr sgNode,
         if (cameraTemplate->child(c.first).sgOnly())
           camera->child(c.first).setSGOnly();
       }
-
-      auto uniqueCamName =
-          n.name != "" ? n.name : "camera_" + std::to_string(nCamera);
-      camera->child("uniqueCameraName") = uniqueCamName;
-      camera->createChild("cameraId", "int", ++nCamera);
-
-      camera->child("cameraId").setSGOnly();
-      cameras->push_back(camera);
     }
+    auto uniqueCamName =
+        n.name != "" ? n.name : "camera_" + std::to_string(nCamera);
+    camera->child("uniqueCameraName") = uniqueCamName;
+    camera->createChild("cameraId", "int", ++nCamera);
+
+    camera->child("cameraId").setSGOnly();
+    cameras->push_back(camera);
     newXfm->add(camera);
   }
 
