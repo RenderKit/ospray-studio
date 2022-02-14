@@ -371,8 +371,10 @@ void BatchContext::render()
 
 void BatchContext::renderFrame()
 {
-  if (studioCommon.denoiserAvailable && optDenoiser)
+  if (studioCommon.denoiserAvailable && optDenoiser) {
     frame->denoiseFB = true;
+    frame->denoiseFBFinalFrame = true;
+  }
   frame->immediatelyWait = true;
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -388,6 +390,11 @@ void BatchContext::renderFrame()
     std::cout << "frame " << frame->currentAccum << " ";
     std::cout << "variance " << fbVariance << std::endl;
   } while (fbVariance >= varianceThreshold && !frame->accumLimitReached());
+
+  if (frame->denoiseFB) {
+    std::cout << "denoising..." << std::endl;
+    frame->startNewFrame();
+  }
 
   static int filenum;
   if (resetFileId) {

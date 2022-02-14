@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Frame.h"
@@ -144,11 +144,13 @@ void Frame::saveFrame(std::string filename, int flags)
 void Frame::refreshFrameOperations()
 {
   auto &fb = childAs<FrameBuffer>("framebuffer");
+  auto &vt = childAs<Renderer>("renderer")["varianceThreshold"];
   auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
   auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
 
   denoiserEnabled &=
-      (!denoiseFBFinalFrame || denoiseFBFinalFrame && accumAtFinal());
+      (!denoiseFBFinalFrame || (denoiseFBFinalFrame && (accumAtFinal()
+          || (fb.variance() < vt.valueAs<float>()))));
 
   denoiserEnabled &= !(denoiseOnlyPathTracer
       && (child("renderer")["type"].valueAs<std::string>() != "pathtracer"));
