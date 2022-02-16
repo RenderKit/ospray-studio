@@ -68,6 +68,11 @@ namespace ospray {
       return (channels & OSP_FB_ID_INSTANCE);
     }
 
+    inline NodePtr getToneMapper()
+    {
+      return toneMapper;
+    }
+
    private:
     void postCommit() override;
 
@@ -78,12 +83,13 @@ namespace ospray {
     bool hasToneMapper{false};
     bool updateImageOps{false};
 
+    NodePtr toneMapper{nullptr};
+
     std::map<std::string, OSPFrameBufferFormat> colorFormats{
         {"sRGB", OSP_FB_SRGBA},
         {"RGBA8", OSP_FB_RGBA8},
         {"float", OSP_FB_RGBA32F},
         {"none", OSP_FB_NONE}};
-
   };
 
   }  // namespace sg

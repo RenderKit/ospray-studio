@@ -169,8 +169,9 @@ void Frame::refreshFrameOperations()
 {
   auto &fb = childAs<FrameBuffer>("framebuffer");
   auto &vt = childAs<Renderer>("renderer")["varianceThreshold"];
-  uint8_t denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
-  uint8_t toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
+  auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
+  auto toneMapperChanged =
+      fb.getToneMapper() ? fb.getToneMapper()->isModified() : false;
 
   denoiserEnabled &=
       (!denoiseFBFinalFrame || (denoiseFBFinalFrame && (accumAtFinal()
@@ -180,15 +181,16 @@ void Frame::refreshFrameOperations()
       && (child("renderer")["type"].valueAs<std::string>() != "pathtracer"));
 
   fb.updateDenoiser(denoiserEnabled);
-  fb.updateToneMapper(toneMapperEnabled);
+  fb.updateToneMapper(toneMapFB);
   fb.updateImageOperations();
 
-  uint8_t newFrameOpsState = denoiserEnabled << 1 | toneMapperEnabled;
+  uint8_t newFrameOpsState = denoiserEnabled << 1 | toneMapFB;
   static uint8_t lastFrameOpsState{0};
 
   // If there's a change and accumLimit is already reached, force another frame
   // so operations will occur
-  if ((newFrameOpsState != lastFrameOpsState) && accumLimitReached())
+  if ((newFrameOpsState != lastFrameOpsState || toneMapperChanged)
+      && accumLimitReached())
     currentAccum--;
 
   lastFrameOpsState = newFrameOpsState;

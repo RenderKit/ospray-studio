@@ -51,7 +51,6 @@ namespace ospray {
     bool denoiseOnlyPathTracer{true};
 
     bool toneMapFB{false};
-    bool toneMapNavFB{false};
 
     const void *mapFrame(OSPFrameBufferChannel = OSP_FB_COLOR);
     void unmapFrame(void *mem);

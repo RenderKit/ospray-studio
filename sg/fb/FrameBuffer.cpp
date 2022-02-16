@@ -17,7 +17,7 @@ FrameBuffer::FrameBuffer()
 {
   createChild("floatFormat",
       "bool",
-      "framebuffer needs float format and channels compatible with denoising",
+      "float format, also adds depth and normal channels",
       false);
   createChild("ID_Buffers",
       "bool",
@@ -40,7 +40,8 @@ FrameBuffer::FrameBuffer()
   // Do not expose targetFrames to the UI, app accumLimit sets this value.
   child("targetFrames").setSGNoUI();
 
-  auto &tm = createChild("Tonemapper Parameters");
+  toneMapper = createNode("Tonemapper Parameters");
+  auto &tm = *toneMapper;
   tm.createChild("exposure", "float", "amount of light per unit area", 1.0f);
   tm.createChild("contrast",
       "float",
@@ -59,6 +60,11 @@ FrameBuffer::FrameBuffer()
   tm.createChild(
       "hdrMax", "float", "maximum HDR input that is not clipped", 11.0785f);
   tm.createChild("acesColor", "bool", "apply the ACES color transforms", true);
+  tm.createChild("reset defaults",
+      "bool",
+      "Reset values to default (aces or filmic based on 'acesColor' setting)",
+      false);
+  tm.child("reset defaults").setSGOnly();
 
   tm.child("exposure").setMinMax(0.f, 5.f);
   tm.child("contrast").setMinMax(0.f, 3.f);
@@ -105,7 +111,6 @@ void FrameBuffer::updateHandle()
   // Default minimal format
   channels = OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE;
 
-  // Denoising requires float format and additional channels
   auto floatFormat = child("floatFormat").valueAs<bool>();
   if (floatFormat) {
     child("colorFormat") = std::string("float");
@@ -143,7 +148,6 @@ void FrameBuffer::updateHandle()
 
 void FrameBuffer::updateDenoiser(bool enabled)
 {
-  // Denoiser requires float color buffer.
   if (enabled == hasDenoiser)
     return;
 
@@ -153,10 +157,23 @@ void FrameBuffer::updateDenoiser(bool enabled)
 
 void FrameBuffer::updateToneMapper(bool enabled)
 {
-  // ToneMapper requires float color buffer.
-  if (enabled == hasToneMapper)
+  // Reset tone mapper values to defaults, if requested
+  auto &tm = *toneMapper;
+  if (tm["reset defaults"].valueAs<bool>()) {
+    bool acesColor = tm["acesColor"].valueAs<bool>();
+    tm["exposure"] = 1.0f;
+    tm["contrast"] = acesColor ? 1.6773f : 1.1759f;
+    tm["shoulder"] = acesColor ? 0.9714f : 0.9746f;
+    tm["midIn"] = 0.18f;
+    tm["midOut"] = 0.18f;
+    tm["hdrMax"] = acesColor ? 11.0785f : 6.3704f;
+    tm["reset defaults"] = false;
+  }
+
+  if (enabled == hasToneMapper && !toneMapper->isModified())
     return;
 
+  toneMapper->commit();
   hasToneMapper = enabled;
   updateImageOps = true;
 }
@@ -178,20 +195,20 @@ void FrameBuffer::updateImageOperations()
   std::vector<cpp::ImageOperation> ops = {};
   if (hasToneMapper) {
     auto iop = cpp::ImageOperation("tonemapper");
-    auto &tm = child("Tonemapper Parameters");
-    float exposure = tm.child("exposure").valueAs<float>();
+    auto &tm = *toneMapper;
+    float exposure = tm["exposure"].valueAs<float>();
     iop.setParam("exposure", OSP_FLOAT, &exposure);
-    float contrast = tm.child("contrast").valueAs<float>();
+    float contrast = tm["contrast"].valueAs<float>();
     iop.setParam("contrast", OSP_FLOAT, &contrast);
-    float shoulder = tm.child("shoulder").valueAs<float>();
+    float shoulder = tm["shoulder"].valueAs<float>();
     iop.setParam("shoulder", OSP_FLOAT, &shoulder);
-    float midIn = tm.child("midIn").valueAs<float>();
+    float midIn = tm["midIn"].valueAs<float>();
     iop.setParam("midIn", OSP_FLOAT, &midIn);
-    float midOut = tm.child("midOut").valueAs<float>();
+    float midOut = tm["midOut"].valueAs<float>();
     iop.setParam("midOut", OSP_FLOAT, &midOut);
-    float hdrMax = tm.child("hdrMax").valueAs<float>();
+    float hdrMax = tm["hdrMax"].valueAs<float>();
     iop.setParam("hdrMax", OSP_FLOAT, &hdrMax);
-    bool acesColor = tm.child("acesColor").valueAs<bool>();
+    bool acesColor = tm["acesColor"].valueAs<bool>();
     iop.setParam("acesColor", OSP_BOOL, &acesColor);
     iop.commit();
     ops.push_back(iop);
