@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -34,7 +34,7 @@ class BatchContext : public StudioContext
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void render();
-  void renderFrame();
+  virtual void renderFrame();
   void renderAnimation();
   bool refreshCamera(int cameraIdx, bool resetArcball = false);
   void reshape();
@@ -46,16 +46,16 @@ class BatchContext : public StudioContext
   bool saveAlbedo{false};
   bool saveDepth{false};
   bool saveNormal{false};
-  bool saveLayers{false};
+  bool saveLayersSeparatly{false};
   bool saveMetaData{true};
   std::string optImageFormat{"png"};
+  rgba bgColor{vec3f(0.1f), 1.f};
 
-  int fps{0};
+  float fps{0.0f};
   bool forceRewrite{false};
-  range1i framesRange{0, 0};
-  int cameraDef{0};
+  range1i framesRange{0, -1}; // empty
+  int frameStep{1};
   range1i cameraRange{0, 0};
-  bool useCameraRange{false};
 
   // list of cameras imported with the scene definition
   std::vector<sg::NodePtr> cameras;
@@ -68,4 +68,7 @@ class BatchContext : public StudioContext
 
   float lockAspectRatio = 0.0;
   bool useArcball{false};
+
+  // CLI
+  std::string optImageName = "ospBatch";
 };

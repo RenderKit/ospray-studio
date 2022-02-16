@@ -36,8 +36,10 @@ struct OSPSG_INTERFACE Geometry
   std::vector<float> weights; // 2D
   std::vector<vec3f> positions;
   std::vector<vec3f> skinnedPositions;
+  std::vector<vec3f> skinnedEndPositions;
   std::vector<vec3f> normals;
   std::vector<vec3f> skinnedNormals;
+  std::vector<vec3f> skinnedEndNormals;
 
   // XXX: Create node types based on actual accessor types
   std::vector<vec3ui> vi; // XXX support both 3i and 4i OSPRay 2?

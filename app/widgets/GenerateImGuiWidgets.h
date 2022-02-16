@@ -1,9 +1,15 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "../Node.h"
+// ospray_sg
+#include "sg/Node.h"
+// rkcommon
+#include "rkcommon/os/FileName.h"
+// widgets
+#include "app/widgets/FileBrowserWidget.h"
+
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -526,7 +532,57 @@ inline bool generateWidget_string(const std::string &, Node &node)
 {
   std::string s = node.valueAs<std::string>();
 
+  // All strings are read-only in this widget
   ImGui::Text("%s", (node.name() + ": \"" + s + "\"").c_str());
+  nodeTooltip(node);
+  return false;
+}
+
+inline bool generateWidget_filename(const std::string &title, Node &node)
+{
+  static bool showFullName = true;
+  if (ImGui::Button("...##filename"))
+    showFullName ^= true;
+  sg::showTooltip("toggle short filenames");
+
+  rkcommon::FileName fullName = node.valueAs<filename>();
+  std::string f = showFullName ? fullName.str() : fullName.base();
+
+  ImGui::SameLine();
+
+  if (node.readOnly()) {
+    ImGui::Text("%s", (node.name() + ": \"" + f + "\" (filename)").c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  static bool showFileBrowser = false;
+  // This field won't be typed into.
+  ImGui::InputTextWithHint(
+      node.name().c_str(), (char *)f.c_str(), (char *)f.c_str(), 0);
+  if (ImGui::IsItemClicked())
+    showFileBrowser = true;
+
+  if (f != "") {
+    ImGui::SameLine();
+    if (ImGui::Button("remove##texfile")) {
+      node.setValue(std::string(""));
+      return true;
+    }
+  }
+
+  // Leave the fileBrowser open until file is selected
+  if (showFileBrowser) {
+    ospray_studio::FileList fileList = {};
+    if (ospray_studio::fileBrowser(fileList, "Select file")) {
+      showFileBrowser = false;
+      if (!fileList.empty()) {
+        node.setValue(std::string(fileList[0]));
+        return true;
+      }
+    }
+  }
+
   nodeTooltip(node);
   return false;
 }
@@ -541,6 +597,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"vec2f", generateWidget_vec2f},
     {"vec3i", generateWidget_vec3i},
     {"vec3f", generateWidget_vec3f},
+    {"vec4f", generateWidget_vec4f},
     {"rgb", generateWidget_rgb},
     {"rgba", generateWidget_rgba},
     {"affine3f", generateWidget_affine3f},
@@ -549,6 +606,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"range1f", generateWidget_range1f},
     {"quaternionf", generateWidget_quaternionf},
     {"string", generateWidget_string},
+    {"filename", generateWidget_filename},
 };
 
 // Inlined definitions ////////////////////////////////////////////////////
@@ -583,11 +641,15 @@ inline bool GenerateImGuiWidgets::operator()(Node &node, TraversalContext &ctx)
 
       // this node may be strongly-typed and contain a parameter
       if (node.type() == NodeType::TRANSFORM) {
-        widgetName += "##" + std::to_string(node.uniqueID());
-        if (generateWidget_affine3f(widgetName, node))
-          updated = true;
+        widgetName += " advanced ##" + std::to_string(node.uniqueID());
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(184,169,80,255));
+        if (ImGui::TreeNodeEx(widgetName.c_str(), ImGuiTreeNodeFlags_None)) {
+          if (generateWidget_affine3f(widgetName, node))
+            updated = true;
+          ImGui::TreePop();
+        }
+        ImGui::PopStyleColor();
       } // else if (other types) {}
-
     } else {
       return false; // tree closed, don't process children
     }

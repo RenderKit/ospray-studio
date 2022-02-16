@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -24,47 +24,79 @@ OSP_REGISTER_SG_NODE_NAME(RawImporter, importer_raw);
 
 void RawImporter::importScene()
 {
-  // Create a root Transform/Instance off the Importer, then place the volume
-  // under this.
-  auto rootName = fileName.name() + "_rootXfm";
-  auto nodeName = fileName.name() + "_volume";
+  using namespace std::string_literals;
 
-  auto last = fileName.base().find_last_of(".");
-  auto volumeTypeExt = fileName.base().substr(last, fileName.base().length());
+  // Keep this object alive for the duration of any lambdas
+  auto self = shared_from_this();
 
-  auto rootNode = createNode(rootName, "transform");
-  NodePtr volumeImport;
+  auto name = "load raw volume from "s + fileName.str();
+  scheduler->background()->push(name, [&, self](SchedulerPtr scheduler) {
+    // Create a root Transform/Instance off the Importer, then place the volume
+    // under this.
+    auto rootName = fileName.name() + "_rootXfm";
+    auto nodeName = fileName.name() + "_volume";
 
-  if (volumeTypeExt == ".spherical") {
-    auto volume = createNode(nodeName, "structuredSpherical");
-    for (auto &c : volumeParams->children())
-      volume->add(c.second);
+    auto last = fileName.base().find_last_of(".");
+    auto volumeTypeExt = fileName.base().substr(last, fileName.base().length());
 
-    auto sphericalVolume =
-        std::static_pointer_cast<StructuredSpherical>(volume);
-    sphericalVolume->load(fileName);
-    volumeImport = sphericalVolume;
-  } else {
-    auto volume = createNode(nodeName, "structuredRegular");
-    for (auto &c : volumeParams->children())
-      volume->add(c.second);
+    auto rootNode = createNode(rootName, "transform");
+    NodePtr volume;
 
-    auto structuredVolume = std::static_pointer_cast<StructuredVolume>(volume);
-    structuredVolume->load(fileName);
-    volumeImport = structuredVolume;
-  }
+    bool isSpherical = volumeTypeExt == ".spherical";
 
-  auto tf = createNode("transferFunction", "transfer_function_turbo");
-  auto valueRange = volumeImport->child("valueRange").valueAs<range1f>();
-  tf->child("valueRange") = valueRange.toVec2();
-  volumeImport->add(tf);
+    if (isSpherical) {
+      volume = createNode(nodeName, "structuredSpherical");
+    } else {
+      volume = createNode(nodeName, "structuredRegular");
+    }
 
-  rootNode->add(volumeImport);
+    for (auto &c : volumeParams->children()) {
+      // Need to make a copy of the volume parameter here. If multiple threads
+      // are using the same VolumeParams children objects, then because of the
+      // book keeping involved with a node remembering its parents, multiple
+      // threads could modify the parents vector within a Node object.
+      //
+      // Example: Threads "foo" and "bar" are running at the same time.
+      // First, Foo adds a VolumeParams child to its own Volume object. Foo
+      // recognizes that it will need to resize the Node::properties::parents
+      // vector. Foo allocates a new parents vector. Next, Bar follows the
+      // same process and allocates a new parents vector. Foo deallocates the
+      // old pointer and so does Bar, leading to a double-free.
+      //
+      // The actual reason this happens is because although the
+      // Importer::volumeParams object is newly created each time
+      // Importer::getImporter() is called, the children of each of the
+      // separate Importer::volumeParams objects are all references to the
+      // exact same Node object.
 
-  // Finally, add node hierarchy to importer parent
-  add(rootNode);
+      // Preferably this code would be something like:
+      //   volume->add(createNodeLike(c.second))
+      auto &p = c.second;
+      volume->createChild(p->name(), p->subType(), p->description(), p->value());
+    }
 
-  std::cout << "...finished import!\n";
+    if (isSpherical) {
+      auto sphericalVolume =
+          std::static_pointer_cast<StructuredSpherical>(volume);
+      sphericalVolume->load(fileName);
+    } else {
+      auto structuredVolume = std::static_pointer_cast<StructuredVolume>(volume);
+      structuredVolume->load(fileName);
+    }
+
+    auto tf = createNode("transferFunction", "transfer_function_turbo");
+    auto valueRange = volume->child("valueRange").valueAs<range1f>();
+    tf->child("valueRange") = valueRange.toVec2();
+    volume->add(tf);
+
+    rootNode->add(volume);
+
+    auto name = "add raw volume from "s + fileName.str() + " to scene"s;
+    scheduler->ospray()->push(name, [&, self, rootNode](SchedulerPtr scheduler) {
+      // Finally, add node hierarchy to importer parent
+      add(rootNode);
+    });
+  });
 }
 
 } // namespace sg

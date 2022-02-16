@@ -1,10 +1,10 @@
 #!/bin/bash
-## Copyright 2015-2021 Intel Corporation
+## Copyright 2015-2022 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 # XXX This script is transitional
 # !!! This script only builds rkcommon devel branch and ospray *non-devel* !!!
-# Override veresions set by CI
+# Override versions set by CI
 RKCOMMON_VER="devel"
 
 # Stop script on first failure

@@ -22,13 +22,14 @@ namespace ospray {
 
     NodeType type() const override;
 
-    void startNewFrame(bool interacting = false);
+    void startNewFrame();
 
     bool frameIsReady();
     float frameProgress();
     void waitOnFrame();
     void cancelFrame();
     bool accumLimitReached();
+    bool accumAtFinal();
     void resetAccumulation();
 
     inline bool isCanceled()
@@ -36,9 +37,16 @@ namespace ospray {
       return canceled;
     }
 
+    void setNavMode(bool mode)
+    {
+      navMode = mode;
+    }
+
     bool denoiserEnabled{false};
     bool denoiseFB{false};
     bool denoiseNavFB{false};
+    bool denoiseFBFinalFrame{false};
+    bool denoiseOnlyPathTracer{true};
 
     bool toneMapFB{false};
     bool toneMapNavFB{false};

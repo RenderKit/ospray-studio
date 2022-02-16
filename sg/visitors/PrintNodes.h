@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -62,6 +62,7 @@ namespace ospray {
     PRINT_AS(node, rgb);       
     PRINT_AS(node, rgba);      
     PRINT_AS(node, transform); 
+    PRINT_AS(node, filename); 
     if (node.subType() == "Data")
       std::cout << " [" << node.nodeAs<Data>() << "]";
     std::cout << std::endl;

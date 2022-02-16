@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Intel Corporation
+// Copyright 2018-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -13,7 +13,8 @@ static const FilterList defaultFilterList = {".*",
     "Scene (.sg){.sg}",
     "Geometry (.obj .gltf .glb){.obj,.gltf,.glb}",
     "Volume (.raw .vdb){.raw,.vdb}",
-    "Image (.jpg .hdr .exr){.jpg,.jpeg,.hdr,.exr}"};
+    "Image (.jpg .hdr .exr){.jpg,.jpeg,.hdr,.exr}",
+    "EULUMDAT (.ldt ){.ldt}"};
 
 bool fileBrowser(FileList &fileList,
     const std::string &prompt,

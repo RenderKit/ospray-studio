@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Intel Corporation
+// Copyright 2018-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -7,7 +7,7 @@
 
 #include "ArcballCamera.h"
 // glfw
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 // ospray sg
 #include "sg/Frame.h"
 #include "sg/renderer/MaterialRegistry.h"
@@ -16,6 +16,7 @@
 
 #include <map>
 #include "widgets/AnimationWidget.h"
+#include "widgets/GenerateImGuiWidgets.h"
 #include "PluginManager.h"
 #include "sg/importer/Importer.h"
 
@@ -44,6 +45,9 @@ enum class OSPRayRendererType
   PATHTRACER,
   AO,
   DEBUGGER,
+#ifdef USE_MPI
+  MPIRAYCAST,
+#endif
   OTHER
 };
 
@@ -162,7 +166,7 @@ class MainWindow : public StudioContext
   bool screenshotAlbedo{false};
   bool screenshotDepth{false};
   bool screenshotNormal{false};
-  bool screenshotLayers{false};
+  bool screenshotLayersSeparatly{false};
 
   // Option to always show a gamma corrected display to user.  Native sRGB
   // buffer is untouched, linear buffers are displayed as sRGB.
@@ -171,13 +175,12 @@ class MainWindow : public StudioContext
   static MainWindow *activeWindow;
 
   int fontSize{13}; // pixels
-  vec2f contentScale;
+  vec2f contentScale{1.0f};
   vec2i windowSize;
   vec2i fbSize;
   vec2f previousMouse{-1.f};
 
   OSPRayRendererType rendererType{OSPRayRendererType::SCIVIS};
-  int optPF = -1; // optional pixel filter, -1 = use default
 
   rkcommon::FileName backPlateTexture = "";
 

@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Intel Corporation
+// Copyright 2019-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -9,7 +9,6 @@
 #include "StateUtils.h"
 #include "sg/fb/FrameBuffer.h"
 #include "sg/Frame.h"
-#include "sg/visitors/GenerateImGuiWidgets.h"
 #include "sg/scene/World.h"
 #include "sg/renderer/Renderer.h"
 #include "sg/visitors/PrintNodes.h"

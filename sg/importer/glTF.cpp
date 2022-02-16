@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -21,7 +21,7 @@
 #define DEBUG std::cout << prefix << "(D): "
 #define INFO std::cout << prefix << "(I): "
 #define WARN std::cout << prefix << "(W): "
-#define ERROR std::cerr << prefix << "(E): "
+#define ERR std::cerr << prefix << "(E): "
 
 namespace ospray {
 namespace sg {
@@ -67,7 +67,7 @@ struct GLTFData
   void createSkins();
   void finalizeSkins();
   void createGeometries();
-  void createCameras();
+  void createCameraTemplates();
   void createLights();
   void buildScene();
   void loadNodeInfo(const int nid, NodePtr sgNode);
@@ -75,6 +75,7 @@ struct GLTFData
   void createAnimations(std::vector<Animation> &);
   void applySceneBackground(NodePtr bgXfm);
   std::vector<NodePtr> lights;
+  std::string geomId{""};
 
  private:
   InstanceConfiguration ic;
@@ -82,6 +83,7 @@ struct GLTFData
   NodePtr rootNode;
   sg::FrameBuffer *fb{nullptr};
   std::vector<NodePtr> *cameras{nullptr};
+  std::vector<NodePtr> cameraTemplates;
   std::vector<SkinPtr> skins;
   std::vector<std::vector<NodePtr>> ospMeshes;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry;
@@ -164,12 +166,12 @@ bool GLTFData::parseAsset()
   }
 
   if (!err.empty()) {
-    ERROR << "gltf parsing errors(s)...\n" << err << std::endl;
+    ERR << "gltf parsing errors(s)...\n" << err << std::endl;
   }
 #endif
 
   if (!ret) {
-    ERROR << "FATAL error parsing gltf file,"
+    ERR << "FATAL error parsing gltf file,"
           << " no geometry added to the scene!" << std::endl;
     return false;
   }
@@ -177,7 +179,7 @@ bool GLTFData::parseAsset()
   auto asset = model.asset;
 
   if (std::stof(asset.version) < 2.0) {
-    ERROR << "FATAL: incompatible glTF file, version " << asset.version
+    ERR << "FATAL: incompatible glTF file, version " << asset.version
           << std::endl;
     return false;
   }
@@ -213,9 +215,15 @@ bool GLTFData::parseAsset()
   INFO << "... " << model.images.size() << " images\n";
   INFO << "... " << model.skins.size() << " skins\n";
   INFO << "... " << model.samplers.size() << " samplers\n";
-  INFO << "... " << model.cameras.size() << " cameras\n";
+  INFO << "... " << model.cameras.size() << " cameraTemplates\n";
   INFO << "... " << model.scenes.size() << " scenes\n";
   INFO << "... " << model.lights.size() << " lights\n";
+
+  // geomtericId/assetId
+  if (asset.extensions.find("BIT_asset_info") != asset.extensions.end()) {
+    auto BIT_assetInfo = asset.extensions.find("BIT_asset_info")->second;
+    geomId = BIT_assetInfo.Get("id").Get<std::string>();
+  }
 
   return ret;
 }
@@ -226,7 +234,7 @@ void GLTFData::applySceneBackground(NodePtr bgXfm)
   auto &bgFileName = background.Get("background-uri").Get<std::string>();
   rkcommon::FileName bgTexture = fileName.path() + bgFileName;
   auto bgNode = createNode("background", "hdri");
-  bgNode->createChild("filename") = std::string(bgTexture);
+  bgNode->child("filename") = bgTexture.str();
 
   if (background.Has("rotation")) {
     const auto &r = background.Get("rotation").Get<tinygltf::Value::Array>();
@@ -245,29 +253,23 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
 {
   const tinygltf::Node &n = model.nodes[nid];
 
-  auto assetObj = n.extensions.find("BIT_asset_info")->second;
-  // auto &asset = assetObj.Get("extensions").Get("BIT_asset_info");
-  // auto &assetId = asset.Get("id").Get<std::string>();
-  auto assetTitle = assetObj.Get("title").Get<std::string>();
-
-  auto refLink = n.extensions.find("BIT_reference_link")->second;
-  auto &refId = refLink.Get("id").Get<std::string>();
-  auto refTitle = refLink.Get("title").Get<std::string>();
-  sgNode->createChild("geomId", "string", refId);
+  // load referenced asset if reference-link found
+  std::string refTitle{""};
+  if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
+    auto refLink = n.extensions.find("BIT_reference_link")->second;
+    refTitle = refLink.Get("title").Get<std::string>();
+  }
 
   auto node = n.extensions.find("BIT_node_info")->second;
-  auto &nodeId = node.Get("id").Get<std::string>();
-  sgNode->createChild("instanceId", "string", nodeId);
+  if (node.Has("id")) {
+    auto &nodeId = node.Get("id").Get<std::string>();
+    sgNode->createChild("instanceId", "string", nodeId);
+  }
 
+  // nothing to import
   if (refTitle.empty())
     return;
 
-  // node has asset Info and asset title should match refernce link title
-  if (!assetTitle.empty() && assetTitle != refTitle) {
-    std::cout << "mistmatch in asset information and reference link "
-              << std::endl;
-    return;
-  }
   std::string refLinkFileName = refTitle + ".gltf";
   std::string refLinkFullPath = fileName.path() + refLinkFileName;
   rkcommon::FileName file(refLinkFullPath);
@@ -321,47 +323,51 @@ void GLTFData::createLights()
       newLight = createNode(lightName, "spot");
       auto outerConeAngle = (float)l.spot.outerConeAngle;
       auto innerConeAngle = (float)l.spot.innerConeAngle;
-      newLight->createChild("openingAngle", "float", outerConeAngle);
-      newLight->createChild(
-          "penumbraAngle", "float", outerConeAngle - innerConeAngle);
+      newLight->child("openingAngle") = outerConeAngle * (360.f / (float)pi);
+      newLight->child("penumbraAngle") =
+          (outerConeAngle - innerConeAngle) * (180.f / (float)pi);
     } else if (l.type == "hdri") {
       newLight = createNode(lightName, l.type);
       auto hdrFileName = l.extras.Get("map").Get<std::string>();
-      newLight->createChild("filename") = fileName.path() + hdrFileName;
+      newLight->child("filename") = fileName.path() + hdrFileName;
     } else if (l.type == "sunSky") {
       newLight = createNode(lightName, l.type);
       if (l.sunSky.up.size()) {
         auto up = vec3f{(float)l.sunSky.up[0],
             (float)l.sunSky.up[1],
             (float)l.sunSky.up[2]};
-        newLight->createChild("up", "vec3f", up);
+        newLight->child("up") = up;
       }
       if (l.sunSky.turbidity) {
         auto turbidity = (float)l.sunSky.turbidity;
-        newLight->createChild("turbidity", "float", turbidity);
+        newLight->child("turbidity") = turbidity;
       }
       if (l.sunSky.albedo) {
         auto albedo = (float)l.sunSky.albedo;
-        newLight->createChild("albedo", "float", albedo);
+        newLight->child("albedo") = albedo;
       }
 
       if (l.sunSky.horizonExtension) {
         auto horizonExtension = (float)l.sunSky.horizonExtension;
-        newLight->createChild("horizonExtension", "float", horizonExtension);
+        newLight->child("horizonExtension") = horizonExtension;
       }
-
     } else
       newLight = createNode(lightName, l.type);
+
+    if (newLight->hasChild("position"))
+      newLight->child("position").setValue(vec3f(0));
+    if (newLight->hasChild("direction"))
+      newLight->child("direction").setValue(vec3f(0.f, 0.f, -1.f));
 
     // Color is optional, default:[1.0,1.0,1.0]
     auto lightColor = rgb(1.f);
     if (!l.color.empty())
       lightColor =
           rgb{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
-    newLight->createChild("color", "rgb", lightColor);
+    newLight->child("color") = lightColor;
 
     if (l.intensity)
-      newLight->createChild("intensity", "float", (float)l.intensity);
+      newLight->child("intensity") = (float)l.intensity;
     if (l.range)
       std::cout << "Range value for light is not supported yet" << std::endl;
 
@@ -392,9 +398,9 @@ void GLTFData::createMaterials()
     materialRegistry->add(m);
 }
 
-void GLTFData::createCameras()
+void GLTFData::createCameraTemplates()
 {
-  cameras->reserve(model.cameras.size());
+  cameraTemplates.reserve(model.cameras.size());
   NodePtr sgCamera;
 
   for (auto &m : model.cameras) {
@@ -413,6 +419,8 @@ void GLTFData::createCameras()
         sgCamera->child(
             "aspect") = (float)m.perspective.aspectRatio;
 
+    } else if (m.type == "panoramic") { // custom extension
+      sgCamera = createNode("camera", "camera_panoramic");
     } else {
       sgCamera = createNode("camera", "camera_orthographic");
       sgCamera->child("height") = (float)m.orthographic.ymag;
@@ -423,6 +431,9 @@ void GLTFData::createCameras()
       sgCamera->child("aspect") = aspect;
       sgCamera->child("nearClip") = (float)m.orthographic.znear;
     }
+    sgCamera->child("position") = vec3f(0.f);
+    sgCamera->child("direction") = vec3f(0.0f, 0.0f, -1.f);
+    sgCamera->child("up") = vec3f(0.0f, 1.0f, 0.f);
     sgCamera->child("uniqueCameraName") = cameraName;
 
     // check if camera has EXT_cameras_sensor
@@ -438,7 +449,6 @@ void GLTFData::createCameras()
             imageSensor.Get("pixelSize").Get<tinygltf::Value::Array>();
         int x = pixels[0].Get<int>();
         int y = pixels[1].Get<int>();
-        fb->child("size").setValue(vec2i(x, y));
         len_x = x * (float)pixelSize[0].Get<double>();
         len_y = y * (float)pixelSize[1].Get<double>();
         sgCamera->child("aspect").setValue(len_x / len_y);
@@ -467,10 +477,49 @@ void GLTFData::createCameras()
         sgCamera->child("imageStart").setValue(imageStart);
         sgCamera->child("imageEnd").setValue(imageEnd);
       }
+
+      if (ext.Has("temporal")) {
+        auto temp = ext.Get("temporal");
+        auto copyFloatParam = [&](const char *name) -> float {
+          float ret = 0.0f;
+          if (temp.Has(name)) {
+            ret = (float)temp.Get(name).Get<double>();
+            sgCamera->createChild(name, "float", "", ret);
+            sgCamera->child(name).setSGOnly();
+          }
+          return ret;
+        };
+        copyFloatParam("startTime");
+        float measureTime = copyFloatParam("measureTime");
+        if (measureTime > 0.0f) {
+          sgCamera->child("motion blur").setValue(1.0f);
+          uint8_t shutterType = 0; // default global
+          if (temp.Get("type").Get<std::string>() == "rollingShutter") {
+            shutterType = 1; // default rolling right
+            if (temp.Has("rollingShutter")) {
+              auto rol = temp.Get("rollingShutter");
+              if (rol.Has("direction")) {
+                auto str = rol.Get("direction").Get<std::string>();
+                if (str == "left")
+                  shutterType = 2;
+                if (str == "down")
+                  shutterType = 3;
+                if (str == "up")
+                  shutterType = 4;
+              }
+              float duration = 0.0f;
+              if (rol.Has("measureTime"))
+                duration = (float)rol.Get("measureTime").Get<double>();
+              sgCamera->child("rollingShutterDuration") =
+                  duration / measureTime;
+            }
+          }
+          sgCamera->child("shutterType") = shutterType;
+        }
+      }
     }
-    sgCamera->createChild("cameraId", "int", ++nCamera);
-    sgCamera->child("cameraId").setSGOnly();
-    cameras->push_back(sgCamera);
+
+    cameraTemplates.push_back(sgCamera);
   }
 }
 
@@ -587,9 +636,6 @@ void GLTFData::createAnimations(std::vector<Animation> &animations)
       track->target =
           sceneNodes[c.target_node]->child(c.target_path).shared_from_this();
 
-      if (sceneNodes[c.target_node]->hasChild("animateCamera"))
-        sceneNodes[c.target_node]->child("animateCamera").setValue(true);
-
       Accessor<float> time(inputAcc, model);
       track->times.reserve(time.size());
       for (size_t i = 0; i < time.size(); ++i)
@@ -677,25 +723,40 @@ void GLTFData::visitNode(NodePtr sgNode,
   sgNode->add(newXfm);
   applyNodeTransform(newXfm, n);
 
+  if (level == 1 && !geomId.empty()) {
+    newXfm->createChild("geomId", "string", geomId);
+    geomId = "";
+  }
+
   // create child animate camera for all camera nodes added to scene hierarchy,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
-  if (n.camera != -1 && cameras != nullptr) {
-    auto &listCameras = *cameras;
-    auto &camera = listCameras[n.camera];
+  if (n.camera != -1 && n.camera < cameraTemplates.size() && cameras) {
+    auto cameraTemplate = cameraTemplates[n.camera];
+    static auto nCamera = 0;
+    auto camera = createNode("camera", cameraTemplate->subType());
+    for (auto &c : cameraTemplate->children()) {
+      if (camera->hasChild(c.first))
+        camera->child(c.first) = c.second->value();
+      else {
+        camera->createChild(c.first, c.second->subType(), c.second->value());
+        if (cameraTemplate->child(c.first).sgOnly())
+          camera->child(c.first).setSGOnly();
+      }
+    }
+    auto uniqueCamName =
+        n.name != "" ? n.name : "camera_" + std::to_string(nCamera);
+    camera->child("uniqueCameraName") = uniqueCamName;
+    camera->createChild("cameraId", "int", ++nCamera);
+
+    camera->child("cameraId").setSGOnly();
+    cameras->push_back(camera);
     newXfm->add(camera);
-    newXfm->createChild("animateCamera", "bool", false);
   }
 
   sgNode = newXfm;
 
-  // while parsing assets from BIT-TS look for BIT_asset_info to add to
-  // assetCatalogue
-  // followed by BIT_node_info for adding that particular instance
-  // followed by BIT_reference_link to load that reference
-  if (n.extensions.find("BIT_asset_info") != n.extensions.end()
-      && n.extensions.find("BIT_node_info") != n.extensions.end()
-      && n.extensions.find("BIT_reference_link") != n.extensions.end())
+  if (n.extensions.find("BIT_node_info") != n.extensions.end())
     loadNodeInfo(nid, sgNode);
 
   // KHR_lights_punctual extension info on nodes
@@ -763,7 +824,7 @@ NodePtr GLTFData::createOSPMesh(
     // points as spheres
     ospGeom = createNodeAs<Geometry>(primName + "_object", "geometry_spheres");
   } else {
-    ERROR << "Unsupported primitive mode! File must contain only "
+    ERR << "Unsupported primitive mode! File must contain only "
              "triangles or points\n";
     throw std::runtime_error(
         "Unsupported primitive mode! Only triangles are supported");
@@ -801,7 +862,7 @@ NodePtr GLTFData::createOSPMesh(
             index_accessor[i * 3 + 1],
             index_accessor[i * 3 + 2]));
     } else {
-      ERROR << "Unsupported index type: "
+      ERR << "Unsupported index type: "
             << model.accessors[prim.indices].componentType << "\n";
       throw std::runtime_error("Unsupported index component type");
     }
@@ -838,7 +899,7 @@ NodePtr GLTFData::createOSPMesh(
       for (size_t i = 0; i < col_accessor.size(); ++i)
         vc.emplace_back(col_accessor[i]);
     } else {
-      ERROR << "Unsupported color type: "
+      ERR << "Unsupported color type: "
             << model.accessors[col_attrib].componentType << "\n";
       throw std::runtime_error("Unsupported color component type");
     }
@@ -1519,21 +1580,27 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
     const int colorChannel,
     const bool preferLinear)
 {
-  static auto nTex = 0;
-
   if (tex.source == -1)
     return nullptr;
 
   tinygltf::Image &img = model.images[tex.source];
 
-  if (img.uri.length() < 256) { // The uri can be a stream of data!
-    img.name = FileName(img.uri).name();
+  // The uri can be a stream of base64-encoded data!  If it is not, it
+  // contains the base filename, whereas sometimes the img.name is less
+  // descriptive.
+  if (img.uri.length() < 256) {
+    // XXX should decode the uri before using it as a filename.  Otherwise
+    // FileName::canonical() returns "" for names containing '%20', etc.
+    std::string fileName = FileName(img.uri).canonical();
+    img.name = fileName != "" ? fileName : img.uri;
   }
-  auto texName = img.name + "_" + pad(std::to_string(nTex++)) + "_tex";
+
+  // If the texture comes from a bufferView give it that name.
+  if (img.bufferView >= 0)
+    img.name = "texture_" + pad(std::to_string(img.bufferView));
 
 #if 0
-    DEBUG << pad("", '.', 6) << "texture." + texName << "\n";
-    DEBUG << pad("", '.', 9) << "image name: " << img.name << "\n";
+    DEBUG << pad("", '.', 9) << "image name: |" << img.name << "|\n";
     DEBUG << pad("", '.', 9) << "image width: " << img.width << "\n";
     DEBUG << pad("", '.', 9) << "image height: " << img.height << "\n";
     DEBUG << pad("", '.', 9) << "image component: " << img.component << "\n";
@@ -1542,9 +1609,9 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
      DEBUG << pad("", '.', 9) << "image uri: " << img.uri << "\n";
     DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView << "\n";
     DEBUG << pad("", '.', 9) << "image data: " << img.image.size() << "\n";
-
     DEBUG << pad("", '.', 9) << "texParam: " << texParam << "\n";
     DEBUG << pad("", '.', 9) << "colorChannel: " << colorChannel << "\n";
+    DEBUG << pad("", '.', 9) << "\n";
 #endif
 
   NodePtr ospTexNode = createNode(texParam, "texture_2d");
@@ -1557,7 +1624,7 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
 
   // If texture name (uri) is a UDIM set, ignore tiny_gltf loaded image and
   // reload from file as udim tiles
-  if (ospTex.checkForUDIM(fileName.path() + img.uri))
+  if (ospTex.checkForUDIM(img.name))
     img.image.clear();
 
   // Pre-loaded texture image (loaded by tinygltf)
@@ -1566,17 +1633,24 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
     ospTex.params.components = img.component;
     ospTex.params.depth =
         img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
-
-    ospTex.load(
-        (void *)img.image.data(), preferLinear, nearestFilter, colorChannel);
+    if (!ospTex.load(img.name,
+            preferLinear,
+            nearestFilter,
+            colorChannel,
+            img.image.data()))
+      ospTexNode = nullptr;
 
   } else {
     // Load texture from file (external uri or udim tiles)
     ospTex.params.flip = false; // glTF textures are not vertically flipped
 
     // use same path as gltf scene file
-    ospTex.load(
-        fileName.path() + img.uri, preferLinear, nearestFilter, colorChannel);
+    // If load fails, remove the texture node
+    if (!ospTex.load(img.name,
+            preferLinear,
+            nearestFilter,
+            colorChannel))
+      ospTexNode = nullptr;
   }
 
   return ospTexNode;
@@ -1694,7 +1768,7 @@ void glTFImporter::importScene()
   gltf.createLights();
 
   if (importCameras)
-    gltf.createCameras();
+    gltf.createCameraTemplates();
 
   gltf.createSkins();
   gltf.createGeometries(); // needs skins
@@ -1704,7 +1778,9 @@ void glTFImporter::importScene()
     gltf.createAnimations(*animations);
   if (gltf.lights.size() != 0) {
     auto lightsMan = std::static_pointer_cast<sg::LightsManager>(lightsManager);
-    lightsMan->addLights(gltf.lights);
+    // Add lights as "Group" lights, they are part of the scene hierarchy and
+    // will respond to scene transforms.
+    lightsMan->addGroupLights(gltf.lights);
   }
 
   // Finally, add node hierarchy to importer parent

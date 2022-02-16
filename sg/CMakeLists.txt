@@ -1,4 +1,4 @@
-## Copyright 2009-2021 Intel Corporation
+## Copyright 2009-2022 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -25,7 +25,7 @@ if(ENABLE_OPENVDB)
   if (${OPENVDB_ROOT})
     list(PREPEND CMAKE_MODULE_PATH ${OPENVDB_ROOT}/lib/cmake/OpenVDB)
   endif()
-  find_package(OpenVDB 7.0.0 REQUIRED)
+  find_package(OpenVDB 9.0.0 REQUIRED)
 else()
   message(STATUS "Building without OpenVDB support.")
 endif()
@@ -39,13 +39,24 @@ else()
   message(STATUS "Building without OpenEXR support.")
 endif()
 
+## glTF Draco mesh compression support ##
+
+option(ENABLE_GLTF_DRACO "Enable glTF Draco mesh compression support" OFF)
+if (ENABLE_GLTF_DRACO)
+  include(draco)
+else()
+  message(STATUS "Building without glTF Draco mesh compression support.")
+endif()
+
 ## Build Library ##
 
 add_library(ospray_sg SHARED
   Data.cpp
+  Mpi.cpp
   Node.cpp
   Frame.cpp
   PluginCore.cpp
+  Scheduler.cpp
 
   camera/Camera.cpp
   camera/Perspective.cpp
@@ -67,6 +78,7 @@ add_library(ospray_sg SHARED
   generator/TutorialScene.cpp
   generator/TutorialSceneML.cpp
   generator/WaveletVolume.cpp
+  generator/WaveletSlices.cpp
   generator/UnstructuredVol.cpp
   generator/TestSphere.cpp
   generator/Torus.cpp
@@ -84,6 +96,7 @@ add_library(ospray_sg SHARED
 
   renderer/Material.cpp
   renderer/MaterialReference.cpp
+  renderer/MpiRaycast.cpp
   renderer/PathTracer.cpp
   renderer/Renderer.cpp
   renderer/SciVis.cpp
@@ -112,6 +125,7 @@ add_library(ospray_sg SHARED
   scene/geometry/Isosurfaces.cpp
   scene/geometry/Planes.cpp
   scene/geometry/Spheres.cpp
+  scene/geometry/Subdivision.cpp
   scene/geometry/Triangles.cpp
   scene/geometry/Curves.cpp
 
@@ -130,6 +144,7 @@ add_library(ospray_sg SHARED
   scene/lights/Photometric.cpp
   scene/lights/DirectionalLight.cpp
   scene/lights/AmbientLight.cpp
+  scene/lights/CylinderLight.cpp
   scene/lights/SpotLight.cpp
   scene/lights/PointLight.cpp
   scene/lights/QuadLight.cpp
@@ -177,6 +192,10 @@ if (ENABLE_OPENIMAGEIO)
   target_link_libraries(ospray_sg PUBLIC OpenImageIO::OpenImageIO)
 endif()
 
+if (USE_MPI)
+  target_link_libraries(ospray_sg PUBLIC MPI::MPI_CXX)
+endif()
+
 target_compile_definitions(ospray_sg
   PUBLIC
   $<$<BOOL:${ENABLE_EXR}>:STUDIO_OPENEXR>
@@ -200,6 +219,15 @@ if (ENABLE_EXR)
 if (ENABLE_OPENVDB)
   target_compile_definitions(ospray_sg PUBLIC -DUSE_OPENVDB)
   target_link_libraries(ospray_sg PUBLIC OpenVDB::openvdb)
+endif()
+
+if (ENABLE_GLTF_DRACO)
+  target_compile_definitions(ospray_sg PRIVATE -DTINYGLTF_ENABLE_DRACO)
+  target_include_directories(ospray_sg PRIVATE ${draco_SOURCE_DIR}/src)
+  # draco_features.h get placed just under the main build dir ???
+  target_include_directories(ospray_sg  PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>)
+  # libdraco.a isn't found otherwise ???
+  target_link_libraries(ospray_sg PRIVATE ${CMAKE_BINARY_DIR}/libdraco.a)
 endif()
 
 ## Version header ##

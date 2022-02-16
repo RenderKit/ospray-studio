@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Intel Corporation
+// Copyright 2018-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -22,7 +22,7 @@ class PluginManager
   void removePlugin(const std::string &name);
   void removeAllPlugins();
 
-  // TODO: add functions to get a fresh set of panels, activate/deactive, etc.
+  // TODO: add functions to get a fresh set of panels, activate/deactivate, etc.
   void main(
       std::shared_ptr<StudioContext> ctx, ospray::PanelList *allPanels = nullptr) const;
   void mainPlugin(std::shared_ptr<StudioContext> ctx,

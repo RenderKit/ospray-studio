@@ -157,10 +157,12 @@ namespace ospray {
             std::cout << "    : " << n << std::endl;
         }
 
+        auto gridNum = gridNames.size() - 1;
+
         // XXX at some point, add the ability to select which grid(s). For now,
         // just choose the first.
-        std::cout << "  loading grid: " << gridNames[0] << std::endl;
-        grid = file.readGrid(gridNames[0]);
+        std::cout << "  loading grid: " << gridNames[gridNum] << std::endl;
+        grid = file.readGrid(gridNames[gridNum]);
         file.close();
       } catch (const std::exception &e) {
         const std::string err = (std::string("Error loading ")

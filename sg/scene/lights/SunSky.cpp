@@ -1,4 +1,4 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
@@ -45,7 +45,8 @@ SunSky::SunSky() : Light("sunSky")
       "fraction of the lower hemisphere to cover [0-1]",
       0.01f);
 
-  child("intensityQuantity").setValue((uint8_t)OSP_INTENSITY_QUANTITY_RADIANCE);
+  child("intensityQuantity") = (uint8_t)OSP_INTENSITY_QUANTITY_SCALE;
+  child("intensityQuantity").setReadOnly();
 
   // Set reasonable limits, this will set slider range
   child("albedo").setMinMax(0.f, 1.f);
@@ -53,6 +54,8 @@ SunSky::SunSky() : Light("sunSky")
   child("elevation").setMinMax(-90.f, 90.f);
   child("turbidity").setMinMax(0.f, 10.f);
   child("horizonExtension").setMinMax(0.f, 1.f);
+  child("intensity") = 0.025f; // set to match old behavior
+  child("intensity").setMinMax(0.f, 0.5f);
 
   child("direction").setReadOnly();
 
@@ -79,7 +82,7 @@ void SunSky::preCommit()
     if (!(std::isnan(direction.x) || std::isnan(direction.y)
             || std::isnan(direction.z))) {
       // this overwrites the "direction" child parameters, making that UI
-      // element not directly useable...
+      // element not directly usable...
       auto &directionNode = child("direction");
       directionNode.setValue(direction);
     }

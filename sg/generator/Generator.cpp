@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Generator.h"
@@ -18,7 +18,7 @@ namespace ospray {
 
   void Generator::preCommit()
   {
-    // Re-run generator on paramater changes in the UI
+    // Re-run generator on parameter changes in the UI
     if (child("parameters").isModified())
       generateData();
   }

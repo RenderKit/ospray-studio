@@ -1,16 +1,19 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
 // sg
 #include "sg/Node.h"
+#include "sg/Scheduler.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/Animation.h"
 #include "sg/texture/Texture2D.h"
 #include "sg/scene/volume/Volume.h"
+#include "sg/generator/Generator.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
+#include "rkcommon/utility/StringManip.h"
 
 #include "app/ospStudio.h"
 
@@ -18,7 +21,7 @@ namespace ospray {
 namespace sg {
 
 // map of asset Titles and corresponding original importer nodes
-typedef std::map<std::string, NodePtr> AssetsCatalogue;
+typedef std::map<std::string, std::weak_ptr<Node>> AssetsCatalogue;
 
 enum InstanceConfiguration {
     STATIC = 0,
@@ -114,6 +117,10 @@ struct OSPSG_INTERFACE Importer : public Node
     argv = _argv;
   }
 
+  inline void setScheduler(SchedulerPtr _scheduler) {
+    scheduler = _scheduler;
+  }
+
   float pointSize{0.0f};
 
  protected:
@@ -128,6 +135,7 @@ struct OSPSG_INTERFACE Importer : public Node
   InstanceConfiguration ic{STATIC};
   int argc{0};
   char ** argv{nullptr};
+  SchedulerPtr scheduler{nullptr};
 };
 
 // global assets catalogue
@@ -139,8 +147,11 @@ extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 inline std::shared_ptr<Importer> getImporter(
     NodePtr root, rkcommon::FileName fileName)
 {
+  // Get the absolute path to the file for use in AssetsCatalogue 
+  rkcommon::FileName fullName = fileName.canonical();
   std::string baseName = fileName.name();
-  auto fnd = importerMap.find(fileName.ext());
+
+  auto fnd = importerMap.find(rkcommon::utility::lowerCase(fileName.ext()));
   if (fnd == importerMap.end()) {
     std::cout << "No importer for " << fileName << std::endl;
     return nullptr;
@@ -148,16 +159,17 @@ inline std::shared_ptr<Importer> getImporter(
   std::string importer = fnd->second;
   std::string nodeName = baseName + "_importer";
 
-  if (cat.find(baseName) != cat.end()) {
+  if (cat.find(fullName) != cat.end()) {
     // Existing import, instance it!
     std::cout << "Instancing: " << nodeName << std::endl;
 
     // Importer node and its rootXfm
-    auto &origNode = cat[baseName];
+    auto origNode = cat[fullName].lock();
     std::string rootXfmName = baseName + "_rootXfm";
 
     if (!origNode->hasChild(rootXfmName)) {
-      std::cout << "!!! error... importer rootXfm is missing?!" << std::endl;
+      std::cout << "!!! error... importer rootXfm is missing?! Is async tasking enabled? --no-async-tasking to disable" << std::endl;
+      return nullptr;
     }
     auto &rootXfmNode = origNode->child(rootXfmName);
 
@@ -188,7 +200,7 @@ inline std::shared_ptr<Importer> getImporter(
       importNode->setVolumeParams(vp);
     }
     importNode->setFileName(fileName);
-    cat.insert(AssetsCatalogue::value_type(baseName, importNode));
+    cat.insert(AssetsCatalogue::value_type(fullName, importNode));
     root->add(importNode);
     return importNode;
   }

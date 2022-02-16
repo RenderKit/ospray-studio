@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -31,14 +31,11 @@ struct OSPSG_INTERFACE Texture2D : public Texture
   /*! \detailed if file does not exist, or cannot be loaded for
       some reason, return NULL. Multiple loads from the same file
       will return the *same* texture object */
-  void load(const FileName &fileName,
+  bool load(const FileName &fileName,
       const bool preferLinear = false,
       const bool nearestFilter = false,
-      const int colorChannel = 4); // default to sampling all channels
-  void load(void *memory,
-      const bool preferLinear = false,
-      const bool nearestFilter = false,
-      const int colorChannel = 4); // default to sampling all channels
+      const int colorChannel = 4, // default to sampling all channels
+      const void *memory = nullptr);
 
   std::string fileName;
 

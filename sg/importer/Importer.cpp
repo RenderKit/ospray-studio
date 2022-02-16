@@ -46,6 +46,7 @@ OSPSG_INTERFACE void importScene(
   sgFile >> j;
 
   std::map<std::string, JSON> jImporters;
+  std::map<std::string, JSON> jGenerators;
   sg::NodePtr lights;
 
   // If the sceneFile contains a world (importers and lights), parse it here
@@ -82,6 +83,10 @@ OSPSG_INTERFACE void importScene(
             std::cerr << "Unable to find " << fileName << std::endl;
         }
       } break;
+      case NodeType::GENERATOR:
+        // Handle generators in the world
+        jGenerators[jChild["name"]] = jChild;
+        break;
       case NodeType::LIGHTS:
         // Handle lights in either the (world) or the lightsManager
         lights = createNodeFromJSON(jChild);
@@ -92,8 +97,49 @@ OSPSG_INTERFACE void importScene(
     }
   }
 
+  //
+  // Generator Objects
+  //
+  for (auto &jGenerator : jGenerators) {
+    auto &jG = jGenerator.second;
+    std::string name = jG["name"];
+    std::string subType = jG["subType"];
+    std::cout << "  Generator: " << name << ":" << subType << std::endl;
+
+    auto world = context->frame->childNodeAs<sg::Node>("world");
+    auto gen = &world->createChildAs<sg::Generator>(name, subType);
+    if (gen) {
+      // Allow the generator access to the material registry
+      gen->setMaterialRegistry(context->baseMaterialRegistry);
+
+      // Parse entire generator json for children.  Only add valid values
+      auto children = createNodeFromJSON(jG)->children();
+      std::function<void(Node &, const FlatMap<std::string, NodePtr> &)>
+          setJsonValues = [&setJsonValues](Node &node,
+                          const FlatMap<std::string, NodePtr> &children) {
+            for (auto &child : children) {
+              auto &cn = child.second;
+              if (cn->value().valid()) {
+                if (node.hasChild(cn->name()))
+                  node.child(cn->name()) = cn->value();
+                else
+                  node.add(cn);
+              }
+              // recurse if there are children
+              if (!cn->children().empty())
+                setJsonValues(node.child(cn->name()), cn->children());
+            }
+          };
+
+      setJsonValues(*gen, children);
+
+      // Commit any parameter changes
+      gen->commit();
+    }
+  }
+
   // refreshScene imports all filesToImport
-  if (!context->filesToImport.empty())
+  if (!jGenerators.empty() || !context->filesToImport.empty())
     context->refreshScene(true);
 
   // Any lights in the scenefile World are added here
@@ -115,6 +161,12 @@ OSPSG_INTERFACE void importScene(
     sg::NodePtr materials = createNodeFromJSON(j["materialRegistry"]);
 
     for (auto &mat : materials->children()) {
+      // skip non-material nodes (e.g. renderer type)
+      if (mat.second->type() != NodeType::MATERIAL)
+        continue;
+      // kill old parent (from previous session); avoids a segfault when
+      // modifying parameters from loaded materials
+      mat.second->killAllParents();
 
       // XXX temporary workaround.  Just set params on existing materials.
       // Prevents loss of texture data.  Will be fixed when textures can reload.
@@ -155,12 +207,18 @@ OSPSG_INTERFACE void importScene(
     context->updateCamera();
   }
 
-  // after import, correctly apply transform import nodes
+  //
+  // After import, correctly apply transform on import nodes
   // (must happen after refreshScene)
+  //
   auto world = context->frame->childNodeAs<sg::Node>("world");
 
+  //
+  // File Importer Objects
+  // (already imported, just need to apply scene file transform)
+  //
   for (auto &jImport : jImporters) {
-    // lamdba, find node by name
+    // lambda, find node by name
     std::function<sg::NodePtr(const sg::NodePtr, const std::string &)>
       findFirstChild = [&findFirstChild](const sg::NodePtr root,
           const std::string &name) -> sg::NodePtr {
@@ -182,7 +240,7 @@ OSPSG_INTERFACE void importScene(
       };
 
     auto importNode = findFirstChild(world, jImport.first);
-    if (importNode) {
+    if (importNode && jImport.second["children"][0]["subType"] == "transform") {
       // should be associated xfm node
       auto childName = jImport.second["children"][0]["name"];
       Node &xfmNode = importNode->child(childName);

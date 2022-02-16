@@ -1,3 +1,5 @@
+## Copyright 2020-2022 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
 
 if(ospray_FOUND)
     return()
@@ -8,7 +10,7 @@ message(STATUS "Looking for OSPRay...")
 find_package(ospray QUIET)
 
 if(NOT DEFINED OSPRAY_VERSION)
-  set(OSPRAY_VERSION 2.7.1)
+  set(OSPRAY_VERSION 2.9.0)
 endif()
 
 if(ospray_FOUND)
@@ -44,7 +46,7 @@ else()
         message (STATUS "Setting -D_GLIBCXX_USE_CXX11_ABI=0")
     endif()
 
-    ## The pre-build library was compiled with TBB 2021.2.0, so ensure the same TBB is found
+    ## Ensure same version of TBB is found that pre-build library was compiled with.
     set(FORCE_TBB_VERSION ON)
 
     find_package(ospray ${OSPRAY_VERSION} REQUIRED)

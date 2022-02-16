@@ -107,28 +107,35 @@ void SearchWidget::addSearchResultsUI(NR root)
     }
   }
 
-  ImGui::BeginChild(
-      "geometry", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
-  bool userUpdated = false;
+  ImGui::BeginChild("Results",
+      ImVec2(0, numItemsPerPage * ImGui::GetFontSize()),
+      true,
+      ImGuiWindowFlags_HorizontalScrollbar);
+  static int selectedIndex;
   if (searched) {
     for (int i = (currentPage - 1) * numItemsPerPage;
          i < std::min((int)results.size(), currentPage * numItemsPerPage);
          i++) {
+      const bool isSelected = (selectedIndex == i);
       if (results[i])
-        results[i]->traverse<ospray::sg::GenerateImGuiWidgets>(
-            ospray::sg::TreeState::ALLCLOSED, userUpdated);
-      // Don't continue traversing
-      if (userUpdated)
-        break;
+        if (ImGui::Selectable(results[i]->name().c_str(), isSelected)) {
+          selectedIndex = i;
+          selectedResult = results[selectedIndex]->name();
+        }
+      if (isSelected)
+        ImGui::SetItemDefaultFocus();
     }
   } else {
-    for (auto &node : root.children()) {
+    for (int i = 0; i < root.children().size(); i++) {
+      auto &node = root.children().at_index(i);
       if (isOneOf(node.second->type(), displayTypes)) {
-        node.second->traverse<ospray::sg::GenerateImGuiWidgets>(
-            displayState, userUpdated);
-        // Don't continue traversing
-        if (userUpdated)
-          break;
+        const bool isSelected = (selectedIndex == i);
+        if (ImGui::Selectable(node.first.c_str(), isSelected)) {
+          selectedIndex = i;
+          selectedResult = node.first;
+        }
+        if (isSelected)
+          ImGui::SetItemDefaultFocus();
       }
     }
   }

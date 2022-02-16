@@ -5404,11 +5404,12 @@ static bool ParseCamera(Camera *camera, std::string *err, const json &o,
             store_original_json_for_extras_and_extensions)) {
       return false;
     }
-  } else {
+  } else if (camera->type.compare("panoramic") != 0) {
     if (err) {
       std::stringstream ss;
       ss << "Invalid camera type: \"" << camera->type
-         << "\". Must be \"perspective\" or \"orthographic\"" << std::endl;
+         << "\". Must be \"perspective\", \"panoramic\", or \"orthographic\""
+         << std::endl;
       (*err) += ss.str();
     }
     return false;

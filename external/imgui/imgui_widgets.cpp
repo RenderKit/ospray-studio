@@ -48,6 +48,8 @@ Index of this file:
 #include <stdint.h>     // intptr_t
 #endif
 
+#include <cmath>        // std::pow
+
 //-------------------------------------------------------------------------
 // Warnings
 //-------------------------------------------------------------------------
@@ -4857,6 +4859,10 @@ bool ImGui::ColorEdit4(const char* label, float col[4], ImGuiColorEditFlags flag
         };
         const int fmt_idx = hide_prefix ? 0 : (flags & ImGuiColorEditFlags_DisplayHSV) ? 2 : 1;
 
+#if 1 // XXX Adjust color picker displayed values for colorspace
+#define toSRGB(x) (g.IO.ConfigFlags & ImGuiConfigFlags_IsSRGB ? std::pow(x, 2.2f) : x)
+#define fromSRGB(x) (g.IO.ConfigFlags & ImGuiConfigFlags_IsSRGB ? std::pow(x, 1.f/2.2f) : x)
+#endif
         for (int n = 0; n < components; n++)
         {
             if (n > 0)
@@ -4866,12 +4872,16 @@ bool ImGui::ColorEdit4(const char* label, float col[4], ImGuiColorEditFlags flag
             // FIXME: When ImGuiColorEditFlags_HDR flag is passed HS values snap in weird ways when SV values go below 0.
             if (flags & ImGuiColorEditFlags_Float)
             {
+                f[n] = toSRGB(f[n]);
                 value_changed |= DragFloat(ids[n], &f[n], 1.0f / 255.0f, 0.0f, hdr ? 0.0f : 1.0f, fmt_table_float[fmt_idx][n]);
+                f[n] = fromSRGB(f[n]);
                 value_changed_as_float |= value_changed;
             }
             else
             {
+                i[n] = IM_F32_TO_INT8_UNBOUND(toSRGB(f[n]));
                 value_changed |= DragInt(ids[n], &i[n], 1.0f, 0, hdr ? 0 : 255, fmt_table_int[fmt_idx][n]);
+                i[n] = IM_F32_TO_INT8_UNBOUND(fromSRGB(i[n] / 255.f));
             }
             if (!(flags & ImGuiColorEditFlags_NoOptions))
                 OpenPopupOnItemClick("context");

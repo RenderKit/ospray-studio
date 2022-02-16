@@ -53,29 +53,66 @@ namespace ospray {
   }
 
   template <>
-  inline void Node::setValue(Any val)
+  inline void Node::setValue(Any val, bool markModified)
   {
     if (val != properties.value) {
       properties.value = val;
-      markAsModified();
+      if (markModified)
+        markAsModified();
     }
   }
 
   template <typename T>
-  inline void Node::setValue(T val)
+  inline void Node::setValue(T val, bool markModified)
   {
-    setValue(Any(val));
+    setValue(Any(val), markModified);
   }
 
   template <typename T>
   inline T &Node::valueAs()
   {
+    if (!properties.value.valid()) {
+      std::stringstream msg;
+      msg << "Node::valueAs() can't query value from an empty Any\n";
+      msg << "  Node::name() = " << name() << "\n";
+      msg << "  Node::type() = " << NodeTypeToString[type()] << "\n";
+      msg << "  Node::subType() = " << subType() << "\n";
+      throw std::runtime_error(msg.str());
+    }
+    if (!properties.value.is<T>()) {
+      std::stringstream msg;
+      msg << "Node::valueAs(): Incorrect type queried for Any\n";
+      msg << "  Node::name() = " << name() << "\n";
+      msg << "  Node::type() = " << NodeTypeToString[type()] << "\n";
+      msg << "  Node::subType() = " << subType() << "\n";
+      msg << "  Node::value() = " << value().toString() << "\n";
+      msg << "  queried type = " << rkcommon::utility::nameOf<T>() << "\n";
+      throw std::runtime_error(msg.str());
+    }
     return properties.value.get<T>();
   }
 
   template <typename T>
   inline const T &Node::valueAs() const
   {
+    if (!properties.value.valid()) {
+      std::stringstream msg;
+      msg << "Node::valueAs(): Can't query value from an empty Any\n";
+      msg << "  Node::name() = " << name() << "\n";
+      msg << "  Node::type() = " << NodeTypeToString[type()] << "\n";
+      msg << "  Node::subType() = " << subType() << "\n";
+      throw std::runtime_error(msg.str());
+    }
+    if (!properties.value.is<T>()) {
+      std::stringstream msg;
+      msg << "Node::valueAs(): Incorrect type queried for Any\n";
+      msg << "  Node::name() = " << name() << "\n";
+      msg << "  Node::type() = " << NodeTypeToString[type()] << "\n";
+      msg << "  Node::subType() = " << subType() << "\n";
+      msg << "  Node::value() = " << value().toString() << "\n";
+      msg << "  queried type = " << rkcommon::utility::nameOf<T>() << "\n";
+      throw std::runtime_error(msg.str());
+    }
     return properties.value.get<T>();
   }
 
@@ -148,22 +185,19 @@ namespace ospray {
         " implement 'bool visit(Node &node, TraversalContext &ctx)'"
         "!");
 
-    std::string oldName = ctx.name;
+    if (visitor(*this, ctx)) { // traverse children
+      ctx.level++;
+      std::string oldName = ctx.name;
 
-    bool traverseChildren = visitor(*this, ctx);
-
-    ctx.level++;
-
-    if (traverseChildren) {
       for (auto &child : properties.children) {
         ctx.name = child.first;
         child.second->traverse(visitor, ctx);
       }
+
+      ctx.name = oldName;
+      ctx.level--;
     }
 
-    ctx.level--;
-
-    ctx.name = oldName;
     visitor.postChildren(*this, ctx);
   }
 
@@ -264,9 +298,9 @@ namespace ospray {
   }
 
   template <typename HANDLE_T, NodeType TYPE>
-  inline void OSPNode<HANDLE_T, TYPE>::setHandle(HANDLE_T handle)
+  inline void OSPNode<HANDLE_T, TYPE>::setHandle(HANDLE_T handle, bool markModified)
   {
-    setValue(handle);
+    setValue(handle, markModified);
   }
 
   template <typename HANDLE_T, NodeType TYPE>

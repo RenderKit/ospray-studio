@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -12,6 +12,7 @@
 #include "ospray/ospray_util.h"
 // ospray sg
 #include "sg/Frame.h"
+#include "sg/Scheduler.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/lights/LightsManager.h"
 // studio app
@@ -37,14 +38,21 @@ enum class StudioMode
   GUI,
   BATCH,
   HEADLESS,
-  TIMESERIES
+  TIMESERIES,
+#ifdef USE_BENCHMARK
+  BENCHMARK,
+#endif
 };
 
 const static std::map<std::string, StudioMode> StudioModeMap = {
     {"gui", StudioMode::GUI},
     {"batch", StudioMode::BATCH},
     {"server", StudioMode::HEADLESS},
-    {"timeseries", StudioMode::TIMESERIES}};
+    {"timeseries", StudioMode::TIMESERIES},
+#ifdef USE_BENCHMARK
+    {"benchmark", StudioMode::BENCHMARK},
+#endif
+  };
 
 const static std::map<std::string, vec2i> standardResolutionSizeMap = {
   {"144p", {256, 144}},
@@ -55,9 +63,9 @@ const static std::map<std::string, vec2i> standardResolutionSizeMap = {
   {"1080p", {1920, 1080}},
   {"1440p", {2560, 1440}},
   {"2160p", {3840, 2160}},
-  {"4K", {3840, 2160}},
+  {"4k", {3840, 2160}},
   {"4320p", {7680, 4320}},
-  {"8K", {7680, 4320}}};
+  {"8k", {7680, 4320}}};
 
 
 // Common across all modes
@@ -99,7 +107,8 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
     baseMaterialRegistry = frame->baseMaterialRegistry;
     lightsManager = frame->lightsManager;
     mode = _mode;
-    optImageSize = _common.defaultSize;
+    optResolution = _common.defaultSize;
+    scheduler = sg::Scheduler::create();
   }
 
   virtual ~StudioContext() {}
@@ -120,6 +129,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<sg::LightsManager> lightsManager;
   std::shared_ptr<AnimationManager> animationManager{nullptr};
   std::shared_ptr<PluginManager> pluginManager;
+  std::shared_ptr<sg::Scheduler> scheduler;
 
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
@@ -132,22 +142,23 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   std::string optRendererTypeStr = "pathtracer";
   std::string optCameraTypeStr   = "perspective";
-  std::string optImageName       = "ospBatch";
-  vec2i optImageSize;
   int optSPP                     = 32;
   float optVariance              = 0.f; // varianceThreshold
   int optPF                      = -1; // use default
-  int optDenoiser                = 0;
+  bool optDenoiser{false};
   bool optGridEnable             = false;
   vec3i optGridSize              = {1, 1, 1};
   // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
   int optStereoMode               = 0;
   float optInterpupillaryDistance = 0.0635f;
-  sg::NodePtr volumeParams;
+  sg::NodePtr volumeParams{};
   float pointSize{0.05f};
   vec2i optResolution{0, 0};
   std::string optSceneConfig{""};
   std::string optInstanceConfig{""};
+  bool optDoAsyncTasking{false};
+  float maxContribution{math::inf};
+  int frameAccumLimit{0};
 
   StudioCommon &studioCommon;
 
@@ -156,43 +167,71 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   bool showInstBBoxFrame{false};
 
  protected:
+  virtual box3f getSceneBounds();
+
   bool sgScene{false}; // whether we are loading a scene file
 
 };
 
-inline OSPError initializeOSPRay(int &argc, const char **argv)
+inline OSPError initializeOSPRay(int &argc, const char **argv, bool use_mpi)
 {
-  // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
-  // e.g. "--osp:debug"
-  OSPError initError = ospInit(&argc, argv);
+  OSPDevice device;
 
-  if (initError != OSP_NO_ERROR) {
-    std::cerr << "OSPRay not initialized correctly!" << std::endl;
-    return initError;
+  if (use_mpi)
+  {
+    //TODO: calling ospInit seems to be required, 
+    //even though the OSPRay MPI warns us not to do this...
+    OSPError initError = ospInit(&argc, argv);
+
+    if (initError != OSP_NO_ERROR) {
+      std::cerr << "OSPRay not initialized correctly!" << std::endl;
+      return initError;
+    }
+
+    device = ospGetCurrentDevice();
+    if (!device) {
+      std::cerr << "OSPRay device could not be fetched!" << std::endl;
+      return OSP_UNKNOWN_ERROR;
+    }
+
+    //TODO: setErrorCallback and ospDeviceSetParam calls seem to break mpi. Why?
   }
+  else 
+  {
+    // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
+    // e.g. "--osp:debug"
 
-  OSPDevice device = ospGetCurrentDevice();
-  if (!device) {
-    std::cerr << "OSPRay device could not be fetched!" << std::endl;
-    return OSP_UNKNOWN_ERROR;
+    OSPError initError = ospInit(&argc, argv);
+
+    if (initError != OSP_NO_ERROR) {
+      std::cerr << "OSPRay not initialized correctly!" << std::endl;
+      return initError;
+    }
+
+    device = ospGetCurrentDevice();
+
+    if (!device) {
+      std::cerr << "OSPRay device could not be fetched!" << std::endl;
+      return OSP_UNKNOWN_ERROR;
+    }
+
+    // set an error callback to catch any OSPRay errors
+    ospDeviceSetErrorCallback(
+        device,
+        [](void *, OSPError, const char *errorDetails) {
+          std::cerr << "OSPRay error: " << errorDetails << std::endl;
+        },
+        nullptr);
+
+    ospDeviceSetStatusCallback(
+        device, [](void *, const char *msg) { std::cout << msg; }, nullptr);
+
+    bool warnAsErrors = true;
+    auto logLevel = OSP_LOG_WARNING;
+
+    ospDeviceSetParam(device, "warnAsError", OSP_BOOL, &warnAsErrors);
+    ospDeviceSetParam(device, "logLevel", OSP_INT, &logLevel);
   }
-
-  // set an error callback to catch any OSPRay errors
-  ospDeviceSetErrorCallback(
-      device,
-      [](void *, OSPError, const char *errorDetails) {
-        std::cerr << "OSPRay error: " << errorDetails << std::endl;
-      },
-      nullptr);
-
-  ospDeviceSetStatusCallback(
-      device, [](void *, const char *msg) { std::cout << msg; }, nullptr);
-
-  bool warnAsErrors = true;
-  auto logLevel = OSP_LOG_WARNING;
-
-  ospDeviceSetParam(device, "warnAsError", OSP_BOOL, &warnAsErrors);
-  ospDeviceSetParam(device, "logLevel", OSP_INT, &logLevel);
 
   ospDeviceCommit(device);
   ospDeviceRelease(device);

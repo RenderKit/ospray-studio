@@ -12,7 +12,7 @@ Camera::Camera(const std::string &type)
   setHandle(handle);
 
   createChild("position", "vec3f", vec3f(0.f));
-  createChild("direction", "vec3f", vec3f(1.f));
+  createChild("direction", "vec3f", vec3f(0.0f, 0.0f, 1.f));
   createChild("up", "vec3f", vec3f(0.f, 1.f, 0.f));
 
   createChild("nearClip", "float", 0.f);
@@ -29,6 +29,24 @@ Camera::Camera(const std::string &type)
       0.0f);
   child("motion blur").setSGOnly();
   child("motion blur").setMinMax(0.f, 1.f);
+
+  createChild("shutterType",
+      "uchar",
+      "type of shutter, for motion blur\n"
+      "  0 = global\n"
+      "  1 = rolling right\n"
+      "  2 = rolling left\n"
+      "  3 = rolling down\n"
+      "  4 = rolling up",
+      uint8_t(OSP_SHUTTER_GLOBAL));
+  child("shutterType")
+      .setMinMax(uint8_t(OSP_SHUTTER_GLOBAL), uint8_t(OSP_SHUTTER_ROLLING_UP));
+
+  createChild("rollingShutterDuration",
+      "float",
+      "for a rolling shutter (see shutterType), defines the \"open\" time per line",
+      0.0f);
+  child("rollingShutterDuration").setMinMax(0.f, 1.f);
 
   createChild("shutter", "range1f", range1f(0.0f));
   child("shutter").setSGNoUI();

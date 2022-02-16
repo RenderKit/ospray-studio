@@ -1,25 +1,26 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "../../Node.h"
+#include "sg/Node.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE Light : public OSPNode<cpp::Light, NodeType::LIGHT>
-  {
-    Light(std::string type);
-    ~Light() override = default;
-    NodeType type() const override;
+struct OSPSG_INTERFACE Light : public OSPNode<cpp::Light, NodeType::LIGHT>
+{
+  Light(std::string type);
+  ~Light() override = default;
+  NodeType type() const override;
 
-    void initOrientation(
-    std::unordered_map<std::string, std::pair<vec3f, bool>> &propMap);
+  // Lights are either in the World lights list or in a group list.
+  bool inGroup{false};
 
-   private:
-    bool setOrientation{true};
-  };
+ protected:
+  void preCommit() override;
+  void addMeasuredSource(std::string fileName = "");
+};
 
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray

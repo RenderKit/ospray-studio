@@ -1,4 +1,4 @@
-// Copyright 2018-2021 Intel Corporation
+// Copyright 2018-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ospStudio.h"
@@ -6,8 +6,14 @@
 #include "MainWindow.h"
 #include "Batch.h"
 #include "TimeSeriesWindow.h"
+#include "sg/Mpi.h"
+
 // CLI
 #include <CLI11.hpp>
+
+#ifdef USE_BENCHMARK
+#include "Benchmark.h"
+#endif
 
 using namespace ospray;
 using rkcommon::removeArgs;
@@ -59,7 +65,17 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "--renderer",
     optRendererTypeStr,
     "set the renderer type"
-  )->check(CLI::IsMember({"scivis", "pathtracer", "ao", "debug"}));
+  )->check(CLI::IsMember({"scivis", "pathtracer", "ao", "debug", "mpiRaycast"}));
+  app->add_option(
+    "--spp",
+    optSPP,
+    "set the number of samples per pixels for the renderer"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--variance",
+    optVariance,
+    "set the threshold for adaptive accumluation when rendering"
+  )->check(CLI::PositiveNumber);
   app->add_option(
     "--pixelfilter",
     optPF,
@@ -72,16 +88,21 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       // s is one of: X"p", X"k", X"x"Y, X
       // e.g. 720p, 4K, 1024x768, 1024
 
+      // Normalize the argument by making it lowercase
+      std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+        return std::tolower(c);
+      });
+
       auto it = standardResolutionSizeMap.find(s);
-      int found = s.find('x');
+      int foundX = s.find('x');
 
       if (it != standardResolutionSizeMap.end()) {
         // standard size: 720p, 1080p, etc
         optResolution = it->second;
-      } else if (found != std::string::npos) {
+      } else if (foundX != std::string::npos) {
         // exact resolution: 1024x768, 512x512, etc
-        std::string width = s.substr(0, found);
-        std::string height = s.substr(found + 1);
+        std::string width = s.substr(0, foundX);
+        std::string height = s.substr(foundX + 1);
         optResolution = vec2i(std::stoi(width), std::stoi(height));
       } else {
         // exact square resolution: 1024, 512, etc
@@ -140,6 +161,42 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     pointSize,
     "Set the importer's point size"
   );
+  app->add_option(
+    "--maxContribution",
+    maxContribution,
+    "Set max value for samples before accumulation into the framebuffer"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--accumLimit",
+    frameAccumLimit,
+    "Set accumulation limit for the frame"
+  )->check(CLI::PositiveNumber);
+  app->add_flag(
+    "--async-tasking{true},--no-async-tasking{false}",
+    optDoAsyncTasking,
+    "Disable asynchronous tasking (and asynchronous dataset loading)"
+  );
+}
+
+box3f StudioContext::getSceneBounds()
+{
+  box3f bounds;
+
+#ifdef USE_MPI
+  box3f localBounds = frame->child("world").bounds();
+  if (sgUsingMpi()){
+      MPI_Allreduce(
+          &localBounds.lower, &bounds.lower, 3, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(
+          &localBounds.upper, &bounds.upper, 3, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+  }
+  else
+#endif
+  {
+    bounds = frame->child("world").bounds();
+  }
+
+  return bounds;
 }
 
 int main(int argc, const char *argv[])
@@ -150,6 +207,7 @@ int main(int argc, const char *argv[])
   // will remove OSPRay specific args, parse fully down further
   bool version = false;
   bool verify_install = false;
+  bool use_mpi = false;
   for (int i = 1; i < argc; i++) {
     const auto arg = std::string(argv[i]);
     if (arg == "--version") {
@@ -160,6 +218,10 @@ int main(int argc, const char *argv[])
       verify_install = true;
       removeArgs(argc, argv, i, 1);
     }
+    else if (arg == "--mpi") {
+      use_mpi = true;
+      removeArgs(argc, argv, i, 1);
+    }
   }
 
   if (version) {
@@ -168,8 +230,28 @@ int main(int argc, const char *argv[])
     return 0;
   }
 
+  if (use_mpi) {
+
+#ifdef USE_MPI
+    use_mpi = ospLoadModule("mpi") == OSP_NO_ERROR;
+    if (!use_mpi) {
+      std::cout << "Fatal: ospStudio launched with --mpi, but could not load the OSPRay MPI module." << std::endl;
+      return 1;
+    }
+    else {
+      sgInitializeMPI(argc, argv);
+      std::cout << "ospStudio --mpi, rank " << sgMpiRank() << "/" << sgMpiWorldSize() << "\n";
+    }
+
+#else //USE_MPI
+    std::cout << "Fatal: ospStudio launched with --mpi, but has not been compiled with MPI support." << std::endl;
+    return 1;
+#endif
+
+  }
+
   // Initialize OSPRay
-  OSPError error = initializeOSPRay(argc, argv);
+  OSPError error = initializeOSPRay(argc, argv, use_mpi);
 
   // Verify install then exit
   if (verify_install) {
@@ -236,6 +318,11 @@ int main(int argc, const char *argv[])
     case StudioMode::TIMESERIES:
       context = std::make_shared<TimeSeriesWindow>(studioCommon);
       break;
+#ifdef USE_BENCHMARK
+    case StudioMode::BENCHMARK:
+      context = std::make_shared<BenchmarkContext>(studioCommon);
+      break;
+#endif
     default:
       std::cerr << "unknown mode!  How did I get here?!\n";
     }
@@ -247,6 +334,14 @@ int main(int argc, const char *argv[])
   }
 
   ospShutdown();
+
+#ifdef USE_MPI
+  if (sgUsingMpi()) {
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
+  }
+#endif
+
 
   return 0;
 }

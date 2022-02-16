@@ -1,4 +1,4 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
@@ -23,6 +23,9 @@ QuadLight::QuadLight() : Light("quad")
   createChild("edge2", "vec3f", vec3f(0.f, 1.f, 0.f));
 
   child("intensityQuantity").setValue(uint8_t(OSP_INTENSITY_QUANTITY_RADIANCE));
+
+  // QuadLight supports a photometric measuredSource
+  addMeasuredSource();
 }
 
 } // namespace sg

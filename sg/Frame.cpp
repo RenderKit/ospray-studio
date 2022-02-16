@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Frame.h"
@@ -35,42 +35,40 @@ NodeType Frame::type() const
   return NodeType::FRAME;
 }
 
-void Frame::startNewFrame(bool interacting)
+void Frame::startNewFrame()
 {
   auto &fb = childAs<FrameBuffer>("framebuffer");
   auto &camera = childAs<Camera>("camera");
   auto &renderer = childAs<Renderer>("renderer");
   auto &world = childAs<World>("world");
 
+  // App navMode set via setNavMode() vs current frame-state navMode
+  if (navMode != child("navMode").valueAs<bool>())
+    child("navMode") = navMode && (!navMode || isModified());
+
   // If working on a frame, cancel it, something has changed
   if (isModified()) {
     cancelFrame();
     waitOnFrame();
     resetAccumulation();
-    // Enable navMode
-    if (!navMode)
-      child("navMode") = true;
-  } else {
-    // No frame changes, disable navMode
-    if (navMode)
-      child("navMode") = false;
   }
 
   refreshFrameOperations();
 
-  // Commit only when modified and not while interacting.
-  if (isModified() && !interacting)
+  // Commit only when modified
+  if (isModified())
     commit();
 
-  if (!(interacting || pauseRendering || accumLimitReached())) {
+  if (!(pauseRendering || accumLimitReached())) {
     auto future = fb.handle().renderFrame(
         renderer.handle(), camera.handle(), world.handle());
-    setHandle(future);
-    commit(); // XXX setHandle modifies node, but nothing else has changed yet
+    setHandle(future, false); // setHandle but don't update modified time
     canceled = false;
 
     if (immediatelyWait)
       waitOnFrame();
+    if (!accumLimitReached())
+      currentAccum++;
   }
 }
 
@@ -97,8 +95,6 @@ void Frame::waitOnFrame()
   auto future = value().valid() ? handle() : nullptr;
   if (future)
     future.wait(OSP_FRAME_FINISHED);
-  if (!accumLimitReached())
-    currentAccum++;
 }
 
 void Frame::cancelFrame()
@@ -112,6 +108,11 @@ void Frame::cancelFrame()
 bool Frame::accumLimitReached()
 {
   return (accumLimit > 0 && currentAccum >= accumLimit);
+}
+
+bool Frame::accumAtFinal()
+{
+  return (accumLimit > 0 && currentAccum >= accumLimit - 1);
 }
 
 void Frame::resetAccumulation()
@@ -143,35 +144,46 @@ void Frame::saveFrame(std::string filename, int flags)
 void Frame::refreshFrameOperations()
 {
   auto &fb = childAs<FrameBuffer>("framebuffer");
+  auto &vt = childAs<Renderer>("renderer")["varianceThreshold"];
   auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
   auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
+
+  denoiserEnabled &=
+      (!denoiseFBFinalFrame || (denoiseFBFinalFrame && (accumAtFinal()
+          || (fb.variance() < vt.valueAs<float>()))));
+
+  denoiserEnabled &= !(denoiseOnlyPathTracer
+      && (child("renderer")["type"].valueAs<std::string>() != "pathtracer"));
 
   fb.updateDenoiser(denoiserEnabled);
   fb.updateToneMapper(toneMapperEnabled);
   fb.updateImageOperations();
+
+  uint8_t newFrameOpsState = denoiserEnabled << 1 | toneMapperEnabled;
+  static uint8_t lastFrameOpsState{0};
+
+  // If there's a change and accumLimit is already reach, force another frame so
+  // operations will occur
+  if ((newFrameOpsState != lastFrameOpsState) && accumLimitReached())
+    currentAccum--;
+
+  lastFrameOpsState = newFrameOpsState;
 }
 
 void Frame::preCommit()
 {
-  static bool currentNavMode = navMode;
-  navMode = child("navMode").valueAs<bool>();
+  // Recreate framebuffers on windowsize or scale changes.
+  auto &fb = child("framebuffer");
+  auto oldSize = fb["size"].valueAs<vec2i>();
+  auto scale = (navMode ? child("scaleNav").valueAs<float>()
+      : child("scale").valueAs<float>());
 
-  if (navMode != currentNavMode) {
-    currentNavMode = navMode;
-
-    // Recreate framebuffers on windowsize or scale changes.
-    auto &fb = child("framebuffer");
-    auto oldSize = fb["size"].valueAs<vec2i>();
-    auto scale = (navMode ? child("scaleNav").valueAs<float>()
-                          : child("scale").valueAs<float>());
-
-    auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
-    if (oldSize != newSize)
-      fb["size"] = newSize;
-  }
+  auto newSize = (vec2i)(child("windowSize").valueAs<vec2i>() * scale);
+  if (oldSize != newSize)
+    fb["size"] = newSize;
 
   // The materials list needs to know of any change in renderer type.
-  // Yet, the renderer has no direct way of notifying the material registery,
+  // Yet, the renderer has no direct way of notifying the material registry,
   // so update the rendererType here.
   auto &renderer = childAs<Renderer>("renderer");
   if (renderer.isModified())

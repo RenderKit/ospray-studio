@@ -1,4 +1,4 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -28,6 +28,7 @@ struct OSPSG_INTERFACE LightsManager
   bool addLight(std::string name, std::string lightType);
   bool addLight(NodePtr light);
   void addLights(std::vector<NodePtr> &lights);
+  void addGroupLights(std::vector<NodePtr> &lights);
   bool removeLight(std::string name);
   void clear();
 
@@ -41,7 +42,7 @@ struct OSPSG_INTERFACE LightsManager
 
  protected:
   std::vector<std::string> lightNames;
-  std::vector<cpp::Light> cppLightObjects;
+  std::vector<cpp::Light> cppWorldLightObjects;
 
   virtual void preCommit() override;
   virtual void postCommit() override;

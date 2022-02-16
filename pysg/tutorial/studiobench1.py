@@ -1,4 +1,4 @@
-#Copyright 2021 Intel Corporation
+#Copyright 2021-2022 Intel Corporation
 #SPDX-License-Identifier: Apache-2.0
 
 """
@@ -102,8 +102,8 @@ sg.updateCamera(cam, arcballCamera)
   
 # First frame will be "navigation" resolution.
 # Render again for full sized frame.
-frame.startNewFrame(bool(0))
-frame.startNewFrame(bool(0))
+frame.startNewFrame()
+frame.startNewFrame()
 frame.waitOnFrame()
 frame.saveFrame("benchmark_initial.png", 0)
 elapsed = 0.0
@@ -113,9 +113,9 @@ for frameNum in range(0,numFrames):
   ts = time.time()
   arcballCamera.rotate(vec2f(-2.0/numFrames, 0.0),vec2f(2.0/numFrames, 0.0))
   sg.updateCamera(cam, arcballCamera)
-  frame.startNewFrame(bool(0))
+  frame.startNewFrame()
   frame.waitOnFrame()
-  frame.startNewFrame(bool(0))
+  frame.startNewFrame()
   frame.waitOnFrame()
   te = time.time()-ts
   elapsed = elapsed+te

@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Texture2D.h"
@@ -224,7 +224,7 @@ void Texture2D::loadTexture_PFM(const std::string &fileName)
                 "file to reproduce the error.");
     }
 
-    // read scale factor/endiannes
+    // read scale factor/endianness
     float scaleEndian = 0.0;
     rc = fscanf(file, "%f\n", &scaleEndian);
 
@@ -454,11 +454,15 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
 
 // Texture2D public methods /////////////////////////////////////////////////
 
-void Texture2D::load(const FileName &_fileName,
+bool Texture2D::load(const FileName &_fileName,
     const bool _preferLinear,
     const bool _nearestFilter,
-    const int _colorChannel)
+    const int _colorChannel,
+    const void *memory)
 {
+  bool success = false;
+  // Not a true filename in the case memory != nullptr (since texture is
+  // already in memory), but a unique name for the texture cache.
   fileName = _fileName;
 
   // Check the cache before creating a new texture
@@ -471,6 +475,16 @@ void Texture2D::load(const FileName &_fileName,
       texelData = cache->texelData;
     }
   } else {
+    if (memory) {
+      size_t size = params.size.product() * params.components * params.depth;
+      std::shared_ptr<void> data(new uint8_t[size]);
+      std::memcpy(data.get(), memory, size);
+      // Move shared_ptr ownership
+      texelData = data;
+
+      // Add this texture to the cache
+      textureCache[fileName] = this->nodeAs<Texture2D>();
+    } else {
     // Check if fileName indicates a UDIM atlas and load tiles
     if (!udim_params.loading && checkForUDIM(fileName))
       loadUDIM_tiles(fileName);
@@ -483,6 +497,7 @@ void Texture2D::load(const FileName &_fileName,
       else
         loadTexture_STBi(fileName);
 #endif
+    }
     }
 
     // Add this texture to the cache
@@ -510,77 +525,18 @@ void Texture2D::load(const FileName &_fileName,
       createChild("format", "int", (int)ospTexFormat);
       createChild("filter", "int", (int)texFilter);
 
-      createChild("filename", "string", fileName);
-      child("filename").setSGOnly();
+      createChild("filename", "filename", fileName).setSGOnly();
 
       child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
       child("filter").setMinMax(
           (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+
+      success = true;
     } else
       std::cerr << "Failed texture " << fileName << std::endl;
   }
-}
 
-void Texture2D::load(void *memory,
-    const bool _preferLinear,
-    const bool _nearestFilter,
-    const int _colorChannel)
-{
-  std::stringstream ss;
-  ss << "memory: " << std::hex << memory;
-  fileName = ss.str();
-
-  // Check the cache before creating a new texture
-  if (textureCache.find(fileName) != textureCache.end()) {
-    std::shared_ptr<Texture2D> cache = textureCache[fileName].lock();
-    if (cache) {
-      params = cache->params;
-      udim_params = cache->udim_params;
-      // Copy shared_ptr ownership
-      texelData = cache->texelData;
-    }
-  } else {
-    if (memory) {
-      size_t size = params.size.product() * params.components * params.depth;
-      std::shared_ptr<void> data(new uint8_t[size]);
-      std::memcpy(data.get(), memory, size);
-      // Move shared_ptr ownership
-      texelData = data;
-
-      // Add this texture to the cache
-      textureCache[fileName] = this->nodeAs<Texture2D>();
-    }
-  }
-
-  if (texelData.get()) {
-    params.preferLinear = _preferLinear;
-    params.nearestFilter = _nearestFilter;
-    params.colorChannel = _colorChannel;
-
-    createDataNode();
-
-    // If the load was successful, populate children
-    if (hasChild("data")) {
-      child("data").setSGNoUI();
-
-      // If not using all channels, set used components to 1 for texture format
-      auto ospTexFormat =
-          osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
-      auto texFilter = params.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-        : OSP_TEXTURE_FILTER_BILINEAR;
-
-      createChild("format", "int", (int)ospTexFormat);
-      createChild("filter", "int", (int)texFilter);
-
-      createChild("filename", "string", fileName);
-      child("filename").setSGOnly();
-
-      child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
-      child("filter").setMinMax(
-          (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
-    } else
-      std::cerr << "Failed texture " << fileName << std::endl;
-  }
+  return success;
 }
 
 // Texture2D definitions ////////////////////////////////////////////////////

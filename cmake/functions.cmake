@@ -1,3 +1,5 @@
+## Copyright 2020-2021 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
 
 function(_target_strip_and_sign target)
     if(OSPSTUDIO_SIGN_FILE)

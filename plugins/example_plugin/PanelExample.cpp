@@ -1,9 +1,9 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "PanelExample.h"
 
-#include "sg/visitors/GenerateImGuiWidgets.h"
+#include "app/widgets/GenerateImGuiWidgets.h"
 
 #include "imgui.h"
 

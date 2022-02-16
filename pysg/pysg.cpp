@@ -1,4 +1,4 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2021-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 // pybind11 headers
@@ -10,6 +10,7 @@
 // SG classes
 #include <sg/Data.h>
 #include <sg/Frame.h>
+#include <sg/Mpi.h>
 #include <sg/Node.h>
 #include <sg/PluginCore.h>
 #include <sg/camera/Camera.h>
@@ -52,7 +53,6 @@ static std::vector<std::string> init(const std::vector<std::string> &args)
   return newargs;
 }
 
-
 void updateCamera(Node &camera, ArcballCamera &arcballCamera)
 {
   camera["position"] = arcballCamera.eyePos();
@@ -64,6 +64,11 @@ bool loadPlugin(const std::string &name)
 {
   void *plugin = loadPluginCore(name);
   return plugin != nullptr;
+}
+
+void assignMPI(int rank, int size)
+{
+  sgAssignMPI(rank, size);
 }
 
 // OSPNode typedefs //////////////////////////////////////////////////////
@@ -102,7 +107,12 @@ void pysg_vec2Type(py::module &sg, const char *name)
 template <typename T>
 void pysg_vec3Type(py::module &sg, const char *name)
 {
-  py::class_<vec_t<T, 3>>(sg, name).def(py::init<T>()).def(py::init<T, T, T>());
+  py::class_<vec_t<T, 3>>(sg, name)
+      .def(py::init<T>())
+      .def(py::init<T, T, T>())
+      .def_readwrite("x", &vec_t<T, 3>::x)
+      .def_readwrite("y", &vec_t<T, 3>::y)
+      .def_readwrite("z", &vec_t<T, 3>::z);
 }
 
 template <typename T>
@@ -119,7 +129,8 @@ std::shared_ptr<Data> pysg_Data(const py::array &array, bool is_shared = false)
 {
   // check array dimensions
   if (array.ndim() > 3) {
-    std::cout << "only 3 dimensional array supported in pysg::Data()" << std::endl;
+    std::cout << "only 3 dimensional array supported in pysg::Data()"
+              << std::endl;
     return std::make_shared<Data>();
   }
 
@@ -127,7 +138,8 @@ std::shared_ptr<Data> pysg_Data(const py::array &array, bool is_shared = false)
   const int vecSize = array.shape(array.ndim() - 1);
 
   if (vecSize < 1 || vecSize > 4) {
-    std::cout << "only 1 and vec2/3/4 element types supported by pysg::Data()" << std::endl;
+    std::cout << "only 1 and vec2/3/4 element types supported by pysg::Data()"
+              << std::endl;
     return std::make_shared<Data>();
   }
 
@@ -138,109 +150,104 @@ std::shared_ptr<Data> pysg_Data(const py::array &array, bool is_shared = false)
     numElements[i] = array.shape(i);
 
   if (vecSize == 1) {
-
     if (py::isinstance<py::array_t<float>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (float*)array.data(), is_shared);
+          numElements, byteStride, (float *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<int32_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (int*)array.data(), is_shared);
+          numElements, byteStride, (int *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint32_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (unsigned int*)array.data(), is_shared);
+          numElements, byteStride, (unsigned int *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint8_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (unsigned char*)array.data(), is_shared);
+          numElements, byteStride, (unsigned char *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<int64_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (long*)array.data(), is_shared);
+          numElements, byteStride, (long *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint64_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (unsigned long*)array.data(), is_shared);
+          numElements, byteStride, (unsigned long *)array.data(), is_shared);
 
   } else if (vecSize == 2) {
-
     if (py::isinstance<py::array_t<float>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec2f*)array.data(), is_shared);
+          numElements, byteStride, (vec2f *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<int32_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec2i*)array.data(), is_shared);
+          numElements, byteStride, (vec2i *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint32_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec2ui*)array.data(), is_shared);
+          numElements, byteStride, (vec2ui *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint8_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec2uc*)array.data(), is_shared);
+          numElements, byteStride, (vec2uc *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<int64_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec2l*)array.data(), is_shared);
+          numElements, byteStride, (vec2l *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint64_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec2ul*)array.data(), is_shared);
+          numElements, byteStride, (vec2ul *)array.data(), is_shared);
 
   } else if (vecSize == 3) {
-
     if (py::isinstance<py::array_t<float>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec3f*)array.data(), is_shared);
+          numElements, byteStride, (vec3f *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<int32_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec3i*)array.data(), is_shared);
+          numElements, byteStride, (vec3i *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint32_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec3ui*)array.data(), is_shared);
+          numElements, byteStride, (vec3ui *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint8_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec3uc*)array.data(), is_shared);
+          numElements, byteStride, (vec3uc *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<int64_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec3l*)array.data(), is_shared);
+          numElements, byteStride, (vec3l *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint64_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec3ul*)array.data(), is_shared);
+          numElements, byteStride, (vec3ul *)array.data(), is_shared);
 
   } else {
-
     if (py::isinstance<py::array_t<float>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec4f*)array.data(), is_shared);
+          numElements, byteStride, (vec4f *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<int32_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec4i*)array.data(), is_shared);
+          numElements, byteStride, (vec4i *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint32_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec4ui*)array.data(), is_shared);
+          numElements, byteStride, (vec4ui *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint8_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec4uc*)array.data(), is_shared);
+          numElements, byteStride, (vec4uc *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<int64_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec4l*)array.data(), is_shared);
+          numElements, byteStride, (vec4l *)array.data(), is_shared);
 
     else if (py::isinstance<py::array_t<uint64_t>>(array))
       return std::make_shared<Data>(
-          numElements, byteStride, (vec4ul*)array.data(), is_shared);
-
+          numElements, byteStride, (vec4ul *)array.data(), is_shared);
   }
 
   return std::make_shared<Data>();
@@ -260,7 +267,6 @@ PYBIND11_MODULE(pysg, sg)
   sg.def("init", &init);
   sg.add_object("_cleanup", py::capsule(cleanup_callback));
 
-
   // Main Node factory function ////////////////////////////////////////////
 
   sg.def(
@@ -270,12 +276,13 @@ PYBIND11_MODULE(pysg, sg)
           &createNode));
 
   // Plugins ////////////////////////////////////////////
-  sg.def(
-    "loadPlugin", py::overload_cast<const std::string &>(&loadPlugin));
+  sg.def("loadPlugin", py::overload_cast<const std::string &>(&loadPlugin));
+
+  // MPI ////////////////////////////////////////////
+  sg.def("assignMPI", &assignMPI);
 
   // Importer functions ////////////////////////////////////////////////////
-  sg.def("getImporter",
-      &getImporter);
+  sg.def("getImporter", &getImporter);
 
   py::class_<FileName>(sg, "FileName").def(py::init<std::string>());
 
@@ -320,13 +327,34 @@ PYBIND11_MODULE(pysg, sg)
   // rkcommon::math specializations ////////////////
 
   py::class_<rkcommon::math::box3f>(sg, "box3f")
-      .def(py::init<>());
+      .def(py::init<>())
+      .def(py::init<vec3f, vec3f>())
+      .def_readwrite("lower", &box3f::lower)
+      .def_readwrite("upper", &box3f::upper);
+
+  py::class_<rkcommon::math::affine3f>(sg, "affine3f")
+      .def(py::init<>())
+      .def("translate", &rkcommon::math::affine3f::translate);
 
   // Generic Node class definition ////////////////////////////////////////////
 
   py::class_<Node, std::shared_ptr<Node>>(sg, "Node")
       .def(py::init<>())
       .def("bounds", &Node::bounds)
+      .def(
+          "setValue", static_cast<void (Node::*)(float, bool)>(&Node::setValue))
+      .def("setValue", static_cast<void (Node::*)(int, bool)>(&Node::setValue))
+      .def(
+          "setValue", static_cast<void (Node::*)(vec3f, bool)>(&Node::setValue))
+      .def(
+          "setValue", static_cast<void (Node::*)(box3f, bool)>(&Node::setValue))
+      .def("setValue",
+          static_cast<void (Node::*)(affine3f, bool)>(&Node::setValue))
+      .def("valueAsFloat",
+          static_cast<float &(Node::*)()>(&Node::valueAs<float>))
+      .def("valueAsInt", static_cast<int &(Node::*)()>(&Node::valueAs<int>))
+      .def("valueAsBox3f",
+          static_cast<box3f &(Node::*)()>(&Node::valueAs<box3f>))
       .def("createChild",
           static_cast<Node &(
               Node::*)(const std::string &, const std::string &, Any &)>(
@@ -341,8 +369,11 @@ PYBIND11_MODULE(pysg, sg)
               const std::string &)>(&Node::createChildAs),
           py::return_value_policy::reference)
       .def("add", py::overload_cast<NodePtr>(&Node::add))
-      .def("add", static_cast<void (Node::*)(ospray::sg::Node&, const std::string &)>(&Node::add))
-      .def("remove", static_cast<void (Node::*)(const std::string &)>(&Node::remove))
+      .def("add",
+          static_cast<void (Node::*)(ospray::sg::Node &, const std::string &)>(
+              &Node::add))
+      .def("remove",
+          static_cast<void (Node::*)(const std::string &)>(&Node::remove))
       .def("commit", &Node::commit)
       .def("render", py::overload_cast<>(&Node::render))
       .def("child", &Node::child, py::return_value_policy::reference)
@@ -465,10 +496,11 @@ PYBIND11_MODULE(pysg, sg)
       .def("setCameraList", &Importer::setCameraList)
       .def("setVolumeParams", &Importer::setVolumeParams);
 
-  py::class_<VolumeParams, Node, std::shared_ptr<VolumeParams>>(sg, "VolumeParams")
+  py::class_<VolumeParams, Node, std::shared_ptr<VolumeParams>>(
+      sg, "VolumeParams")
       .def(py::init<>());
 
-  py::class_<TransferFunction, Node, std::shared_ptr<TransferFunction>>(sg, "TransferFunction")
+  py::class_<TransferFunction, Node, std::shared_ptr<TransferFunction>>(
+      sg, "TransferFunction")
       .def(py::init<std::string>());
-
 }

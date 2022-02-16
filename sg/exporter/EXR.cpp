@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2020-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #if defined(USE_OPENEXR)
@@ -46,10 +46,10 @@ namespace ospray {
       charToFloat();
     }
 
-    if (child("asLayers").valueAs<bool>())
-      doExportAsLayers();
-    else
+    if (child("layersAsSeparateFiles").valueAs<bool>())
       doExportAsSeparateFiles();
+    else
+      doExportAsLayers();
   }
 
   void EXRExporter::doExportAsLayers()
@@ -168,8 +168,8 @@ namespace ospray {
   void EXRExporter::doExportAsSeparateFiles()
   {
     auto file = FileName(child("file").valueAs<std::string>());
-    auto base = file.name();
-    auto ext  = file.ext();
+    auto base = file.dropExt().str();
+    auto ext = file.ext();
 
     vec2i size     = child("size").valueAs<vec2i>();
     const void *fb = child("data").valueAs<const void *>();
@@ -177,19 +177,12 @@ namespace ospray {
     // use general EXR file API for 32-bit float support
     namespace IMF   = OPENEXR_IMF_NAMESPACE;
     namespace IMATH = IMATH_NAMESPACE;
-
-    Imf::Header beautyHeader(size.x, size.y);
-    beautyHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
-    beautyHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
-    beautyHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
-    beautyHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
-
     auto makeSlice = [&](const void *fb, int offset, int ncomp = 4) {
       // flip the data
       return Imf::Slice(IMF::FLOAT,
-                        (char *)((float *)fb + offset),
-                        sizeof(float) * ncomp,
-                        size.x * sizeof(float) * ncomp);
+          (char *)((float *)fb + offset),
+          sizeof(float) * ncomp,
+          size.x * sizeof(float) * ncomp);
     };
 
     // although openexr provides a LineOrder parameter, it doesn't seem to
@@ -197,27 +190,36 @@ namespace ospray {
     // This map will hold any channels we need until we write the image;
     // only then can we free the pointers. Not pretty, I know
     std::map<std::string, float *> flippedBuffers;
-    flippedBuffers["fb"] = flipBuffer<float>(fb);
 
-    Imf::FrameBuffer beautyFb;
-    beautyFb.insert("R", makeSlice(flippedBuffers["fb"], 0));
-    beautyFb.insert("G", makeSlice(flippedBuffers["fb"], 1));
-    beautyFb.insert("B", makeSlice(flippedBuffers["fb"], 2));
-    beautyFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
+    if (child("saveColor").valueAs<bool>()) {
+      Imf::Header beautyHeader(size.x, size.y);
+      beautyHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
+      beautyHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
+      beautyHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
+      beautyHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
-    std::string beautyFilename = base + ".hdr." + ext;
-    Imf::OutputFile beautyFile(beautyFilename.c_str(), beautyHeader);
-    beautyFile.setFrameBuffer(beautyFb);
-    beautyFile.writePixels(size.y);
 
-    std::cout << "Saved to " << beautyFilename << std::endl;
+      flippedBuffers["fb"] = flipBuffer<float>(fb);
+
+      Imf::FrameBuffer beautyFb;
+      beautyFb.insert("R", makeSlice(flippedBuffers["fb"], 0));
+      beautyFb.insert("G", makeSlice(flippedBuffers["fb"], 1));
+      beautyFb.insert("B", makeSlice(flippedBuffers["fb"], 2));
+      beautyFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
+
+      std::string beautyFilename = base + ".hdr." + ext;
+      Imf::OutputFile beautyFile(beautyFilename.c_str(), beautyHeader);
+      beautyFile.setFrameBuffer(beautyFb);
+      beautyFile.writePixels(size.y);
+
+      std::cout << "Saved to " << beautyFilename << std::endl;
+    }
 
     if (hasChild("albedo")) {
       Imf::Header albedoHeader(size.x, size.y);
       albedoHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
       albedoHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
       albedoHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
-      albedoHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *albedo       = child("albedo").valueAs<const void *>();
       flippedBuffers["albedo"] = flipBuffer<float>(albedo, 3);
@@ -226,7 +228,6 @@ namespace ospray {
       albedoFb.insert("R", makeSlice(flippedBuffers["albedo"], 0, 3));
       albedoFb.insert("G", makeSlice(flippedBuffers["albedo"], 1, 3));
       albedoFb.insert("B", makeSlice(flippedBuffers["albedo"], 2, 3));
-      albedoFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
 
       std::string albedoFilename = base + ".alb." + ext;
       Imf::OutputFile albedoFile(albedoFilename.c_str(), albedoHeader);
@@ -238,14 +239,12 @@ namespace ospray {
     if (hasChild("Z")) {
       Imf::Header depthHeader(size.x, size.y);
       depthHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
-      depthHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *z       = child("Z").valueAs<const void *>();
       flippedBuffers["Z"] = flipBuffer<float>(z, 1);
 
       Imf::FrameBuffer depthFb;
       depthFb.insert("R", makeSlice(flippedBuffers["Z"], 0, 1));
-      depthFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
 
       std::string depthFilename = base + ".z." + ext;
       Imf::OutputFile depthFile(depthFilename.c_str(), depthHeader);
@@ -259,7 +258,6 @@ namespace ospray {
       normalHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
       normalHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
       normalHeader.channels().insert("B", Imf::Channel(IMF::FLOAT));
-      normalHeader.channels().insert("A", Imf::Channel(IMF::FLOAT));
 
       const void *normal       = child("normal").valueAs<const void *>();
       flippedBuffers["normal"] = flipBuffer<float>(normal, 3);
@@ -268,7 +266,6 @@ namespace ospray {
       normalFb.insert("R", makeSlice(flippedBuffers["normal"], 0, 3));
       normalFb.insert("G", makeSlice(flippedBuffers["normal"], 1, 3));
       normalFb.insert("B", makeSlice(flippedBuffers["normal"], 2, 3));
-      normalFb.insert("A", makeSlice(flippedBuffers["fb"], 3));
 
       std::string normalFilename = base + ".nrm." + ext;
       Imf::OutputFile normalFile(normalFilename.c_str(), normalHeader);

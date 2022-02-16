@@ -16,8 +16,14 @@ add_executable(ospStudio
   TimeSeriesWindow.cpp
   AnimationManager.cpp
 
+  $<$<BOOL:${USE_BENCHMARK}>:Benchmark.cpp>
+
   ${OSPRAY_STUDIO_RESOURCE_FILE}
 )
+
+if(USE_BENCHMARK)
+  target_compile_definitions(ospStudio PRIVATE USE_BENCHMARK)
+endif()
 
 target_compile_definitions(ospStudio PRIVATE OSPRAY_CPP_RKCOMMON_TYPES)
 if(APPLE)
@@ -43,6 +49,8 @@ add_library(ospray_ui STATIC
   widgets/SearchWidget.cpp
   widgets/Guizmo.cpp
   widgets/PieMenu.cpp
+  widgets/ListBoxWidget.cpp
+  widgets/AdvancedMaterialEditor.cpp
 )
 
 target_link_libraries(ospray_ui
@@ -60,6 +68,7 @@ target_link_libraries(ospStudio
   ospray_sg
   json
   cli11
+  $<$<BOOL:${USE_BENCHMARK}>:benchmark::benchmark>
 )
 
 _target_strip_and_sign(ospStudio)

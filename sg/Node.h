@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -50,6 +50,8 @@ namespace sg {
   template <typename K, typename V>
   using FlatMap = rkcommon::containers::FlatMap<K, V>;
 
+  // "filename" specialization allows differentiating purpose of string node.
+  using filename = std::string;
   using rgb  = vec3f;
   using rgba = vec4f;
 
@@ -61,9 +63,6 @@ namespace sg {
   using NodePtr = std::shared_ptr<Node>;
 
   struct Data;
-
-  typedef std::unordered_map<OSPGeometricModel, std::string> GeomIdMap;
-  typedef std::unordered_map<OSPInstance, std::pair<std::string, affine3f>> InstanceIdMap;
 
   struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
   {
@@ -111,8 +110,9 @@ namespace sg {
     template <typename T>
     bool valueIsType() const;
 
+    // updates modified time by default, special case does not
     template <typename T>
-    void setValue(T val);
+    void setValue(T val, bool markModified = true);
 
     void operator=(Any val);
 
@@ -163,6 +163,7 @@ namespace sg {
     void remove(const std::string &name);
 
     void removeAllParents();
+    void killAllParents(); // DANGEROUS! Only used in sg loading
     void removeAllChildren();
 
     template <typename... Args>
@@ -289,6 +290,10 @@ namespace sg {
     friend struct CommitVisitor;
   };
 
+  // SG Instance Picking //////////////////////////////////////////////////////
+  
+  typedef std::unordered_map<OSPInstance, std::string> InstanceIDMap;
+
   /////////////////////////////////////////////////////////////////////////////
   // Nodes with a strongly-typed value ////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
@@ -358,7 +363,8 @@ namespace sg {
 
     const HANDLE_T &handle() const;
 
-    void setHandle(HANDLE_T handle);
+    // updates modified time by default, special case does not
+    void setHandle(HANDLE_T handle, bool markModified = true);
 
     operator HANDLE_T();
 

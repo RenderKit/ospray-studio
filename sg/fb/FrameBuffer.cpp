@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "FrameBuffer.h"
@@ -7,6 +7,8 @@
 #include "sg/camera/Camera.h"
 #include "sg/renderer/Renderer.h"
 #include "sg/scene/World.h"
+
+#include "sg/Mpi.h"
 
 namespace ospray {
 namespace sg {
@@ -141,6 +143,9 @@ void FrameBuffer::updateToneMapper(bool enabled)
 
 void FrameBuffer::updateImageOperations()
 {
+  if (sgUsingMpi() && sgMpiRank() != 0)
+      return;
+
   // Only update imageOperation if necessary
   if (!updateImageOps)
     return;
@@ -179,65 +184,77 @@ void FrameBuffer::updateImageOperations()
 
 void FrameBuffer::saveFrame(std::string filename, int flags)
 {
-  auto exporter = getExporter(FileName(filename));
-  if (exporter == "") {
-    std::cout << "No exporter found for type " << FileName(filename).ext()
-              << std::endl;
-    return;
+  if (sgUsingMpi() && sgMpiRank() != 0)
+      return;
+
+  std::vector<std::string> filenames;
+  auto file = FileName(filename);
+  
+  if (flags && file.ext() != "exr") {
+    auto exrFile = file.dropExt().str() + ".exr";
+    filenames.push_back(exrFile);
   }
-  auto exp = createNodeAs<ImageExporter>("exporter", exporter);
-  exp->child("file") = filename;
+  filenames.push_back(filename);
 
-  auto fb = map(OSP_FB_COLOR);
-  auto size = child("size").valueAs<vec2i>();
-  auto fmt = child("colorFormat").valueAs<std::string>();
-  void *abuf = nullptr;
-  void *zbuf = nullptr;
-  void *nbuf = nullptr;
+  for (auto &f : filenames) {
+    auto exporter = getExporter(FileName(f));
 
-  exp->setImageData(fb, size, fmt);
+    if (exporter == "") {
+      std::cout << "No exporter found for type " << FileName(filename).ext()
+                << std::endl;
+      return;
+    }
+    auto exp = createNodeAs<ImageExporter>("exporter", exporter);
+    exp->child("file") = f;
 
-  bool albedo = flags & 0b1;
-  bool depth = flags & 0b10;
-  bool normal = flags & 0b100;
-  bool asLayers = flags & 0b1000;
+    auto fb = map(OSP_FB_COLOR);
+    auto size = child("size").valueAs<vec2i>();
+    auto fmt = child("colorFormat").valueAs<std::string>();
+    void *abuf = nullptr;
+    void *zbuf = nullptr;
+    void *nbuf = nullptr;
 
-  if (albedo) {
-    abuf = (void *)map(OSP_FB_ALBEDO);
-    exp->setAdditionalLayer("albedo", abuf);
-  } else {
-    exp->clearLayer("albedo");
+    exp->setImageData(fb, size, fmt);
+
+    bool albedo = flags & 0b1;
+    bool depth = flags & 0b10;
+    bool normal = flags & 0b100;
+    bool layersAsSeparateFiles = flags & 0b1000;
+
+    if (albedo) {
+      abuf = (void *)map(OSP_FB_ALBEDO);
+      exp->setAdditionalLayer("albedo", abuf);
+    } else {
+      exp->clearLayer("albedo");
+    }
+
+    if (depth) {
+      zbuf = (void *)map(OSP_FB_DEPTH);
+      exp->setAdditionalLayer("Z", zbuf);
+    } else {
+      exp->clearLayer("Z");
+    }
+
+    if (normal) {
+      nbuf = (void *)map(OSP_FB_NORMAL);
+      exp->setAdditionalLayer("normal", nbuf);
+    } else {
+      exp->clearLayer("normal");
+    }
+
+    exp->createChild("layersAsSeparateFiles", "bool", layersAsSeparateFiles);
+    exp->createChild("saveColor", "bool", file.ext() == "exr");
+
+    exp->doExport();
+
+    unmap(fb);
+    if (abuf)
+      unmap(abuf);
+    if (zbuf)
+      unmap(zbuf);
+    if (nbuf)
+      unmap(nbuf);
   }
-
-  if (depth) {
-    zbuf = (void *)map(OSP_FB_DEPTH);
-    exp->setAdditionalLayer("Z", zbuf);
-  } else {
-    exp->clearLayer("Z");
-  }
-
-  if (normal) {
-    nbuf = (void *)map(OSP_FB_NORMAL);
-    exp->setAdditionalLayer("normal", nbuf);
-  } else {
-    exp->clearLayer("normal");
-  }
-
-  if (asLayers) {
-    exp->createChild("asLayers", "bool", false);
-  } else {
-    exp->createChild("asLayers", "bool", true);
-  }
-
-  exp->doExport();
-
-  unmap(fb);
-  if (abuf)
-    unmap(abuf);
-  if (zbuf)
-    unmap(zbuf);
-  if (nbuf)
-    unmap(nbuf);
 }
 
 OSP_REGISTER_SG_NODE_NAME(FrameBuffer, framebuffer);

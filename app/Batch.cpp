@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Batch.h"
@@ -10,6 +10,8 @@
 #include "sg/visitors/PrintNodes.h"
 #include "sg/camera/Camera.h"
 #include "sg/scene/volume/Volume.h"
+#include "sg/Mpi.h"
+
 // rkcommon
 #include "rkcommon/utility/SaveImage.h"
 // json
@@ -40,25 +42,6 @@ void BatchContext::start()
     std::cout << "...importing files!" << std::endl;
     refreshRenderer();
     refreshScene(true);
-    if (!useCameraRange) {
-      resetFileId = true;
-      bool useCamera = refreshCamera(cameraDef);
-      if (useCamera) {
-        render();
-        if (fps) {
-          std::cout << "..rendering animation!" << std::endl;
-          renderAnimation();
-        } else if (!cameraStack.empty()) {
-          std::cout << "..using cams.json camera stack" << std::endl;
-          for (auto &cs : cameraStack) {
-            arcballCamera->setState(cs);
-            updateCamera();
-            renderFrame();
-          }
-        } else
-          renderFrame();
-      }
-    } else {
       for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
            ++cameraIdx) {
         resetFileId = true;
@@ -72,8 +55,6 @@ void BatchContext::start()
             renderFrame();
         }
       }
-    }
-
     std::cout << "...finished!" << std::endl;
     sg::clearAssets();
   }
@@ -111,16 +92,16 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the camera up vector"
-  );
+  )->expected(3);
   app->add_option(
     "--format",
     optImageFormat,
-    "Set the image format"
+    "Sets the image format for color components(RGBA)"
   )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
   app->add_option(
     "--image",
     optImageName,
-    "Set the image name"
+    "Sets the image name (inclusive of path and filename)"
   );
   app->add_option(
     "--interpupillaryDistance",
@@ -132,25 +113,11 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     optStereoMode,
     "Set the stereo mode"
   )->check(CLI::PositiveNumber);
-  app->add_option(
-    "--size",
-    [&](const std::vector<std::string> val) {
-      optImageSize = vec2i(std::stoi(val[0]), std::stoi(val[1]));
-      return true;
-    },
-    "Set the image size"
-  )->expected(2)->check(CLI::PositiveNumber);
-  app->add_option_function<int>(
+  app->add_flag(
     "--denoiser",
-    [&](const int denoiser) {
-      if (studioCommon.denoiserAvailable) {
-        optDenoiser = denoiser;
-        return true;
-      }
-      return false;
-    },
+    optDenoiser,
     "Set the denoiser"
-  )->check(CLI::Range(0, 2+1));
+  );
   app->add_option(
     "--grid",
     [&](const std::vector<std::string> val) {
@@ -177,9 +144,8 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   );
   app->add_flag(
     "--saveLayers",
-    saveLayers,
-    "Save all layers"
-  );
+    saveLayersSeparatly,
+    "Save layers in separate files");
   app->add_flag(
     "--saveMetadata",
     saveMetaData,
@@ -188,7 +154,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_option(
     "--framesPerSecond",
     fps,
-    "Set the number of frames per second (integer)"
+    "Set the number of frames per second"
   );
   app->add_flag(
     "--forceRewrite",
@@ -197,7 +163,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   );
   app->add_option(
     "--camera",
-    cameraDef,
+    cameraRange,
     "Set the camera index to use"
   )->check(CLI::PositiveNumber);
   app->add_option(
@@ -205,7 +171,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     [&](const std::vector<std::string> val) {
       cameraRange.lower = std::stoi(val[0]);
       cameraRange.upper = std::stoi(val[1]);
-      useCameraRange = true;
       return true;
     },
     "Set the camera range"
@@ -213,12 +178,28 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_option(
     "--frameRange",
     [&](const std::vector<std::string> val) {
-      framesRange.lower = std::stoi(val[0]);
+      framesRange.lower = std::max(0, std::stoi(val[0]));
       framesRange.upper = std::stoi(val[1]);
       return true;
     },
     "Set the frames range"
   )->expected(2);
+  app->add_option(
+    "--frameStep",
+    frameStep,
+    "Set the frames step when (frameRange is used)"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--bgColor",
+    [&](const std::vector<std::string> val) {
+      bgColor = rgba(std::stof(val[0]),
+        std::stof(val[1]),
+        std::stof(val[2]),
+        std::stof(val[3]));
+      return true;
+    },
+    "Set the renderer background color"
+    )->expected(4);
 }
 
 bool BatchContext::parseCommandLine()
@@ -252,6 +233,11 @@ void BatchContext::refreshRenderer()
 
   renderer.child("pixelSamples").setValue(optSPP);
   renderer.child("varianceThreshold").setValue(optVariance);
+
+  if (renderer.hasChild("maxContribution") && maxContribution < (float)math::inf)
+    renderer["maxContribution"].setValue(maxContribution);
+
+  renderer["backgroundColor"] = bgColor;
 }
 
 void BatchContext::reshape()
@@ -271,7 +257,7 @@ void BatchContext::reshape()
     if (frame->child("camera").hasChild("aspect"))
       frame->child("camera")["aspect"] = static_cast<float>(fSize.x) / fSize.y;
   } else if (frame->child("camera").hasChild("aspect"))
-    frame->child("camera")["aspect"] = optImageSize.x / (float)optImageSize.y;
+    frame->child("camera")["aspect"] = optResolution.x / (float)optResolution.y;
 
   frame->child("windowSize") = fSize;
   frame->currentAccum = 0;
@@ -282,9 +268,11 @@ void BatchContext::reshape()
 
 bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 {
-  if (resetArcball)
+  if (resetArcball) {
+    frame->child("windowSize") = optResolution;
     arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), optImageSize));
+        new ArcballCamera(getSceneBounds(), optResolution));
+  }
   int hasParents{0};
 
   if (cameraIdx <= cameras.size() && cameraIdx > 0) {
@@ -311,14 +299,11 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
     // create unique cameraId for every camera
     auto &cameraParents = selectedSceneCamera->parents();
     if (cameraParents.size()) {
-      if (useCameraRange) {
         auto &cameraXfm = cameraParents.front();
         if (cameraXfm->hasChild("geomId"))
           cameraId = cameraXfm->child("geomId").valueAs<std::string>();
         else
           cameraId = ".Camera_" + std::to_string(cameraIdx);
-      }
-
     } else {
       std::cout << "camera not used in GLTF scene" << std::endl;
       return false;
@@ -327,7 +312,12 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
   } else {
     std::cout << "No cameras imported or invalid camera index specified"
               << std::endl;
-    std::cout << "using default camera..." << std::endl;
+    if (optCameraTypeStr != "perspective") {
+      auto optCamera = createNode("camera", "camera_" + optCameraTypeStr);
+      frame->remove("camera");
+      frame->add(optCamera);
+    } else
+      std::cout << "using default camera..." << std::endl;
   }
 
   reshape(); // resets aspect
@@ -352,7 +342,7 @@ void BatchContext::render()
     // Determine world bounds to calculate grid offsets
     frame->child("world").remove(importedModels);
 
-    box3f bounds = frame->child("world").bounds();
+    box3f bounds = getSceneBounds();
     float tx = bounds.size().x * 1.2f;
     float ty = bounds.size().y * 1.2f;
     float tz = bounds.size().z * 1.2f;
@@ -381,14 +371,30 @@ void BatchContext::render()
 
 void BatchContext::renderFrame()
 {
-  // Only denoise the final frame
-  // XXX TODO if optDenoiser == 2, save both the noisy and denoised color
-  // buffers.  How best to do that since the frame op will alter the final
-  // buffer?
-  if (studioCommon.denoiserAvailable && optDenoiser)
+  if (studioCommon.denoiserAvailable && optDenoiser) {
     frame->denoiseFB = true;
+    frame->denoiseFBFinalFrame = true;
+  }
   frame->immediatelyWait = true;
-  frame->startNewFrame();
+
+  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto &v = frame->childAs<sg::Renderer>("renderer")["varianceThreshold"];
+  auto varianceThreshold = v.valueAs<float>();
+  float fbVariance{inf};
+
+  // continue accumulation till variance threshold or accumulation limit is
+  // reached
+  do {
+    frame->startNewFrame();
+    fbVariance = fb.variance();
+    std::cout << "frame " << frame->currentAccum << " ";
+    std::cout << "variance " << fbVariance << std::endl;
+  } while (fbVariance >= varianceThreshold && !frame->accumLimitReached());
+
+  if (frame->denoiseFB) {
+    std::cout << "denoising..." << std::endl;
+    frame->startNewFrame();
+  }
 
   static int filenum;
   if (resetFileId) {
@@ -396,42 +402,55 @@ void BatchContext::renderFrame()
     resetFileId = false;
   }
 
-  std::string filename;
-  char filenumber[8];
-  if (!forceRewrite)
-    do {
-      std::snprintf(filenumber, 8, ".%05d.", filenum++);
+  if (!sgUsingMpi() || sgMpiRank() == 0)
+  {
+    std::string filename;
+    char filenumber[8];
+    if (!forceRewrite) {
+      int filenum_ = filenum;
+      do {
+        std::snprintf(filenumber, 8, ".%05d.", filenum_++);
+        filename = optImageName + cameraId + filenumber + optImageFormat;
+      } while (std::ifstream(filename.c_str()).good());
+    } else {
+      std::snprintf(filenumber, 8, ".%05d.", filenum);
       filename = optImageName + cameraId + filenumber + optImageFormat;
-    } while (std::ifstream(filename.c_str()).good());
-  else {
-    std::snprintf(filenumber, 8, ".%05d.", filenum++);
-    filename = optImageName + cameraId + filenumber + optImageFormat;
+    }
+    filenum += frameStep;
+
+    int screenshotFlags = saveLayersSeparatly << 3 | saveNormal << 2
+        | saveDepth << 1 | saveAlbedo;
+
+    frame->saveFrame(filename, screenshotFlags);
+
+    this->outputFilename = filename;
   }
-
-  int screenshotFlags = saveLayers << 3
-      | saveNormal << 2 | saveDepth << 1 | saveAlbedo;
-
-  frame->saveFrame(filename, screenshotFlags);
-
-  this->outputFilename = filename;
   
   pluginManager->main(shared_from_this());
 }
 
 void BatchContext::renderAnimation()
 {
-  float animationTime = animationManager->getTimeRange().upper;
+  float endTime = animationManager->getTimeRange().upper;
   float step = 1.f / fps;
   float time = animationManager->getTimeRange().lower;
 
-  if (!framesRange.empty() && framesRange.upper) {
+  if (framesRange.upper >= 0) {
+    endTime = std::min(animationManager->getTimeRange().upper,
+        time + step * framesRange.upper + 1e-6f);
     time += step * framesRange.lower;
-    animationTime = step * framesRange.upper;
   }
-  animationTime += 1e-6;
+  step *= frameStep;
 
-  while (time <= animationTime) {
-    animationManager->update(time);
+  auto &cam = frame->child("camera");
+  if (cam.hasChild("startTime"))
+    time += cam["startTime"].valueAs<float>();
+  float shutter = 0.0f;
+  if (cam.hasChild("measureTime"))
+    shutter = cam["measureTime"].valueAs<float>();
+
+  while (time <= endTime) {
+    animationManager->update(time, shutter);
     renderFrame();
     time += step;
   }
@@ -439,6 +458,12 @@ void BatchContext::renderAnimation()
 
 void BatchContext::refreshScene(bool resetCam)
 {
+  if (frameAccumLimit)
+    frame->accumLimit = frameAccumLimit;
+  else if (optVariance)
+    frame->accumLimit = 0;
+  else
+    frame->accumLimit = 1;
   // Check that the frame contains a world, if not create one
   auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
                                         : sg::createNode("world", "world");
@@ -466,7 +491,7 @@ void BatchContext::refreshScene(bool resetCam)
 
   if (resetCam && !sgScene)
     arcballCamera.reset(
-        new ArcballCamera(frame->child("world").bounds(), optImageSize));
+        new ArcballCamera(getSceneBounds(), optResolution));
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();
@@ -485,7 +510,7 @@ void BatchContext::updateCamera()
 
   if (cmdlCam) {
     camera["position"] = pos;
-    camera["direction"] = normalize(gaze - pos);
+    camera["direction"] = gaze;
     camera["up"] = up;
   }
 
@@ -526,6 +551,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
+          importer->setScheduler(scheduler);
           if (volumeParams->children().size() > 0) {
             auto vp = importer->getVolumeParams();
             for (auto &c : volumeParams->children()) {
@@ -545,7 +571,6 @@ void BatchContext::importFiles(sg::NodePtr world)
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::ROBUST);
           importer->importScene();
-          world->add(importer);
         }
       }
     } catch (const std::exception &e) {
@@ -553,6 +578,43 @@ void BatchContext::importFiles(sg::NodePtr world)
       std::cerr << "   " << e.what() << std::endl;
     } catch (...) {
       std::cerr << "Failed to open file '" << file << "'!\n";
+    }
+
+    if (!optDoAsyncTasking) {
+      for (;;) {
+        size_t numTasksExecuted = 0;
+
+        numTasksExecuted += scheduler->background()->executeAllTasksSync();
+        numTasksExecuted += scheduler->ospray()->executeAllTasksSync();
+        numTasksExecuted += scheduler->studio()->executeAllTasksSync();
+
+        if (numTasksExecuted == 0) {
+          break;
+        }
+      }
+    }
+  }
+
+  for (;;) {
+    size_t numTasksExecuted = 0;
+
+    if (optDoAsyncTasking) {
+      numTasksExecuted += scheduler->background()->executeAllTasksAsync();
+
+      if (numTasksExecuted == 0) {
+        if (scheduler->background()->wait() > 0) {
+          continue;
+        }
+      }
+    } else {
+      numTasksExecuted += scheduler->background()->executeAllTasksSync();
+    }
+
+    numTasksExecuted += scheduler->ospray()->executeAllTasksSync();
+    numTasksExecuted += scheduler->studio()->executeAllTasksSync();
+
+    if (numTasksExecuted == 0) {
+      break;
     }
   }
 

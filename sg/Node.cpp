@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Node.h"
@@ -68,7 +68,7 @@ namespace ospray {
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  // Parent-child structual interface /////////////////////////////////////////
+  // Parent-child structural interface /////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
 
   const FlatMap<std::string, NodePtr> &Node::children() const
@@ -238,6 +238,11 @@ namespace ospray {
       p->remove(*this);
   }
 
+  void Node::killAllParents()
+  {
+    properties.parents.clear();
+  }
+
   void Node::removeAllChildren()
   {
     for (auto &c : properties.children)
@@ -245,7 +250,7 @@ namespace ospray {
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  // Traveral Interface ///////////////////////////////////////////////////////
+  // Traversal Interface ///////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
 
   void Node::commit()
@@ -474,6 +479,8 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(QuaternionfNode, quaternionf);
   OSP_REGISTER_SG_NODE_NAME(Linear2fNode, linear2f);
 
+  // "filename" specialization allows differentiating purpose of string node.
+  OSP_REGISTER_SG_NODE_NAME(StringNode, filename);
   OSP_REGISTER_SG_NODE_NAME(RGBNode, rgb);
   OSP_REGISTER_SG_NODE_NAME(RGBANode, rgba);
 

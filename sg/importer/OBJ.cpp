@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -71,7 +71,9 @@ namespace ospray {
         std::static_pointer_cast<sg::Texture2D>(
             sg::createNode(map_name, "texture_2d"));
 
-    sgTex->load(containingPath + texName, preferLinear, nearestFilter);
+    // If load fails, remove the texture node
+    if (!sgTex->load(containingPath + texName, preferLinear, nearestFilter))
+      sgTex = nullptr;
 
     return sgTex;
   }
@@ -221,9 +223,8 @@ namespace ospray {
                 paramNodes.push_back(createNode(
                     paramName + ".translation", "vec2f", translation));
               }
+              paramNodes.push_back(map_misc);
             }
-
-            paramNodes.push_back(map_misc);
 
           } else {
             rkcommon::utility::Any paramValue;
@@ -250,7 +251,8 @@ namespace ospray {
                         << " " << paramValueStr << std::endl;
               auto map_misc =
                   createSGTex(paramName, paramValueStr, containingPath);
-              paramNodes.push_back(map_misc);
+              if (map_misc)
+                paramNodes.push_back(map_misc);
             }
           }
         }
@@ -270,27 +272,38 @@ namespace ospray {
         // keeping texture names consistent with ospray's; lowercase snakecase
         // ospray documentation inconsistent
         if (!m.diffuse_texname.empty()) {
-          mat.add(
-              createSGTex("map_kd", m.diffuse_texname, containingPath, true));
+          auto tex =
+              createSGTex("map_kd", m.diffuse_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
 
         if (!m.specular_texname.empty()) {
-          mat.add(
-              createSGTex("map_ks", m.specular_texname, containingPath, true));
+          auto tex =
+              createSGTex("map_ks", m.specular_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
 
         if (!m.specular_highlight_texname.empty()) {
-          mat.add(createSGTex(
-              "map_ns", m.specular_highlight_texname, containingPath, true));
+          auto tex = createSGTex(
+              "map_ns", m.specular_highlight_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
 
         if (!m.bump_texname.empty()) {
-          mat.add(
-              createSGTex("map_bump", m.bump_texname, containingPath, true));
+          auto tex =
+              createSGTex("map_bump", m.bump_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
 
         if (!m.alpha_texname.empty()) {
-          mat.add(createSGTex("map_d", m.alpha_texname, containingPath, true));
+          auto tex =
+              createSGTex("map_d", m.alpha_texname, containingPath, true);
+          if (tex)
+            mat.add(tex);
         }
         for (auto &param : paramNodes)
           mat.add(param);
@@ -360,7 +373,7 @@ namespace ospray {
       size_t i = 0;
       for (int numVertsInFace : shape.mesh.num_face_vertices) {
         auto isQuad = (numVertsInFace == 4);
-        // when a Quad then use same splitting diagonale in OSPRay/Embree as
+        // when a Quad then use same splitting diagonal in OSPRay/Embree as
         // tinyOBJ would use
         auto prim_indices = isQuad ? vec4ui(3, 0, 1, 2) : vec4ui(0, 1, 2, 2);
         vi.push_back(i + prim_indices);

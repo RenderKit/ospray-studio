@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-project(ospray_studio VERSION 0.9.1 LANGUAGES CXX)
+project(ospray_studio VERSION 0.10.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(ProcessorCount)
@@ -67,9 +67,22 @@ find_package(OpenGL 2 REQUIRED)
 include(glfw)
 include(ospray)
 
+option(USE_BENCHMARK "Build benchmarking support into ospStudio" OFF)
+
+if(USE_BENCHMARK)
+  include(benchmark)
+endif()
+
 ## Build application ##
 
 set(OSPRAY_DEFAULT_COMPONENT apps)
+
+## Optional MPI Support ##
+option(USE_MPI "Enable MPI" OFF)
+if (USE_MPI)
+  find_package(MPI REQUIRED)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MPI=1")
+endif()
 
 add_subdirectory(external)
 add_subdirectory(sg)
