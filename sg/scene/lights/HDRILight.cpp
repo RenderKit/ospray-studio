@@ -21,7 +21,7 @@ OSP_REGISTER_SG_NODE_NAME(HDRILight, hdri);
 
 HDRILight::HDRILight() : Light("hdri")
 {
-  createChild("filename", "string", "HDRI filename", std::string(""));
+  createChild("filename", "filename", "HDRI filename", std::string(""));
   child("filename").setSGOnly();
 
   createChild("up",
@@ -52,12 +52,20 @@ void HDRILight::preCommit()
   } else {
     auto mapFilename =
         hasChild("map") ? child("map")["filename"].valueAs<std::string>() : "";
-    // reload if HDRI filename changes
+    // reload or remove if HDRI filename changes
     if (filename != mapFilename) {
-      auto &hdriTex = createChild("map", "texture_2d");
-      auto texture = hdriTex.nodeAs<sg::Texture2D>();
-      if (!texture->load(filename, false, false))
+      // Remove texture if had a map, but mapFilename has been removed
+      if (hasChild("map") && mapFilename == "") {
         remove("map");
+        child("filename") = std::string("");
+      } else {
+        auto &hdriTex = createChild("map", "texture_2d");
+        auto texture = hdriTex.nodeAs<sg::Texture2D>();
+        if (!texture->load(filename, false, false)) {
+          remove("map");
+          child("filename") = std::string("");
+        }
+      }
     }
   }
 }
