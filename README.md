@@ -24,7 +24,7 @@ support. The scenes can then be rendered either with OSPRay's pathtracer
 or scivis renderer.
 
 More information can be found in the [**high-level feature
-description**](https://github.com/ospray/ospray_studio/blob/master/FEATURE.md).
+description**](https://github.com/ospray/ospray_studio/blob/master/FEATURES.md).
 
 ## Building OSPRay Studio
 
