@@ -540,7 +540,15 @@ inline bool generateWidget_string(const std::string &, Node &node)
 
 inline bool generateWidget_filename(const std::string &title, Node &node)
 {
-  std::string f = node.valueAs<filename>();
+  static bool showFullName = true;
+  if (ImGui::Button("...##filename"))
+    showFullName ^= true;
+  sg::showTooltip("toggle short filenames");
+
+  rkcommon::FileName fullName = node.valueAs<filename>();
+  std::string f = showFullName ? fullName.str() : fullName.base();
+
+  ImGui::SameLine();
 
   if (node.readOnly()) {
     ImGui::Text("%s", (node.name() + ": \"" + f + "\" (filename)").c_str());
