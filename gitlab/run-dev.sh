@@ -1,5 +1,5 @@
 #!/bin/bash -x
-## Copyright 2015-2020 Intel Corporation
+## Copyright 2015-2022 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 # XXX This script is transitional
