@@ -1778,8 +1778,9 @@ void glTFImporter::importScene()
     gltf.createAnimations(*animations);
   if (gltf.lights.size() != 0) {
     auto lightsMan = std::static_pointer_cast<sg::LightsManager>(lightsManager);
-    lightsMan->addLights(gltf.lights);
-    lightsMan->lightsInstanced = true;
+    // Add lights as "Group" lights, they are part of the scene hierarchy and
+    // will respond to scene transforms.
+    lightsMan->addGroupLights(gltf.lights);
   }
 
   // Finally, add node hierarchy to importer parent

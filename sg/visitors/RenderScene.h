@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -195,20 +195,24 @@ namespace ospray {
       tfns.pop();
       break;
     case NodeType::LIGHT: {
-      auto &light = node.valueAs<cpp::Light>();
-      cpp::Group group;
-      group.setParam("light", cpp::CopiedData(light));
-      group.commit();
-      cpp::Instance inst(group);
-      if (xfmsDiverged.top()) { // motion blur
-        std::vector<affine3f> motionXfms;
-        motionXfms.push_back(xfms.top());
-        motionXfms.push_back(endXfms.top());
-        inst.setParam("motion.transform", cpp::CopiedData(motionXfms));
-      } else
-        inst.setParam("transform", xfms.top());
-      inst.commit();
-      instances.push_back(inst);
+      // Only lights marked as "inGroup" belong in a group lights list, others
+      // have been put on the world list.
+      if (node.nodeAs<Light>()->inGroup) {
+        auto &light = node.valueAs<cpp::Light>();
+        cpp::Group group;
+        group.setParam("light", cpp::CopiedData(light));
+        group.commit();
+        cpp::Instance inst(group);
+        if (xfmsDiverged.top()) { // motion blur
+          std::vector<affine3f> motionXfms;
+          motionXfms.push_back(xfms.top());
+          motionXfms.push_back(endXfms.top());
+          inst.setParam("motion.transform", cpp::CopiedData(motionXfms));
+        } else
+          inst.setParam("transform", xfms.top());
+        inst.commit();
+        instances.push_back(inst);
+      }
     } break;
     case NodeType::TRANSFORM:
       createInstanceFromGroup(node);

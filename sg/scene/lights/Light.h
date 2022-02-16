@@ -14,6 +14,9 @@ struct OSPSG_INTERFACE Light : public OSPNode<cpp::Light, NodeType::LIGHT>
   ~Light() override = default;
   NodeType type() const override;
 
+  // Lights are either in the World lights list or in a group list.
+  bool inGroup{false};
+
  protected:
   void preCommit() override;
   void addMeasuredSource(std::string fileName = "");

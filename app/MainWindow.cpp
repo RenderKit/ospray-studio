@@ -1470,7 +1470,7 @@ void MainWindow::buildMainMenuEdit()
       frame->waitOnFrame();
       frame->remove("world");
       lightsManager->clear();
-      if(animationWidget) {
+      if (animationWidget) {
         animationWidget.reset();
         registerImGuiCallback(nullptr);
       }
