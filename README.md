@@ -23,6 +23,9 @@ can either be imported or created using scene graph nodes and structure
 support. The scenes can then be rendered either with OSPRay's pathtracer
 or scivis renderer.
 
+More information can be found in the [**high-level feature
+description**](https://github.com/ospray/ospray_studio/blob/master/FEATURE.md).
+
 ## Building OSPRay Studio
 
 tl;dr - For most installations, these 5 steps will build a plain vanilla OSPRay Studio
