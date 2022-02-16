@@ -1,6 +1,6 @@
 # OSPRay Studio
 
-This is release v0.10.0 (devel) of Intel® OSPRay Studio. It is released under the
+This is release v0.10.0 of Intel® OSPRay Studio. It is released under the
 Apache 2.0 license.
 
 Visit [**OSPRay Studio**](http://www.ospray.org/ospray_studio)
@@ -39,14 +39,14 @@ OSPRay Studio has the following required and optional dependencies.
 ### Required dependencies
 
 -   [CMake](https://www.cmake.org) (v3.15+) and any C++14 compiler
--   Intel [OSPRay](https://www.github.com/ospray/ospray) (v2.8.0) and
+-   Intel [OSPRay](https://www.github.com/ospray/ospray) (v2.9.0) and
     its dependencies - OSPRay Studio builds on top of OSPRay.
     Instructions on building OSPRay are provided
     [here](http://www.ospray.org/downloads.html#building-and-finding-ospray).
-    -   Intel [Open VKL](https://www.github.com/openvkl/openvkl) (v1.0.1 or newer)
+    -   Intel [Open VKL](https://www.github.com/openvkl/openvkl) (v1.2.0 or newer)
     -   Intel [Embree](https://www.github.com/embree/embree) (v3.13.1 or newer)
     -   Intel oneAPI Rendering Toolkit common library
-        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.8.0)
+        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.9.0)
     -   Intel [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
 -   OpenGL and [GLFW](https://www.glfw.org) (v3.3.4) - for the windowing environment
 

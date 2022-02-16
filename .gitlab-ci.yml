@@ -3,8 +3,8 @@
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  OSPRAY_VER: "2.8.0"
-  RKCOMMON_VER: "1.8.0"
+  OSPRAY_VER: "2.9.0"
+  RKCOMMON_VER: "1.9.0"
   PYTHON_VERSION: "3.9.7"
   # PYTHON_ROOT_MACOS: "/NAS/packages/apps/python/$PYTHON_VERSION/macos"
   PYTHON_ROOT_WINDOWS: "N:/packages/apps/python/$PYTHON_VERSION/windows"
