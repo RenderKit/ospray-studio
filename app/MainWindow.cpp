@@ -1411,6 +1411,7 @@ void MainWindow::buildMainMenuFile()
 
       ImGui::EndMenu();
     }
+    ImGui::Separator();
     if (ImGui::MenuItem("Quit","Alt+F4")) {
         g_quitNextFrame = true;
         glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
