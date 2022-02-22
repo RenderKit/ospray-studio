@@ -34,7 +34,7 @@ void BatchContext::start()
 {
   std::cerr << "Batch mode\n";
 
-  // load plugins 
+  // load plugins
   for (auto &p : studioCommon.pluginsToLoad)
     pluginManager->loadPlugin(p);
 
@@ -42,19 +42,27 @@ void BatchContext::start()
     std::cout << "...importing files!" << std::endl;
     refreshRenderer();
     refreshScene(true);
-      for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
-           ++cameraIdx) {
-        resetFileId = true;
-        bool useCamera = refreshCamera(cameraIdx, true);
-        if (useCamera) {
-          render();
-          if (fps) {
-            std::cout << "..rendering animation!" << std::endl;
-            renderAnimation();
-          } else
-            renderFrame();
-        }
+    if (cameras.size())
+      std::cout << "List of imported scene cameras:\n";
+    for (int c = 1; c <= cameras.size(); ++c) {
+      std::cout
+          << c << ": "
+          << cameras[c - 1]->child("uniqueCameraName").valueAs<std::string>()
+          << std::endl;
+    }
+    for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
+         ++cameraIdx) {
+      resetFileId = true;
+      bool useCamera = refreshCamera(cameraIdx, true);
+      if (useCamera) {
+        render();
+        if (fps) {
+          std::cout << "..rendering animation!" << std::endl;
+          renderAnimation();
+        } else
+          renderFrame();
       }
+    }
     std::cout << "...finished!" << std::endl;
     sg::clearAssets();
   }
@@ -310,8 +318,7 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
     }
 
   } else {
-    std::cout << "No cameras imported or invalid camera index specified"
-              << std::endl;
+    std::cout << "No scene camera is selected." << std::endl;
     if (optCameraTypeStr != "perspective") {
       auto optCamera = createNode("camera", "camera_" + optCameraTypeStr);
       frame->remove("camera");
@@ -322,7 +329,7 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 
   reshape(); // resets aspect
 
-   // if imported cameras don't have parent transform then use Arcball properties
+  // if imported cameras don't have parent transform then use Arcball properties
   if (!hasParents)
     useArcball = true;
   updateCamera();
