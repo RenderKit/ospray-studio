@@ -12,6 +12,17 @@ Volume::Volume(const std::string &osp_type)
   createChild("visible", "bool", true);
   createChild("filter", "int", "0 = nearest, 100 = trilinear", 0);
 
+  createChild("densityScale",
+      "float",
+      "makes volumes uniformly thinner or thicker",
+      1.f)
+      .setMinMax(0.f, 1.f);
+  createChild("anisotropy",
+      "float",
+      "anisotropy of the (Henyey-Greenstein) phase function in [-1–1] (path tracer only), default to isotropic scattering",
+      0.f)
+      .setMinMax(-1.f, 1.f);
+
   // All volumes track their valueRange
   createChild("valueRange", "range1f", range1f(0.f, 1.f));
   child("valueRange").setSGOnly();
