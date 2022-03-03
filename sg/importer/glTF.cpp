@@ -1588,16 +1588,18 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
   // The uri can be a stream of base64-encoded data!  If it is not, it
   // contains the base filename, whereas sometimes the img.name is less
   // descriptive.
-  if (img.uri.length() < 256) {
+  if (img.uri.length() > 0 && img.uri.length() < 256) {
     // XXX should decode the uri before using it as a filename.  Otherwise
     // FileName::canonical() returns "" for names containing '%20', etc.
     std::string fileName = FileName(img.uri).canonical();
     img.name = fileName != "" ? fileName : img.uri;
   }
 
-  // If the texture comes from a bufferView give it that name.
-  if (img.bufferView >= 0)
-    img.name = "texture_" + pad(std::to_string(img.bufferView));
+  // Last try, if the texture comes from a bufferView and we have no other name
+  // give it the <filename>_texture_<bufferview#>
+  if (img.name.empty() && img.bufferView >= 0)
+    img.name =
+        fileName.name() + "_texture_" + pad(std::to_string(img.bufferView));
 
 #if 0
     DEBUG << pad("", '.', 9) << "image name: |" << img.name << "|\n";
