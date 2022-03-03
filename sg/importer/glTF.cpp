@@ -68,13 +68,14 @@ struct GLTFData
   void finalizeSkins();
   void createGeometries();
   void createCameraTemplates();
-  void createLights();
+  void createLightTemplates();
   void buildScene();
   void loadNodeInfo(const int nid, NodePtr sgNode);
   // load animations AFTER loading scene nodes and their transforms
   void createAnimations(std::vector<Animation> &);
   void applySceneBackground(NodePtr bgXfm);
   std::vector<NodePtr> lights;
+  std::vector<NodePtr> lightTemplates;
   std::string geomId{""};
 
  private:
@@ -306,8 +307,39 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   }
 }
 
-void GLTFData::createLights()
+void GLTFData::createLightTemplates()
 {
+  // INTEL_lights_sunsky extension
+  if (model.extensions.find("INTEL_lights_sunsky") != model.extensions.end()) {
+    auto lightsSunSky =
+        model.extensions.find("INTEL_lights_sunsky")->second.Get("lights");
+    int arrayLen = 0;
+    if (lightsSunSky.IsArray())
+      arrayLen = lightsSunSky.ArrayLen();
+
+    for (int i = 0; i < arrayLen; i++) {
+      auto lightName = "sunSkyLight_" + std::to_string(i);
+      auto sunSky = lightsSunSky.Get(i);
+      float intensity = sunSky.Get("intensity").Get<double>();
+      float elevation = (float)sunSky.Get("elevation").Get<double>()
+          * (180.f / (float)pi); // degrees
+      float azimuth = (float)sunSky.Get("azimuth").Get<double>()
+          * (180.f / (float)pi); // degrees
+      float turbidity = sunSky.Get("turbidity").Get<double>();
+      float albedo = sunSky.Get("albedo").Get<double>();
+      float horizonExtension = sunSky.Get("horizonExtension").Get<double>();
+      auto sunSkyLight = createNode(lightName, "sunSky");
+      sunSkyLight->child("intensity") = intensity;
+      sunSkyLight->child("elevation") = elevation;
+      sunSkyLight->child("azimuth") = azimuth;
+      sunSkyLight->child("turbidity") = turbidity;
+      sunSkyLight->child("albedo") = albedo;
+      sunSkyLight->child("horizonExtension") = horizonExtension;
+
+      lightTemplates.push_back(sunSkyLight);
+    }
+  }
+  // KHR_lights_punctual
   for (auto &l : model.lights) {
     static auto nLight = 0;
     auto lightName =
@@ -330,27 +362,6 @@ void GLTFData::createLights()
       newLight = createNode(lightName, l.type);
       auto hdrFileName = l.extras.Get("map").Get<std::string>();
       newLight->child("filename") = fileName.path() + hdrFileName;
-    } else if (l.type == "sunSky") {
-      newLight = createNode(lightName, l.type);
-      if (l.sunSky.up.size()) {
-        auto up = vec3f{(float)l.sunSky.up[0],
-            (float)l.sunSky.up[1],
-            (float)l.sunSky.up[2]};
-        newLight->child("up") = up;
-      }
-      if (l.sunSky.turbidity) {
-        auto turbidity = (float)l.sunSky.turbidity;
-        newLight->child("turbidity") = turbidity;
-      }
-      if (l.sunSky.albedo) {
-        auto albedo = (float)l.sunSky.albedo;
-        newLight->child("albedo") = albedo;
-      }
-
-      if (l.sunSky.horizonExtension) {
-        auto horizonExtension = (float)l.sunSky.horizonExtension;
-        newLight->child("horizonExtension") = horizonExtension;
-      }
     } else
       newLight = createNode(lightName, l.type);
 
@@ -362,8 +373,7 @@ void GLTFData::createLights()
     // Color is optional, default:[1.0,1.0,1.0]
     auto lightColor = rgb(1.f);
     if (!l.color.empty())
-      lightColor =
-          rgb{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
+      lightColor = rgb{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
     newLight->child("color") = lightColor;
 
     if (l.intensity)
@@ -373,7 +383,7 @@ void GLTFData::createLights()
 
     // TODO:: Address extras property on lights
 
-    lights.push_back(newLight);
+    lightTemplates.push_back(newLight);
   }
 }
 
@@ -759,14 +769,34 @@ void GLTFData::visitNode(NodePtr sgNode,
   if (n.extensions.find("BIT_node_info") != n.extensions.end())
     loadNodeInfo(nid, sgNode);
 
-  // KHR_lights_punctual extension info on nodes
-  if (n.extensions.find("KHR_lights_punctual") != n.extensions.end()) {
-    // defines light orientation
-    auto lightIndex = n.extensions.find("KHR_lights_punctual")
-                          ->second.Get("light")
-                          .GetNumberAsInt();
-    auto lightNode = lights[lightIndex];
-    sgNode->add(lightNode);
+  tinygltf::Value lightJson;
+  // instantiate lights for extensions: INTEL_lights_sunsky and
+  // KHR_lights_punctual
+  if (n.extensions.find("KHR_lights_punctual") != n.extensions.end())
+    lightJson = n.extensions.find("KHR_lights_punctual")->second.Get("light");
+  else if (n.extensions.find("INTEL_lights_sunsky") != n.extensions.end())
+    lightJson = n.extensions.find("INTEL_lights_sunsky")->second.Get("light");
+
+  if (lightJson.IsInt()) {
+    auto lightIdx = lightJson.GetNumberAsInt();
+    auto lightTemplate = lightTemplates[lightIdx];
+    static int lightCounter = 0;
+    // instantiate SG light nodes
+    auto uniqueLightName = n.name != ""
+        ? n.name + std::to_string(lightCounter++)
+        : lightTemplate->name() + std::to_string(lightCounter++);
+    auto light = createNode(uniqueLightName, lightTemplate->subType());
+    for (auto &c : lightTemplate->children()) {
+      if (light->hasChild(c.first))
+        light->child(c.first) = c.second->value();
+      else {
+        light->createChild(c.first, c.second->subType(), c.second->value());
+        if (lightTemplate->child(c.first).sgOnly())
+          light->child(c.first).setSGOnly();
+      }
+    }
+    lights.push_back(light);
+    sgNode->add(light);
   }
 
   // recursively process children nodes
@@ -1768,7 +1798,7 @@ void glTFImporter::importScene()
     return;
 
   gltf.createMaterials();
-  gltf.createLights();
+  gltf.createLightTemplates();
 
   if (importCameras)
     gltf.createCameraTemplates();

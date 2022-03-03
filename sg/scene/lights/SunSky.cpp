@@ -26,7 +26,7 @@ SunSky::SunSky() : Light("sunSky")
   createChild("right",
       "vec3f",
       "right-pointing vector, such that up cross right = direction",
-      vec3f(0.f, 0.f, 1.f));
+      vec3f(0.f, 0.f, -1.f));
   createChild("azimuth", "float", "sun's angular distance from North", 0.f);
   createChild(
       "elevation", "float", "sun's angle relative to the horizon", 90.f);
@@ -50,7 +50,7 @@ SunSky::SunSky() : Light("sunSky")
 
   // Set reasonable limits, this will set slider range
   child("albedo").setMinMax(0.f, 1.f);
-  child("azimuth").setMinMax(-180.f, 180.f);
+  child("azimuth").setMinMax(0.f, 360.f);
   child("elevation").setMinMax(-90.f, 90.f);
   child("turbidity").setMinMax(0.f, 10.f);
   child("horizonExtension").setMinMax(0.f, 1.f);
