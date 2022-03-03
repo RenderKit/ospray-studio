@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Volume.h"
@@ -14,12 +14,15 @@ Volume::Volume(const std::string &osp_type)
 
   createChild("densityScale",
       "float",
-      "makes volumes uniformly thinner or thicker",
+      "makes volumes uniformly thinner or thicker\n"
+      "(value range is unbounded, slider is bounded for convenience.\n"
+      "shift-LMB to enter larger values manually)",
       1.f)
-      .setMinMax(0.f, 1.f);
+      .setMinMax(0.f, 100.f);
   createChild("anisotropy",
       "float",
-      "anisotropy of the (Henyey-Greenstein) phase function in [-1–1] (path tracer only), default to isotropic scattering",
+      "anisotropy of the (Henyey-Greenstein) phase function in [-1–1]\n"
+      "(path tracer only), default to isotropic scattering",
       0.f)
       .setMinMax(-1.f, 1.f);
 

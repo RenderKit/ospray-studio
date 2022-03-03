@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "TransferFunctionWidget.h"
@@ -99,9 +99,11 @@ void TransferFunctionWidget::updateUI()
 
   ImGui::Text("Opacity scale");
   ImGui::SameLine();
-  if (ImGui::SliderFloat("##OpacityScale", &globalOpacityScale, 0.f, 10.f)) {
+  if (ImGui::SliderFloat("##OpacityScale", &globalOpacityScale, 0.f, 10.f))
     tfnChanged = true;
-  }
+  if (ImGui::IsItemHovered())
+    ImGui::SetTooltip("(value range is unbounded, slider is bounded for\n"
+       "convenience. shift-LMB to enter larger values manually)");
 
   ImGui::Separator();
 
