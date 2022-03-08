@@ -1121,6 +1121,7 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     auto ospMat = createNode(matName, "principled");
     ospMat->createChild("baseColor", "rgb") = rgb(
         pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
+    auto alpha = (float)pbr.baseColorFactor[3];
     ospMat->createChild("metallic", "float") = (float)pbr.metallicFactor;
     ospMat->createChild("roughness", "float") = (float)pbr.roughnessFactor;
 
@@ -1134,7 +1135,7 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     if (mat.alphaMode == "OPAQUE")
       ospMat->createChild("opacity", "float") = 1.f;
     else if (mat.alphaMode == "BLEND")
-      ospMat->createChild("opacity", "float") = 1.f;
+      ospMat->createChild("opacity", "float") = alpha;
     else if (mat.alphaMode == "MASK")
       ospMat->createChild("opacity", "float") = 1.f - (float)mat.alphaCutoff;
 
