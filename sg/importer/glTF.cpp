@@ -240,10 +240,10 @@ void GLTFData::applySceneBackground(NodePtr bgXfm)
   if (background.Has("rotation")) {
     const auto &r = background.Get("rotation").Get<tinygltf::Value::Array>();
     auto &rot = bgXfm->nodeAs<sg::Transform>()->child("rotation");
-    rot = quaternionf(r[3].Get<double>(),
+    rot = normalize(quaternionf(r[3].Get<double>(),
         r[0].Get<double>(),
         r[1].Get<double>(),
-        r[2].Get<double>());
+        r[2].Get<double>()));
   }
 
   lights.push_back(bgNode);
@@ -627,7 +627,7 @@ void GLTFData::createAnimations(std::vector<Animation> &animations)
         t->values.reserve(value.size());
         for (size_t i = 0; i < value.size(); ++i) {
           const auto &v = value[i];
-          t->values.push_back(quaternionf(v.w, v.x, v.y, v.z));
+          t->values.push_back(normalize(quaternionf(v.w, v.x, v.y, v.z)));
         }
       } else if (c.target_path == "weights") {
         WARN << "animating weights of morph targets not implemented yet"
@@ -822,7 +822,8 @@ void GLTFData::applyNodeTransform(NodePtr xfmNode, const tinygltf::Node &n)
     }
     if (!n.rotation.empty()) {
       const auto &r = n.rotation;
-      xfmNode->child("rotation") = quaternionf(r[3], r[0], r[1], r[2]);
+      xfmNode->child("rotation") =
+          normalize(quaternionf(r[3], r[0], r[1], r[2]));
     }
     if (!n.translation.empty()) {
       const auto &t = n.translation;
