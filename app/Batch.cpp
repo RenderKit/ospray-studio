@@ -537,8 +537,7 @@ void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform");
   frame->child("world").add(importedModels);
-  if (fps)
-    animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
+  animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
     try {

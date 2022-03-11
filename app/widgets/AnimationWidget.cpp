@@ -42,7 +42,13 @@ void AnimationWidget::addAnimationUI()
 {
   auto &timeRange = animationManager->getTimeRange();
   auto &animations = animationManager->getAnimations();
-  ImGui::Begin(name.c_str());
+  ImGui::Begin(name.c_str(), &showUI);
+
+  if (animationManager->getAnimations().empty()) {
+    ImGui::Text("== No animated objects in the scene ==");
+    ImGui::End();
+    return;
+  }
 
   if (ImGui::Button(play ? "Pause" : "Play ")) {
     play = !play;

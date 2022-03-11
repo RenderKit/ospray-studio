@@ -1128,11 +1128,6 @@ void MainWindow::refreshScene(bool resetCam)
 }
 
 void MainWindow::addToCommandLine(std::shared_ptr<CLI::App> app) {
-  app->add_flag(
-    "--animate",
-    optAnimate,
-    "enable loading glTF animations"
-  );
 }
 
 bool MainWindow::parseCommandLine()
@@ -1170,8 +1165,7 @@ bool MainWindow::parseCommandLine()
 void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<sg::NodePtr> cameras;
-  if (optAnimate)
-    animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
+  animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
     try {
@@ -1201,8 +1195,7 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->setLightsManager(lightsManager);
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           importer->setScheduler(scheduler);
-          if (animationManager)
-            importer->setAnimationList(animationManager->getAnimations());
+          importer->setAnimationList(animationManager->getAnimations());
           if (optInstanceConfig == "dynamic")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::DYNAMIC);
@@ -1239,12 +1232,7 @@ void MainWindow::importFiles(sg::NodePtr world)
   }
   filesToImport.clear();
 
-  if (animationManager) {
-    animationManager->init();
-    animationWidget = std::shared_ptr<AnimationWidget>(
-        new AnimationWidget("Animation Controls", animationManager));
-    registerImGuiCallback([&]() { animationWidget->addAnimationUI(); });
-  }
+  animationManager->init();
 
   if (cameras.size() > 0) {
     auto mainCamera = frame->child("camera").nodeAs<sg::Camera>();
@@ -1326,13 +1314,9 @@ void MainWindow::buildMainMenuFile()
   static bool showImportFileBrowser = false;
 
   if (ImGui::BeginMenu("File")) {
-    if (ImGui::MenuItem("Import ...", nullptr)) {
+    if (ImGui::MenuItem("Import ...", nullptr))
+
       showImportFileBrowser = true;
-      optAnimate = false;
-    } else if (ImGui::MenuItem("Import and animate ...", nullptr)) {
-      showImportFileBrowser = true;
-      optAnimate = true;
-    }
     if (ImGui::BeginMenu("Demo Scene")) {
       for (size_t i = 0; i < g_scenes.size(); ++i) {
         if (ImGui::MenuItem(g_scenes[i].c_str(), nullptr)) {
@@ -1470,9 +1454,10 @@ void MainWindow::buildMainMenuEdit()
       frame->waitOnFrame();
       frame->remove("world");
       lightsManager->clear();
+      animationManager->getAnimations().clear();
+      animationManager->getTimeRange() = range1f{empty};
       if (animationWidget) {
         animationWidget.reset();
-        registerImGuiCallback(nullptr);
       }
 
       // TODO: lights caching to avoid complete re-importing after clearing
@@ -1527,17 +1512,26 @@ void MainWindow::buildMainMenuView()
       }
     }
 
-    if (ImGui::MenuItem("Keyframes...", "", nullptr))
-      showKeyframes = true;
-    if (ImGui::MenuItem("Snapshots...", "", nullptr))
-      showSnapshots = true;
-
     ImGui::Text("Camera Movement Speed:");
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     ImGui::SliderFloat("Speed##camMov", &maxMoveSpeed, 0.1f, 5.0f);
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     ImGui::SliderFloat("FineControl##camMov", &fineControl, 0.1f, 1.0f, "%0.2fx");
     sg::showTooltip("hold <left-Ctrl> for more sensitive camera movement.");
+
+    ImGui::Separator();
+
+    if (ImGui::MenuItem("Animation Controls...", "", nullptr)) {
+      if (!animationWidget)
+        animationWidget = std::shared_ptr<AnimationWidget>(
+            new AnimationWidget("Animation Controls", animationManager));
+      animationWidget->showUI = true;
+    }
+
+    if (ImGui::MenuItem("Keyframes...", "", nullptr))
+      showKeyframes = true;
+    if (ImGui::MenuItem("Snapshots...", "", nullptr))
+      showSnapshots = true;
 
     ImGui::Separator();
 
@@ -1727,6 +1721,10 @@ void MainWindow::buildWindows()
     buildWindowTransformEditor();
   if (showRenderingStats)
     buildWindowRenderingStats();
+
+  // Show the animation widget
+  if (animationWidget && animationWidget->showUI)
+    animationWidget->addAnimationUI();
 }
 
 void MainWindow::buildWindowRendererEditor()

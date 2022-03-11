@@ -1,4 +1,4 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -17,6 +17,8 @@ class AnimationWidget
   {
     return shutter;
   }
+
+  bool showUI{true};
 
  private:
   bool play{false};
