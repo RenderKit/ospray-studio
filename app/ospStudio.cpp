@@ -134,7 +134,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "--gridOrigin",
     [&](const std::vector<std::string> val) {
       auto gridOrigin = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
-      volumeParams->createChild("gridSpacing", "vec3f", gridOrigin);
+      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
       return true;
     },
     "Set the grid origin for imported volumes"
