@@ -53,7 +53,19 @@ if(NOT "${draco_FOUND}")
     draco
     URL "https://github.com/google/draco/archive/refs/tags/${DRACO_VERSION}.${_ARCHIVE_EXT}"
   )
-  FetchContent_MakeAvailable(draco)
+  ## Bypass FetchContent_MakeAvailable() shortcut to disable install
+  FetchContent_GetProperties(draco)
+  if(NOT draco_POPULATED)
+    FetchContent_Populate(draco)
+    ## the subdir will still be built since targets depend on it, but it won't be installed
+    add_subdirectory(${draco_SOURCE_DIR} ${draco_BINARY_DIR} EXCLUDE_FROM_ALL)
+  endif()
+
+  ## On Windows, the target is always 'draco' regardless of whether it builds a static or a shared library.
+  ## On non-Windows, both static AND shared libraries can be built, so we explicitly choose the static target.
+  if(NOT MSVC)
+    add_library(draco ALIAS draco_static)
+  endif()
 
   unset(${_ARCHIVE_EXT})
 
