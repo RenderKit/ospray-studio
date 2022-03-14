@@ -1568,9 +1568,26 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     auto ospMat = createNode(matName, "luminous");
 
     if (emissiveColor != rgb(0.f)) {
+      // Material Extensions
+      const auto &exts = mat.extensions;
+
+      float intensity = 1.f;
+
+      // KHR_materials_emissive_strength
+      if (exts.find("KHR_materials_emissive_strength") != exts.end()) {
+        // (Not yet ratified)
+        // https://github.com/KhronosGroup/glTF/tree/KHR_materials_emissive_strength/extensions/2.0/Khronos/KHR_materials_emissive_strength
+        auto params = exts.find("KHR_materials_emissive_strength")->second;
+
+        // default: 1.0
+        intensity = 1.f;
+        if (params.Has("emissiveStrength")) {
+          intensity = (float)params.Get("emissiveStrength").Get<double>();
+        }
+      }
+
       ospMat->createChild("color", "rgb") = emissiveColor;
-      ospMat->createChild("intensity", "float") =
-          20.f; // XXX what's good default intensity?
+      ospMat->createChild("intensity", "float") = intensity;
 
       // Already checked for constant color above.
       if (mat.emissiveTexture.index != -1) {
