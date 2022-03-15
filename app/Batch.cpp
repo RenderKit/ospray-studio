@@ -550,6 +550,13 @@ void BatchContext::importFiles(sg::NodePtr world)
 
         auto importer = sg::getImporter(world, file);
         if (importer) {
+          if (volumeParams->children().size() > 0) {
+            auto vp = importer->getVolumeParams();
+            for (auto &c : volumeParams->children()) {
+              vp->remove(c.first);
+              vp->add(c.second);
+            }
+          }
           // Could be any type of importer.  Need to pass the MaterialRegistry,
           // importer will use what it needs.
           importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
@@ -558,15 +565,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           importer->setLightsManager(lightsManager);
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           importer->setScheduler(scheduler);
-          if (volumeParams->children().size() > 0) {
-            auto vp = importer->getVolumeParams();
-            for (auto &c : volumeParams->children()) {
-              vp->remove(c.first);
-              vp->add(c.second);
-            }
-          }
-          if (animationManager)
-            importer->setAnimationList(animationManager->getAnimations());
+          importer->setAnimationList(animationManager->getAnimations());
           if (optInstanceConfig == "dynamic")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::DYNAMIC);
@@ -576,6 +575,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           else if (optInstanceConfig == "robust")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::ROBUST);
+
           importer->importScene();
         }
       }
@@ -625,6 +625,7 @@ void BatchContext::importFiles(sg::NodePtr world)
   }
 
   filesToImport.clear();
-  if (animationManager)
-    animationManager->init();
+
+  // Initializes time range for newly imported models
+  animationManager->init();
 }

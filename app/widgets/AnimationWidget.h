@@ -11,16 +11,40 @@ class AnimationWidget
   AnimationWidget(
       std::string name, std::shared_ptr<AnimationManager> animationManager);
   ~AnimationWidget();
-  void addAnimationUI();
+  void addUI();
+  void update();
 
   float getShutter()
   {
     return shutter;
   }
 
-  bool showUI{true};
+  // Initialize widget starting time based on animations it controls
+  void init()
+  {
+    animationManager->init();
+    time = animationManager->getTimeRange().lower;
+  }
+
+  void setShowUI()
+  {
+    showUI = true;
+  }
+
+  void togglePlay()
+  {
+    play = !play;
+    lastUpdated = std::chrono::system_clock::now();
+  }
+
+  bool isPlaying()
+  {
+    return play;
+  }
+
 
  private:
+  bool showUI{false};
   bool play{false};
   bool loop{true};
   float speedup{1.0f};
@@ -29,5 +53,4 @@ class AnimationWidget
   std::chrono::time_point<std::chrono::system_clock> lastUpdated;
   float time{0.0f};
   float shutter{0.0f};
-  void update();
 };

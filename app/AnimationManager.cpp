@@ -8,6 +8,8 @@ void AnimationManager::init()
 {
   for (auto &a : animations)
     timeRange.extend(a.timeRange);
+
+  update(timeRange.lower);
 }
 
 void AnimationManager::update(const float time, const float shutter)

@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "AnimationWidget.h"
@@ -38,10 +38,14 @@ void AnimationWidget::update()
 }
 
 // update UI and process any UI events
-void AnimationWidget::addAnimationUI()
+void AnimationWidget::addUI()
 {
+  if (!showUI)
+    return;
+
   auto &timeRange = animationManager->getTimeRange();
   auto &animations = animationManager->getAnimations();
+
   ImGui::Begin(name.c_str(), &showUI);
 
   if (animationManager->getAnimations().empty()) {

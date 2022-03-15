@@ -184,6 +184,11 @@ MainWindow::MainWindow(StudioCommon &_common)
 
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
 
+  // Always create animationManager and animationWidget
+  animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
+  animationWidget = std::shared_ptr<AnimationWidget>(
+        new AnimationWidget("Animation Controls", animationManager));
+
   activeWindow = this;
 
   glfwSetErrorCallback(error_callback);
@@ -318,6 +323,7 @@ MainWindow::MainWindow(StudioCommon &_common)
                       activeWindow->cameraStack, g_camPathSpeed * 0.01);
                 }
               }
+              activeWindow->animationWidget->togglePlay();
               break;
             case GLFW_KEY_EQUAL:
               activeWindow->pushLookMark();
@@ -799,6 +805,10 @@ void MainWindow::display()
     updateCamera();
   }
 
+  // Update animation controller if playing
+  if (animationWidget->isPlaying())
+    animationWidget->update();
+
   if (g_animatingPath) {
     static int framesPaused = 0;
     CameraState current = g_camPath[g_camCurrentPathIndex];
@@ -1165,7 +1175,6 @@ bool MainWindow::parseCommandLine()
 void MainWindow::importFiles(sg::NodePtr world)
 {
   std::vector<sg::NodePtr> cameras;
-  animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
     try {
@@ -1232,7 +1241,8 @@ void MainWindow::importFiles(sg::NodePtr world)
   }
   filesToImport.clear();
 
-  animationManager->init();
+  // Initializes time range for newly imported models
+  animationWidget->init();
 
   if (cameras.size() > 0) {
     auto mainCamera = frame->child("camera").nodeAs<sg::Camera>();
@@ -1456,9 +1466,7 @@ void MainWindow::buildMainMenuEdit()
       lightsManager->clear();
       animationManager->getAnimations().clear();
       animationManager->getTimeRange() = range1f{empty};
-      if (animationWidget) {
-        animationWidget.reset();
-      }
+      animationWidget.reset();
 
       // TODO: lights caching to avoid complete re-importing after clearing
       sg::clearAssets();
@@ -1521,12 +1529,8 @@ void MainWindow::buildMainMenuView()
 
     ImGui::Separator();
 
-    if (ImGui::MenuItem("Animation Controls...", "", nullptr)) {
-      if (!animationWidget)
-        animationWidget = std::shared_ptr<AnimationWidget>(
-            new AnimationWidget("Animation Controls", animationManager));
-      animationWidget->showUI = true;
-    }
+    if (ImGui::MenuItem("Animation Controls...", "", nullptr))
+      animationWidget->setShowUI();
 
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
       showKeyframes = true;
@@ -1722,9 +1726,8 @@ void MainWindow::buildWindows()
   if (showRenderingStats)
     buildWindowRenderingStats();
 
-  // Show the animation widget
-  if (animationWidget && animationWidget->showUI)
-    animationWidget->addAnimationUI();
+  // Add the animation widget's UI
+  animationWidget->addUI();
 }
 
 void MainWindow::buildWindowRendererEditor()
