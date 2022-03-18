@@ -292,8 +292,7 @@ MainWindow::MainWindow(StudioCommon &_common)
             case GLFW_KEY_Q: {
               auto showMode =
                   rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
-              // XXX Invoke the "Jim-Q" key, make it more difficult to exit
-              // by mistake.
+              // Enforce "ctrl-Q" to make it more difficult to exit by mistake.
               if (showMode && mod != GLFW_MOD_CONTROL)
                 std::cout << "Use ctrl-Q to exit\n";
               else
@@ -1405,6 +1404,20 @@ void MainWindow::buildMainMenuFile()
 
       ImGui::EndMenu();
     }
+
+    ImGui::Separator();
+    // Remove Quit option if in "show mode" to make it more difficult to exit
+    // by mistake.
+    auto showMode =
+      rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
+    if (showMode) {
+      ImGui::TextColored(
+          ImVec4(.8f, .2f, .2f, 1.f), "ShowMode, use ctrl-Q to exit");
+    } else {
+      if (ImGui::MenuItem("Quit", "Alt+F4"))
+        g_quitNextFrame = true;
+    }
+
     ImGui::EndMenu();
   }
 
