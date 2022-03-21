@@ -425,9 +425,7 @@ void GLTFData::createCameraTemplates()
 
       sgCamera->child("fovy") = fovy;
       sgCamera->child("nearClip") = (float)m.perspective.znear;
-      if (m.perspective.aspectRatio > 0)
-        sgCamera->child(
-            "aspect") = (float)m.perspective.aspectRatio;
+      sgCamera->child("aspect") = (float)m.perspective.aspectRatio;
 
     } else if (m.type == "panoramic") { // custom extension
       sgCamera = createNode("camera", "camera_panoramic");
