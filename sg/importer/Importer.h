@@ -157,7 +157,8 @@ inline std::shared_ptr<Importer> getImporter(
     return nullptr;
   }
   std::string importer = fnd->second;
-  std::string nodeName = baseName + "_importer";
+  static int num = 0;
+  std::string nodeName = baseName + "_" + std::to_string(num++) + "_importer";
 
   if (cat.find(fullName) != cat.end()) {
     // Existing import, instance it!
