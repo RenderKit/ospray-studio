@@ -692,6 +692,8 @@ void GLTFData::buildScene()
       if (n.skin != -1) {
         if (model.skins[n.skin].skeleton != -1)
           targetNode = sceneNodes[model.skins[n.skin].skeleton];
+        else
+          targetNode = rootNode;
         for (auto &m : ospMesh) {
           const auto &geom = m->nodeAs<Geometry>();
           geom->skin = skins[n.skin];

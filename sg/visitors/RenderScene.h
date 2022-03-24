@@ -99,9 +99,6 @@ namespace ospray {
       setTextureVolume = true;
       current.textures.push_back(node.valueAs<cpp::Texture>());
       break;
-    case NodeType::GEOMETRY:
-      createGeometry(node);
-      break;
     case NodeType::VOLUME:
       createVolume(node);
       traverseChildren = false;
@@ -193,6 +190,9 @@ namespace ospray {
       break;
     case NodeType::TRANSFER_FUNCTION:
       tfns.pop();
+      break;
+    case NodeType::GEOMETRY:
+      createGeometry(node);
       break;
     case NodeType::LIGHT: {
       // Only lights marked as "inGroup" belong in a group lights list, others
