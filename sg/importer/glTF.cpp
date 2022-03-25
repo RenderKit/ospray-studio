@@ -1065,6 +1065,10 @@ NodePtr GLTFData::createOSPMesh(
       } else
         WARN << "invalid WEIGHTS_" << set << std::endl;
     }
+
+    if (ospGeom->checkAndNormalizeWeights())
+      WARN << "non-normalized weights\n";
+
   } else if (ospGeom->subType() == "geometry_spheres") {
     // Positions: vec3f
     Accessor<vec3f> pos_accessor(

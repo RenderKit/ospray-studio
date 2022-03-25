@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -28,7 +28,8 @@ struct OSPSG_INTERFACE Geometry
 
   virtual void postCommit() override;
 
-  // skinning info
+  // skinning
+  bool checkAndNormalizeWeights();
   SkinPtr skin;
   NodePtr skeletonRoot;
   size_t weightsPerVertex{0};
