@@ -69,6 +69,9 @@ class BatchContext : public StudioContext
   float lockAspectRatio = 0.0;
   bool useArcball{false};
 
+  // SceneGraph
+  bool saveScene{false};
+
   // CLI
   std::string optImageName = "ospBatch";
 };
