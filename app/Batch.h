@@ -55,4 +55,7 @@ class BatchContext : public StudioContext
   sg::NodePtr selectedSceneCamera;
 
   float lockAspectRatio = 0.0;
+
+  // SceneGraph
+  bool saveScene{false};
 };

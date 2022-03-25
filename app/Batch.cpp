@@ -203,6 +203,11 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     frameStep,
     "Set the frames step when (frameRange is used)"
   )->check(CLI::PositiveNumber);
+  app->add_flag(
+    "--saveScene",
+    saveScene,
+    "Saves the SceneGraph representing the frame"
+  );
 }
 
 bool BatchContext::parseCommandLine()
@@ -395,6 +400,16 @@ void BatchContext::renderFrame()
     frame->saveFrame(filename, screenshotFlags);
 
     this->outputFilename = filename;
+
+    if (saveScene)
+    {
+      std::ofstream dump("studio_scene.sg");
+      JSON j = {{"world", frame->child("world")},
+          {"camera", arcballCamera->getState()},
+          {"lightsManager", *lightsManager},
+          {"materialRegistry", *baseMaterialRegistry}};
+      dump << j.dump();
+    }
   }
   
   pluginManager->main(shared_from_this());
