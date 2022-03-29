@@ -1,4 +1,4 @@
-// Copyright 2017-2021 Intel Corporation
+// Copyright 2017-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -16,11 +16,14 @@ class CameraState
  public:
   CameraState() = default;
   CameraState(const AffineSpace3f &centerTrans,
-              const AffineSpace3f &trans,
-              const quaternionf &rot)
-      : centerTranslation(centerTrans), translation(trans), rotation(rot)
-  {
-  }
+      const AffineSpace3f &trans,
+      const quaternionf &rot,
+      const AffineSpace3f &camToWorld)
+      : centerTranslation(centerTrans),
+        translation(trans),
+        rotation(rot),
+        cameraToWorld(camToWorld)
+  {}
 
   CameraState slerp(const CameraState &to, float frac) const
   {
@@ -55,7 +58,7 @@ class CameraState
   template<class Archive>
   void serialize(Archive & archive)
   {
-    archive( centerTranslation, translation, rotation );
+    archive(centerTranslation, translation, rotation, cameraToWorld);
   }
 
   AffineSpace3f centerTranslation, translation;

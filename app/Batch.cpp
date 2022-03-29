@@ -53,8 +53,9 @@ void BatchContext::start()
     for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
          ++cameraIdx) {
       resetFileId = true;
-      bool useCamera = refreshCamera(cameraIdx, true);
+      bool useCamera = refreshCamera(cameraIdx);
       if (useCamera) {
+        frame->child("windowSize") = optResolution;
         render();
         if (fps) {
           std::cout << "..rendering animation!" << std::endl;
@@ -269,18 +270,10 @@ void BatchContext::reshape()
 
   frame->child("windowSize") = fSize;
   frame->currentAccum = 0;
-
-  // update camera
-  arcballCamera->updateWindowSize(fSize);
 }
 
-bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
+bool BatchContext::refreshCamera(int cameraIdx)
 {
-  if (resetArcball) {
-    frame->child("windowSize") = optResolution;
-    arcballCamera.reset(
-        new ArcballCamera(getSceneBounds(), optResolution));
-  }
   int hasParents{0};
 
   if (cameraIdx <= cameras.size() && cameraIdx > 0) {
@@ -329,10 +322,8 @@ bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
 
   reshape(); // resets aspect
 
-  // if imported cameras don't have parent transform then use Arcball properties
-  if (!hasParents)
-    useArcball = true;
-  updateCamera();
+  if (!sgScene)
+    updateCamera();
 
   return true;
 }
@@ -496,10 +487,6 @@ void BatchContext::refreshScene(bool resetCam)
 
   frame->add(world);
 
-  if (resetCam && !sgScene)
-    arcballCamera.reset(
-        new ArcballCamera(getSceneBounds(), optResolution));
-
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();
 }
@@ -508,11 +495,24 @@ void BatchContext::updateCamera()
 {
   frame->currentAccum = 0;
   auto &camera = frame->child("camera");
+  // if a finalCameraView is present, use that
+  if (finalCameraView) {
+    affine3f cameraToWorld = *finalCameraView;
+    camera["position"] = xfmPoint(cameraToWorld, vec3f(0, 0, 0));
+    camera["direction"] = xfmVector(cameraToWorld, vec3f(0, 0, -1));
+    camera["up"] = xfmVector(cameraToWorld, vec3f(0, 1, 0));
+  }
+  // if no camera  view or scene camera is selected calculate a default view
+  else if (cameraRange.lower == 0) {
+    auto worldBounds = getSceneBounds();
+    auto worldDiag = length(worldBounds.size());
+    auto centerTranslation = AffineSpace3f::translate(-worldBounds.center());
+    auto translation = AffineSpace3f::translate(vec3f(0, 0, -worldDiag));
+    auto cameraToWorld = rcp(translation * centerTranslation);
 
-  if (useArcball) {
-    camera["position"] = arcballCamera->eyePos();
-    camera["direction"] = arcballCamera->lookDir();
-    camera["up"] = arcballCamera->upDir();
+    camera["position"] = xfmPoint(cameraToWorld, vec3f(0, 0, 0));
+    camera["direction"] = xfmVector(cameraToWorld, vec3f(0, 0, -1));
+    camera["up"] = xfmVector(cameraToWorld, vec3f(0, 1, 0));
   }
 
   if (cmdlCam) {
@@ -526,11 +526,6 @@ void BatchContext::updateCamera()
 
   if (camera.hasChild("interpupillaryDistance"))
     camera["interpupillaryDistance"] = optInterpupillaryDistance;
-}
-
-void BatchContext::setCameraState(CameraState &cs)
-{
-  arcballCamera->setState(cs);
 }
 
 void BatchContext::importFiles(sg::NodePtr world)

@@ -5,7 +5,6 @@
 
 #include "ospStudio.h"
 
-#include "ArcballCamera.h"
 // ospray sg
 #include "sg/Frame.h"
 #include "sg/Node.h"
@@ -32,11 +31,10 @@ class BatchContext : public StudioContext
   void refreshRenderer();
   void refreshScene(bool resetCam) override;
   void updateCamera() override;
-  void setCameraState(CameraState &cs) override;
   void render();
   virtual void renderFrame();
   void renderAnimation();
-  bool refreshCamera(int cameraIdx, bool resetArcball = false);
+  bool refreshCamera(int cameraIdx);
   void reshape();
 
  protected:
@@ -67,7 +65,6 @@ class BatchContext : public StudioContext
   sg::NodePtr selectedSceneCamera;
 
   float lockAspectRatio = 0.0;
-  bool useArcball{false};
 
   // CLI
   std::string optImageName = "ospBatch";

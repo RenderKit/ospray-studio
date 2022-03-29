@@ -1,4 +1,4 @@
-// Copyright 2017-2021 Intel Corporation
+// Copyright 2017-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ArcballCamera.h"
@@ -150,7 +150,7 @@ void ArcballCamera::setZoomLevel(float zoomLevel)
 
 CameraState ArcballCamera::getState() const
 {
-  return CameraState(centerTranslation, translation, rotation);
+  return CameraState(centerTranslation, translation, rotation, cameraToWorld);
 }
 
 void ArcballCamera::updateWindowSize(const vec2i &windowSize)

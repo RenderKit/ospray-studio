@@ -450,7 +450,8 @@ inline void to_json(JSON &j, const CameraState &cs)
 {
   j = JSON{{"centerTranslation", cs.centerTranslation},
       {"translation", cs.translation},
-      {"rotation", cs.rotation}};
+      {"rotation", cs.rotation},
+      {"cameraToWorld", cs.cameraToWorld}};
 }
 
 inline void from_json(const JSON &j, CameraState &cs)
@@ -458,4 +459,5 @@ inline void from_json(const JSON &j, CameraState &cs)
   j.at("centerTranslation").get_to(cs.centerTranslation);
   j.at("translation").get_to(cs.translation);
   j.at("rotation").get_to(cs.rotation);
+  j.at("cameraToWorld").get_to(cs.cameraToWorld);
 }

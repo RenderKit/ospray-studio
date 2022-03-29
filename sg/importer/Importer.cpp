@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009-2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -204,6 +204,7 @@ OSPSG_INTERFACE void importScene(
   if (j.contains("camera")) {
     CameraState cs = j["camera"];
     context->setCameraState(cs);
+    context->finalCameraView = std::make_shared<affine3f>(cs.cameraToWorld);
     context->updateCamera();
   }
 
