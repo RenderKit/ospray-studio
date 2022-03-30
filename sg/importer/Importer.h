@@ -157,16 +157,15 @@ inline std::shared_ptr<Importer> getImporter(
     return nullptr;
   }
   std::string importer = fnd->second;
-  static int num = 0;
-  std::string nodeName = baseName + "_" + std::to_string(num++) + "_importer";
+  std::string nodeName;
 
   if (cat.find(fullName) != cat.end()) {
-    // Existing import, instance it!
-    std::cout << "Instancing: " << nodeName << std::endl;
-
     // Importer node and its rootXfm
     auto origNode = cat[fullName].lock();
     std::string rootXfmName = baseName + "_rootXfm";
+
+    // Existing import, instance it!
+    std::cout << "Instancing: " << origNode->name() << std::endl;
 
     if (!origNode->hasChild(rootXfmName)) {
       std::cout << "!!! error... importer rootXfm is missing?! Is async tasking enabled? --no-async-tasking to disable" << std::endl;
@@ -175,11 +174,9 @@ inline std::shared_ptr<Importer> getImporter(
     auto &rootXfmNode = origNode->child(rootXfmName);
 
     // Create a unique instanceXfm nodeName
-    auto count = 1;
-    do {
-      nodeName = baseName + "_instanceXfm_" + std::to_string(count++);
-    } while (root->hasChild(nodeName));
-
+    int count = ++origNode->child("count").valueAs<int>();
+    nodeName = baseName + "_instanceXfm_" + std::to_string(count);
+    
     auto instanceXfm = createNode(nodeName, "transform");
 
     // Add all children of the original rootXfm to this instanceXfm
@@ -191,7 +188,10 @@ inline std::shared_ptr<Importer> getImporter(
     return nullptr;
 
   } else {
+    nodeName = baseName + "_importer";
     auto importNode = createNodeAs<Importer>(nodeName, importer);
+    importNode->createChild("count", "int", 0);
+    importNode->child("count").setSGNoUI();
     if (importer == "importer_raw") {
       std::cout << "Loading volumes with default volume parameters ..."
                 << std::endl;
