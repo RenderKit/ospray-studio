@@ -34,7 +34,7 @@ class BatchContext : public StudioContext
   void render();
   virtual void renderFrame();
   void renderAnimation();
-  bool refreshCamera(int cameraIdx);
+  void refreshCamera(int cameraIdx);
   void reshape();
 
  protected:
@@ -59,7 +59,7 @@ class BatchContext : public StudioContext
   std::vector<sg::NodePtr> cameras;
   std::string cameraId{""};
 
-  std::vector<CameraState> cameraStack;
+  std::vector<affine3f> cameraStack;
 
   //camera animation
   sg::NodePtr selectedSceneCamera;

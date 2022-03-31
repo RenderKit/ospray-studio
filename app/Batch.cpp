@@ -38,10 +38,20 @@ void BatchContext::start()
   for (auto &p : studioCommon.pluginsToLoad)
     pluginManager->loadPlugin(p);
 
+  // read from cams.json
+  std::ifstream cams("cams.json");
+  if (cams) {
+    JSON j;
+    cams >> j;
+    for (auto &cs : j)
+      cameraStack.push_back(cs.at("cameraToWorld"));
+  }
+
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
     refreshRenderer();
     refreshScene(true);
+
     if (cameras.size())
       std::cout << "List of imported scene cameras:\n";
     for (int c = 1; c <= cameras.size(); ++c) {
@@ -50,12 +60,29 @@ void BatchContext::start()
           << cameras[c - 1]->child("uniqueCameraName").valueAs<std::string>()
           << std::endl;
     }
+
     for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
          ++cameraIdx) {
       resetFileId = true;
-      bool useCamera = refreshCamera(cameraIdx);
-      if (useCamera) {
-        frame->child("windowSize") = optResolution;
+      refreshCamera(cameraIdx);
+
+      // if a camera stack is present loop over every entry of camera stack for
+      // every camera
+      if (cameraStack.size())
+        for (auto &c : cameraStack) {
+          finalCameraView = std::make_shared<affine3f>(c);
+          if (!sgScene)
+            updateCamera();
+          render();
+          if (fps) {
+            std::cout << "..rendering animation!" << std::endl;
+            renderAnimation();
+          } else
+            renderFrame();
+        }
+      else {
+        if (!sgScene)
+          updateCamera();
         render();
         if (fps) {
           std::cout << "..rendering animation!" << std::endl;
@@ -64,6 +91,7 @@ void BatchContext::start()
           renderFrame();
       }
     }
+
     std::cout << "...finished!" << std::endl;
     sg::clearAssets();
   }
@@ -272,7 +300,7 @@ void BatchContext::reshape()
   frame->currentAccum = 0;
 }
 
-bool BatchContext::refreshCamera(int cameraIdx)
+void BatchContext::refreshCamera(int cameraIdx)
 {
   int hasParents{0};
 
@@ -305,27 +333,22 @@ bool BatchContext::refreshCamera(int cameraIdx)
           cameraId = cameraXfm->child("geomId").valueAs<std::string>();
         else
           cameraId = ".Camera_" + std::to_string(cameraIdx);
+        return;
     } else {
-      std::cout << "camera not used in GLTF scene" << std::endl;
-      return false;
+      std::cout << "camera not used in GLTF scene, using default camera.."
+                << std::endl;
     }
-
-  } else {
-    std::cout << "No scene camera is selected." << std::endl;
-    if (optCameraTypeStr != "perspective") {
-      auto optCamera = createNode("camera", "camera_" + optCameraTypeStr);
-      frame->remove("camera");
-      frame->add(optCamera);
-    } else
-      std::cout << "using default camera..." << std::endl;
   }
 
+  std::cout << "No scene camera is selected." << std::endl;
+  if (optCameraTypeStr != "perspective") {
+    auto optCamera = createNode("camera", "camera_" + optCameraTypeStr);
+    frame->remove("camera");
+    frame->add(optCamera);
+  } else
+    std::cout << "using default camera..." << std::endl;
+
   reshape(); // resets aspect
-
-  if (!sgScene)
-    updateCamera();
-
-  return true;
 }
 
 void BatchContext::render()
@@ -358,13 +381,6 @@ void BatchContext::render()
   }
 
   frame->child("navMode") = false;
-
-  std::ifstream cams("cams.json");
-  if (cams) {
-    JSON j;
-    cams >> j;
-    cameraStack = j.get<std::vector<CameraState>>();
-  }
 }
 
 void BatchContext::renderFrame()
@@ -489,6 +505,8 @@ void BatchContext::refreshScene(bool resetCam)
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();
+
+  frame->child("windowSize") = optResolution;
 }
 
 void BatchContext::updateCamera()
