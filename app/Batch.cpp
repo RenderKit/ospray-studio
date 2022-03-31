@@ -302,38 +302,33 @@ void BatchContext::reshape()
 
 void BatchContext::refreshCamera(int cameraIdx)
 {
-  int hasParents{0};
-
   if (cameraIdx <= cameras.size() && cameraIdx > 0) {
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
               << std::endl;
     selectedSceneCamera = cameras[cameraIdx - 1];
-    hasParents = selectedSceneCamera->parents().size();
-    frame->remove("camera");
-    frame->add(selectedSceneCamera);
+    bool hasParent = selectedSceneCamera->parents().size() > 0;
 
     // TODO: remove this Hack : for some reason the accumulated transform in
     // transform node does not get updated for the BIT animation scene.
     // Attempting to make transform modified so it picks up accumulated
     // transform values made by renderScene
-    if (hasParents) {
+    if (hasParent) {
       auto cameraXfm = selectedSceneCamera->parents().front();
       if (cameraXfm->valueAs<affine3f>() == affine3f(one))
         cameraXfm->createChild("refresh", "bool");
-    }
 
-    if (selectedSceneCamera->hasChild("aspect"))
-      lockAspectRatio = selectedSceneCamera->child("aspect").valueAs<float>();
+      if (selectedSceneCamera->hasChild("aspect"))
+        lockAspectRatio = selectedSceneCamera->child("aspect").valueAs<float>();
 
-    // create unique cameraId for every camera
-    auto &cameraParents = selectedSceneCamera->parents();
-    if (cameraParents.size()) {
-        auto &cameraXfm = cameraParents.front();
-        if (cameraXfm->hasChild("geomId"))
-          cameraId = cameraXfm->child("geomId").valueAs<std::string>();
-        else
-          cameraId = ".Camera_" + std::to_string(cameraIdx);
-        return;
+      // create unique cameraId for every camera
+      if (cameraXfm->hasChild("geomId"))
+        cameraId = cameraXfm->child("geomId").valueAs<std::string>();
+      else
+        cameraId = ".Camera_" + std::to_string(cameraIdx);
+      frame->remove("camera");
+      frame->add(selectedSceneCamera);
+      reshape(); // resets aspect
+      return;
     } else {
       std::cout << "camera not used in GLTF scene, using default camera.."
                 << std::endl;
@@ -513,7 +508,7 @@ void BatchContext::updateCamera()
 {
   frame->currentAccum = 0;
   auto &camera = frame->child("camera");
-  // if a finalCameraView is present, use that
+  // use given camera view if present
   if (finalCameraView) {
     affine3f cameraToWorld = *finalCameraView;
     camera["position"] = xfmPoint(cameraToWorld, vec3f(0, 0, 0));
