@@ -179,9 +179,7 @@ inline std::shared_ptr<Importer> getImporter(
     
     auto instanceXfm = createNode(nodeName, "transform");
 
-    // Add all children of the original rootXfm to this instanceXfm
-    for (auto &g : rootXfmNode.children())
-      instanceXfm->add(g.second);
+    instanceXfm->add(rootXfmNode);
 
     root->add(instanceXfm);
 
