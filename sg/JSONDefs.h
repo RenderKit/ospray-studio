@@ -459,5 +459,6 @@ inline void from_json(const JSON &j, CameraState &cs)
   j.at("centerTranslation").get_to(cs.centerTranslation);
   j.at("translation").get_to(cs.translation);
   j.at("rotation").get_to(cs.rotation);
-  j.at("cameraToWorld").get_to(cs.cameraToWorld);
+  if (j.find("cameraToWorld") != j.end())
+    j.at("cameraToWorld").get_to(cs.cameraToWorld);
 }

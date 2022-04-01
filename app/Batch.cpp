@@ -43,8 +43,10 @@ void BatchContext::start()
   if (cams) {
     JSON j;
     cams >> j;
-    for (auto &cs : j)
-      cameraStack.push_back(cs.at("cameraToWorld"));
+    for (auto &cs : j) {
+      if (cs.find("cameraToWorld") != cs.end())
+        cameraStack.push_back(cs.at("cameraToWorld"));
+    }
   }
 
   if (parseCommandLine()) {
