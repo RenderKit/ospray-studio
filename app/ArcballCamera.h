@@ -104,6 +104,8 @@ class ArcballCamera
  public:
   ArcballCamera(const box3f &worldBounds, const vec2i &windowSize);
 
+  void updateCameraToWorld(const affine3f &cameraToWorld, const quaternionf &rot);
+
   // All mouse positions passed should be in [-1, 1] normalized screen coords
   void rotate(const vec2f &from, const vec2f &to);
   void constrainedRotate(const vec2f &from, const vec2f &to, int axis /* 0 = x, 1 = y, 2 = z, otherwise none*/);

@@ -25,6 +25,7 @@
 #include "sg/visitors/SetParamByNode.h"
 #include "sg/visitors/CollectTransferFunctions.h"
 #include "sg/scene/volume/Volume.h"
+#include "sg/Math.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
 #include "rkcommon/os/FileName.h"
@@ -725,6 +726,42 @@ void MainWindow::motion(const vec2f &position)
 
     bool cameraChanged = leftDown || rightDown || middleDown;
 
+    // if cameraChanged then switch back to default-camera and use current scene SG
+    // camera state
+    if (cameraChanged
+        && frame->child("camera")
+                .child("uniqueCameraName")
+                .valueAs<std::string>()
+            != "default") {
+      auto defaultCamera = g_sceneCameras["default"];
+      auto sgSceneCamera = frame->child("camera").nodeAs<sg::Camera>();
+
+      for (auto &c : sgSceneCamera->children()) {
+        if (c.first != "uniqueCameraName") {
+          if (defaultCamera->hasChild(c.first))
+            defaultCamera->child(c.first) = c.second->value();
+          else {
+            defaultCamera->createChild(
+                c.first, c.second->subType(), c.second->value());
+            if (sgSceneCamera->child(c.first).sgOnly())
+              defaultCamera->child(c.first).setSGOnly();
+          }
+        }
+      }
+
+      frame->remove("camera");
+      frame->add(defaultCamera);
+
+      auto worldToCamera = rcp(sgSceneCamera->cameraToWorld);
+      LinearSpace3f R, S;
+      ospray::sg::getRSComponent(worldToCamera, R, S);
+      auto rotation = ospray::sg::getRotationQuaternion(R);
+
+      arcballCamera->updateCameraToWorld(sgSceneCamera->cameraToWorld, rotation);
+      // update centerTranslation of ArcBall
+      arcballCamera->setCenter(vec3f(0.f));
+    }
+
     auto sensitivity = maxMoveSpeed;
     if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
       sensitivity *= fineControl;
@@ -805,8 +842,15 @@ void MainWindow::display()
   }
 
   // Update animation controller if playing
-  if (animationWidget->isPlaying())
+  if (animationWidget->isPlaying()) {
     animationWidget->update();
+    // use scene camera while playing animation
+    if (frame->child("camera").child("uniqueCameraName").valueAs<std::string>()
+        == "default" && g_selectedSceneCamera) {
+      frame->remove("camera");
+      frame->add(g_selectedSceneCamera);
+    }
+  }
 
   if (g_animatingPath) {
     static int framesPaused = 0;
@@ -2260,6 +2304,10 @@ void MainWindow::buildWindowCameraEditor()
     ImGui::End();
     return;
   }
+
+  if (frame->child("camera").child("uniqueCameraName").valueAs<std::string>()
+      == "default")
+    whichCamera = 0;
 
   // Only present selector UI if more than one camera
   if (!g_sceneCameras.empty()

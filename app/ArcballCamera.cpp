@@ -18,6 +18,18 @@ ArcballCamera::ArcballCamera(const box3f &worldBounds, const vec2i &windowSize)
   updateCamera();
 }
 
+void ArcballCamera::updateCameraToWorld(
+    const affine3f &_cameraToWorld, const quaternionf &rot)
+{
+  cameraToWorld = _cameraToWorld;
+  auto worldToCamera = rcp(cameraToWorld);
+  // update Translation and Rotation matrices
+  affine3f newTrans{one};
+  newTrans.p = worldToCamera.p;
+  translation = newTrans;
+  rotation = rot;
+}
+
 void ArcballCamera::setNewWorldBounds(const box3f &worldBounds) {
   centerTranslation = AffineSpace3f::translate(-worldBounds.center());
   updateCamera();
@@ -116,7 +128,7 @@ void ArcballCamera::updateCamera()
 {
   const AffineSpace3f rot           = LinearSpace3f(rotation);
   const AffineSpace3f worldToCamera = translation * rot * centerTranslation;
-  cameraToWorld                     = rcp(worldToCamera);
+  cameraToWorld = rcp(worldToCamera);
 }
 
 void ArcballCamera::setRotation(quaternionf q)
