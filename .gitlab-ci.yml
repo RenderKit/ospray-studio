@@ -247,6 +247,7 @@ kw-gen-report:
   needs: [build-kw-dev]
   script:
     - gitlab/kw-gen-report.sh
+    - gitlab/store-files.sh $CI_PROJECT_NAME $CI_PIPELINE_ID klocwork "klocwork/report.log"
   artifacts:
     paths:
       - klocwork/report.log
