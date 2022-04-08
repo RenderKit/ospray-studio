@@ -28,6 +28,9 @@ BatchContext::BatchContext(StudioCommon &_common)
 {
   frame->child("scaleNav").setValue(1.f);
   pluginManager = std::make_shared<PluginManager>();
+
+  // Default saved image baseName (cmdline --image to override)
+  optImageName = "ospBatch";
 }
 
 void BatchContext::start()
@@ -134,16 +137,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "Set the camera up vector"
   )->expected(3);
   app->add_option(
-    "--format",
-    optImageFormat,
-    "Sets the image format for color components(RGBA)"
-  )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
-  app->add_option(
-    "--image",
-    optImageName,
-    "Sets the image name (inclusive of path and filename)"
-  );
-  app->add_option(
     "--interpupillaryDistance",
     optInterpupillaryDistance,
     "Set the interpupillary distance"
@@ -167,25 +160,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     },
     "Set the camera position"
   )->expected(3);
-  app->add_flag(
-    "--saveAlbedo",
-    saveAlbedo,
-    "Save albedo values"
-  );
-  app->add_flag(
-    "--saveDepth",
-    saveDepth,
-    "Save depth values"
-  );
-  app->add_flag(
-    "--saveNormal",
-    saveNormal,
-    "Save normal values" 
-  );
-  app->add_flag(
-    "--saveLayers",
-    saveLayersSeparatly,
-    "Save layers in separate files");
   app->add_flag(
     "--saveMetadata",
     saveMetaData,
@@ -229,17 +203,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     frameStep,
     "Set the frames step when (frameRange is used)"
   )->check(CLI::PositiveNumber);
-  app->add_option(
-    "--bgColor",
-    [&](const std::vector<std::string> val) {
-      bgColor = rgba(std::stof(val[0]),
-        std::stof(val[1]),
-        std::stof(val[2]),
-        std::stof(val[3]));
-      return true;
-    },
-    "Set the renderer background color"
-    )->expected(4);
 }
 
 bool BatchContext::parseCommandLine()
@@ -277,7 +240,7 @@ void BatchContext::refreshRenderer()
   if (renderer.hasChild("maxContribution") && maxContribution < (float)math::inf)
     renderer["maxContribution"].setValue(maxContribution);
 
-  renderer["backgroundColor"] = bgColor;
+  renderer["backgroundColor"] = optBackGroundColor;
 }
 
 void BatchContext::reshape()
@@ -430,8 +393,8 @@ void BatchContext::renderFrame()
     }
     filenum += frameStep;
 
-    int screenshotFlags = saveLayersSeparatly << 3 | saveNormal << 2
-        | saveDepth << 1 | saveAlbedo;
+    int screenshotFlags = optSaveLayersSeparately << 3 | optSaveNormal << 2
+        | optSaveDepth << 1 | optSaveAlbedo;
 
     frame->saveFrame(filename, screenshotFlags);
 
@@ -538,7 +501,7 @@ void BatchContext::updateCamera()
   }
 
   if (camera.hasChild("stereoMode"))
-    camera["stereoMode"] = optStereoMode;
+    camera["stereoMode"] = (int)optStereoMode;
 
   if (camera.hasChild("interpupillaryDistance"))
     camera["interpupillaryDistance"] = optInterpupillaryDistance;

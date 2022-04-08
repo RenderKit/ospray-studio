@@ -162,13 +162,6 @@ class MainWindow : public StudioContext
   bool showTransformEditor{false};
   bool showRenderingStats{false};
 
-  // imgui-controlled options
-  std::string screenshotFiletype{"png"};
-  bool screenshotAlbedo{false};
-  bool screenshotDepth{false};
-  bool screenshotNormal{false};
-  bool screenshotLayersSeparatly{false};
-
   // Option to always show a gamma corrected display to user.  Native sRGB
   // buffer is untouched, linear buffers are displayed as sRGB.
   bool uiDisplays_sRGB{true}; 

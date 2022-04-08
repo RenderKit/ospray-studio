@@ -183,6 +183,8 @@ MainWindow::MainWindow(StudioCommon &_common)
     throw std::runtime_error("Cannot create more than one MainWindow!");
   }
 
+  // Default saved image baseName (cmdline --image to override)
+  optImageName = "studio";
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
 
   // Always create animationManager and animationWidget
@@ -1122,6 +1124,7 @@ void MainWindow::refreshRenderer()
   if (optPF >= 0)
     r.createChild("pixelFilter", "int", optPF);
 
+  r.child("backgroundColor").setValue(optBackGroundColor);
   r.child("pixelSamples").setValue(optSPP);
   r.child("varianceThreshold").setValue(optVariance);
   if (r.hasChild("maxContribution") && maxContribution < (float)math::inf)
@@ -1308,13 +1311,16 @@ void MainWindow::saveCurrentFrame()
 {
   int filenum = 0;
   char filename[64];
-  const char *ext = screenshotFiletype.c_str();
+  const char *ext = optImageFormat.c_str();
 
+  // Find an unused filename to ensure we don't overwrite and existing file
   do
-    std::snprintf(filename, 64, "studio.%04d.%s", filenum++, ext);
+    std::snprintf(
+        filename, 64, "%s.%04d.%s", optImageName.c_str(), filenum++, ext);
   while (std::ifstream(filename).good());
-  int screenshotFlags = screenshotLayersSeparatly << 3
-      | screenshotNormal << 2 | screenshotDepth << 1 | screenshotAlbedo;
+
+  int screenshotFlags = optSaveLayersSeparately << 3 | optSaveNormal << 2
+      | optSaveDepth << 1 | optSaveAlbedo;
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   auto fbFloatFormat = fb["floatFormat"].valueAs<bool>();
@@ -1421,10 +1427,11 @@ void MainWindow::buildMainMenuFile()
       static const std::vector<std::string> screenshotFiletypes =
           sg::getExporterTypes();
 
-      static int screenshotFiletypeChoice = std::distance(
-          screenshotFiletypes.begin(),
-          std::find(
-              screenshotFiletypes.begin(), screenshotFiletypes.end(), "png"));
+      static int screenshotFiletypeChoice =
+          std::distance(screenshotFiletypes.begin(),
+              std::find(screenshotFiletypes.begin(),
+                  screenshotFiletypes.end(),
+                  optImageFormat));
 
       ImGui::SetNextItemWidth(5.f * ImGui::GetFontSize());
       if (ImGui::Combo("##screenshot_filetype",
@@ -1432,11 +1439,11 @@ void MainWindow::buildMainMenuFile()
               stringVec_callback,
               (void *)screenshotFiletypes.data(),
               screenshotFiletypes.size())) {
-        screenshotFiletype = screenshotFiletypes[screenshotFiletypeChoice];
+        optImageFormat = screenshotFiletypes[screenshotFiletypeChoice];
       }
       sg::showTooltip("Image filetype for saving screenshots");
 
-      if (screenshotFiletype == "exr") {
+      if (optImageFormat == "exr") {
         // the following options should be available only when FB format is
         // float.
         auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -1444,11 +1451,11 @@ void MainWindow::buildMainMenuFile()
         if (ImGui::Checkbox("FB float format ", &fbFloatFormat))
           fb["floatFormat"] = fbFloatFormat;
         if (fbFloatFormat) {
-          ImGui::Checkbox("albedo##screenshotAlbedo", &screenshotAlbedo);
+          ImGui::Checkbox("albedo##saveAlbedo", &optSaveAlbedo);
           ImGui::SameLine();
-          ImGui::Checkbox("layers as separate files", &screenshotLayersSeparatly);
-          ImGui::Checkbox("depth##screenshotDepth", &screenshotDepth);
-          ImGui::Checkbox("normal##screenshotNormal", &screenshotNormal);
+          ImGui::Checkbox("layers as separate files", &optSaveLayersSeparately);
+          ImGui::Checkbox("depth##saveDepth", &optSaveDepth);
+          ImGui::Checkbox("normal##saveNormal", &optSaveNormal);
         }
       }
 

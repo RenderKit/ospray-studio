@@ -77,10 +77,50 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "set the threshold for adaptive accumluation when rendering"
   )->check(CLI::PositiveNumber);
   app->add_option(
+    "--bgColor",
+    [&](const std::vector<std::string> val) {
+      optBackGroundColor = rgba(std::stof(val[0]),
+        std::stof(val[1]),
+        std::stof(val[2]),
+        std::stof(val[3]));
+      return true;
+    },
+    "Set the renderer background color"
+    )->expected(4);
+  app->add_option(
     "--pixelfilter",
     optPF,
     "set default pixel filter (0=point, 1=box, 2=Gaussian, 3=Mitchell-Netravali, 4=Blackman-Harris)"
   );
+  app->add_option(
+    "--format",
+    optImageFormat,
+    "Sets the default format for saved image files"
+  )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
+  app->add_option(
+    "--image",
+    optImageName,
+    "Sets the image name (inclusive of path and filename)"
+  );
+  app->add_flag(
+    "--saveAlbedo",
+    optSaveAlbedo,
+    "Save albedo values"
+  );
+  app->add_flag(
+    "--saveDepth",
+    optSaveDepth,
+    "Save depth values"
+  );
+  app->add_flag(
+    "--saveNormal",
+    optSaveNormal,
+    "Save normal values" 
+  );
+  app->add_flag(
+    "--saveLayers",
+    optSaveLayersSeparately,
+    "Save layers in separate files");
   app->add_option(
     "--resolution",
     [&](const std::vector<std::string> val) {
