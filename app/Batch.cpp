@@ -63,6 +63,7 @@ void BatchContext::start()
           << std::endl;
     }
 
+    cameraRange.upper = std::min(cameraRange.upper, (int)cameras.size());
     for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
          ++cameraIdx) {
       resetFileId = true;
@@ -208,7 +209,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_option(
     "--cameras",
     [&](const std::vector<std::string> val) {
-      cameraRange.lower = std::stoi(val[0]);
+      cameraRange.lower = std::max(1, std::stoi(val[0]));
       cameraRange.upper = std::stoi(val[1]);
       return true;
     },
