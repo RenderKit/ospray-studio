@@ -148,8 +148,8 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::string optCameraTypeStr{"perspective"};
   int optSPP{32};
   float optVariance{0.f}; // varianceThreshold
-  sg::rgba optBackGroundColor{vec3f(0.1f), 1.f};
-  int optPF{-1}; // use default
+  sg::rgba optBackGroundColor{vec3f(0.0f), 1.f}; // default to black
+  OSPPixelFilterTypes optPF{OSP_PIXELFILTER_GAUSS};
   bool optDenoiser{false};
   bool optGridEnable{false};
   vec3i optGridSize{1, 1, 1};

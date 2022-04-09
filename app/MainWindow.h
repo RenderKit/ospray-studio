@@ -89,8 +89,9 @@ class MainWindow : public StudioContext
   void updateTitleBar();
 
   void refreshRenderer();
-  void changeToDefaultCamera();
+  void saveRendererParams();
 
+  void changeToDefaultCamera();
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void refreshScene(bool resetCamera) override;

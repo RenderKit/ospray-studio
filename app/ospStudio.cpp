@@ -91,7 +91,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "--pixelfilter",
     optPF,
     "set default pixel filter (0=point, 1=box, 2=Gaussian, 3=Mitchell-Netravali, 4=Blackman-Harris)"
-  );
+  )->check(CLI::Range(OSP_PIXELFILTER_POINT, OSP_PIXELFILTER_BLACKMAN_HARRIS));
   app->add_option(
     "--format",
     optImageFormat,

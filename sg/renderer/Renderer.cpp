@@ -22,7 +22,7 @@ Renderer::Renderer(std::string type)
   createChild("backgroundColor",
       "rgba",
       "transparent background color and alpha (RGBA), if no map_backplate set",
-      rgba(vec3f(0.1f), 1.f)); // Near black, with opaque alpha
+      rgba(vec3f(0.f), 1.f)); // black, with opaque alpha
   createChild("pixelFilter",
       "int",
       "pixel filter used by the renderer for antialiasing\n"

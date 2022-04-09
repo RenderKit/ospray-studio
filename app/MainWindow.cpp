@@ -485,6 +485,7 @@ void MainWindow::start()
 
   if (parseCommandLine()) {
     refreshRenderer();
+    refreshScene(true);
     mainLoop();
   }
 }
@@ -1120,15 +1121,19 @@ void MainWindow::buildUI()
 
 void MainWindow::refreshRenderer()
 {
-  auto &r = frame->childAs<sg::Renderer>("renderer");
-  if (optPF >= 0)
-    r.createChild("pixelFilter", "int", optPF);
+  // Change renderer if current type doesn't match requested
+  auto currentType = frame->childAs<sg::Renderer>("renderer").child("type")
+                         .valueAs<std::string>();
+  if (currentType != optRendererTypeStr)
+    frame->createChild("renderer", "renderer_" + optRendererTypeStr);
 
-  r.child("backgroundColor").setValue(optBackGroundColor);
-  r.child("pixelSamples").setValue(optSPP);
-  r.child("varianceThreshold").setValue(optVariance);
+  auto &r = frame->childAs<sg::Renderer>("renderer");
+  r["pixelFilter"] = (int)optPF;
+  r["backgroundColor"] = optBackGroundColor;
+  r["pixelSamples"] = optSPP;
+  r["varianceThreshold"] = optVariance;
   if (r.hasChild("maxContribution") && maxContribution < (float)math::inf)
-    r["maxContribution"].setValue(maxContribution);
+    r["maxContribution"] = maxContribution;
 
   // Re-add the backplate on renderer change
   if (backPlateTexture != "") {
@@ -1140,7 +1145,26 @@ void MainWindow::refreshRenderer()
       backplateTex = nullptr;
       backPlateTexture = "";
     }
+  } else {
+    // Node removal requires waiting on previous frame completion
+    frame->cancelFrame();
+    frame->waitOnFrame();
+    r.remove("map_backplate");
+    r.handle().removeParam("map_backplate");
   }
+}
+
+void MainWindow::saveRendererParams()
+{
+  auto &r = frame->childAs<sg::Renderer>("renderer");
+
+  optRendererTypeStr = r["type"].valueAs<std::string>();
+  optPF = (OSPPixelFilterTypes) r["pixelFilter"].valueAs<int>();
+  optBackGroundColor = r["backgroundColor"].valueAs<sg::rgba>();
+  optSPP = r["pixelSamples"].valueAs<int>();
+  optVariance = r["varianceThreshold"].valueAs<float>();
+  if (r.hasChild("maxContribution"))
+    maxContribution = r["maxContribution"].valueAs<float>();
 }
 
 void MainWindow::refreshScene(bool resetCam)
@@ -1215,11 +1239,6 @@ bool MainWindow::parseCommandLine()
     reshape(windowSize);
   }
   rendererTypeStr = optRendererTypeStr;
-
-  if (!filesToImport.empty()) {
-    std::cout << "Import files from cmd line" << std::endl;
-    refreshScene(true);
-  }
 
   return true;
 }
@@ -1607,22 +1626,6 @@ void MainWindow::buildMainMenuView()
     if (ImGui::MenuItem("Snapshots...", "", nullptr))
       showSnapshots = true;
 
-    ImGui::Separator();
-
-    // Renderer stuff //////////////////////////////////////////////////
-
-    if (ImGui::MenuItem("Renderer..."))
-      showRendererEditor = true;
-    ImGui::Checkbox("Rendering stats", &showRenderingStats);
-    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
-    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-    ImGui::DragInt(
-        "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
-    // Although varianceThreshold is found under the renderer, add it here to
-    // make it easier to find, alongside accumulation limit
-    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-    frame->childAs<sg::Renderer>("renderer")["varianceThreshold"].
-      traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
     ImGui::Checkbox("Auto rotate", &optAutorotate);
     if (optAutorotate) {
       ImGui::SameLine();
@@ -1631,10 +1634,32 @@ void MainWindow::buildMainMenuView()
     }
     ImGui::Separator();
 
-    // Framebuffer and window stuff ////////////////////////////////////
+    // Renderer stuff //////////////////////////////////////////////////
 
-    if (ImGui::MenuItem("Framebuffer..."))
-      showFrameBufferEditor = true;
+    if (ImGui::MenuItem("Renderer..."))
+      showRendererEditor = true;
+
+    auto &renderer = frame->childAs<sg::Renderer>("renderer");
+
+    ImGui::Checkbox("Rendering stats", &showRenderingStats);
+    ImGui::Checkbox("Pause rendering", &frame->pauseRendering);
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    ImGui::DragInt(
+        "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
+    // Although varianceThreshold is found under the renderer, add it here to
+    // make it easier to find, alongside accumulation limit
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    renderer["varianceThreshold"].traverse<sg::GenerateImGuiWidgets>(
+        sg::TreeState::ROOTOPEN);
+
+    // backgroundColor is also found under the renderer UI, but add it here to
+    // make it easier to find.
+    bool updated = false;
+    renderer["backgroundColor"].traverse<sg::GenerateImGuiWidgets>(
+        sg::TreeState::ROOTOPEN, updated);
+    if (updated)
+      saveRendererParams();
+
     if (ImGui::MenuItem("Set background texture..."))
       showFileBrowser = true;
     if (!backPlateTexture.str().empty()) {
@@ -1642,15 +1667,15 @@ void MainWindow::buildMainMenuView()
           "current: %s",
           backPlateTexture.base().c_str());
       if (ImGui::MenuItem("Clear background texture")) {
-        frame->cancelFrame();
-        frame->waitOnFrame();
         backPlateTexture = "";
-        // Needs to be removed from the renderer node and its OSPRay params
-        auto &renderer = frame->childAs<sg::Renderer>("renderer");
-        renderer.remove("map_backplate");
-        renderer.handle().removeParam("map_backplate");
+        refreshRenderer();
       }
     }
+
+    // Framebuffer and window stuff ////////////////////////////////////
+    ImGui::Separator();
+    if (ImGui::MenuItem("Framebuffer..."))
+      showFrameBufferEditor = true;
     if (ImGui::BeginMenu("Quick window size")) {
       const std::vector<vec2i> options = {{480, 270},
           {960, 540},
@@ -1744,15 +1769,7 @@ void MainWindow::buildMainMenuView()
 
       if (!fileList.empty()) {
         backPlateTexture = fileList[0];
-
-        auto backplateTex =
-            sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
-        if (backplateTex->load(backPlateTexture, false, false))
-          frame->child("renderer").add(backplateTex);
-        else {
-          backplateTex = nullptr;
-          backPlateTexture = "";
-        }
+        refreshRenderer();
       }
     }
   }
@@ -1841,11 +1858,13 @@ void MainWindow::buildWindowRendererEditor()
       rendererType = OSPRayRendererType::OTHER;
 
     // Change the renderer type, if the new renderer is different.
-    auto currentType = frame->childAs<sg::Renderer>("renderer").subType();
+    auto &renderer = frame->childAs<sg::Renderer>("renderer");
     auto newType = "renderer_" + rendererTypeStr;
 
-    if (currentType != newType) {
-      frame->createChildAs<sg::Renderer>("renderer", newType);
+    if (renderer["type"].valueAs<std::string>() != newType) {
+      // Save properties of current renderer then create new renderer
+      saveRendererParams();
+      optRendererTypeStr = rendererTypeStr;
       refreshRenderer();
     }
   }
@@ -1862,7 +1881,10 @@ void MainWindow::buildWindowRendererEditor()
     }
   }
 
-  renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+  bool updated = false;
+  renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN, updated);
+  if (updated)
+    saveRendererParams();
 
   ImGui::End();
 }
@@ -2230,6 +2252,9 @@ void MainWindow::buildWindowLightEditor()
   if (lights.size() > 1) {
     if (ImGui::Button("remove")) {
       if (whichLight != -1) {
+        // Node removal requires waiting on previous frame completion
+        frame->cancelFrame();
+        frame->waitOnFrame();
         lightsManager->removeLight(lights.at_index(whichLight).first);
         whichLight = std::max(0, whichLight - 1);
       }

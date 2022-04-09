@@ -229,18 +229,14 @@ bool BatchContext::parseCommandLine()
 void BatchContext::refreshRenderer()
 {
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
-  auto &renderer = frame->childAs<sg::Renderer>("renderer");
+  auto &r = frame->childAs<sg::Renderer>("renderer");
 
-  if (optPF >= 0)
-    renderer.createChild("pixelFilter", "int", optPF);
-
-  renderer.child("pixelSamples").setValue(optSPP);
-  renderer.child("varianceThreshold").setValue(optVariance);
-
-  if (renderer.hasChild("maxContribution") && maxContribution < (float)math::inf)
-    renderer["maxContribution"].setValue(maxContribution);
-
-  renderer["backgroundColor"] = optBackGroundColor;
+  r["pixelFilter"] = (int)optPF;
+  r["backgroundColor"] = optBackGroundColor;
+  r["pixelSamples"] = optSPP;
+  r["varianceThreshold"] = optVariance;
+  if (r.hasChild("maxContribution") && maxContribution < (float)math::inf)
+    r["maxContribution"].setValue(maxContribution);
 }
 
 void BatchContext::reshape()

@@ -5,7 +5,6 @@
 
 #include "sg/Node.h"
 #include "sg/scene/World.h"
-#include "sg/renderer/Renderer.h"
 
 namespace ospray {
 namespace sg {

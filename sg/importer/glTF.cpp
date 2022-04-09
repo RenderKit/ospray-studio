@@ -246,6 +246,13 @@ void GLTFData::applySceneBackground(NodePtr bgXfm)
         r[2].Get<double>()));
   }
 
+  if (background.Has("visible"))
+    bgNode->child("visible") = background.Get("visible").Get<bool>();
+
+  if (background.Has("intensity"))
+    bgNode->child("intensity") =
+        (float)background.Get("intensity").Get<double>();
+
   lights.push_back(bgNode);
   bgXfm->add(bgNode);
 }
