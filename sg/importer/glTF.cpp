@@ -722,6 +722,8 @@ void GLTFData::visitNode(NodePtr sgNode,
 
   auto newXfm =
       createNode(nodeName + "_xfm_" + std::to_string(level), "transform");
+  if (n.name != "")
+    newXfm->setOrigName(n.name);
   if (ic == 1)
     newXfm->child("dynamicScene").setValue(true);
   else if (ic == 2)

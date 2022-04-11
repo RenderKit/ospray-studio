@@ -53,6 +53,17 @@ namespace ospray {
     return properties.whenCreated;
   }
 
+  // original node name(if present) as specified in a scene format file
+  void Node::setOrigName(const std::string &origName)
+  {
+    properties.origName = origName;
+  }
+
+  std::string Node::getOrigName()
+  {
+    return properties.origName;
+  }
+
   /////////////////////////////////////////////////////////////////////////////
   // Node stored value (data) interface ///////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////

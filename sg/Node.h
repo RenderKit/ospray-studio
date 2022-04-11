@@ -93,6 +93,10 @@ namespace sg {
     std::string subType() const;
     std::string description() const;
 
+    // original node name(if present) as specified in a scene format file
+    void setOrigName(const std::string &origName);
+    std::string getOrigName();
+
     size_t uniqueID() const;
 
     // Node stored value (data) interface /////////////////////////////////////
@@ -261,6 +265,7 @@ namespace sg {
       NodeType type;
       std::string subType;
       std::string description;
+      std::string origName;
 
       Any value;
       // vectors allows using length to determine if min/max is set
