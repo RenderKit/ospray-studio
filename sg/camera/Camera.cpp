@@ -54,6 +54,15 @@ Camera::Camera(const std::string &type)
   createChild("uniqueCameraName", "string", "default", std::string("default"));
   child("uniqueCameraName").setSGOnly();
   child("uniqueCameraName").setSGNoUI();
+
+  // optional camera Index for a camera in a multi-camera scene
+  // to be set by the application or importer
+  createChild("cameraId",
+      "int",
+      "sets index of the camera in a scene with multiple cameras",
+      0);
+  child("cameraId").setSGOnly();
+  child("cameraId").setSGNoUI();
 }
 
 NodeType Camera::type() const

@@ -709,6 +709,37 @@ void MainWindow::keyboardMotion()
   updateCamera();
 }
 
+void MainWindow::changeToDefaultCamera()
+{
+  auto defaultCamera = g_sceneCameras["default"];
+  auto sgSceneCamera = frame->child("camera").nodeAs<sg::Camera>();
+
+  for (auto &c : sgSceneCamera->children()) {
+    if (c.first != "uniqueCameraName" && c.first != "cameraId") {
+      if (defaultCamera->hasChild(c.first))
+        defaultCamera->child(c.first) = c.second->value();
+      else {
+        defaultCamera->createChild(
+            c.first, c.second->subType(), c.second->value());
+        if (sgSceneCamera->child(c.first).sgOnly())
+          defaultCamera->child(c.first).setSGOnly();
+      }
+    }
+  }
+
+  frame->remove("camera");
+  frame->add(defaultCamera);
+
+  auto worldToCamera = rcp(sgSceneCamera->cameraToWorld);
+  LinearSpace3f R, S;
+  ospray::sg::getRSComponent(worldToCamera, R, S);
+  auto rotation = ospray::sg::getRotationQuaternion(R);
+
+  arcballCamera->updateCameraToWorld(sgSceneCamera->cameraToWorld, rotation);
+  activeWindow->centerOnEyePos();
+  updateCamera(); // to reflect new default camera properties in GUI
+}
+
 void MainWindow::motion(const vec2f &position)
 {
   if (frame->pauseRendering)
@@ -726,41 +757,11 @@ void MainWindow::motion(const vec2f &position)
 
     bool cameraChanged = leftDown || rightDown || middleDown;
 
-    // if cameraChanged then switch back to default-camera and use current scene SG
-    // camera state
-    if (cameraChanged
-        && frame->child("camera")
-                .child("uniqueCameraName")
-                .valueAs<std::string>()
-            != "default") {
-      auto defaultCamera = g_sceneCameras["default"];
-      auto sgSceneCamera = frame->child("camera").nodeAs<sg::Camera>();
-
-      for (auto &c : sgSceneCamera->children()) {
-        if (c.first != "uniqueCameraName") {
-          if (defaultCamera->hasChild(c.first))
-            defaultCamera->child(c.first) = c.second->value();
-          else {
-            defaultCamera->createChild(
-                c.first, c.second->subType(), c.second->value());
-            if (sgSceneCamera->child(c.first).sgOnly())
-              defaultCamera->child(c.first).setSGOnly();
-          }
-        }
-      }
-
-      frame->remove("camera");
-      frame->add(defaultCamera);
-
-      auto worldToCamera = rcp(sgSceneCamera->cameraToWorld);
-      LinearSpace3f R, S;
-      ospray::sg::getRSComponent(worldToCamera, R, S);
-      auto rotation = ospray::sg::getRotationQuaternion(R);
-
-      arcballCamera->updateCameraToWorld(sgSceneCamera->cameraToWorld, rotation);
-      // update centerTranslation of ArcBall
-      arcballCamera->setCenter(vec3f(0.f));
-    }
+    // if cameraChanged then switch back to default-camera and use current scene
+    // SG camera state
+    if (cameraChanged && frame->child("camera").child("uniqueCameraName").valueAs<std::string>()
+          != "default")
+      changeToDefaultCamera();
 
     auto sensitivity = maxMoveSpeed;
     if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
@@ -797,9 +798,14 @@ void MainWindow::mouseButton(const vec2f &position)
 {
   if (frame->pauseRendering)
     return;
-
+    
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    // when picking new center of rotation change to default camera first
+    if (frame->child("camera").child("uniqueCameraName").valueAs<std::string>()
+          != "default")
+      changeToDefaultCamera();
+
     vec2f scaledPosition = position * contentScale;
     pickCenterOfRotation(scaledPosition.x, scaledPosition.y);
   }
@@ -1291,9 +1297,8 @@ void MainWindow::importFiles(sg::NodePtr world)
     auto mainCamera = frame->child("camera").nodeAs<sg::Camera>();
     g_sceneCameras[mainCamera->child("uniqueCameraName")
                        .valueAs<std::string>()] = mainCamera;
-
     // populate cameras in camera editor in View menu
-    for (auto &c : cameras)
+    for (auto c : cameras)
       g_sceneCameras[c->child("uniqueCameraName").valueAs<std::string>()] = c;
   }
 }
@@ -2305,9 +2310,7 @@ void MainWindow::buildWindowCameraEditor()
     return;
   }
 
-  if (frame->child("camera").child("uniqueCameraName").valueAs<std::string>()
-      == "default")
-    whichCamera = 0;
+  whichCamera = frame->child("camera").child("cameraId").valueAs<int>();
 
   // Only present selector UI if more than one camera
   if (!g_sceneCameras.empty()

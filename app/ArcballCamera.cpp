@@ -22,11 +22,6 @@ void ArcballCamera::updateCameraToWorld(
     const affine3f &_cameraToWorld, const quaternionf &rot)
 {
   cameraToWorld = _cameraToWorld;
-  auto worldToCamera = rcp(cameraToWorld);
-  // update Translation and Rotation matrices
-  affine3f newTrans{one};
-  newTrans.p = worldToCamera.p;
-  translation = newTrans;
   rotation = rot;
 }
 
@@ -90,7 +85,7 @@ void ArcballCamera::pan(const vec2f &delta)
 
 vec3f ArcballCamera::eyePos() const
 {
-  return xfmPoint(cameraToWorld, vec3f(0, 0, 0));
+  return cameraToWorld.p;
 }
 
 void ArcballCamera::setCenter(const vec3f &newCenter)
