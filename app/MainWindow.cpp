@@ -1646,19 +1646,12 @@ void MainWindow::buildMainMenuView()
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     ImGui::DragInt(
         "Limit accumulation", &frame->accumLimit, 1, 0, INT_MAX, "%d frames");
-    // Although varianceThreshold is found under the renderer, add it here to
-    // make it easier to find, alongside accumulation limit
-    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-    renderer["varianceThreshold"].traverse<sg::GenerateImGuiWidgets>(
-        sg::TreeState::ROOTOPEN);
 
-    // backgroundColor is also found under the renderer UI, but add it here to
-    // make it easier to find.
-    bool updated = false;
-    renderer["backgroundColor"].traverse<sg::GenerateImGuiWidgets>(
-        sg::TreeState::ROOTOPEN, updated);
-    if (updated)
-      saveRendererParams();
+    // Although varianceThreshold and backgroundColor are found in the
+    // renderer UI, also add them here to make them easier to find.
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    GenerateWidget(renderer["varianceThreshold"]);
+    GenerateWidget(renderer["backgroundColor"]);
 
     if (ImGui::MenuItem("Set background texture..."))
       showFileBrowser = true;
@@ -1881,9 +1874,7 @@ void MainWindow::buildWindowRendererEditor()
     }
   }
 
-  bool updated = false;
-  renderer.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN, updated);
-  if (updated)
+  if (GenerateWidget(renderer))
     saveRendererParams();
 
   ImGui::End();
@@ -1898,7 +1889,7 @@ void MainWindow::buildWindowFrameBufferEditor()
   }
 
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-  fb.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ALLOPEN);
+  GenerateWidget(fb, sg::TreeState::ALLOPEN);
 
   ImGui::Separator();
 
@@ -2244,8 +2235,7 @@ void MainWindow::buildWindowLightEditor()
 
     if (whichLight != -1) {
       ImGui::Text("edit");
-      lightsManager->child(lights.at_index(whichLight).first)
-          .traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+      GenerateWidget(lightsManager->child(lights.at_index(whichLight).first));
     }
   }
 
@@ -2386,9 +2376,7 @@ void MainWindow::buildWindowCameraEditor()
   }
 
   // UI Widget
-  auto &camera = frame->childAs<sg::Camera>("camera");
-  bool updated = false;
-  camera.traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN, updated);
+  GenerateWidget(frame->childAs<sg::Camera>("camera"));
 
   ImGui::End();
 }
@@ -2408,7 +2396,7 @@ void MainWindow::buildWindowMaterialEditor()
   searchWidget.addSearchResultsUI(*baseMaterialRegistry);
   auto selected = searchWidget.getSelected();
   if (selected) {
-    selected->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
+    GenerateWidget(*selected);
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(245, 200, 66, 255));
     if (ImGui::TreeNodeEx(
             "Advanced options##materials", ImGuiTreeNodeFlags_None)) {
@@ -2637,7 +2625,7 @@ void MainWindow::buildWindowIsosurfaceEditor()
     ImGui::Text("== empty == ");
   } else {
     for (auto &surface : surfaces) {
-      surface->traverse<sg::GenerateImGuiWidgets>();
+      GenerateWidget(*surface);
       if (surface->isModified())
         break;
     }
@@ -2680,9 +2668,8 @@ void MainWindow::buildWindowTransformEditor()
   searchWidget.addSearchResultsUI(warudo);
 
   auto selected = searchWidget.getSelected();
-  if (selected) {
-    selected->traverse<sg::GenerateImGuiWidgets>(sg::TreeState::ROOTOPEN);
-  }
+  if (selected)
+    GenerateWidget(*selected);
 
   ImGui::End();
 }
