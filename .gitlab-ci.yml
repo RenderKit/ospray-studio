@@ -17,7 +17,7 @@ stages:
 
 .centos7:
   tags: [ build, docker, modules ]
-  image: $DOCKER_REGISTRY/centos:7-tgt-centos7-kw-support
+  image: $DOCKER_REGISTRY/centos:7-devel
   before_script:
     - module load python/$PYTHON_VERSION
     - echo $Python3_ROOT
