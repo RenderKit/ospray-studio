@@ -729,6 +729,7 @@ void MainWindow::changeToDefaultCamera()
 
   frame->remove("camera");
   frame->add(defaultCamera);
+  frame->commit();
 
   auto worldToCamera = rcp(sgSceneCamera->cameraToWorld);
   LinearSpace3f R, S;
