@@ -17,7 +17,7 @@ stages:
 
 .centos7:
   tags: [ build, docker, modules ]
-  image: $DOCKER_REGISTRY/centos:7
+  image: $DOCKER_REGISTRY/centos:7-tgt-centos7-kw-support
   before_script:
     - module load python/$PYTHON_VERSION
     - echo $Python3_ROOT
@@ -144,7 +144,7 @@ build-windows-msvc15:
 
 build-kw:
   stage: build
-  extends: .ubuntu18.04
+  extends: .centos7
   script:
     - gitlab/build-kw.sh
   artifacts:
@@ -226,7 +226,7 @@ build-windows-icl:
 
 build-kw-dev:
   stage: build
-  extends: .ubuntu18.04
+  extends: .centos7
   script:
     - gitlab/build-kw-dev.sh
   artifacts:
