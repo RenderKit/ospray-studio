@@ -33,6 +33,7 @@ bool fileBrowser(FileList &fileList,
       prompt.c_str(),
       filters.c_str(),
       defaultPath,
+      "",
       allowMultipleSelection ? 0 : 1);
 
   if (ImGuiFileDialog::Instance()->Display(prompt.c_str(),
