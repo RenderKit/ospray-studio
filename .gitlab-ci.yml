@@ -23,6 +23,14 @@ stages:
     - echo $Python3_ROOT
     - ls $Python3_ROOT
 
+.centos7-test:
+  tags: [ build, docker, modules ]
+  image: $DOCKER_REGISTRY/ospray/docker-images:centos7-mod
+  before_script:
+    - module load python/$PYTHON_VERSION
+    - echo $Python3_ROOT
+    - ls $Python3_ROOT
+
 .ubuntu18.04:
   tags: [ build, docker, modules ]
   image: $DOCKER_REGISTRY/ubuntu:18.04
@@ -106,7 +114,7 @@ build-centos7:
     - module load intel/2020.1
     - export CC=icc
     - export CXX=icpc
-    - export CXXFLAGS="-static-intel -static-libstdc++ -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
+    - export CXXFLAGS="-static-intel -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
     - gitlab/build.sh
 
 build-ubuntu18.04:
@@ -156,7 +164,7 @@ build-kw:
 
 test-run-centos7:
   stage: test
-  extends: .centos7
+  extends: .centos7-test
   needs: [ build-centos7 ]
   script:
     - build/install/bin/ospStudio --verify_install
@@ -278,7 +286,7 @@ release-centos7:
     - module load intel/2020.1
     - export CC=icc
     - export CXX=icpc
-    - export CXXFLAGS="-static-intel -static-libstdc++ -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
+    - export CXXFLAGS="-static-intel -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
     - gitlab/build.sh package
 
 release-windows:
