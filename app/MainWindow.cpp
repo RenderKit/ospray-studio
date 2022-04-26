@@ -1555,7 +1555,7 @@ void MainWindow::buildMainMenuEdit()
       lightsManager->clear();
       animationManager->getAnimations().clear();
       animationManager->getTimeRange() = range1f{empty};
-      animationWidget.reset();
+      animationWidget->update();
 
       // TODO: lights caching to avoid complete re-importing after clearing
       sg::clearAssets();
