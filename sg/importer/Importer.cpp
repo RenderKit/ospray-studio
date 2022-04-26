@@ -196,13 +196,24 @@ OSPSG_INTERFACE void importScene(
     context->refreshScene(true);
   }
 
-  // If the sceneFile contains a camera location
-  // (must happen after refreshScene)
   if (j.contains("camera")) {
-    CameraState cs = j["camera"];
-    context->setCameraState(cs);
-    context->finalCameraView = std::make_shared<affine3f>(cs.cameraToWorld);
+    auto cameraJ = j["camera"];
+    affine3f cameraToWorld = cameraJ["cameraToWorld"];
+    context->cameraView = std::make_shared<affine3f>(cameraToWorld);
+    context->cameraIdx = j["camera"]["cameraIdx"];
+    if (cameraJ.contains("cameraSettingsIdx"))
+      context->cameraSettingsIdx = j["camera"]["cameraSettingsIdx"];
     context->updateCamera();
+  }
+
+  if (j.contains("animation")) {
+    auto animJ = j["animation"];
+    float time = animJ["time"];
+    float shutter = animJ["shutter"];
+    if(!animJ.empty()) {
+      context->animationManager->setTime(time);
+      context->animationManager->setShutter(shutter);
+    }
   }
 
   //

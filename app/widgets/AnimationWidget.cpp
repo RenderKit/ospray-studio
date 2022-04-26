@@ -9,8 +9,14 @@ AnimationWidget::AnimationWidget(
     : name(name), animationManager(animationManager)
 {
   lastUpdated = std::chrono::system_clock::now();
-  time = animationManager->getTimeRange().lower;
-  animationManager->update(time);
+  if (!animationManager->getTime()) {
+    time = animationManager->getTimeRange().lower;
+  } else {
+    time = animationManager->getTime();
+    shutter = animationManager->getShutter();
+  }
+
+  animationManager->update(time, shutter);
 }
 
 AnimationWidget::~AnimationWidget() {

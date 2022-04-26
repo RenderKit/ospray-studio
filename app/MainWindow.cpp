@@ -189,10 +189,8 @@ MainWindow::MainWindow(StudioCommon &_common)
   optImageName = "studio";
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
 
-  // Always create animationManager and animationWidget
-  animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
   animationWidget = std::shared_ptr<AnimationWidget>(
-        new AnimationWidget("Animation Controls", animationManager));
+      new AnimationWidget("Animation Controls", animationManager));
 
   activeWindow = this;
 
@@ -614,6 +612,52 @@ void MainWindow::updateCamera()
   frame->currentAccum = 0;
   auto &camera = frame->child("camera");
 
+  if (cameraIdx) {
+    // switch to index specific scene camera
+    auto &newCamera = g_sceneCameras.at_index(cameraIdx);
+    g_selectedSceneCamera = newCamera.second;
+    frame->remove("camera");
+    frame->add(g_selectedSceneCamera);
+    if (g_selectedSceneCamera->hasChild("aspect"))
+      lockAspectRatio = g_selectedSceneCamera->child("aspect").valueAs<float>();
+    reshape(windowSize); // resets aspect
+    cameraIdx = 0; // reset global-context cameraIndex
+    arcballCamera->updateCameraToWorld(affine3f{one}, one);
+    cameraView = nullptr; // only used for arcball/default
+  } else if (cameraView && *cameraView != affine3f{one}) {
+    // use camera settings from scene camera
+    if (cameraSettingsIdx) {
+      auto settingsCamera = g_sceneCameras.at_index(cameraSettingsIdx).second;
+      for (auto &c : settingsCamera->children()) {
+        if (c.first == "cameraId") {
+          camera.createChild("cameraSettingsId", "int", c.second->value());
+          camera.child("cameraSettingsId").setSGNoUI();
+          camera.child("cameraSettingsId").setSGOnly();
+        } else if (c.first != "uniqueCameraName") {
+          if (camera.hasChild(c.first))
+            camera.child(c.first) = c.second->value();
+          else {
+            camera.createChild(c.first, c.second->subType(), c.second->value());
+            if (settingsCamera->child(c.first).sgOnly())
+              camera.child(c.first).setSGOnly();
+          }
+        }
+      }
+      if (settingsCamera->hasChild("aspect"))
+        lockAspectRatio = settingsCamera->child("aspect").valueAs<float>();
+      reshape(windowSize); // resets aspect
+    }
+
+    auto worldToCamera = rcp(*cameraView);
+    LinearSpace3f R, S;
+    ospray::sg::getRSComponent(worldToCamera, R, S);
+    auto rotation = ospray::sg::getRotationQuaternion(R);
+
+    arcballCamera->updateCameraToWorld(*cameraView, rotation);
+    cameraView = nullptr;
+    activeWindow->centerOnEyePos();
+  }
+
   camera["position"] = arcballCamera->eyePos();
   camera["direction"] = arcballCamera->lookDir();
   camera["up"] = arcballCamera->upDir();
@@ -720,7 +764,11 @@ void MainWindow::changeToDefaultCamera()
   auto sgSceneCamera = frame->child("camera").nodeAs<sg::Camera>();
 
   for (auto &c : sgSceneCamera->children()) {
-    if (c.first != "uniqueCameraName" && c.first != "cameraId") {
+    if (c.first == "cameraId") {
+      defaultCamera->createChild("cameraSettingsId", "int", c.second->value());
+      defaultCamera->child("cameraSettingsId").setSGNoUI();
+      defaultCamera->child("cameraSettingsId").setSGOnly();
+    } else if (c.first != "uniqueCameraName") {
       if (defaultCamera->hasChild(c.first))
         defaultCamera->child(c.first) = c.second->value();
       else {
@@ -1416,10 +1464,21 @@ void MainWindow::buildMainMenuFile()
     if (ImGui::BeginMenu("Save")) {
       if (ImGui::MenuItem("Scene (entire)")) {
         std::ofstream dump("studio_scene.sg");
+        auto &currentCamera = frame->child("camera");
+        JSON camera = {
+            {"cameraIdx", currentCamera.child("cameraId").valueAs<int>()},
+            {"cameraToWorld", arcballCamera->getTransform()}};
+        if (currentCamera.hasChild("cameraSettingsId"))
+          camera["cameraSettingsIdx"] =
+              currentCamera.child("cameraSettingsId").valueAs<int>();
+        JSON animation;
+        animation = {{"time", animationManager->getTime()},
+            {"shutter", animationManager->getShutter()}};
         JSON j = {{"world", frame->child("world")},
-            {"camera", arcballCamera->getState()},
+            {"camera", camera},
             {"lightsManager", *lightsManager},
-            {"materialRegistry", *baseMaterialRegistry}};
+            {"materialRegistry", *baseMaterialRegistry},
+            {"animation", animation}};
         dump << j.dump();
       }
 

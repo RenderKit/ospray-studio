@@ -76,7 +76,7 @@ void BatchContext::start()
       // every camera
       if (cameraStack.size())
         for (auto &c : cameraStack) {
-          finalCameraView = std::make_shared<affine3f>(c);
+          cameraView = std::make_shared<affine3f>(c);
           if (!sgScene)
             updateCamera();
           render();
@@ -404,10 +404,22 @@ void BatchContext::renderFrame()
     if (saveScene)
     {
       std::ofstream dump("studio_scene.sg");
+      auto &currentCamera = frame->child("camera");
+      JSON camera = {
+          {"cameraIdx", currentCamera.child("cameraId").valueAs<int>()},
+          {"cameraToWorld", currentCamera.nodeAs<sg::Camera>()->cameraToWorld}};
+      if (currentCamera.hasChild("cameraSettingsId")) {
+        camera["cameraSettingsIdx"] = {"cameraSettingsIdx",
+            currentCamera.child("cameraSettingsId").valueAs<int>()};
+      }
+      JSON animation;
+      animation = {{"time", animationManager->getTime()},
+            {"shutter", animationManager->getShutter()}};
       JSON j = {{"world", frame->child("world")},
-          {"camera", arcballCamera->getState()},
+          {"camera", camera},
           {"lightsManager", *lightsManager},
-          {"materialRegistry", *baseMaterialRegistry}};
+          {"materialRegistry", *baseMaterialRegistry},
+          {"animation", animation}};
       dump << j.dump();
     }
   }
@@ -485,12 +497,41 @@ void BatchContext::updateCamera()
 {
   frame->currentAccum = 0;
   auto &camera = frame->child("camera");
-  // use given camera view if present
-  if (finalCameraView) {
-    affine3f cameraToWorld = *finalCameraView;
+
+  if (cameraIdx) {
+    // switch to context global index specific scene camera
+    refreshCamera(cameraIdx);
+    cameraIdx = 0; // reset global-context cameraIndex
+    cameraView = nullptr; // only used for arcball/default
+  } else if (cameraView && *cameraView != affine3f{one}) {
+    // use camera settings from scene camera if specified by global context specific 
+    if (cameraSettingsIdx) {
+      auto settingsCamera = cameras[cameraSettingsIdx];
+      for (auto &c : settingsCamera->children()) {
+        if (c.first == "cameraId") {
+          camera.createChild("cameraSettingsId", "int", c.second->value());
+          camera.child("cameraSettingsId").setSGNoUI();
+          camera.child("cameraSettingsId").setSGOnly();
+        } else if (c.first != "uniqueCameraName") {
+          if (camera.hasChild(c.first))
+            camera.child(c.first) = c.second->value();
+          else {
+            camera.createChild(c.first, c.second->subType(), c.second->value());
+            if (settingsCamera->child(c.first).sgOnly())
+              camera.child(c.first).setSGOnly();
+          }
+        }
+      }
+      if (settingsCamera->hasChild("aspect"))
+        lockAspectRatio = settingsCamera->child("aspect").valueAs<float>();
+      reshape(); // resets aspect
+    }
+    affine3f cameraToWorld = *cameraView;
+    PRINT(cameraToWorld);
     camera["position"] = xfmPoint(cameraToWorld, vec3f(0, 0, 0));
     camera["direction"] = xfmVector(cameraToWorld, vec3f(0, 0, -1));
     camera["up"] = xfmVector(cameraToWorld, vec3f(0, 1, 0));
+    cameraView = nullptr;
   }
   // if no camera  view or scene camera is selected calculate a default view
   else if (cameraRange.lower == 0) {
@@ -512,7 +553,7 @@ void BatchContext::updateCamera()
   }
 
   if (camera.hasChild("stereoMode"))
-    camera["stereoMode"] = (int)optStereoMode;
+      camera["stereoMode"] = (int)optStereoMode;
 
   if (camera.hasChild("interpupillaryDistance"))
     camera["interpupillaryDistance"] = optInterpupillaryDistance;
@@ -522,7 +563,6 @@ void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform");
   frame->child("world").add(importedModels);
-  animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
 
   for (auto file : filesToImport) {
     try {

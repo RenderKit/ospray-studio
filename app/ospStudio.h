@@ -109,6 +109,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
     mode = _mode;
     optResolution = _common.defaultSize;
     scheduler = sg::Scheduler::create();
+    animationManager = std::make_shared<AnimationManager>();
   }
 
   virtual ~StudioContext() {}
@@ -134,9 +135,10 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
 
-  // for loading camera view from cameraToWorld matrix directly, used in modes
-  // with no dependency on CameraState or Arcball
-  std::shared_ptr<affine3f> finalCameraView{nullptr};
+  // global context camera settings for loading external cameras
+  std::shared_ptr<affine3f> cameraView{nullptr};
+  int cameraIdx{0};
+  int cameraSettingsIdx{0};
 
   int defaultMaterialIdx = 0;
 

@@ -9,11 +9,17 @@ void AnimationManager::init()
   for (auto &a : animations)
     timeRange.extend(a.timeRange);
 
-  update(timeRange.lower);
+  if (time) {
+    update(time, shutter);
+  } else
+    update(timeRange.lower);
 }
 
-void AnimationManager::update(const float time, const float shutter)
+void AnimationManager::update(const float _time, const float _shutter)
 {
-  for (auto &a : animations)
-    a.update(time, shutter);
+  for (auto &a : animations) {
+    a.update(_time, _shutter);
+    time = _time;
+    shutter = _shutter;
+  }
 }

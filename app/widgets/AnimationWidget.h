@@ -23,7 +23,12 @@ class AnimationWidget
   void init()
   {
     animationManager->init();
-    time = animationManager->getTimeRange().lower;
+    if (!animationManager->getTime())
+      time = animationManager->getTimeRange().lower;
+    else {
+      time = animationManager->getTime();
+      shutter = animationManager->getShutter();
+    }
   }
 
   void setShowUI()
