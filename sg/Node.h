@@ -296,8 +296,10 @@ namespace sg {
   };
 
   // SG Instance Picking //////////////////////////////////////////////////////
-  
-  typedef std::unordered_map<OSPInstance, std::string> InstanceIDMap;
+
+  typedef std::unordered_map<OSPInstance, unsigned int> OSPInstanceSGIdMap;
+  typedef std::unordered_map<OSPGeometricModel, unsigned int>
+      OSPGeomModelSGIdMap;
 
   /////////////////////////////////////////////////////////////////////////////
   // Nodes with a strongly-typed value ////////////////////////////////////////

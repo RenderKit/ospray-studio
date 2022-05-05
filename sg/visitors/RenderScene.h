@@ -3,15 +3,16 @@
 
 #pragma once
 
+#include "sg/Mpi.h"
 #include "sg/Node.h"
+#include "sg/Util.h"
+#include "sg/camera/Camera.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/Transform.h"
+#include "sg/scene/World.h"
 #include "sg/scene/geometry/Geometry.h"
 #include "sg/scene/lights/Light.h"
-#include "sg/camera/Camera.h"
 #include "sg/scene/volume/Volume.h"
-#include "sg/scene/World.h"
-#include "sg/Mpi.h"
 
 // std
 #include <stack>
@@ -35,6 +36,18 @@ namespace ospray {
     void createInstanceFromGroup(Node &node);
     void placeInstancesInWorld();
     void setLightParams(Node &node);
+
+    unsigned int getInstId()
+    {
+      static unsigned int inst_counter = 1;
+      return inst_counter++;
+    }
+
+    unsigned int getGeomId()
+    {
+      static unsigned int geom_counter = 1;
+      return geom_counter++;
+    }
 
     // Data //
 
@@ -60,9 +73,11 @@ namespace ospray {
     std::stack<bool> xfmsDiverged;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
-    std::shared_ptr<InstanceIDMap> instMap{nullptr};
-    std::string instanceId{""};
+    std::shared_ptr<OSPInstanceSGIdMap> instSGIdMap{nullptr};
+    std::shared_ptr<OSPGeomModelSGIdMap> geomSGIdMap{nullptr};
     Node *instRoot{nullptr};
+    unsigned int sgGeomId;
+    unsigned int sgInstId;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -72,8 +87,6 @@ namespace ospray {
     xfms.emplace(math::one);
     endXfms.emplace(math::one);
     xfmsDiverged.emplace(false);
-    if (instMap)
-    instMap->clear();
   }
 
   inline RenderScene::~RenderScene()
@@ -89,8 +102,10 @@ namespace ospray {
     case NodeType::WORLD: {
       world = node.valueAs<cpp::World>();
       auto worldNode = node.nodeAs<World>();
-      instMap = worldNode->instMap;
-      instMap->clear();
+      instSGIdMap = worldNode->instSGIdMap;
+      instSGIdMap->clear();
+      geomSGIdMap = worldNode->geomSGIdMap;
+      geomSGIdMap->clear();
     } break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
@@ -146,8 +161,24 @@ namespace ospray {
 
       if (!instRoot && node.hasChild("instanceId")) {
         instRoot = &node;
-        instanceId = node["instanceId"].valueAs<std::string>();
+        if (!node.hasChild("sgInstId")) {
+          sgInstId = reduce24(getInstId());
+          // for a node create SG-ids only once in SG
+          node.createChild("sgInstId", "int", sgInstId);
+          node.child("sgInstId").setSGOnly();
+          node.child("sgInstId").setSGNoUI();
+        } else if (node.hasChild("sgInstId"))
+          sgInstId = node.child("sgInstId").valueAs<unsigned int>();
       }
+
+      if (node.hasChild("geomId") && !node.hasChild("sgGeomId")) {
+        sgGeomId = reduce24(getGeomId());
+        node.createChild("sgGeomId", "int", sgGeomId);
+        node.child("sgGeomId").setSGOnly();
+        node.child("sgGeomId").setSGNoUI();
+      } else if (node.hasChild("sgGeomId"))
+        sgGeomId = node.child("sgGeomId").valueAs<unsigned int>();
+
       break;
     }
     case NodeType::CAMERA: {
@@ -219,10 +250,13 @@ namespace ospray {
       xfms.pop();
       endXfms.pop();
       xfmsDiverged.pop();
-      if (&node == instRoot) {
+      if (&node == instRoot)
         instRoot = nullptr;
-        instanceId = "";
-      }
+      if (node.hasChild("sgInstId"))
+        sgInstId = 0;
+      if (node.hasChild("sgGeomId"))
+        sgGeomId = 0;
+
       break;
     default:
       // Nothing
@@ -330,6 +364,11 @@ namespace ospray {
     groups.push_back(*geomNode->group);
     geomNode->groupIndex = groupIndex;
     groupIndex++;
+
+    auto ospGeometricModel = geomNode->model->handle();
+    if (geomSGIdMap && sgGeomId)
+      geomSGIdMap->emplace(OSPGeomModelSGIdMap::value_type(
+          std::make_pair(ospGeometricModel, sgGeomId)));
   }
 
   inline void RenderScene::createVolume(Node &node)
@@ -405,10 +444,10 @@ namespace ospray {
       instances.push_back(inst);
 
       // sg picking
-      if (instMap && !instanceId.empty()) {
+      if (instSGIdMap && sgInstId) {
         auto ospInstance = inst.handle();
-        instMap->insert(
-            InstanceIDMap::value_type(std::make_pair(ospInstance, instanceId)));
+        instSGIdMap->emplace(OSPInstanceSGIdMap::value_type(
+            std::make_pair(ospInstance, sgInstId)));
       }
     };
 

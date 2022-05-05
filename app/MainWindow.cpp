@@ -1554,7 +1554,7 @@ void MainWindow::buildMainMenuEdit()
       frame->remove("world");
       lightsManager->clear();
       animationManager->getAnimations().clear();
-      animationManager->getTimeRange() = range1f{empty};
+      animationManager->setTimeRange(range1f(rkcommon::math::empty));
       animationWidget->update();
 
       // TODO: lights caching to avoid complete re-importing after clearing

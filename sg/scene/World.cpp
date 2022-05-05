@@ -22,7 +22,8 @@ World::World()
       "tell Embree to enable more robust ray intersection code paths(slightly slower)",
       false);
 
-  instMap = std::make_shared<InstanceIDMap>();
+  instSGIdMap = std::make_shared<OSPInstanceSGIdMap>();
+  geomSGIdMap = std::make_shared<OSPGeomModelSGIdMap>();
 }
 
 void World::preCommit()

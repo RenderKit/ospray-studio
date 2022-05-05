@@ -19,6 +19,11 @@ class AnimationManager
     return timeRange;
   }
 
+  void setTimeRange(const range1f &_timeRange)
+  {
+    timeRange = _timeRange;
+  }
+
   std::vector<ospray::sg::Animation> &getAnimations()
   {
     return animations;

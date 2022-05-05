@@ -11,6 +11,7 @@
 #include "glTF/buffer_view.h"
 #include "glTF/gltf_types.h"
 
+#include "sg/Util.h"
 #include "sg/scene/Transform.h"
 #include "sg/scene/geometry/Geometry.h"
 #include "sg/texture/Texture2D.h"
@@ -271,6 +272,8 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   auto node = n.extensions.find("BIT_node_info")->second;
   if (node.Has("id")) {
     auto &nodeId = node.Get("id").Get<std::string>();
+    if (!isValidUUIDv4(nodeId))
+      std::cerr << nodeId << " is not a valid version 4 UUID\n";
     sgNode->createChild("instanceId", "string", nodeId);
   }
 
@@ -743,6 +746,8 @@ void GLTFData::visitNode(NodePtr sgNode,
   applyNodeTransform(newXfm, n);
 
   if (level == 1 && !geomId.empty()) {
+    if (!isValidUUIDv4(geomId))
+      std::cerr << geomId << " is not a valid version 4 UUID\n";
     newXfm->createChild("geomId", "string", geomId);
     geomId = "";
   }
