@@ -297,6 +297,7 @@ release-windows:
   dependencies: []
   script:
     - gitlab\win.ps1 package
+    - ;& $env:SIGN_FILE_WINDOWS $CI_PROJECT_DIR/build-win/package/ospray_studio*.msi
 
 release-macos:
   stage: release
