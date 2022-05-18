@@ -164,7 +164,7 @@ namespace ospray {
         if (!node.hasChild("sgInstId")) {
           sgInstId = reduce24(getInstId());
           // for a node create SG-ids only once in SG
-          node.createChild("sgInstId", "int", sgInstId);
+          node.createChild("sgInstId", "uint32_t", sgInstId);
           node.child("sgInstId").setSGOnly();
           node.child("sgInstId").setSGNoUI();
         } else if (node.hasChild("sgInstId"))
@@ -173,7 +173,7 @@ namespace ospray {
 
       if (node.hasChild("geomId") && !node.hasChild("sgGeomId")) {
         sgGeomId = reduce24(getGeomId());
-        node.createChild("sgGeomId", "int", sgGeomId);
+        node.createChild("sgGeomId", "uint32_t", sgGeomId);
         node.child("sgGeomId").setSGOnly();
         node.child("sgGeomId").setSGNoUI();
       } else if (node.hasChild("sgGeomId"))
