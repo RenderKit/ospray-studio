@@ -365,6 +365,8 @@ inline void to_json(JSON &j, const Any &a)
     j = a.get<bool>();
   else if (a.is<uint8_t>())
     j = a.get<uint8_t>();
+  else if (a.is<uint32_t>())
+    j = a.get<uint32_t>();
   else if (a.is<float>())
     j = a.get<float>();
   else if (a.is<std::string>())
