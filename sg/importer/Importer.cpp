@@ -241,20 +241,19 @@ OSPSG_INTERFACE void importScene(
       };
 
     auto importNode = findFirstChild(world, jImport.first);
-    if (importNode && jImport.second["children"][0]["subType"] == "transform") {
+    auto jNode = jImport.second["children"][0];
+    if (importNode && jNode["subType"] == "transform") {
       // should be associated xfm node
-      auto childName = jImport.second["children"][0]["name"];
+      auto childName = jNode["name"];
       Node &xfmNode = importNode->child(childName);
 
-      // XXX parse JSON to get RST transforms saved to sg file. This is
-      // temporary. We will want RST to be a first-class citizen node that gets
-      // handled correctly without this kind of hardcoded workaround
-      auto child = createNodeFromJSON(jImport.second["children"][0]);
-      if (child) {
-        xfmNode = child->value(); // assigns base affine3f value
-        xfmNode.add(child->child("rotation"));
-        xfmNode.add(child->child("translation"));
-        xfmNode.add(child->child("scale"));
+      auto xfm = createNodeFromJSON(jNode);
+      if (xfm) {
+        xfmNode = xfm->value(); // assigns base affine3f value
+        // Update the xfm rotation, translation and scale values
+        xfmNode["rotation"] = xfm->child("rotation").valueAs<quaternionf>();
+        xfmNode["translation"] = xfm->child("translation").valueAs<vec3f>();
+        xfmNode["scale"] = xfm->child("scale").valueAs<vec3f>();
       }
     }
   }
