@@ -164,9 +164,6 @@ OSPSG_INTERFACE void importScene(
       // skip non-material nodes (e.g. renderer type)
       if (mat.second->type() != NodeType::MATERIAL)
         continue;
-      // kill old parent (from previous session); avoids a segfault when
-      // modifying parameters from loaded materials
-      mat.second->killAllParents();
 
       // XXX temporary workaround.  Just set params on existing materials.
       // Prevents loss of texture data.  Will be fixed when textures can reload.
@@ -251,9 +248,9 @@ OSPSG_INTERFACE void importScene(
       if (xfm) {
         xfmNode = xfm->value(); // assigns base affine3f value
         // Update the xfm rotation, translation and scale values
-        xfmNode["rotation"] = xfm->child("rotation").valueAs<quaternionf>();
-        xfmNode["translation"] = xfm->child("translation").valueAs<vec3f>();
-        xfmNode["scale"] = xfm->child("scale").valueAs<vec3f>();
+        xfmNode.add(xfm->child("rotation"));
+        xfmNode.add(xfm->child("translation"));
+        xfmNode.add(xfm->child("scale"));
       }
     }
   }

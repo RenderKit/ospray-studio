@@ -24,6 +24,16 @@ namespace ospray {
     properties.readOnly    = false;
   }
 
+  Node::~Node()
+  {
+    // When destroying a node, remove it from its parents' list of children
+    for (auto &p : properties.parents)
+      p->properties.children.erase(properties.name);
+    // and from all its children's ParentList
+    for (auto &c : properties.children)
+      c.second->removeFromParentList(*this);
+  }
+
   /////////////////////////////////////////////////////////////////////////////
   // Properties ///////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////
@@ -247,11 +257,6 @@ namespace ospray {
   {
     for (auto &p : properties.parents)
       p->remove(*this);
-  }
-
-  void Node::killAllParents()
-  {
-    properties.parents.clear();
   }
 
   void Node::removeAllChildren()

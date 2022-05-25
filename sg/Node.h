@@ -67,7 +67,7 @@ namespace sg {
   struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
   {
     Node();
-    virtual ~Node() = default;
+    virtual ~Node();
 
     // NOTE: Nodes are not copyable nor movable! The operator=() will be used
     //       to assign a Node's _value_, which is different than the
@@ -167,7 +167,6 @@ namespace sg {
     void remove(const std::string &name);
 
     void removeAllParents();
-    void killAllParents(); // DANGEROUS! Only used in sg loading
     void removeAllChildren();
 
     template <typename... Args>
