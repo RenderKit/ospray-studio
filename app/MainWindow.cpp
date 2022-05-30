@@ -149,7 +149,9 @@ bool lightTypeUI_callback(void *, int index, const char **out_text)
 
 bool cameraUI_callback(void *, int index, const char **out_text)
 {
-  *out_text = g_sceneCameras.at_index(index).first.c_str();
+  static std::string outText;
+  outText = std::to_string(index) + ": " + g_sceneCameras.at_index(index).first;
+  *out_text = outText.c_str();
   return true;
 }
 
