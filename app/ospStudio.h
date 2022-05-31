@@ -94,6 +94,8 @@ class StudioCommon
   const char **plugin_argv{nullptr};
 };
 
+using CameraMap = rkcommon::containers::FlatMap<std::string, sg::NodePtr>;
+
 // abstract base class for all Studio modes
 // XXX: should be merged with StudioCommon above
 class StudioContext : public std::enable_shared_from_this<StudioContext>
@@ -139,6 +141,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<affine3f> cameraView{nullptr};
   int cameraIdx{0};
   int cameraSettingsIdx{0};
+  std::shared_ptr<CameraMap> sgFileCameras{nullptr};
 
   int defaultMaterialIdx = 0;
 

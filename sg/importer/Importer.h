@@ -55,13 +55,14 @@ struct OSPSG_INTERFACE Importer : public Node
     materialRegistry = _registry;
   }
 
-  inline void setCameraList(std::vector<NodePtr> &_cameras)
+  inline void setCameraList(std::shared_ptr<CameraMap> _cameras)
   {
-    cameras = &_cameras;
-    importCameras = true;
+    cameras = _cameras;
+    if (cameras->size() == 1)
+      importCameras = true;
   }
 
-  inline std::vector<NodePtr> *getCameraList()
+  inline std::shared_ptr<CameraMap> getCameraList()
   {
     return cameras;
   }
@@ -122,13 +123,14 @@ struct OSPSG_INTERFACE Importer : public Node
   }
 
   float pointSize{0.0f};
+  bool importCameras{false};
 
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
-  std::vector<NodePtr> *cameras = nullptr;
+  // std::vector<NodePtr> *cameras = nullptr;
+  std::shared_ptr<CameraMap> cameras{nullptr};
   std::vector<sg::Animation> *animations = nullptr;
-  bool importCameras{false};
   NodePtr volumeParams;
   NodePtr lightsManager;
   sg::FrameBuffer *fb{nullptr};

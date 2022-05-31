@@ -496,11 +496,13 @@ void BatchContext::refreshScene(bool resetCam)
 void BatchContext::updateCamera()
 {
   frame->currentAccum = 0;
-  auto &camera = frame->child("camera");
+  auto camera = frame->child("camera").nodeAs<sg::Camera>();
 
   if (cameraIdx) {
     // switch to context global index specific scene camera
     refreshCamera(cameraIdx);
+    // update camera pointer
+    camera = frame->child("camera").nodeAs<sg::Camera>();
     cameraIdx = 0; // reset global-context cameraIndex
     cameraView = nullptr; // only used for arcball/default
   } else if (cameraView && *cameraView != affine3f{one}) {
@@ -509,16 +511,16 @@ void BatchContext::updateCamera()
       auto settingsCamera = cameras[cameraSettingsIdx];
       for (auto &c : settingsCamera->children()) {
         if (c.first == "cameraId") {
-          camera.createChild("cameraSettingsId", "int", c.second->value());
-          camera.child("cameraSettingsId").setSGNoUI();
-          camera.child("cameraSettingsId").setSGOnly();
+          camera->createChild("cameraSettingsId", "int", c.second->value());
+          camera->child("cameraSettingsId").setSGNoUI();
+          camera->child("cameraSettingsId").setSGOnly();
         } else if (c.first != "uniqueCameraName") {
-          if (camera.hasChild(c.first))
-            camera.child(c.first) = c.second->value();
+          if (camera->hasChild(c.first))
+            camera->child(c.first).setValue(c.second->value());
           else {
-            camera.createChild(c.first, c.second->subType(), c.second->value());
+            camera->createChild(c.first, c.second->subType(), c.second->value());
             if (settingsCamera->child(c.first).sgOnly())
-              camera.child(c.first).setSGOnly();
+              camera->child(c.first).setSGOnly();
           }
         }
       }
@@ -527,10 +529,9 @@ void BatchContext::updateCamera()
       reshape(); // resets aspect
     }
     affine3f cameraToWorld = *cameraView;
-    PRINT(cameraToWorld);
-    camera["position"] = xfmPoint(cameraToWorld, vec3f(0, 0, 0));
-    camera["direction"] = xfmVector(cameraToWorld, vec3f(0, 0, -1));
-    camera["up"] = xfmVector(cameraToWorld, vec3f(0, 1, 0));
+    camera->child("position").setValue(xfmPoint(cameraToWorld, vec3f(0, 0, 0)));
+    camera->child("direction").setValue(xfmVector(cameraToWorld, vec3f(0, 0, -1)));
+    camera->child("up").setValue(xfmVector(cameraToWorld, vec3f(0, 1, 0)));
     cameraView = nullptr;
   }
   // if no camera  view or scene camera is selected calculate a default view
@@ -541,22 +542,22 @@ void BatchContext::updateCamera()
     auto translation = AffineSpace3f::translate(vec3f(0, 0, -worldDiag));
     auto cameraToWorld = rcp(translation * centerTranslation);
 
-    camera["position"] = xfmPoint(cameraToWorld, vec3f(0, 0, 0));
-    camera["direction"] = xfmVector(cameraToWorld, vec3f(0, 0, -1));
-    camera["up"] = xfmVector(cameraToWorld, vec3f(0, 1, 0));
+    camera->child("position").setValue(xfmPoint(cameraToWorld, vec3f(0, 0, 0)));
+    camera->child("direction").setValue(xfmVector(cameraToWorld, vec3f(0, 0, -1)));
+    camera->child("up").setValue(xfmVector(cameraToWorld, vec3f(0, 1, 0)));
   }
 
   if (cmdlCam) {
-    camera["position"] = pos;
-    camera["direction"] = gaze;
-    camera["up"] = up;
+    camera->child("position").setValue(pos);
+    camera->child("direction").setValue(gaze);
+    camera->child("up").setValue(up);
   }
 
-  if (camera.hasChild("stereoMode"))
-      camera["stereoMode"] = (int)optStereoMode;
+  if (camera->hasChild("stereoMode"))
+      camera->child("stereoMode").setValue((int)optStereoMode);
 
-  if (camera.hasChild("interpupillaryDistance"))
-    camera["interpupillaryDistance"] = optInterpupillaryDistance;
+  if (camera->hasChild("interpupillaryDistance"))
+    camera->child("interpupillaryDistance").setValue(optInterpupillaryDistance);
 }
 
 void BatchContext::importFiles(sg::NodePtr world)
@@ -586,7 +587,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           // importer will use what it needs.
           importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
           importer->setMaterialRegistry(baseMaterialRegistry);
-          importer->setCameraList(cameras);
+          // importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           importer->setScheduler(scheduler);

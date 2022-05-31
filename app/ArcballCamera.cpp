@@ -122,7 +122,6 @@ void ArcballCamera::setUpDir(vec3f newDir)
 void ArcballCamera::updateCamera()
 {
   const AffineSpace3f rot           = LinearSpace3f(rotation);
-  PRINT(rot);
   const AffineSpace3f worldToCamera = translation * rot * centerTranslation;
   cameraToWorld = rcp(worldToCamera);
 }

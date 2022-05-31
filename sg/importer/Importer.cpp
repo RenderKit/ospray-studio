@@ -30,6 +30,28 @@ NodeType Importer::type() const
 void Importer::importScene() {
 }
 
+struct FindCameraNode : public Visitor
+{
+  FindCameraNode(std::shared_ptr<CameraMap> _sgFileCameras)
+      : m_sgFileCameras(_sgFileCameras){};
+  bool operator()(Node &, TraversalContext &) override;
+
+ private:
+  std::shared_ptr<CameraMap> m_sgFileCameras;
+};
+
+inline bool FindCameraNode::operator()(Node &node, TraversalContext &)
+{
+  bool traverseChildren = true;
+  if (node.type() == NodeType::CAMERA) {
+    m_sgFileCameras->operator[](
+        node.child("uniqueCameraName").valueAs<std::string>()) =
+        node.nodeAs<sg::Camera>();
+    traverseChildren = false;
+  }
+  return traverseChildren;
+}
+
 OSPSG_INTERFACE void importScene(
     std::shared_ptr<StudioContext> context, rkcommon::FileName &sceneFileName)
 {
@@ -48,6 +70,11 @@ OSPSG_INTERFACE void importScene(
   std::map<std::string, JSON> jImporters;
   std::map<std::string, JSON> jGenerators;
   sg::NodePtr lights;
+  auto sgFileCameras = std::make_shared<CameraMap>();
+  auto mainCamera = context->frame->child("camera").nodeAs<sg::Camera>();
+  sgFileCameras->operator[](
+      mainCamera->child("uniqueCameraName").valueAs<std::string>()) =
+      mainCamera;
 
   // If the sceneFile contains a world (importers and lights), parse it here
   // (must happen before refreshScene)
@@ -62,6 +89,19 @@ OSPSG_INTERFACE void importScene(
 
       switch (nodeType) {
       case NodeType::IMPORTER: {
+        // iterate over importer children
+        for (auto &iChild : jChild["children"]) {
+          // check importer child type and proceed only if TRANSFORM
+          NodeType iChildType = iChild["type"].is_string()
+              ? NodeTypeFromString[iChild["type"]]
+              : iChild["type"].get<NodeType>();
+
+          if (iChildType == NodeType::TRANSFORM) {
+            auto c = createNodeFromJSON(iChild);
+            c->traverse<FindCameraNode>(sgFileCameras);
+          }
+        }
+
         FileName fileName = std::string(jChild["filename"]);
 
         // Try a couple different paths to find the file before giving up
@@ -96,6 +136,8 @@ OSPSG_INTERFACE void importScene(
       }
     }
   }
+  if (sgFileCameras->size())
+    context->sgFileCameras = sgFileCameras;
 
   //
   // Generator Objects

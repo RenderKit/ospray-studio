@@ -79,7 +79,7 @@ static const std::vector<std::string> g_renderers = {
 #endif
 
 // list of cameras imported with the scene definition
-static rkcommon::containers::FlatMap<std::string, sg::NodePtr> g_sceneCameras;
+static CameraMap g_sceneCameras;
 
 static const std::vector<std::string> g_debugRendererTypes = {"eyeLight",
     "primID",
@@ -610,14 +610,17 @@ void MainWindow::reshape(const vec2i &newWindowSize)
 void MainWindow::updateCamera()
 {
   frame->currentAccum = 0;
-  auto &camera = frame->child("camera");
+  auto camera = frame->child("camera").nodeAs<sg::Camera>();
 
   if (cameraIdx) {
     // switch to index specific scene camera
     auto &newCamera = g_sceneCameras.at_index(cameraIdx);
     g_selectedSceneCamera = newCamera.second;
+    g_selectedSceneCamera->traverse<sg::PrintNodes>();
     frame->remove("camera");
     frame->add(g_selectedSceneCamera);
+    // update camera pointer
+    camera = frame->child("camera").nodeAs<sg::Camera>();
     if (g_selectedSceneCamera->hasChild("aspect"))
       lockAspectRatio = g_selectedSceneCamera->child("aspect").valueAs<float>();
     reshape(windowSize); // resets aspect
@@ -630,16 +633,17 @@ void MainWindow::updateCamera()
       auto settingsCamera = g_sceneCameras.at_index(cameraSettingsIdx).second;
       for (auto &c : settingsCamera->children()) {
         if (c.first == "cameraId") {
-          camera.createChild("cameraSettingsId", "int", c.second->value());
-          camera.child("cameraSettingsId").setSGNoUI();
-          camera.child("cameraSettingsId").setSGOnly();
+          camera->createChild("cameraSettingsId", "int", c.second->value());
+          camera->child("cameraSettingsId").setSGNoUI();
+          camera->child("cameraSettingsId").setSGOnly();
         } else if (c.first != "uniqueCameraName") {
-          if (camera.hasChild(c.first))
-            camera.child(c.first) = c.second->value();
+          if (camera->hasChild(c.first))
+            camera->child(c.first) = c.second->value();
           else {
-            camera.createChild(c.first, c.second->subType(), c.second->value());
+            camera->createChild(
+                c.first, c.second->subType(), c.second->value());
             if (settingsCamera->child(c.first).sgOnly())
-              camera.child(c.first).setSGOnly();
+              camera->child(c.first).setSGOnly();
           }
         }
       }
@@ -658,22 +662,22 @@ void MainWindow::updateCamera()
     activeWindow->centerOnEyePos();
   }
 
-  camera["position"] = arcballCamera->eyePos();
-  camera["direction"] = arcballCamera->lookDir();
-  camera["up"] = arcballCamera->upDir();
+  camera->child("position").setValue(arcballCamera->eyePos());
+  camera->child("direction").setValue(arcballCamera->lookDir());
+  camera->child("up").setValue(arcballCamera->upDir());
 
-  if (camera.hasChild("focusDistance")) {
+  if (camera->hasChild("focusDistance")) {
     float focusDistance = rkcommon::math::length(
-        camera["lookAt"].valueAs<vec3f>() - arcballCamera->eyePos());
-    if (camera["adjustAperture"].valueAs<bool>()) {
-      float oldFocusDistance = camera["focusDistance"].valueAs<float>();
+        camera->child("lookAt").valueAs<vec3f>() - arcballCamera->eyePos());
+    if (camera->child("adjustAperture").valueAs<bool>()) {
+      float oldFocusDistance = camera->child("focusDistance").valueAs<float>();
       if (!(isinf(oldFocusDistance) || isinf(focusDistance))) {
-        float apertureRadius = camera["apertureRadius"].valueAs<float>();
-        camera["apertureRadius"] = apertureRadius *
-          focusDistance / oldFocusDistance;
+        float apertureRadius = camera->child("apertureRadius").valueAs<float>();
+        camera->child("apertureRadius")
+            .setValue(apertureRadius * focusDistance / oldFocusDistance);
       }
     }
-    camera["focusDistance"] = focusDistance;
+    camera->child("focusDistance").setValue(focusDistance);
   }
 }
 
@@ -1295,8 +1299,14 @@ bool MainWindow::parseCommandLine()
 
 // Importer for all known file types (geometry and models)
 void MainWindow::importFiles(sg::NodePtr world)
-{
-  std::vector<sg::NodePtr> cameras;
+{ 
+  std::shared_ptr<CameraMap> cameras{nullptr};
+  if (!sgFileCameras) {
+    cameras = std::make_shared<CameraMap>();
+    // populate cameras map with default camera
+    auto mainCamera = frame->child("camera").nodeAs<sg::Camera>();
+    cameras->operator[](mainCamera->child("uniqueCameraName").valueAs<std::string>()) = mainCamera;
+  }
 
   for (auto file : filesToImport) {
     try {
@@ -1322,7 +1332,11 @@ void MainWindow::importFiles(sg::NodePtr world)
           importer->pointSize = pointSize;
           importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
           importer->setMaterialRegistry(baseMaterialRegistry);
-          importer->setCameraList(cameras);
+          if (sgFileCameras) {
+            importer->importCameras = false;
+            importer->setCameraList(sgFileCameras);
+          } else if (cameras)
+            importer->setCameraList(cameras);
           importer->setLightsManager(lightsManager);
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           importer->setScheduler(scheduler);
@@ -1366,14 +1380,10 @@ void MainWindow::importFiles(sg::NodePtr world)
   // Initializes time range for newly imported models
   animationWidget->init();
 
-  if (cameras.size() > 0) {
-    auto mainCamera = frame->child("camera").nodeAs<sg::Camera>();
-    g_sceneCameras[mainCamera->child("uniqueCameraName")
-                       .valueAs<std::string>()] = mainCamera;
-    // populate cameras in camera editor in View menu
-    for (auto c : cameras)
-      g_sceneCameras[c->child("uniqueCameraName").valueAs<std::string>()] = c;
-  }
+  if (sgFileCameras)
+    g_sceneCameras = *sgFileCameras;
+  else if (cameras)
+    g_sceneCameras = *cameras;
 }
 
 void MainWindow::saveCurrentFrame()

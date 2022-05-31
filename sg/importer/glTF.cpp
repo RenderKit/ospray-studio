@@ -47,7 +47,7 @@ struct GLTFData
   GLTFData(NodePtr rootNode,
       const FileName &fileName,
       std::shared_ptr<sg::MaterialRegistry> _materialRegistry,
-      std::vector<NodePtr> *_cameras,
+      std::shared_ptr<CameraMap> _cameras,
       sg::FrameBuffer *_fb,
       NodePtr _currentImporter,
       InstanceConfiguration _ic)
@@ -78,13 +78,13 @@ struct GLTFData
   std::vector<NodePtr> lights;
   std::vector<NodePtr> lightTemplates;
   std::string geomId{""};
-
+  bool importCameras{false};
  private:
   InstanceConfiguration ic;
   NodePtr currentImporter;
   NodePtr rootNode;
   sg::FrameBuffer *fb{nullptr};
-  std::vector<NodePtr> *cameras{nullptr};
+  std::shared_ptr<CameraMap> cameras{nullptr};
   std::vector<NodePtr> cameraTemplates;
   std::vector<SkinPtr> skins;
   std::vector<std::vector<NodePtr>> ospMeshes;
@@ -294,7 +294,7 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
 
     auto cameraList = parentImporter->getCameraList();
     if (cameraList)
-      importer->setCameraList(*cameraList);
+      importer->setCameraList(cameraList);
 
     auto animationList = parentImporter->getAnimationList();
     if (animationList)
@@ -755,7 +755,11 @@ void GLTFData::visitNode(NodePtr sgNode,
   // create child animate camera for all camera nodes added to scene hierarchy,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
-  if (n.camera != -1 && n.camera < cameraTemplates.size() && cameras) {
+  if (n.camera != -1 && !importCameras && cameras) {
+    // add camera from existing .sg cameras
+    auto camera = cameras->at(n.name);
+    newXfm->add(camera);
+  } else if (n.camera != -1 && n.camera < cameraTemplates.size() && cameras) {
     auto cameraTemplate = cameraTemplates[n.camera];
     static auto nCamera = 0;
     auto camera = createNode("camera", cameraTemplate->subType());
@@ -773,8 +777,9 @@ void GLTFData::visitNode(NodePtr sgNode,
     camera->child("uniqueCameraName") = uniqueCamName;
     camera->child("cameraId").setValue(++nCamera);
 
-    cameras->push_back(camera);
+    cameras->operator[](uniqueCamName) = camera;
     newXfm->add(camera);
+    camera->traverse<sg::PrintNodes>();
   }
 
   sgNode = newXfm;
@@ -1835,8 +1840,10 @@ void glTFImporter::importScene()
   gltf.createMaterials();
   gltf.createLightTemplates();
 
-  if (importCameras)
+  if (importCameras) {
+    gltf.importCameras = true;
     gltf.createCameraTemplates();
+  }
 
   gltf.createSkins();
   gltf.createGeometries(); // needs skins
