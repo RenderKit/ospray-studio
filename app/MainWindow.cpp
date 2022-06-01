@@ -666,7 +666,8 @@ void MainWindow::updateCamera()
   camera->child("direction").setValue(arcballCamera->lookDir());
   camera->child("up").setValue(arcballCamera->upDir());
 
-  if (camera->hasChild("focusDistance")) {
+  if (camera->hasChild("focusDistance")
+      && !camera->child("cameraId").valueAs<int>()) {
     float focusDistance = rkcommon::math::length(
         camera->child("lookAt").valueAs<vec3f>() - arcballCamera->eyePos());
     if (camera->child("adjustAperture").valueAs<bool>()) {
