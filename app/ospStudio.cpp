@@ -55,7 +55,6 @@ void StudioCommon::splitPluginArguments() {
 
 void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   volumeParams = std::make_shared<sg::VolumeParams>();
-
   app->add_option(
     "files",
     filesToImport,

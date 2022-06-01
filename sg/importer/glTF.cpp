@@ -779,7 +779,6 @@ void GLTFData::visitNode(NodePtr sgNode,
 
     cameras->operator[](uniqueCamName) = camera;
     newXfm->add(camera);
-    camera->traverse<sg::PrintNodes>();
   }
 
   sgNode = newXfm;

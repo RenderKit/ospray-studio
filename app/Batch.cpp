@@ -57,16 +57,16 @@ void BatchContext::start()
     refreshRenderer();
     refreshScene(true);
 
-    if (cameras.size())
+    if (cameras->size())
       std::cout << "List of imported scene cameras:\n";
-    for (int c = 1; c <= cameras.size(); ++c) {
+    for (int c = 1; c <= cameras->size(); ++c) {
       std::cout
           << c << ": "
-          << cameras[c - 1]->child("uniqueCameraName").valueAs<std::string>()
+          << cameras->at_index(c - 1).second->child("uniqueCameraName").valueAs<std::string>()
           << std::endl;
     }
 
-    cameraRange.upper = std::min(cameraRange.upper, (int)cameras.size());
+    cameraRange.upper = std::min(cameraRange.upper, (int)cameras->size());
     for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
          ++cameraIdx) {
       resetFileId = true;
@@ -269,10 +269,10 @@ void BatchContext::reshape()
 
 void BatchContext::refreshCamera(int cameraIdx)
 {
-  if (cameraIdx <= cameras.size() && cameraIdx > 0) {
+  if (cameraIdx <= cameras->size() && cameraIdx > 0) {
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
               << std::endl;
-    selectedSceneCamera = cameras[cameraIdx - 1];
+    selectedSceneCamera = cameras->at_index(cameraIdx - 1).second;
     bool hasParent = selectedSceneCamera->parents().size() > 0;
 
     // TODO: remove this Hack : for some reason the accumulated transform in
@@ -508,7 +508,7 @@ void BatchContext::updateCamera()
   } else if (cameraView && *cameraView != affine3f{one}) {
     // use camera settings from scene camera if specified by global context specific 
     if (cameraSettingsIdx) {
-      auto settingsCamera = cameras[cameraSettingsIdx];
+      auto settingsCamera = cameras->at_index(cameraSettingsIdx).second;
       for (auto &c : settingsCamera->children()) {
         if (c.first == "cameraId") {
           camera->createChild("cameraSettingsId", "int", c.second->value());
@@ -564,6 +564,8 @@ void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform");
   frame->child("world").add(importedModels);
+  if (!sgFileCameras)
+    cameras = std::make_shared<CameraMap>();
 
   for (auto file : filesToImport) {
     try {
@@ -587,7 +589,16 @@ void BatchContext::importFiles(sg::NodePtr world)
           // importer will use what it needs.
           importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
           importer->setMaterialRegistry(baseMaterialRegistry);
-          // importer->setCameraList(cameras);
+          if (sgFileCameras) {
+            importer->importCameras = false;
+            importer->setCameraList(sgFileCameras);
+            for (auto i = sgFileCameras->begin() + 1; i != sgFileCameras->end();
+                 i++)
+              cameras->operator[](i->first) = i->second;
+          } else if (cameras) {
+            importer->importCameras = true;
+            importer->setCameraList(cameras);
+          }
           importer->setLightsManager(lightsManager);
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           importer->setScheduler(scheduler);

@@ -616,7 +616,6 @@ void MainWindow::updateCamera()
     // switch to index specific scene camera
     auto &newCamera = g_sceneCameras.at_index(cameraIdx);
     g_selectedSceneCamera = newCamera.second;
-    g_selectedSceneCamera->traverse<sg::PrintNodes>();
     frame->remove("camera");
     frame->add(g_selectedSceneCamera);
     // update camera pointer
@@ -1336,8 +1335,10 @@ void MainWindow::importFiles(sg::NodePtr world)
           if (sgFileCameras) {
             importer->importCameras = false;
             importer->setCameraList(sgFileCameras);
-          } else if (cameras)
+          } else if (cameras) {
+            importer->importCameras = true;
             importer->setCameraList(cameras);
+          }
           importer->setLightsManager(lightsManager);
           importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
           importer->setScheduler(scheduler);

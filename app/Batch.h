@@ -46,7 +46,7 @@ class BatchContext : public StudioContext
   range1i cameraRange{0, 0};
 
   // list of cameras imported with the scene definition
-  std::vector<sg::NodePtr> cameras;
+  std::shared_ptr<CameraMap> cameras{nullptr};
   std::string cameraId{""};
 
   std::vector<affine3f> cameraStack;

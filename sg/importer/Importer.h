@@ -58,7 +58,9 @@ struct OSPSG_INTERFACE Importer : public Node
   inline void setCameraList(std::shared_ptr<CameraMap> _cameras)
   {
     cameras = _cameras;
-    if (cameras->size() == 1)
+    if (cameras->empty())
+      importCameras = true;
+    else if (cameras->size() == 1 && cameras->at_index(0).first == "default")
       importCameras = true;
   }
 
