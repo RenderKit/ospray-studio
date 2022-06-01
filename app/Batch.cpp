@@ -215,9 +215,28 @@ bool BatchContext::parseCommandLine()
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
 
+  // if sgFile is being imported then disable BatchContext::addToCommandLine()
+  if (ac > 1) {
+    for (int i = 1; i < ac; ++i) {
+      std::string arg = av[i];
+      std::string argExt;
+      int extStart{0};
+      if (arg.length() > 3)
+       extStart = arg.length() - 3;
+      if (extStart)
+        argExt = arg.substr(extStart, arg.length());
+      if (argExt == ".sg") {
+        std::cout
+            << "loading a .sg file, batch-mode cmd-line arguments not allowed. Please remove the arguments and try again.\n";
+        sgScene = true;
+      }
+    }
+  }
+
   std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio Batch");
   StudioContext::addToCommandLine(app);
-  BatchContext::addToCommandLine(app);
+  if (!sgScene)
+    BatchContext::addToCommandLine(app);
   try {
     app->parse(ac, av);
   } catch (const CLI::ParseError &e) {
