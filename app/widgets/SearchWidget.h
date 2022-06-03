@@ -1,10 +1,12 @@
-// Copyright 2021-2022 Intel Corporation
+// Copyright 2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
 #include "sg/Node.h"
 #include "sg/NodeType.h"
+#include "sg/visitors/Search.h"
+
 #include "GenerateImGuiWidgets.h" // TreeState
 
 #include <string>
@@ -42,17 +44,20 @@ class SearchWidget
   void addSearchResultsUI(NR root);
 
   void addCustomAction(std::string title,
-      std::function<void(std::vector<ospray::sg::NodePtr> &)> searchOp,
+      std::function<void(ospray::sg::SearchResults &)> searchOp,
       std::function<void()> displayOp,
       bool sameLine = false);
 
   inline NP getSelected()
   {
-    if (!selectedResult.empty()
-        && lastRoot->children().contains(selectedResult))
-      return lastRoot->children().at(selectedResult);
-    else
+    NP parent = selectedResultParent.lock();
+
+    if (selectedResultName.empty() || !parent)
       return nullptr;
+
+    // Use the parent and nodeName in the event the selected node has been
+    // recreated.
+    return parent->children().at(selectedResultName);
   }
 
  private:
@@ -64,7 +69,7 @@ class SearchWidget
   bool searched{false};
 
   const char *numItemsOpt[4]{"10", "25", "50", "100"};
-  int numItemsInd{1};
+  int numItemsInd{0};
   int numItemsPerPage{10};
   int numPages{0};
   int currentPage{1};
@@ -72,8 +77,13 @@ class SearchWidget
 
   TS displayState;
 
-  std::vector<NP> results;
-  std::string selectedResult{""};
+  // XXX Search Results are complicated by the fact that the callee may delete
+  // the selected node.  Therefore, the name of the node and it's parent are
+  // saved and used to do fetch the node at getSelected time.
+  ospray::sg::SearchResults results;
+  std::string selectedResultName;
+  std::weak_ptr<ospray::sg::Node> selectedResultParent;
+
   // These must be references since they contain OSPRay objects.
   // The widget will be destructed *after* ospShutdown and if it
   // contains sg nodes it will trigger warnings on exit

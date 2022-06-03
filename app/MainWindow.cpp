@@ -2716,13 +2716,15 @@ void MainWindow::buildWindowTransformEditor()
 
   typedef sg::NodeType NT;
 
-  auto toggleSearch = [&](std::vector<sg::NodePtr> &results, bool visible) {
-    for (auto result : results)
-      if (result->hasChild("visible"))
-        result->child("visible").setValue(visible);
+  auto toggleSearch = [&](sg::SearchResults &results, bool visible) {
+    for (auto result : results) {
+      auto resultNode = result.lock();
+      if (resultNode->hasChild("visible"))
+        resultNode->child("visible").setValue(visible);
+    }
   };
-  auto showSearch = [&](std::vector<sg::NodePtr> &r) { toggleSearch(r, true); };
-  auto hideSearch = [&](std::vector<sg::NodePtr> &r) { toggleSearch(r, false); };
+  auto showSearch = [&](sg::SearchResults &r) { toggleSearch(r, true); };
+  auto hideSearch = [&](sg::SearchResults &r) { toggleSearch(r, false); };
 
   auto &warudo = frame->child("world");
   auto toggleDisplay = [&](bool visible) {
@@ -2731,8 +2733,10 @@ void MainWindow::buildWindowTransformEditor()
   auto showDisplay = [&]() { toggleDisplay(true); };
   auto hideDisplay = [&]() { toggleDisplay(false); };
 
-  static std::vector<NT> searchTypes{NT::TRANSFORM, NT::GEOMETRY, NT::VOLUME};
-  static std::vector<NT> displayTypes{NT::GENERATOR, NT::IMPORTER, NT::TRANSFORM};
+  static std::vector<NT> searchTypes{
+      NT::IMPORTER, NT::TRANSFORM, NT::GENERATOR, NT::GEOMETRY, NT::VOLUME};
+  static std::vector<NT> displayTypes{
+      NT::IMPORTER, NT::TRANSFORM, NT::GENERATOR};
   static SearchWidget searchWidget(searchTypes, displayTypes);
 
   searchWidget.addSearchBarUI(warudo);
