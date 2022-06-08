@@ -27,7 +27,7 @@ then
         -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_MAC \
         ..
     cmake --build . --parallel $THREADS --config Release
-    cpack -G ZIP -B "${PWD}/package" -V
+    cpack -G ZIP -B "${PWD}/package"
 
     cmake -L \
         -D CMAKE_INSTALL_PREFIX=/opt/local \
@@ -39,7 +39,7 @@ then
         -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_MAC \
         ..
     cmake --build . --parallel $THREADS --config Release
-    cpack -B "${PWD}/package" -V
+    cpack -B "${PWD}/package"
 
     $SIGN_FILE_MAC -o runtime package/ospray_studio-*pkg
     $CI_PROJECT_DIR/gitlab/macosx_notarization.sh package/ospray_studio-*.pkg

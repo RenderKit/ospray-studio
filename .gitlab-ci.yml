@@ -14,9 +14,10 @@ stages:
   - test
   - release
   - scan
+  - test-signing
 
 .centos7:
-  tags: [ build, docker, modules ]
+  tags: [build, docker, modules]
   image: $DOCKER_REGISTRY/centos:7
   before_script:
     - module load python/$PYTHON_VERSION
@@ -24,7 +25,7 @@ stages:
     - ls $Python3_ROOT
 
 .centos7-test:
-  tags: [ build, docker, modules ]
+  tags: [build, docker, modules]
   image: $DOCKER_REGISTRY/ospray/docker-images:centos7-mod
   before_script:
     - module load python/$PYTHON_VERSION
@@ -32,7 +33,7 @@ stages:
     - ls $Python3_ROOT
 
 .ubuntu18.04:
-  tags: [ build, docker, modules ]
+  tags: [build, docker, modules]
   image: $DOCKER_REGISTRY/ubuntu:18.04
   before_script:
     - module load python/$PYTHON_VERSION
@@ -40,17 +41,17 @@ stages:
     - ls $Python3_ROOT
 
 .ubuntu20.04:
-  tags: [ build, docker ]
+  tags: [build, docker]
   image: $DOCKER_REGISTRY/clamav:ubuntu20.04
 
 .macos:
-  tags: [ osx, clang ]
+  tags: [osx, clang]
 
 .macos-sign:
-  tags: [ osx, clang, sign ]
+  tags: [osx, clang, sign]
 
 .windows:
-  tags: [ win, msvc15 ]
+  tags: [win, msvc15]
   before_script:
     - $env:Python3_ROOT = $PYTHON_ROOT_WINDOWS
     - echo $env:Python3_ROOT
@@ -85,12 +86,20 @@ stages:
     name: ospray_studio
     paths:
       - build-macos/package/ospray_studio*
+  only:
+    - master
+    - /^release-.*$/
+    - devel
 
 .windows-release-artifacts:
   artifacts:
     name: ospray_studio
     paths:
       - build-win/package/ospray_studio*
+  only:
+    - master
+    - /^release-.*$/
+    - devel
 
 source-protex-scan:
   stage: scan
@@ -165,14 +174,14 @@ build-kw:
 test-run-centos7:
   stage: test
   extends: .centos7-test
-  needs: [ build-centos7 ]
+  needs: [build-centos7]
   script:
     - build/install/bin/ospStudio --verify_install
 
 test-run-ubuntu18.04:
   stage: test
   extends: .ubuntu18.04
-  needs: [ build-ubuntu18.04 ]
+  needs: [build-ubuntu18.04]
   script:
     - gitlab/run.sh
   only:
@@ -182,7 +191,7 @@ test-run-ubuntu18.04:
 test-kw:
   stage: scan
   extends: .centos7
-  needs: [ build-kw ]
+  needs: [build-kw]
   script:
     - gitlab/kw-check-issues.sh
   allow_failure: true
@@ -263,7 +272,7 @@ kw-gen-report:
 test-run-ubuntu18.04-dev:
   stage: test
   extends: .ubuntu18.04
-  needs: [ build-ubuntu18.04-dev ]
+  needs: [build-ubuntu18.04-dev]
   script:
     - gitlab/run-dev.sh
 
@@ -281,7 +290,8 @@ release-centos7:
   extends:
     - .centos7
     - .linux-release-artifacts
-  needs: [ test-run-centos7 ]
+  needs: [test-run-centos7]
+  dependencies: []
   script:
     - module load intel/2020.1
     - export CC=icc
@@ -299,6 +309,28 @@ release-windows:
     - gitlab\win.ps1 package
     - ;& $env:SIGN_FILE_WINDOWS $CI_PROJECT_DIR/build-win/package/ospray_studio*.msi
 
+test-release-windows-zip:
+  stage: test-signing
+  extends:
+    - .windows
+    - .windows-release-artifacts
+  needs: [release-windows]
+  script:
+    - Expand-Archive $CI_PROJECT_DIR/build-win/package/*.zip -DestinationPath .
+    - ;& $env:SIGN_FILE_WINDOWS -t (Get-ChildItem $CI_PROJECT_DIR\ospray_studio-*\bin\* | Select-Object -Expand FullName)
+
+test-release-windows-msi:
+  stage: test-signing
+  extends:
+    - .windows
+    - .windows-release-artifacts
+  needs: [release-windows]
+  script:
+    # XXX VERY IMPORTANT!!! msiexec returns immediately.  Adding the pipe to Out-Null the simplest way to wait for completion
+    # XXX VERY IMPORTANT!!! never try to extract/install to the same TARGETDIR that the .msi file resides.  It fails in a very opaque way. 
+    - msiexec.exe /a (Get-ChildItem $CI_PROJECT_DIR/build-win/package/*.msi | Select-Object -Expand FullName) /qn TARGETDIR=$CI_PROJECT_DIR | Out-Null
+    - ;& $env:SIGN_FILE_WINDOWS -t $CI_PROJECT_DIR/build-win/package/*.msi (Get-ChildItem "$CI_PROJECT_DIR\Intel\OSPRay Studio v0\bin\*" | Select-Object -Expand FullName)
+
 release-macos:
   stage: release
   extends:
@@ -306,12 +338,17 @@ release-macos:
     - .macos-release-artifacts
   dependencies: []
   script:
-   - gitlab/macos.sh package
-  only:
-    - master
-    - /^release-.*$/
-    - devel
-    - web
+    - gitlab/macos.sh package
+
+test-release-macos:
+  stage: test-signing
+  extends:
+    - .macos-sign
+    - .macos-release-artifacts
+  needs: [release-macos]
+  script:
+    - unzip $CI_PROJECT_DIR/build-macos/package/*.zip
+    - $SIGN_FILE_MAC -t $CI_PROJECT_DIR/ospray_studio-*/bin/* $CI_PROJECT_DIR/ospray_studio-*/lib/*.dylib $CI_PROJECT_DIR/build-macos/package/*.pkg
 
 scan-bdba-bin:
   stage: scan

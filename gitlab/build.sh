@@ -26,7 +26,7 @@ then
         -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_LINUX \
         ..
     cmake --build . --parallel $THREADS --config Release
-    cpack -B "${PWD}/package" -V
+    cpack -B "${PWD}/package"
 else
     cmake -L \
         -D CMAKE_INSTALL_PREFIX=install \
