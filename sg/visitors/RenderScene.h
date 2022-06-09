@@ -65,8 +65,9 @@ namespace ospray {
     cpp::World world;
     std::vector<box3f> worldRegions;
     std::vector<cpp::Instance> instances;
-    // string identifier associated with a geometry
-    std::vector<cpp::Group> groups;
+
+    // unique OSPRay object groups to avoid regenartion of groups
+    std::unordered_map<void *, cpp::Group> groups;
     int groupIndex{0};
     std::stack<affine3f> xfms;
     std::stack<affine3f> endXfms;
@@ -267,13 +268,9 @@ namespace ospray {
   inline void RenderScene::createGeometry(Node &node)
   {
     auto geomNode = node.nodeAs<Geometry>();
+    void* geomHandle = reinterpret_cast<void *>(node.valueAs<cpp::Geometry>().handle());
 
-    if (!node.child("visible").valueAs<bool>()) {
-      geomNode->groupIndex = -1;
-      return;
-    }
-
-    if (geomNode->groupIndex >= 0 && geomNode->groupIndex < groups.size())
+    if (groups.find(geomHandle) != groups.end())
       return;
 
     // skinning
@@ -360,10 +357,10 @@ namespace ospray {
         worldRegions.push_back(mpiRegion);
       }
     }
-
-    groups.push_back(*geomNode->group);
-    geomNode->groupIndex = groupIndex;
-    groupIndex++;
+    // update handle
+    geomHandle = reinterpret_cast<void *>(node.valueAs<cpp::Geometry>().handle());
+    if (geomNode->group)
+      groups.emplace(std::make_pair(geomHandle, *geomNode->group));
 
     auto ospGeometricModel = geomNode->model->handle();
     if (geomSGIdMap && sgGeomId)
@@ -374,16 +371,13 @@ namespace ospray {
   inline void RenderScene::createVolume(Node &node)
   {
     auto volNode = node.nodeAs<sg::Volume>();
-
-    if (!node.child("visible").valueAs<bool>()) {
-      volNode->groupIndex = -1;
-      return;
-    }
-
-    if (volNode->groupIndex >= 0 && volNode->groupIndex < groups.size())
-      return;
-
     auto &vol = node.valueAs<cpp::Volume>();
+
+    void* volHandle = reinterpret_cast<void *>(vol.handle());
+
+    if (groups.find(volHandle) != groups.end())
+      return;
+
     cpp::VolumetricModel model(vol);
     if (node.hasChildOfType(sg::NodeType::TRANSFER_FUNCTION)) {
       model.setParam("transferFunction",
@@ -417,11 +411,10 @@ namespace ospray {
     }
 
     group.commit();
-    groups.push_back(group);
-    volNode->groupIndex = groupIndex;
-    groupIndex++;
 
-
+    // update handle
+    volHandle = reinterpret_cast<void *>(node.valueAs<cpp::Volume>().handle());
+    groups.emplace(std::make_pair(volHandle, group));
   }
 
   inline void RenderScene::createInstanceFromGroup(Node &node)
@@ -458,10 +451,9 @@ namespace ospray {
 #endif
 
       for (auto geom : geomChildren) {
-        auto geomNode = geom->nodeAs<Geometry>();
-        auto geomIdentifier = geomNode->groupIndex;
-        if (geomIdentifier >= 0 && geomIdentifier < groups.size()) {
-          auto &group = groups[geomIdentifier];
+        auto geomHandle = geom->valueAs<cpp::Geometry>().handle();
+        if (groups.find(geomHandle) != groups.end()) {
+          auto &group = groups[geomHandle];
           setInstance(group);
         }
       }
@@ -470,10 +462,9 @@ namespace ospray {
     if (node.hasChildOfType(NodeType::VOLUME)) {
       auto &volChildren = node.childrenOfType(NodeType::VOLUME);
       for (auto vol : volChildren) {
-        auto volNode = vol->nodeAs<Volume>();
-        auto volumeIdentifier = volNode->groupIndex;
-        if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
-          auto &group = groups[volumeIdentifier];
+        auto volHandle = vol->valueAs<cpp::Volume>().handle();
+        if (groups.find(volHandle) != groups.end()) {
+          auto &group = groups[volHandle];
           setInstance(group);
         }
       }
@@ -484,10 +475,9 @@ namespace ospray {
       for (auto tfn : tfnChildren) {
         auto volChildren = tfn->childrenOfType(NodeType::VOLUME);
         for (auto vol : volChildren) {
-          auto volNode = vol->nodeAs<sg::Volume>();
-          auto volumeIdentifier = volNode->groupIndex;
-          if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
-            auto &group = groups[volumeIdentifier];
+          auto volHandle = vol->valueAs<cpp::Volume>().handle();
+          if (groups.find(volHandle) != groups.end()) {
+            auto &group = groups[volHandle];
             setInstance(group);
           }
         }

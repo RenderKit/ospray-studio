@@ -62,10 +62,12 @@ void Geometry::postCommit()
 
   std::string type =
       child("isClipping").valueAs<bool>() ? "clippingGeometry" : "geometry";
-
-  group = std::make_shared<cpp::Group>(cpp::Group());
-  group->setParam(type, cpp::CopiedData(*model));
-  group->commit();
+  if (child("visible").valueAs<bool>()) {
+    group = std::make_shared<cpp::Group>(cpp::Group());
+    group->setParam(type, cpp::CopiedData(*model));
+    group->commit();
+  } else
+    group = nullptr;
 }
 
 bool Geometry::checkAndNormalizeWeights()

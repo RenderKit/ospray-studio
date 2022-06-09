@@ -49,7 +49,6 @@ struct OSPSG_INTERFACE Geometry
   std::vector<vec2f> vt;
   std::vector<uint32_t> mIDs;
 
-  int groupIndex{-1};
   GroupPtr group{nullptr};
   GeometricModelPtr model{nullptr};
 };
