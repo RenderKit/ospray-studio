@@ -35,7 +35,6 @@ cam = frame.child("camera")
 cam.createChild("aspect", "float", aspect)
 sg.updateCamera(cam, arcballCamera)
 
-frame.startNewFrame(bool(0))
-frame.startNewFrame(bool(0))
+frame.startNewFrame()
 frame.waitOnFrame()
 frame.saveFrame("studio_import.png", 0)
