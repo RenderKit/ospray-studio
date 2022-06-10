@@ -375,6 +375,9 @@ namespace ospray {
 
     void* volHandle = reinterpret_cast<void *>(vol.handle());
 
+    if (volNode->child("visible").valueAs<bool>() == false)
+      return;
+
     if (groups.find(volHandle) != groups.end())
       return;
 
