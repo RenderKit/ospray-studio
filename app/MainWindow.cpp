@@ -2729,6 +2729,7 @@ void MainWindow::buildWindowTransformEditor()
   auto &warudo = frame->child("world");
   auto toggleDisplay = [&](bool visible) {
     warudo.traverse<sg::SetParamByNode>(NT::GEOMETRY, "visible", visible);
+    warudo.traverse<sg::SetParamByNode>(NT::VOLUME, "visible", visible);
   };
   auto showDisplay = [&]() { toggleDisplay(true); };
   auto hideDisplay = [&]() { toggleDisplay(false); };

@@ -37,7 +37,8 @@ namespace ospray {
 
   inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
   {
-    std::cout << std::string(2*ctx.level, ' ') << node.name() << " : " << node.subType();
+    std::cout << std::string(2 * ctx.level, ' ') << node.name() << " : "
+              << node.subType() << " : " << NodeTypeToString[node.type()];
 
     // A couple of usings to make subType strings match types
     using string = std::string;

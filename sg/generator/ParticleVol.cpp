@@ -96,7 +96,7 @@ void ParticleVol::generateData()
   auto &tf = xfm.createChild("transferFunction", "transfer_function_turbo");
   tf["valueRange"] = vec2f(0.f, weightRange.upper);
 
-  auto &pvol = tf.createChild("pvol", "volume_particle");
+  auto &pvol = tf.createChild("particle_volume", "volume_particle");
   pvol["valueRange"] = range1f(0.f, weightRange.upper);
 
   pvol.createChild("gridOrigin", "vec3f", vec3f(-1.f));
