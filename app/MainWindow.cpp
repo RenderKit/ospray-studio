@@ -2746,8 +2746,22 @@ void MainWindow::buildWindowTransformEditor()
   searchWidget.addSearchResultsUI(warudo);
 
   auto selected = searchWidget.getSelected();
-  if (selected)
+  if (selected) {
+    auto toggleSelected = [&](bool visible) {
+      selected->traverse<sg::SetParamByNode>(NT::GEOMETRY, "visible", visible);
+      selected->traverse<sg::SetParamByNode>(NT::VOLUME, "visible", visible);
+    };
+
+    ImGui::Text("Selected ");
+    ImGui::SameLine();
+    if (ImGui::Button("show"))
+      toggleSelected(true);
+    ImGui::SameLine();
+    if (ImGui::Button("hide"))
+      toggleSelected(false);
+
     GenerateWidget(*selected);
+  }
 
   ImGui::End();
 }
