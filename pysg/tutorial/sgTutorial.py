@@ -8,7 +8,7 @@ from pysg import Any, vec3f, Data, vec2i
 sg.init(sys.argv)
 
 # specific rkcommon::math types needed for SG
-pos = Any(vec3f(0.0, 0.0, 10.0))
+pos = Any(vec3f(0.1, 0.1, 5.66))
 dir = Any(vec3f(0.0, 0.0, -1.0))
 up = Any(vec3f(0.0, 1.0, 0.0))
 
@@ -40,6 +40,7 @@ mat = numpy.array([0], dtype=numpy.uint32)
 
 frame = sg.Frame()
 frame.createChild("windowSize", "vec2i", window_size)
+frame.createChild("renderer", "renderer_scivis")
 world = frame.child("world")
 
 cam = frame.child("camera")
@@ -62,7 +63,6 @@ world.render()
 
 # First frame will be "navigation" resolution.
 # Render again for full sized frame.
-frame.startNewFrame()
 frame.startNewFrame()
 frame.waitOnFrame()
 frame.saveFrame("sgTutorial.png", 0)
