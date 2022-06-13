@@ -14,7 +14,8 @@ static const FilterList defaultFilterList = {".*",
     "Geometry (.obj .gltf .glb){.obj,.gltf,.glb}",
     "Volume (.raw .vdb){.raw,.vdb}",
     "Image (.jpg .hdr .exr){.jpg,.jpeg,.hdr,.exr}",
-    "EULUMDAT (.ldt ){.ldt}"};
+    "EULUMDAT (.ldt ){.ldt}",
+    "PasteFileName{.xxx}"};
 
 bool fileBrowser(FileList &fileList,
     const std::string &prompt,
