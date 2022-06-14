@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-## Copyright 2015-2021 Intel Corporation
+## Copyright 2015 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 PACKAGE=false
