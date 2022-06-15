@@ -9,12 +9,14 @@ OBJ/MTL importer:
 -   native triangle mesh and quad mesh primitives
 -   basic OBJ materials, with extension for any OSPRay material via "type" keyword
 -   texture and "texture transformations" supported on all OSPRay texturable material parameters via "map_" parameter prefix
--   support for UDIM texture tiles with common "*1001*" filenaming convension
+-   support for UDIM texture tiles with common "*1001*" filenaming convention
 
 glTF importer:
 
 -   mesh and points primitives, vanilla materials, animation (including camera), skinning
--   KHR_lights_punctual: "directional", "point", "spot"; custom extension for OSPRay "sunSky" and "hdri" light types
+-   KHR_lights_punctual: "directional", "point", "spot"; custom extension for OSPRay's "hdri" light type
+-   INTEL_lights_sunsky
+-   KHR_materials_emissive_strength: "intensity"
 -   KHR_materials_pbrSpecularGlossiness: "diffuseFactor", "diffuseTexture", "specularFactor", "glossinessFactor"
 -   KHR_materials_clearcoat: "clearcoatFactor", "clearcoatRoughnessFactor", "clearcoatTexture", "clearcoatRoughnessTexture", "clearcoatNormalTexture"
 -   KHR_materials_transmission: "transmissionFactor", "transmissionTexture"
@@ -30,7 +32,7 @@ glTF importer:
 -   EXT_cameras_sensor, respecting
     -   "imageSensor": "pixels", "pixelSize"
     -   "lens": "focalLength", "apertureRadius", "focusDistance", "centerPointShift"
--   support for UDIM texture tiles with common "*1001*" filenaming convension
+-   support for UDIM texture tiles with common "*1001*" filenaming convention
 
 PCD importer:
 
