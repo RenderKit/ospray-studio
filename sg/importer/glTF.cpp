@@ -96,6 +96,7 @@ struct GLTFData
   std::vector<NodePtr> ospMaterials;
 
   size_t baseMaterialOffset = 0; // set in createMaterials()
+  int numIntelLights{0};
 
   void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
 
@@ -348,6 +349,7 @@ void GLTFData::createLightTemplates()
 
       lightTemplates.push_back(sunSkyLight);
     }
+    numIntelLights = lightTemplates.size();
   }
   // KHR_lights_punctual
   for (auto &l : model.lights) {
@@ -787,15 +789,19 @@ void GLTFData::visitNode(NodePtr sgNode,
     loadNodeInfo(nid, sgNode);
 
   tinygltf::Value lightJson;
+  int lightIdx{0};
   // instantiate lights for extensions: INTEL_lights_sunsky and
   // KHR_lights_punctual
-  if (n.extensions.find("KHR_lights_punctual") != n.extensions.end())
-    lightJson = n.extensions.find("KHR_lights_punctual")->second.Get("light");
-  else if (n.extensions.find("INTEL_lights_sunsky") != n.extensions.end())
+  if (n.extensions.find("INTEL_lights_sunsky") != n.extensions.end()) {
     lightJson = n.extensions.find("INTEL_lights_sunsky")->second.Get("light");
+    lightIdx = lightJson.GetNumberAsInt();
+  } else if (n.extensions.find("KHR_lights_punctual") != n.extensions.end()) {
+    lightJson = n.extensions.find("KHR_lights_punctual")->second.Get("light");
+    lightIdx = lightJson.GetNumberAsInt();
+    lightIdx += numIntelLights;
+  }
 
   if (lightJson.IsInt()) {
-    auto lightIdx = lightJson.GetNumberAsInt();
     auto lightTemplate = lightTemplates[lightIdx];
     static int lightCounter = 0;
     // instantiate SG light nodes
