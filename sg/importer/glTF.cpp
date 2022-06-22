@@ -788,20 +788,23 @@ void GLTFData::visitNode(NodePtr sgNode,
   if (n.extensions.find("BIT_node_info") != n.extensions.end())
     loadNodeInfo(nid, sgNode);
 
-  tinygltf::Value lightJson;
-  int lightIdx{0};
+  std::vector<int> lightIdxs;
+
   // instantiate lights for extensions: INTEL_lights_sunsky and
   // KHR_lights_punctual
   if (n.extensions.find("INTEL_lights_sunsky") != n.extensions.end()) {
-    lightJson = n.extensions.find("INTEL_lights_sunsky")->second.Get("light");
-    lightIdx = lightJson.GetNumberAsInt();
-  } else if (n.extensions.find("KHR_lights_punctual") != n.extensions.end()) {
-    lightJson = n.extensions.find("KHR_lights_punctual")->second.Get("light");
-    lightIdx = lightJson.GetNumberAsInt();
-    lightIdx += numIntelLights;
+    auto lightJson =
+        n.extensions.find("INTEL_lights_sunsky")->second.Get("light");
+    lightIdxs.push_back(lightJson.GetNumberAsInt());
   }
 
-  if (lightJson.IsInt()) {
+  if (n.extensions.find("KHR_lights_punctual") != n.extensions.end()) {
+    auto lightJson =
+        n.extensions.find("KHR_lights_punctual")->second.Get("light");
+    lightIdxs.push_back(lightJson.GetNumberAsInt() + numIntelLights);
+  }
+
+  for (auto &lightIdx : lightIdxs) {
     auto lightTemplate = lightTemplates[lightIdx];
     static int lightCounter = 0;
     // instantiate SG light nodes
