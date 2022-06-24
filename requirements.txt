@@ -1,0 +1,2 @@
+numpy
+mpi4py

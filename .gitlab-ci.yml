@@ -106,6 +106,13 @@ stages:
       #  needs: []
       #  allow_failure: true
 
+snyk-scan:
+  stage: scan
+  tags: [ snyk ]
+  needs: []
+  script:
+    - $CI_TOOLS_PATH/bin/snyk.sh
+
 ########
 # These build phases will no longer work on current branches, due to non-release branch dependencies
 ########
