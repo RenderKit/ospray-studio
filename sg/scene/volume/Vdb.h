@@ -17,8 +17,9 @@ namespace ospray {
     struct VDBData{
       std::vector<uint32_t> level;
       std::vector<vec3i> origin;
-      std::vector<cpp::SharedData> data;
+      std::vector<float> data;
       std::vector<float> bufI2o;
+      std::vector<uint32_t> format;
     };
 
   struct OSPSG_INTERFACE VdbVolume : public Volume

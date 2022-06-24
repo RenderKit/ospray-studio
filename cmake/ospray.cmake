@@ -1,4 +1,4 @@
-## Copyright 2020-2022 Intel Corporation
+## Copyright 2020 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 if(ospray_FOUND)
@@ -10,7 +10,7 @@ message(STATUS "Looking for OSPRay...")
 find_package(ospray QUIET)
 
 if(NOT DEFINED OSPRAY_VERSION)
-  set(OSPRAY_VERSION 2.9.0)
+  set(OSPRAY_VERSION 2.10.0)
 endif()
 
 if(ospray_FOUND)

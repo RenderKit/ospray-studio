@@ -1,4 +1,4 @@
-// Copyright 2021-2022 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -669,6 +669,22 @@ inline void GenerateImGuiWidgets::postChildren(Node &, TraversalContext &ctx)
     ImGui::TreePop();
     openLevels.pop();
   }
+}
+
+
+//
+// Helpers to generate widget and return whether it was modified 
+//
+inline bool GenerateWidget(Node *root, TreeState state = TreeState::ROOTOPEN)
+{
+  bool updated = false;
+  root->traverse<sg::GenerateImGuiWidgets>(state, updated);
+  return updated;
+}
+
+inline bool GenerateWidget(Node &root, TreeState state = TreeState::ROOTOPEN)
+{
+  return GenerateWidget(&root, state);
 }
 
 } // namespace sg

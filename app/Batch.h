@@ -1,15 +1,10 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
 #include "ospStudio.h"
 
-#include "ArcballCamera.h"
-// ospray sg
-#include "sg/Frame.h"
-#include "sg/Node.h"
-#include "sg/renderer/MaterialRegistry.h"
 // Plugin
 #include <chrono>
 #include "sg/scene/Animation.h"
@@ -32,24 +27,17 @@ class BatchContext : public StudioContext
   void refreshRenderer();
   void refreshScene(bool resetCam) override;
   void updateCamera() override;
-  void setCameraState(CameraState &cs) override;
   void render();
   virtual void renderFrame();
   void renderAnimation();
-  bool refreshCamera(int cameraIdx, bool resetArcball = false);
+  void refreshCamera(int cameraIdx);
   void reshape();
 
  protected:
   NodePtr importedModels;
   bool cmdlCam{false};
   vec3f pos, up{0.f, 1.f, 0.f}, gaze{0.f, 0.f, 1.f};
-  bool saveAlbedo{false};
-  bool saveDepth{false};
-  bool saveNormal{false};
-  bool saveLayersSeparatly{false};
   bool saveMetaData{true};
-  std::string optImageFormat{"png"};
-  rgba bgColor{vec3f(0.1f), 1.f};
 
   float fps{0.0f};
   bool forceRewrite{false};
@@ -58,17 +46,16 @@ class BatchContext : public StudioContext
   range1i cameraRange{0, 0};
 
   // list of cameras imported with the scene definition
-  std::vector<sg::NodePtr> cameras;
+  std::shared_ptr<CameraMap> cameras{nullptr};
   std::string cameraId{""};
 
-  std::vector<CameraState> cameraStack;
+  std::vector<affine3f> cameraStack;
 
   //camera animation
   sg::NodePtr selectedSceneCamera;
 
   float lockAspectRatio = 0.0;
-  bool useArcball{false};
 
-  // CLI
-  std::string optImageName = "ospBatch";
+  // SceneGraph
+  bool saveScene{false};
 };

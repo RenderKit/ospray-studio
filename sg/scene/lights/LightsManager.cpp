@@ -1,4 +1,4 @@
-// Copyright 2021-2022 Intel Corporation
+// Copyright 2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "LightsManager.h"
@@ -34,16 +34,6 @@ bool LightsManager::addLight(NodePtr light)
   // remove default light
   if (hasChild("default-ambient") && rmDefaultLight)
     removeLight("default-ambient");
-
-  // When adding HDRI or sunSky, set background color to black.
-  // It's otherwise confusing.  The user can still adjust it afterward.
-  if (light->subType() == "hdri" || light->subType() == "sunSky") {
-    if (!parents().empty()) {
-      auto &frame = parents().front();
-      auto &renderer = frame->childAs<sg::Renderer>("renderer");
-      renderer["backgroundColor"] = rgba(vec3f(0.f), 1.f); // black, opaque
-    }
-  }
 
   lightNames.push_back(light->name());
   add(light);
@@ -101,11 +91,8 @@ void LightsManager::clear()
     removeLight(name);
   }
 
-  // Re-add the default-ambient light and gray background, when clearing lights
+  // Re-add the default-ambient light when clearing lights
   addLight("default-ambient", "ambient");
-  auto &frame = parents().front();
-  auto &renderer = frame->childAs<sg::Renderer>("renderer");
-  renderer["backgroundColor"] = rgba(vec3f(0.1f), 1.f); // Near black
 }
 
 void LightsManager::preCommit()

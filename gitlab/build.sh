@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-## Copyright 2015-2021 Intel Corporation
+## Copyright 2015 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 PACKAGE=false
@@ -26,7 +26,7 @@ then
         -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_LINUX \
         ..
     cmake --build . --parallel $THREADS --config Release
-    cpack -B "${PWD}/package" -V
+    cpack -B "${PWD}/package"
 else
     cmake -L \
         -D CMAKE_INSTALL_PREFIX=install \

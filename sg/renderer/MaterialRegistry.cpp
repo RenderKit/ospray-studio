@@ -56,6 +56,14 @@ void MaterialRegistry::preCommit()
   if (rType == "debug")
     return;
 
+  // If the default material (sgDefault) has been changed to a type not handled
+  // by the current renderer, recreate it as obj (the universal material type).
+  // XXX this too will be fixed by the generalized materials.
+  if (!child("sgDefault")["handles"].hasChild(rType)) {
+    createChild("sgDefault", "obj");
+    traverse<sg::GenerateOSPRayMaterials>(rType);
+  }
+
   auto defaultMaterial =
       child("sgDefault")["handles"].child(rType).nodeAs<sg::Material>();
   auto &defaultCppMaterial = defaultMaterial->valueAs<cpp::Material>();

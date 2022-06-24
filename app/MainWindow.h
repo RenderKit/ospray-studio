@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Intel Corporation
+// Copyright 2018 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -89,7 +89,9 @@ class MainWindow : public StudioContext
   void updateTitleBar();
 
   void refreshRenderer();
+  void saveRendererParams();
 
+  void changeToDefaultCamera();
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void refreshScene(bool resetCamera) override;
@@ -160,13 +162,6 @@ class MainWindow : public StudioContext
   bool showIsosurfaceEditor{false};
   bool showTransformEditor{false};
   bool showRenderingStats{false};
-
-  // imgui-controlled options
-  std::string screenshotFiletype{"png"};
-  bool screenshotAlbedo{false};
-  bool screenshotDepth{false};
-  bool screenshotNormal{false};
-  bool screenshotLayersSeparatly{false};
 
   // Option to always show a gamma corrected display to user.  Native sRGB
   // buffer is untouched, linear buffers are displayed as sRGB.

@@ -1,6 +1,47 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v0.11.0
+
+-   Compatible with OSPRay release v2.10.0
+
+- Note! The background color now defaults to black.  It is left to the user to
+  set a background color through either the UI or command-line arg `--bgColor
+  <rgba>`.  This was done to prevent confusion when background color is blended
+  with an HDRI light.
+
+- Features and Improvements
+  - UI
+    - Improved transform SearchWidget to correctly handle volumes and allow 
+    - Fix animation start time and allow playback without UI showing using
+      `<spacebar> hotkey` to toggle playback
+  - Camera
+    - Improved scene camera support with ability to switch between multiple
+      cameras without overwriting the preloaded camera positions
+  - Batch
+    - Add ability to export SceneGraph file in batch mode, including scene
+      camera information
+    - Benchmarking is enabled by default with the same command line options as
+      batch-mode.  `ospStudio benchmark batch [options]`
+  - Importer
+    - Added `INTEL_lights_sunsky` vendor extension to glTF importer
+    - Added support for glTF `KHR_materials_emissive_strength`
+    - Added VolumentricModel `densityScale` and `anisotropy` parameters
+    - VDB volumes use contiguous data layouts, which can provide improved
+      performance
+
+<br>
+
+- Bug Fixes:
+  - Fixed crash caused by deleted node not being completely removed from lists
+  - Fixed rare crash when default material loaded from .sg is not OBJ
+  - Improved geometry and volume visibility toggle, which would occasionally get confused
+  - Fixed crash in FileBrowser widget if selecting a non-existent directory path
+  - Fixed glTF skinning on models that weren't handled correctly, normalize all weights.
+  - Correctly set material opacity to `baseColorfactor` alpha for glTF material
+    `alphaMode BLEND`
+  - Fixed unusual case where glTF textures could use the same texture
+
 ### Changes in OSPRay Studio v0.10.0
 
 -   Compatible with OSPRay release v2.9.0
@@ -10,22 +51,22 @@ Version History
     - Improved color picker widget so that color value are consistent whether
       viewing frame as sRGB or linear.
     - Added widget to change file selection on HDRI textures and photometric lights
-    - Added renderer setting to set and adjust OSPRay's shadowCatcherPlane
+    - Added renderer setting to set and adjust OSPRay's `shadowCatcherPlane`
   - Light
     - Add support for new OSPRay `cylinder` light-type
     - Photometric intensity distribution now supported on point, quad, and spot
       light types.
     - Lights in glTF scene are now instanced and can be used with motion blur
   - Camera
-    - Custom support for "panoramic" camera type in glTF files
+    - Custom support for `panoramic` camera type in glTF files
     - All glTF cameras are instanced to allow for motion blur
   - Batch
-    - Improved batch rendering flexibility with params for cameraType, bgColor,
-      frameStep and denoiser.
-    - Added final frame denoising to batch mode - only final accumulation is
+    - Improved batch rendering flexibility with params for `cameraType`,
+      `bgColor`, `frameStep` and `denoiser`.
+    - Added final frame denoising to batch mode -- only final accumulation is
       denoised.
   - Added glTF support for OSPRay's new multi-segment deformation motion blur
-  - Added python bindings for affine3f and affine3f::translate
+  - Added python bindings for `affine3f` and `affine3f::translate`
   - Added tasking/scheduling system.  Currently used to greatly improve loading
     of raw volumes.  Will be expanded to other asynchronous operations.
 
@@ -34,7 +75,7 @@ Version History
 - Bug Fixes:
   - Fixed lights editor interaction with group lights loaded in a glTF file.  UI
     now allows correct editing/removal of existing lights and addition new lights
-  - Added full path name and extension to importer and texture cache entried to
+  - Added full path name and extension to importer and texture cache entries to
     prevent collision with similar files.
   - Better handling of failed texture load across glTF and OBJ materials, as well
     as HDRI, background texture, and material editor.
@@ -124,7 +165,7 @@ Version History
 
 -   Expose support for OSPRay / Open VKL Particle Volume primitives
 
--   Add PCD (Point Cloud Data) file importer - ascii and binary formats
+-   Add PCD (Point Cloud Data) file importer -- ascii and binary formats
 
 -   Transfer function and isosurface enhancements provide more control over volume visualizations
 
@@ -146,7 +187,7 @@ Version History
 -   glTF loader improvements:
     Animation and skinning of triangle meshes
     KHR_lights_punctual support for glTF Lights and experimental environmental lights
-    Initial glTF KHR_materials_* extensions and KHR_texture_transform support.
+    Initial glTF `KHR_materials_*` extensions and `KHR_texture_transform` support.
     Add support for glTF POINTS primitive for point clouds
     Support GLTF scene cameras
     Added rich image generation containing GeomIDs and InstanceIDs, exported as additional exr layers

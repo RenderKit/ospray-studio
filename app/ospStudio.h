@@ -1,4 +1,4 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -32,7 +32,7 @@ class App;
 using namespace ospray;
 using namespace rkcommon::math;
 
-class PluginManager; 
+class PluginManager;
 enum class StudioMode
 {
   GUI,
@@ -52,21 +52,20 @@ const static std::map<std::string, StudioMode> StudioModeMap = {
 #ifdef USE_BENCHMARK
     {"benchmark", StudioMode::BENCHMARK},
 #endif
-  };
+};
 
 const static std::map<std::string, vec2i> standardResolutionSizeMap = {
-  {"144p", {256, 144}},
-  {"240p", {426, 240}},
-  {"360p", {640, 360}},
-  {"480p", {640, 480}},
-  {"720p", {1280, 720}},
-  {"1080p", {1920, 1080}},
-  {"1440p", {2560, 1440}},
-  {"2160p", {3840, 2160}},
-  {"4k", {3840, 2160}},
-  {"4320p", {7680, 4320}},
-  {"8k", {7680, 4320}}};
-
+    {"144p", {256, 144}},
+    {"240p", {426, 240}},
+    {"360p", {640, 360}},
+    {"480p", {640, 480}},
+    {"720p", {1280, 720}},
+    {"1080p", {1920, 1080}},
+    {"1440p", {2560, 1440}},
+    {"2160p", {3840, 2160}},
+    {"4k", {3840, 2160}},
+    {"4320p", {7680, 4320}},
+    {"8k", {7680, 4320}}};
 
 // Common across all modes
 
@@ -80,7 +79,8 @@ class StudioCommon
       : pluginsToLoad(_pluginsToLoad),
         denoiserAvailable(denoiser),
         argc(_argc),
-        argv(_argv) {}
+        argv(_argv)
+  {}
 
   void splitPluginArguments();
 
@@ -93,6 +93,8 @@ class StudioCommon
   int plugin_argc{0};
   const char **plugin_argv{nullptr};
 };
+
+using CameraMap = rkcommon::containers::FlatMap<std::string, sg::NodePtr>;
 
 // abstract base class for all Studio modes
 // XXX: should be merged with StudioCommon above
@@ -109,6 +111,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
     mode = _mode;
     optResolution = _common.defaultSize;
     scheduler = sg::Scheduler::create();
+    animationManager = std::make_shared<AnimationManager>();
   }
 
   virtual ~StudioContext() {}
@@ -122,7 +125,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   // this method is so that importScene (in sg) does not need
   // to compile/link with ArcballCamera/UI
-  virtual void setCameraState(CameraState &cs) = 0;
+  virtual void setCameraState(CameraState &cs){};
 
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
@@ -134,23 +137,29 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::vector<std::string> filesToImport;
   std::unique_ptr<ArcballCamera> arcballCamera;
 
+  // global context camera settings for loading external cameras
+  std::shared_ptr<affine3f> cameraView{nullptr};
+  int cameraIdx{0};
+  int cameraSettingsIdx{0};
+  std::shared_ptr<CameraMap> sgFileCameras{nullptr};
+
   int defaultMaterialIdx = 0;
 
   std::string outputFilename{""};
 
   StudioMode mode;
 
-  std::string optRendererTypeStr = "pathtracer";
-  std::string optCameraTypeStr   = "perspective";
-  int optSPP                     = 32;
-  float optVariance              = 0.f; // varianceThreshold
-  int optPF                      = -1; // use default
+  std::string optRendererTypeStr{"pathtracer"};
+  std::string optCameraTypeStr{"perspective"};
+  int optSPP{32};
+  float optVariance{0.f}; // varianceThreshold
+  sg::rgba optBackGroundColor{vec3f(0.0f), 1.f}; // default to black
+  OSPPixelFilterTypes optPF{OSP_PIXELFILTER_GAUSS};
   bool optDenoiser{false};
-  bool optGridEnable             = false;
-  vec3i optGridSize              = {1, 1, 1};
-  // XXX should be OSPStereoMode, but for that we need 'uchar' Nodes
-  int optStereoMode               = 0;
-  float optInterpupillaryDistance = 0.0635f;
+  bool optGridEnable{false};
+  vec3i optGridSize{1, 1, 1};
+  OSPStereoMode optStereoMode{OSP_STEREO_NONE};
+  float optInterpupillaryDistance{0.0635f};
   sg::NodePtr volumeParams{};
   float pointSize{0.05f};
   vec2i optResolution{0, 0};
@@ -159,6 +168,12 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   bool optDoAsyncTasking{false};
   float maxContribution{math::inf};
   int frameAccumLimit{0};
+  std::string optImageName{"studio"}; // (each mode sets this default)
+  std::string optImageFormat{"png"};
+  bool optSaveAlbedo{false};
+  bool optSaveDepth{false};
+  bool optSaveNormal{false};
+  bool optSaveLayersSeparately{false};
 
   StudioCommon &studioCommon;
 
@@ -170,17 +185,15 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   virtual box3f getSceneBounds();
 
   bool sgScene{false}; // whether we are loading a scene file
-
 };
 
 inline OSPError initializeOSPRay(int &argc, const char **argv, bool use_mpi)
 {
   OSPDevice device;
 
-  if (use_mpi)
-  {
-    //TODO: calling ospInit seems to be required, 
-    //even though the OSPRay MPI warns us not to do this...
+  if (use_mpi) {
+    // TODO: calling ospInit seems to be required,
+    // even though the OSPRay MPI warns us not to do this...
     OSPError initError = ospInit(&argc, argv);
 
     if (initError != OSP_NO_ERROR) {
@@ -194,12 +207,11 @@ inline OSPError initializeOSPRay(int &argc, const char **argv, bool use_mpi)
       return OSP_UNKNOWN_ERROR;
     }
 
-    //TODO: setErrorCallback and ospDeviceSetParam calls seem to break mpi. Why?
-  }
-  else 
-  {
-    // initialize OSPRay; OSPRay parses (and removes) its commandline parameters,
-    // e.g. "--osp:debug"
+    // TODO: setErrorCallback and ospDeviceSetParam calls seem to break mpi.
+    // Why?
+  } else {
+    // initialize OSPRay; OSPRay parses (and removes) its commandline
+    // parameters, e.g. "--osp:debug"
 
     OSPError initError = ospInit(&argc, argv);
 

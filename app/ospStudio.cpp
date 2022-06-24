@@ -1,4 +1,4 @@
-// Copyright 2018-2022 Intel Corporation
+// Copyright 2018 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ospStudio.h"
@@ -55,7 +55,6 @@ void StudioCommon::splitPluginArguments() {
 
 void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   volumeParams = std::make_shared<sg::VolumeParams>();
-
   app->add_option(
     "files",
     filesToImport,
@@ -77,10 +76,50 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "set the threshold for adaptive accumluation when rendering"
   )->check(CLI::PositiveNumber);
   app->add_option(
+    "--bgColor",
+    [&](const std::vector<std::string> val) {
+      optBackGroundColor = rgba(std::stof(val[0]),
+        std::stof(val[1]),
+        std::stof(val[2]),
+        std::stof(val[3]));
+      return true;
+    },
+    "Set the renderer background color"
+    )->expected(4);
+  app->add_option(
     "--pixelfilter",
     optPF,
     "set default pixel filter (0=point, 1=box, 2=Gaussian, 3=Mitchell-Netravali, 4=Blackman-Harris)"
+  )->check(CLI::Range(OSP_PIXELFILTER_POINT, OSP_PIXELFILTER_BLACKMAN_HARRIS));
+  app->add_option(
+    "--format",
+    optImageFormat,
+    "Sets the default format for saved image files"
+  )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
+  app->add_option(
+    "--image",
+    optImageName,
+    "Sets the image name (inclusive of path and filename)"
   );
+  app->add_flag(
+    "--saveAlbedo",
+    optSaveAlbedo,
+    "Save albedo values"
+  );
+  app->add_flag(
+    "--saveDepth",
+    optSaveDepth,
+    "Save depth values"
+  );
+  app->add_flag(
+    "--saveNormal",
+    optSaveNormal,
+    "Save normal values" 
+  );
+  app->add_flag(
+    "--saveLayers",
+    optSaveLayersSeparately,
+    "Save layers in separate files");
   app->add_option(
     "--resolution",
     [&](const std::vector<std::string> val) {
@@ -134,7 +173,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "--gridOrigin",
     [&](const std::vector<std::string> val) {
       auto gridOrigin = vec3f(std::stof(val[0]), std::stof(val[1]), std::stof(val[2]));
-      volumeParams->createChild("gridSpacing", "vec3f", gridOrigin);
+      volumeParams->createChild("gridOrigin", "vec3f", gridOrigin);
       return true;
     },
     "Set the grid origin for imported volumes"

@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Vdb.h"
@@ -32,7 +32,8 @@ namespace ospray {
                       std::vector<float> &tiles,
                       std::vector<uint32_t> &bufLevel,
                       std::vector<vec3i> &bufOrigin,
-                      std::vector<cpp::SharedData> &bufData)
+                      std::vector<float> &bufData,
+                      std::vector<uint32_t> &bufFormat)
     {
       for (auto it = vdbNode.cbeginValueOn(); it; ++it) {
         const auto &coord = it.getCoord();
@@ -41,11 +42,11 @@ namespace ospray {
         // Note: we can use a pointer to a value we just pushed back because
         //       we preallocated using reserve!
         tiles.push_back(*it);
-        bufData.emplace_back(&tiles.back(), 1ul);
+        bufFormat.push_back(OSP_VOLUME_FORMAT_TILE);
       }
 
       for (auto it = vdbNode.cbeginChildOn(); it; ++it)
-        Builder<ChildNodeType>::visit(*it, tiles, bufLevel, bufOrigin, bufData);
+        Builder<ChildNodeType>::visit(*it, tiles, bufLevel, bufOrigin, bufData, bufFormat);
     }
   };
 
@@ -70,7 +71,8 @@ namespace ospray {
                       std::vector<float> &tiles,
                       std::vector<uint32_t> &bufLevel,
                       std::vector<vec3i> &bufOrigin,
-                      std::vector<cpp::SharedData> &bufData)
+                      std::vector<float> &bufData,
+                      std::vector<uint32_t> &bufFormat)
     {
       const uint32_t storageRes = 16;
       const uint32_t childRes   = 8;
@@ -97,12 +99,14 @@ namespace ospray {
               // Note: we can use a pointer to a value we just pushed back because
               //       we preallocated using reserve!
               tiles.push_back(nodeUnion.getValue());
-              bufData.emplace_back(&tiles.back(), 1ul);
+              bufFormat.push_back(OSP_VOLUME_FORMAT_TILE);
             } else if (isChild) {
               bufLevel.emplace_back(nextLevel);
               bufOrigin.emplace_back(childOrigin);
-              bufData.emplace_back(nodeUnion.getChild()->buffer().data(),
-                                   vec3ul(childRes));
+              auto dataStart = nodeUnion.getChild()->buffer().data();
+              auto dataEnd = dataStart + (childRes*childRes*childRes);
+              std::copy(dataStart, dataEnd, std::back_inserter(bufData));
+              bufFormat.push_back(OSP_VOLUME_FORMAT_DENSE_ZYX);
             }
           }
     }
@@ -120,10 +124,13 @@ namespace ospray {
   {
 #if USE_OPENVDB
     auto vdbData = generateVDBData(fileNameAbs);
-
     createChildData("node.level", vdbData.level);
     createChildData("node.origin", vdbData.origin);
-    createChildData("node.data", vdbData.data);
+    if (vdbData.data.size())
+      createChildData("nodesPackedDense", vdbData.data);
+    if (tiles.size())
+      createChildData("nodesPackedTile", tiles);
+    createChildData("node.format", vdbData.format);
     createChildData("indexToObject", vdbData.bufI2o);
 
     fileLoaded = true;
@@ -194,18 +201,18 @@ namespace ospray {
       // Preallocate buffers!
       const size_t numTiles  = vdb->tree().activeTileCount();
       const size_t numLeaves = vdb->tree().leafCount();
-      const size_t numNodes  = numTiles + numLeaves;
+      const size_t numNodes  = numTiles + numLeaves; // level size
 
       tiles.reserve(numTiles);
 
       vdbData.level.reserve(numNodes);
       vdbData.origin.reserve(numNodes);
-      vdbData.data.reserve(numNodes);
+      vdbData.format.reserve(numNodes);
 
       const auto &root = vdb->tree().root();
       for (auto it = root.cbeginChildOn(); it; ++it)
         Builder<openvdb::FloatTree::RootNodeType::ChildNodeType>::visit(
-            *it, tiles, vdbData.level, vdbData.origin, vdbData.data);
+            *it, tiles, vdbData.level, vdbData.origin, vdbData.data, vdbData.format);
 
       vdbData.bufI2o = {static_cast<float>(i2o[0]),
                         static_cast<float>(i2o[4]),

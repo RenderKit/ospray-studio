@@ -1,4 +1,4 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -365,6 +365,8 @@ inline void to_json(JSON &j, const Any &a)
     j = a.get<bool>();
   else if (a.is<uint8_t>())
     j = a.get<uint8_t>();
+  else if (a.is<uint32_t>())
+    j = a.get<uint32_t>();
   else if (a.is<float>())
     j = a.get<float>();
   else if (a.is<std::string>())
@@ -450,7 +452,8 @@ inline void to_json(JSON &j, const CameraState &cs)
 {
   j = JSON{{"centerTranslation", cs.centerTranslation},
       {"translation", cs.translation},
-      {"rotation", cs.rotation}};
+      {"rotation", cs.rotation},
+      {"cameraToWorld", cs.cameraToWorld}};
 }
 
 inline void from_json(const JSON &j, CameraState &cs)
@@ -458,4 +461,6 @@ inline void from_json(const JSON &j, CameraState &cs)
   j.at("centerTranslation").get_to(cs.centerTranslation);
   j.at("translation").get_to(cs.translation);
   j.at("rotation").get_to(cs.rotation);
+  if (j.find("cameraToWorld") != j.end())
+    j.at("cameraToWorld").get_to(cs.cameraToWorld);
 }

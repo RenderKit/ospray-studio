@@ -1,4 +1,4 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -67,7 +67,7 @@ namespace sg {
   struct OSPSG_INTERFACE Node : public std::enable_shared_from_this<Node>
   {
     Node();
-    virtual ~Node() = default;
+    virtual ~Node();
 
     // NOTE: Nodes are not copyable nor movable! The operator=() will be used
     //       to assign a Node's _value_, which is different than the
@@ -92,6 +92,10 @@ namespace sg {
     virtual NodeType type() const;
     std::string subType() const;
     std::string description() const;
+
+    // original node name(if present) as specified in a scene format file
+    void setOrigName(const std::string &origName);
+    std::string getOrigName();
 
     size_t uniqueID() const;
 
@@ -163,7 +167,6 @@ namespace sg {
     void remove(const std::string &name);
 
     void removeAllParents();
-    void killAllParents(); // DANGEROUS! Only used in sg loading
     void removeAllChildren();
 
     template <typename... Args>
@@ -261,6 +264,7 @@ namespace sg {
       NodeType type;
       std::string subType;
       std::string description;
+      std::string origName;
 
       Any value;
       // vectors allows using length to determine if min/max is set
@@ -291,8 +295,10 @@ namespace sg {
   };
 
   // SG Instance Picking //////////////////////////////////////////////////////
-  
-  typedef std::unordered_map<OSPInstance, std::string> InstanceIDMap;
+
+  typedef std::unordered_map<OSPInstance, unsigned int> OSPInstanceSGIdMap;
+  typedef std::unordered_map<OSPGeometricModel, unsigned int>
+      OSPGeomModelSGIdMap;
 
   /////////////////////////////////////////////////////////////////////////////
   // Nodes with a strongly-typed value ////////////////////////////////////////

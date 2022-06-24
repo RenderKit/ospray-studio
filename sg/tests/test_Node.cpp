@@ -1,12 +1,10 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "catch/catch.hpp"
 
-#define private public
 #define protected public
 #include "sg/Node.h"
-#undef private
 #undef protected
 
 using namespace ospray::sg;

@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -30,6 +30,28 @@ NodeType Importer::type() const
 void Importer::importScene() {
 }
 
+struct FindCameraNode : public Visitor
+{
+  FindCameraNode(std::shared_ptr<CameraMap> _sgFileCameras)
+      : m_sgFileCameras(_sgFileCameras){};
+  bool operator()(Node &, TraversalContext &) override;
+
+ private:
+  std::shared_ptr<CameraMap> m_sgFileCameras;
+};
+
+inline bool FindCameraNode::operator()(Node &node, TraversalContext &)
+{
+  bool traverseChildren = true;
+  if (node.type() == NodeType::CAMERA) {
+    m_sgFileCameras->operator[](
+        node.child("uniqueCameraName").valueAs<std::string>()) =
+        node.nodeAs<sg::Camera>();
+    traverseChildren = false;
+  }
+  return traverseChildren;
+}
+
 OSPSG_INTERFACE void importScene(
     std::shared_ptr<StudioContext> context, rkcommon::FileName &sceneFileName)
 {
@@ -48,6 +70,11 @@ OSPSG_INTERFACE void importScene(
   std::map<std::string, JSON> jImporters;
   std::map<std::string, JSON> jGenerators;
   sg::NodePtr lights;
+  auto sgFileCameras = std::make_shared<CameraMap>();
+  auto mainCamera = context->frame->child("camera").nodeAs<sg::Camera>();
+  sgFileCameras->operator[](
+      mainCamera->child("uniqueCameraName").valueAs<std::string>()) =
+      mainCamera;
 
   // If the sceneFile contains a world (importers and lights), parse it here
   // (must happen before refreshScene)
@@ -62,6 +89,19 @@ OSPSG_INTERFACE void importScene(
 
       switch (nodeType) {
       case NodeType::IMPORTER: {
+        // iterate over importer children
+        for (auto &iChild : jChild["children"]) {
+          // check importer child type and proceed only if TRANSFORM
+          NodeType iChildType = iChild["type"].is_string()
+              ? NodeTypeFromString[iChild["type"]]
+              : iChild["type"].get<NodeType>();
+
+          if (iChildType == NodeType::TRANSFORM) {
+            auto c = createNodeFromJSON(iChild);
+            c->traverse<FindCameraNode>(sgFileCameras);
+          }
+        }
+
         FileName fileName = std::string(jChild["filename"]);
 
         // Try a couple different paths to find the file before giving up
@@ -96,6 +136,8 @@ OSPSG_INTERFACE void importScene(
       }
     }
   }
+  if (sgFileCameras->size())
+    context->sgFileCameras = sgFileCameras;
 
   //
   // Generator Objects
@@ -164,9 +206,6 @@ OSPSG_INTERFACE void importScene(
       // skip non-material nodes (e.g. renderer type)
       if (mat.second->type() != NodeType::MATERIAL)
         continue;
-      // kill old parent (from previous session); avoids a segfault when
-      // modifying parameters from loaded materials
-      mat.second->killAllParents();
 
       // XXX temporary workaround.  Just set params on existing materials.
       // Prevents loss of texture data.  Will be fixed when textures can reload.
@@ -199,12 +238,24 @@ OSPSG_INTERFACE void importScene(
     context->refreshScene(true);
   }
 
-  // If the sceneFile contains a camera location
-  // (must happen after refreshScene)
   if (j.contains("camera")) {
-    CameraState cs = j["camera"];
-    context->setCameraState(cs);
+    auto cameraJ = j["camera"];
+    affine3f cameraToWorld = cameraJ["cameraToWorld"];
+    context->cameraView = std::make_shared<affine3f>(cameraToWorld);
+    context->cameraIdx = j["camera"]["cameraIdx"];
+    if (cameraJ.contains("cameraSettingsIdx"))
+      context->cameraSettingsIdx = j["camera"]["cameraSettingsIdx"];
     context->updateCamera();
+  }
+
+  if (j.contains("animation")) {
+    auto animJ = j["animation"];
+    float time = animJ["time"];
+    float shutter = animJ["shutter"];
+    if(!animJ.empty()) {
+      context->animationManager->setTime(time);
+      context->animationManager->setShutter(shutter);
+    }
   }
 
   //
@@ -240,20 +291,19 @@ OSPSG_INTERFACE void importScene(
       };
 
     auto importNode = findFirstChild(world, jImport.first);
-    if (importNode && jImport.second["children"][0]["subType"] == "transform") {
+    auto jNode = jImport.second["children"][0];
+    if (importNode && jNode["subType"] == "transform") {
       // should be associated xfm node
-      auto childName = jImport.second["children"][0]["name"];
+      auto childName = jNode["name"];
       Node &xfmNode = importNode->child(childName);
 
-      // XXX parse JSON to get RST transforms saved to sg file. This is
-      // temporary. We will want RST to be a first-class citizen node that gets
-      // handled correctly without this kind of hardcoded workaround
-      auto child = createNodeFromJSON(jImport.second["children"][0]);
-      if (child) {
-        xfmNode = child->value(); // assigns base affine3f value
-        xfmNode.add(child->child("rotation"));
-        xfmNode.add(child->child("translation"));
-        xfmNode.add(child->child("scale"));
+      auto xfm = createNodeFromJSON(jNode);
+      if (xfm) {
+        xfmNode = xfm->value(); // assigns base affine3f value
+        // Update the xfm rotation, translation and scale values
+        xfmNode.add(xfm->child("rotation"));
+        xfmNode.add(xfm->child("translation"));
+        xfmNode.add(xfm->child("scale"));
       }
     }
   }

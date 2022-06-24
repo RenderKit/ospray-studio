@@ -1,4 +1,4 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -37,7 +37,8 @@ namespace ospray {
 
   inline bool PrintNodes::operator()(Node &node, TraversalContext &ctx)
   {
-    std::cout << std::string(2*ctx.level, ' ') << node.name() << " : " << node.subType();
+    std::cout << std::string(2 * ctx.level, ' ') << node.name() << " : "
+              << node.subType() << " : " << NodeTypeToString[node.type()];
 
     // A couple of usings to make subType strings match types
     using string = std::string;

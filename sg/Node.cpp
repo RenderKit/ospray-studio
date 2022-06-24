@@ -1,4 +1,4 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Node.h"
@@ -22,6 +22,16 @@ namespace ospray {
     properties.subType     = "Node";
     properties.description = "<no description>";
     properties.readOnly    = false;
+  }
+
+  Node::~Node()
+  {
+    // When destroying a node, remove it from its parents' list of children
+    for (auto &p : properties.parents)
+      p->properties.children.erase(properties.name);
+    // and from all its children's ParentList
+    for (auto &c : properties.children)
+      c.second->removeFromParentList(*this);
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -51,6 +61,17 @@ namespace ospray {
   size_t Node::uniqueID() const
   {
     return properties.whenCreated;
+  }
+
+  // original node name(if present) as specified in a scene format file
+  void Node::setOrigName(const std::string &origName)
+  {
+    properties.origName = origName;
+  }
+
+  std::string Node::getOrigName()
+  {
+    return properties.origName;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -236,11 +257,6 @@ namespace ospray {
   {
     for (auto &p : properties.parents)
       p->remove(*this);
-  }
-
-  void Node::killAllParents()
-  {
-    properties.parents.clear();
   }
 
   void Node::removeAllChildren()

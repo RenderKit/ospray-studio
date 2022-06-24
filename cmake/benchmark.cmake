@@ -31,12 +31,16 @@ if(NOT "${benchmark_FOUND}")
     benchmark
     URL "https://github.com/google/benchmark/archive/refs/tags/v${BENCHMARK_VERSION}.${_BENCHMARK_ARCHIVE_EXT}"
   )
-  ## Bypass FetchContent_MakeAvailable() shortcut to disable install
-  FetchContent_GetProperties(benchmark)
-  if(NOT benchmark_POPULATED)
-    FetchContent_Populate(benchmark)
-    ## the subdir will still be built since targets depend on it, but it won't be installed
-    add_subdirectory(${benchmark_SOURCE_DIR} ${benchmark_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+  if("${USE_BENCHMARK}")
+    FetchContent_MakeAvailable(benchmark)
+  else()
+    ## Bypass FetchContent_MakeAvailable() shortcut to disable install
+    if(NOT benchmark_POPULATED)
+      FetchContent_Populate(benchmark)
+      ## the subdir will still be built since targets depend on it, but it won't be installed
+      add_subdirectory(${benchmark_SOURCE_DIR} ${benchmark_BINARY_DIR} EXCLUDE_FROM_ALL)
+    endif()
   endif()
 
 endif()

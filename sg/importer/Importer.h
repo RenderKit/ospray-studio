@@ -1,4 +1,4 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -55,13 +55,16 @@ struct OSPSG_INTERFACE Importer : public Node
     materialRegistry = _registry;
   }
 
-  inline void setCameraList(std::vector<NodePtr> &_cameras)
+  inline void setCameraList(std::shared_ptr<CameraMap> _cameras)
   {
-    cameras = &_cameras;
-    importCameras = true;
+    cameras = _cameras;
+    if (cameras->empty())
+      importCameras = true;
+    else if (cameras->size() == 1 && cameras->at_index(0).first == "default")
+      importCameras = true;
   }
 
-  inline std::vector<NodePtr> *getCameraList()
+  inline std::shared_ptr<CameraMap> getCameraList()
   {
     return cameras;
   }
@@ -122,13 +125,14 @@ struct OSPSG_INTERFACE Importer : public Node
   }
 
   float pointSize{0.0f};
+  bool importCameras{false};
 
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
-  std::vector<NodePtr> *cameras = nullptr;
+  // std::vector<NodePtr> *cameras = nullptr;
+  std::shared_ptr<CameraMap> cameras{nullptr};
   std::vector<sg::Animation> *animations = nullptr;
-  bool importCameras{false};
   NodePtr volumeParams;
   NodePtr lightsManager;
   sg::FrameBuffer *fb{nullptr};
@@ -157,15 +161,15 @@ inline std::shared_ptr<Importer> getImporter(
     return nullptr;
   }
   std::string importer = fnd->second;
-  std::string nodeName = baseName + "_importer";
+  std::string nodeName;
 
   if (cat.find(fullName) != cat.end()) {
-    // Existing import, instance it!
-    std::cout << "Instancing: " << nodeName << std::endl;
-
     // Importer node and its rootXfm
     auto origNode = cat[fullName].lock();
     std::string rootXfmName = baseName + "_rootXfm";
+
+    // Existing import, instance it!
+    std::cout << "Instancing: " << origNode->name() << std::endl;
 
     if (!origNode->hasChild(rootXfmName)) {
       std::cout << "!!! error... importer rootXfm is missing?! Is async tasking enabled? --no-async-tasking to disable" << std::endl;
@@ -174,23 +178,22 @@ inline std::shared_ptr<Importer> getImporter(
     auto &rootXfmNode = origNode->child(rootXfmName);
 
     // Create a unique instanceXfm nodeName
-    auto count = 1;
-    do {
-      nodeName = baseName + "_instanceXfm_" + std::to_string(count++);
-    } while (root->hasChild(nodeName));
-
+    int count = ++origNode->child("count").valueAs<int>();
+    nodeName = baseName + "_instanceXfm_" + std::to_string(count);
+    
     auto instanceXfm = createNode(nodeName, "transform");
 
-    // Add all children of the original rootXfm to this instanceXfm
-    for (auto &g : rootXfmNode.children())
-      instanceXfm->add(g.second);
+    instanceXfm->add(rootXfmNode);
 
     root->add(instanceXfm);
 
     return nullptr;
 
   } else {
+    nodeName = baseName + "_importer";
     auto importNode = createNodeAs<Importer>(nodeName, importer);
+    importNode->createChild("count", "int", 0);
+    importNode->child("count").setSGNoUI();
     if (importer == "importer_raw") {
       std::cout << "Loading volumes with default volume parameters ..."
                 << std::endl;

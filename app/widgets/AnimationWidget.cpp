@@ -1,4 +1,4 @@
-// Copyright 2020 Intel Corporation
+// Copyright 2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "AnimationWidget.h"
@@ -9,8 +9,14 @@ AnimationWidget::AnimationWidget(
     : name(name), animationManager(animationManager)
 {
   lastUpdated = std::chrono::system_clock::now();
-  time = animationManager->getTimeRange().lower;
-  animationManager->update(time);
+  if (!animationManager->getTime()) {
+    time = animationManager->getTimeRange().lower;
+  } else {
+    time = animationManager->getTime();
+    shutter = animationManager->getShutter();
+  }
+
+  animationManager->update(time, shutter);
 }
 
 AnimationWidget::~AnimationWidget() {
@@ -38,11 +44,21 @@ void AnimationWidget::update()
 }
 
 // update UI and process any UI events
-void AnimationWidget::addAnimationUI()
+void AnimationWidget::addUI()
 {
+  if (!showUI)
+    return;
+
   auto &timeRange = animationManager->getTimeRange();
   auto &animations = animationManager->getAnimations();
-  ImGui::Begin(name.c_str());
+
+  ImGui::Begin(name.c_str(), &showUI);
+
+  if (animationManager->getAnimations().empty()) {
+    ImGui::Text("== No animated objects in the scene ==");
+    ImGui::End();
+    return;
+  }
 
   if (ImGui::Button(play ? "Pause" : "Play ")) {
     play = !play;

@@ -1,4 +1,4 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Batch.h"
@@ -28,25 +28,57 @@ BatchContext::BatchContext(StudioCommon &_common)
 {
   frame->child("scaleNav").setValue(1.f);
   pluginManager = std::make_shared<PluginManager>();
+
+  // Default saved image baseName (cmdline --image to override)
+  optImageName = "ospBatch";
 }
 
 void BatchContext::start()
 {
   std::cerr << "Batch mode\n";
 
-  // load plugins 
+  // load plugins
   for (auto &p : studioCommon.pluginsToLoad)
     pluginManager->loadPlugin(p);
+
+  // read from cams.json
+  std::ifstream cams("cams.json");
+  if (cams) {
+    JSON j;
+    cams >> j;
+    for (auto &cs : j) {
+      if (cs.find("cameraToWorld") != cs.end())
+        cameraStack.push_back(cs.at("cameraToWorld"));
+    }
+  }
 
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
     refreshRenderer();
     refreshScene(true);
-      for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
-           ++cameraIdx) {
-        resetFileId = true;
-        bool useCamera = refreshCamera(cameraIdx, true);
-        if (useCamera) {
+
+    if (cameras->size())
+      std::cout << "List of imported scene cameras:\n";
+    for (int c = 1; c <= cameras->size(); ++c) {
+      std::cout
+          << c << ": "
+          << cameras->at_index(c - 1).second->child("uniqueCameraName").valueAs<std::string>()
+          << std::endl;
+    }
+
+    cameraRange.upper = std::min(cameraRange.upper, (int)cameras->size());
+    for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
+         ++cameraIdx) {
+      resetFileId = true;
+      refreshCamera(cameraIdx);
+
+      // if a camera stack is present loop over every entry of camera stack for
+      // every camera
+      if (cameraStack.size())
+        for (auto &c : cameraStack) {
+          cameraView = std::make_shared<affine3f>(c);
+          if (!sgScene)
+            updateCamera();
           render();
           if (fps) {
             std::cout << "..rendering animation!" << std::endl;
@@ -54,7 +86,18 @@ void BatchContext::start()
           } else
             renderFrame();
         }
+      else {
+        if (!sgScene)
+          updateCamera();
+        render();
+        if (fps) {
+          std::cout << "..rendering animation!" << std::endl;
+          renderAnimation();
+        } else
+          renderFrame();
       }
+    }
+
     std::cout << "...finished!" << std::endl;
     sg::clearAssets();
   }
@@ -94,16 +137,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "Set the camera up vector"
   )->expected(3);
   app->add_option(
-    "--format",
-    optImageFormat,
-    "Sets the image format for color components(RGBA)"
-  )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
-  app->add_option(
-    "--image",
-    optImageName,
-    "Sets the image name (inclusive of path and filename)"
-  );
-  app->add_option(
     "--interpupillaryDistance",
     optInterpupillaryDistance,
     "Set the interpupillary distance"
@@ -128,25 +161,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "Set the camera position"
   )->expected(3);
   app->add_flag(
-    "--saveAlbedo",
-    saveAlbedo,
-    "Save albedo values"
-  );
-  app->add_flag(
-    "--saveDepth",
-    saveDepth,
-    "Save depth values"
-  );
-  app->add_flag(
-    "--saveNormal",
-    saveNormal,
-    "Save normal values" 
-  );
-  app->add_flag(
-    "--saveLayers",
-    saveLayersSeparatly,
-    "Save layers in separate files");
-  app->add_flag(
     "--saveMetadata",
     saveMetaData,
     "Save metadata"
@@ -169,7 +183,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_option(
     "--cameras",
     [&](const std::vector<std::string> val) {
-      cameraRange.lower = std::stoi(val[0]);
+      cameraRange.lower = std::max(1, std::stoi(val[0]));
       cameraRange.upper = std::stoi(val[1]);
       return true;
     },
@@ -189,17 +203,11 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     frameStep,
     "Set the frames step when (frameRange is used)"
   )->check(CLI::PositiveNumber);
-  app->add_option(
-    "--bgColor",
-    [&](const std::vector<std::string> val) {
-      bgColor = rgba(std::stof(val[0]),
-        std::stof(val[1]),
-        std::stof(val[2]),
-        std::stof(val[3]));
-      return true;
-    },
-    "Set the renderer background color"
-    )->expected(4);
+  app->add_flag(
+    "--saveScene",
+    saveScene,
+    "Saves the SceneGraph representing the frame"
+  );
 }
 
 bool BatchContext::parseCommandLine()
@@ -207,9 +215,28 @@ bool BatchContext::parseCommandLine()
   int ac = studioCommon.argc;
   const char **av = studioCommon.argv;
 
+  // if sgFile is being imported then disable BatchContext::addToCommandLine()
+  if (ac > 1) {
+    for (int i = 1; i < ac; ++i) {
+      std::string arg = av[i];
+      std::string argExt;
+      int extStart{0};
+      if (arg.length() > 3)
+       extStart = arg.length() - 3;
+      if (extStart)
+        argExt = arg.substr(extStart, arg.length());
+      if (argExt == ".sg") {
+        std::cout
+            << "loading a .sg file, batch-mode cmd-line arguments not allowed. Please remove the arguments and try again.\n";
+        sgScene = true;
+      }
+    }
+  }
+
   std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio Batch");
   StudioContext::addToCommandLine(app);
-  BatchContext::addToCommandLine(app);
+  if (!sgScene)
+    BatchContext::addToCommandLine(app);
   try {
     app->parse(ac, av);
   } catch (const CLI::ParseError &e) {
@@ -226,18 +253,14 @@ bool BatchContext::parseCommandLine()
 void BatchContext::refreshRenderer()
 {
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
-  auto &renderer = frame->childAs<sg::Renderer>("renderer");
+  auto &r = frame->childAs<sg::Renderer>("renderer");
 
-  if (optPF >= 0)
-    renderer.createChild("pixelFilter", "int", optPF);
-
-  renderer.child("pixelSamples").setValue(optSPP);
-  renderer.child("varianceThreshold").setValue(optVariance);
-
-  if (renderer.hasChild("maxContribution") && maxContribution < (float)math::inf)
-    renderer["maxContribution"].setValue(maxContribution);
-
-  renderer["backgroundColor"] = bgColor;
+  r["pixelFilter"] = (int)optPF;
+  r["backgroundColor"] = optBackGroundColor;
+  r["pixelSamples"] = optSPP;
+  r["varianceThreshold"] = optVariance;
+  if (r.hasChild("maxContribution") && maxContribution < (float)math::inf)
+    r["maxContribution"].setValue(maxContribution);
 }
 
 void BatchContext::reshape()
@@ -261,73 +284,52 @@ void BatchContext::reshape()
 
   frame->child("windowSize") = fSize;
   frame->currentAccum = 0;
-
-  // update camera
-  arcballCamera->updateWindowSize(fSize);
 }
 
-bool BatchContext::refreshCamera(int cameraIdx, bool resetArcball)
+void BatchContext::refreshCamera(int cameraIdx)
 {
-  if (resetArcball) {
-    frame->child("windowSize") = optResolution;
-    arcballCamera.reset(
-        new ArcballCamera(getSceneBounds(), optResolution));
-  }
-  int hasParents{0};
-
-  if (cameraIdx <= cameras.size() && cameraIdx > 0) {
+  if (cameraIdx <= cameras->size() && cameraIdx > 0) {
     std::cout << "Loading camera from index: " << std::to_string(cameraIdx)
               << std::endl;
-    selectedSceneCamera = cameras[cameraIdx - 1];
-    hasParents = selectedSceneCamera->parents().size();
-    frame->remove("camera");
-    frame->add(selectedSceneCamera);
+    selectedSceneCamera = cameras->at_index(cameraIdx - 1).second;
+    bool hasParent = selectedSceneCamera->parents().size() > 0;
 
     // TODO: remove this Hack : for some reason the accumulated transform in
     // transform node does not get updated for the BIT animation scene.
     // Attempting to make transform modified so it picks up accumulated
     // transform values made by renderScene
-    if (hasParents) {
+    if (hasParent) {
       auto cameraXfm = selectedSceneCamera->parents().front();
       if (cameraXfm->valueAs<affine3f>() == affine3f(one))
         cameraXfm->createChild("refresh", "bool");
-    }
 
-    if (selectedSceneCamera->hasChild("aspect"))
-      lockAspectRatio = selectedSceneCamera->child("aspect").valueAs<float>();
+      if (selectedSceneCamera->hasChild("aspect"))
+        lockAspectRatio = selectedSceneCamera->child("aspect").valueAs<float>();
 
-    // create unique cameraId for every camera
-    auto &cameraParents = selectedSceneCamera->parents();
-    if (cameraParents.size()) {
-        auto &cameraXfm = cameraParents.front();
-        if (cameraXfm->hasChild("geomId"))
-          cameraId = cameraXfm->child("geomId").valueAs<std::string>();
-        else
-          cameraId = ".Camera_" + std::to_string(cameraIdx);
-    } else {
-      std::cout << "camera not used in GLTF scene" << std::endl;
-      return false;
-    }
-
-  } else {
-    std::cout << "No cameras imported or invalid camera index specified"
-              << std::endl;
-    if (optCameraTypeStr != "perspective") {
-      auto optCamera = createNode("camera", "camera_" + optCameraTypeStr);
+      // create unique cameraId for every camera
+      if (cameraXfm->hasChild("geomId"))
+        cameraId = cameraXfm->child("geomId").valueAs<std::string>();
+      else
+        cameraId = ".Camera_" + std::to_string(cameraIdx);
       frame->remove("camera");
-      frame->add(optCamera);
-    } else
-      std::cout << "using default camera..." << std::endl;
+      frame->add(selectedSceneCamera);
+      reshape(); // resets aspect
+      return;
+    } else {
+      std::cout << "camera not used in GLTF scene, using default camera.."
+                << std::endl;
+    }
   }
 
+  std::cout << "No scene camera is selected." << std::endl;
+  if (optCameraTypeStr != "perspective") {
+    auto optCamera = createNode("camera", "camera_" + optCameraTypeStr);
+    frame->remove("camera");
+    frame->add(optCamera);
+  } else
+    std::cout << "using default camera..." << std::endl;
+
   reshape(); // resets aspect
-
-   // if imported cameras don't have parent transform then use Arcball properties
-  if (!hasParents)
-    useArcball = true;
-  updateCamera();
-
-  return true;
 }
 
 void BatchContext::render()
@@ -360,13 +362,6 @@ void BatchContext::render()
   }
 
   frame->child("navMode") = false;
-
-  std::ifstream cams("cams.json");
-  if (cams) {
-    JSON j;
-    cams >> j;
-    cameraStack = j.get<std::vector<CameraState>>();
-  }
 }
 
 void BatchContext::renderFrame()
@@ -418,12 +413,34 @@ void BatchContext::renderFrame()
     }
     filenum += frameStep;
 
-    int screenshotFlags = saveLayersSeparatly << 3 | saveNormal << 2
-        | saveDepth << 1 | saveAlbedo;
+    int screenshotFlags = optSaveLayersSeparately << 3 | optSaveNormal << 2
+        | optSaveDepth << 1 | optSaveAlbedo;
 
     frame->saveFrame(filename, screenshotFlags);
 
     this->outputFilename = filename;
+
+    if (saveScene)
+    {
+      std::ofstream dump("studio_scene.sg");
+      auto &currentCamera = frame->child("camera");
+      JSON camera = {
+          {"cameraIdx", currentCamera.child("cameraId").valueAs<int>()},
+          {"cameraToWorld", currentCamera.nodeAs<sg::Camera>()->cameraToWorld}};
+      if (currentCamera.hasChild("cameraSettingsId")) {
+        camera["cameraSettingsIdx"] = {"cameraSettingsIdx",
+            currentCamera.child("cameraSettingsId").valueAs<int>()};
+      }
+      JSON animation;
+      animation = {{"time", animationManager->getTime()},
+            {"shutter", animationManager->getShutter()}};
+      JSON j = {{"world", frame->child("world")},
+          {"camera", camera},
+          {"lightsManager", *lightsManager},
+          {"materialRegistry", *baseMaterialRegistry},
+          {"animation", animation}};
+      dump << j.dump();
+    }
   }
   
   pluginManager->main(shared_from_this());
@@ -489,49 +506,85 @@ void BatchContext::refreshScene(bool resetCam)
 
   frame->add(world);
 
-  if (resetCam && !sgScene)
-    arcballCamera.reset(
-        new ArcballCamera(getSceneBounds(), optResolution));
-
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   fb.resetAccumulation();
+
+  frame->child("windowSize") = optResolution;
 }
 
 void BatchContext::updateCamera()
 {
   frame->currentAccum = 0;
-  auto &camera = frame->child("camera");
+  auto camera = frame->child("camera").nodeAs<sg::Camera>();
 
-  if (useArcball) {
-    camera["position"] = arcballCamera->eyePos();
-    camera["direction"] = arcballCamera->lookDir();
-    camera["up"] = arcballCamera->upDir();
+  if (cameraIdx) {
+    // switch to context global index specific scene camera
+    refreshCamera(cameraIdx);
+    // update camera pointer
+    camera = frame->child("camera").nodeAs<sg::Camera>();
+    cameraIdx = 0; // reset global-context cameraIndex
+    cameraView = nullptr; // only used for arcball/default
+  } else if (cameraView && *cameraView != affine3f{one}) {
+    // use camera settings from scene camera if specified by global context specific 
+    if (cameraSettingsIdx) {
+      auto settingsCamera = cameras->at_index(cameraSettingsIdx).second;
+      for (auto &c : settingsCamera->children()) {
+        if (c.first == "cameraId") {
+          camera->createChild("cameraSettingsId", "int", c.second->value());
+          camera->child("cameraSettingsId").setSGNoUI();
+          camera->child("cameraSettingsId").setSGOnly();
+        } else if (c.first != "uniqueCameraName") {
+          if (camera->hasChild(c.first))
+            camera->child(c.first).setValue(c.second->value());
+          else {
+            camera->createChild(c.first, c.second->subType(), c.second->value());
+            if (settingsCamera->child(c.first).sgOnly())
+              camera->child(c.first).setSGOnly();
+          }
+        }
+      }
+      if (settingsCamera->hasChild("aspect"))
+        lockAspectRatio = settingsCamera->child("aspect").valueAs<float>();
+      reshape(); // resets aspect
+    }
+    affine3f cameraToWorld = *cameraView;
+    camera->child("position").setValue(xfmPoint(cameraToWorld, vec3f(0, 0, 0)));
+    camera->child("direction").setValue(xfmVector(cameraToWorld, vec3f(0, 0, -1)));
+    camera->child("up").setValue(xfmVector(cameraToWorld, vec3f(0, 1, 0)));
+    cameraView = nullptr;
+  }
+  // if no camera  view or scene camera is selected calculate a default view
+  else if (cameraRange.lower == 0) {
+    auto worldBounds = getSceneBounds();
+    auto worldDiag = length(worldBounds.size());
+    auto centerTranslation = AffineSpace3f::translate(-worldBounds.center());
+    auto translation = AffineSpace3f::translate(vec3f(0, 0, -worldDiag));
+    auto cameraToWorld = rcp(translation * centerTranslation);
+
+    camera->child("position").setValue(xfmPoint(cameraToWorld, vec3f(0, 0, 0)));
+    camera->child("direction").setValue(xfmVector(cameraToWorld, vec3f(0, 0, -1)));
+    camera->child("up").setValue(xfmVector(cameraToWorld, vec3f(0, 1, 0)));
   }
 
   if (cmdlCam) {
-    camera["position"] = pos;
-    camera["direction"] = gaze;
-    camera["up"] = up;
+    camera->child("position").setValue(pos);
+    camera->child("direction").setValue(gaze);
+    camera->child("up").setValue(up);
   }
 
-  if (camera.hasChild("stereoMode"))
-    camera["stereoMode"] = optStereoMode;
+  if (camera->hasChild("stereoMode"))
+      camera->child("stereoMode").setValue((int)optStereoMode);
 
-  if (camera.hasChild("interpupillaryDistance"))
-    camera["interpupillaryDistance"] = optInterpupillaryDistance;
-}
-
-void BatchContext::setCameraState(CameraState &cs)
-{
-  arcballCamera->setState(cs);
+  if (camera->hasChild("interpupillaryDistance"))
+    camera->child("interpupillaryDistance").setValue(optInterpupillaryDistance);
 }
 
 void BatchContext::importFiles(sg::NodePtr world)
 {
   importedModels = createNode("importXfm", "transform");
   frame->child("world").add(importedModels);
-  if (fps)
-    animationManager = std::shared_ptr<AnimationManager>(new AnimationManager);
+  if (!sgFileCameras)
+    cameras = std::make_shared<CameraMap>();
 
   for (auto file : filesToImport) {
     try {
@@ -544,14 +597,6 @@ void BatchContext::importFiles(sg::NodePtr world)
 
         auto importer = sg::getImporter(world, file);
         if (importer) {
-          // Could be any type of importer.  Need to pass the MaterialRegistry,
-          // importer will use what it needs.
-          importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
-          importer->setMaterialRegistry(baseMaterialRegistry);
-          importer->setCameraList(cameras);
-          importer->setLightsManager(lightsManager);
-          importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
-          importer->setScheduler(scheduler);
           if (volumeParams->children().size() > 0) {
             auto vp = importer->getVolumeParams();
             for (auto &c : volumeParams->children()) {
@@ -559,8 +604,24 @@ void BatchContext::importFiles(sg::NodePtr world)
               vp->add(c.second);
             }
           }
-          if (animationManager)
-            importer->setAnimationList(animationManager->getAnimations());
+          // Could be any type of importer.  Need to pass the MaterialRegistry,
+          // importer will use what it needs.
+          importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
+          importer->setMaterialRegistry(baseMaterialRegistry);
+          if (sgFileCameras) {
+            importer->importCameras = false;
+            importer->setCameraList(sgFileCameras);
+            for (auto i = sgFileCameras->begin() + 1; i != sgFileCameras->end();
+                 i++)
+              cameras->operator[](i->first) = i->second;
+          } else if (cameras) {
+            importer->importCameras = true;
+            importer->setCameraList(cameras);
+          }
+          importer->setLightsManager(lightsManager);
+          importer->setArguments(studioCommon.argc, (char**)studioCommon.argv);
+          importer->setScheduler(scheduler);
+          importer->setAnimationList(animationManager->getAnimations());
           if (optInstanceConfig == "dynamic")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::DYNAMIC);
@@ -570,6 +631,7 @@ void BatchContext::importFiles(sg::NodePtr world)
           else if (optInstanceConfig == "robust")
             importer->setInstanceConfiguration(
                 sg::InstanceConfiguration::ROBUST);
+
           importer->importScene();
         }
       }
@@ -619,6 +681,7 @@ void BatchContext::importFiles(sg::NodePtr world)
   }
 
   filesToImport.clear();
-  if (animationManager)
-    animationManager->init();
+
+  // Initializes time range for newly imported models
+  animationManager->init();
 }

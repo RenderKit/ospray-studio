@@ -1,4 +1,4 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
@@ -11,6 +11,7 @@
 #include "glTF/buffer_view.h"
 #include "glTF/gltf_types.h"
 
+#include "sg/Util.h"
 #include "sg/scene/Transform.h"
 #include "sg/scene/geometry/Geometry.h"
 #include "sg/texture/Texture2D.h"
@@ -46,7 +47,7 @@ struct GLTFData
   GLTFData(NodePtr rootNode,
       const FileName &fileName,
       std::shared_ptr<sg::MaterialRegistry> _materialRegistry,
-      std::vector<NodePtr> *_cameras,
+      std::shared_ptr<CameraMap> _cameras,
       sg::FrameBuffer *_fb,
       NodePtr _currentImporter,
       InstanceConfiguration _ic)
@@ -68,21 +69,22 @@ struct GLTFData
   void finalizeSkins();
   void createGeometries();
   void createCameraTemplates();
-  void createLights();
+  void createLightTemplates();
   void buildScene();
   void loadNodeInfo(const int nid, NodePtr sgNode);
   // load animations AFTER loading scene nodes and their transforms
   void createAnimations(std::vector<Animation> &);
   void applySceneBackground(NodePtr bgXfm);
   std::vector<NodePtr> lights;
+  std::vector<NodePtr> lightTemplates;
   std::string geomId{""};
-
+  bool importCameras{false};
  private:
   InstanceConfiguration ic;
   NodePtr currentImporter;
   NodePtr rootNode;
   sg::FrameBuffer *fb{nullptr};
-  std::vector<NodePtr> *cameras{nullptr};
+  std::shared_ptr<CameraMap> cameras{nullptr};
   std::vector<NodePtr> cameraTemplates;
   std::vector<SkinPtr> skins;
   std::vector<std::vector<NodePtr>> ospMeshes;
@@ -94,6 +96,7 @@ struct GLTFData
   std::vector<NodePtr> ospMaterials;
 
   size_t baseMaterialOffset = 0; // set in createMaterials()
+  int numIntelLights{0};
 
   void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
 
@@ -239,11 +242,18 @@ void GLTFData::applySceneBackground(NodePtr bgXfm)
   if (background.Has("rotation")) {
     const auto &r = background.Get("rotation").Get<tinygltf::Value::Array>();
     auto &rot = bgXfm->nodeAs<sg::Transform>()->child("rotation");
-    rot = quaternionf(r[3].Get<double>(),
+    rot = normalize(quaternionf(r[3].Get<double>(),
         r[0].Get<double>(),
         r[1].Get<double>(),
-        r[2].Get<double>());
+        r[2].Get<double>()));
   }
+
+  if (background.Has("visible"))
+    bgNode->child("visible") = background.Get("visible").Get<bool>();
+
+  if (background.Has("intensity"))
+    bgNode->child("intensity") =
+        (float)background.Get("intensity").Get<double>();
 
   lights.push_back(bgNode);
   bgXfm->add(bgNode);
@@ -263,6 +273,8 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   auto node = n.extensions.find("BIT_node_info")->second;
   if (node.Has("id")) {
     auto &nodeId = node.Get("id").Get<std::string>();
+    if (!isValidUUIDv4(nodeId))
+      std::cerr << nodeId << " is not a valid version 4 UUID\n";
     sgNode->createChild("instanceId", "string", nodeId);
   }
 
@@ -283,7 +295,7 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
 
     auto cameraList = parentImporter->getCameraList();
     if (cameraList)
-      importer->setCameraList(*cameraList);
+      importer->setCameraList(cameraList);
 
     auto animationList = parentImporter->getAnimationList();
     if (animationList)
@@ -306,8 +318,40 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   }
 }
 
-void GLTFData::createLights()
+void GLTFData::createLightTemplates()
 {
+  // INTEL_lights_sunsky extension
+  if (model.extensions.find("INTEL_lights_sunsky") != model.extensions.end()) {
+    auto lightsSunSky =
+        model.extensions.find("INTEL_lights_sunsky")->second.Get("lights");
+    int arrayLen = 0;
+    if (lightsSunSky.IsArray())
+      arrayLen = lightsSunSky.ArrayLen();
+
+    for (int i = 0; i < arrayLen; i++) {
+      auto lightName = "sunSkyLight_" + std::to_string(i);
+      auto sunSky = lightsSunSky.Get(i);
+      float intensity = sunSky.Get("intensity").Get<double>();
+      float elevation = (float)sunSky.Get("elevation").Get<double>()
+          * (180.f / (float)pi); // degrees
+      float azimuth = (float)sunSky.Get("azimuth").Get<double>()
+          * (180.f / (float)pi); // degrees
+      float turbidity = sunSky.Get("turbidity").Get<double>();
+      float albedo = sunSky.Get("albedo").Get<double>();
+      float horizonExtension = sunSky.Get("horizonExtension").Get<double>();
+      auto sunSkyLight = createNode(lightName, "sunSky");
+      sunSkyLight->child("intensity") = intensity;
+      sunSkyLight->child("elevation") = elevation;
+      sunSkyLight->child("azimuth") = azimuth;
+      sunSkyLight->child("turbidity") = turbidity;
+      sunSkyLight->child("albedo") = albedo;
+      sunSkyLight->child("horizonExtension") = horizonExtension;
+
+      lightTemplates.push_back(sunSkyLight);
+    }
+    numIntelLights = lightTemplates.size();
+  }
+  // KHR_lights_punctual
   for (auto &l : model.lights) {
     static auto nLight = 0;
     auto lightName =
@@ -330,27 +374,6 @@ void GLTFData::createLights()
       newLight = createNode(lightName, l.type);
       auto hdrFileName = l.extras.Get("map").Get<std::string>();
       newLight->child("filename") = fileName.path() + hdrFileName;
-    } else if (l.type == "sunSky") {
-      newLight = createNode(lightName, l.type);
-      if (l.sunSky.up.size()) {
-        auto up = vec3f{(float)l.sunSky.up[0],
-            (float)l.sunSky.up[1],
-            (float)l.sunSky.up[2]};
-        newLight->child("up") = up;
-      }
-      if (l.sunSky.turbidity) {
-        auto turbidity = (float)l.sunSky.turbidity;
-        newLight->child("turbidity") = turbidity;
-      }
-      if (l.sunSky.albedo) {
-        auto albedo = (float)l.sunSky.albedo;
-        newLight->child("albedo") = albedo;
-      }
-
-      if (l.sunSky.horizonExtension) {
-        auto horizonExtension = (float)l.sunSky.horizonExtension;
-        newLight->child("horizonExtension") = horizonExtension;
-      }
     } else
       newLight = createNode(lightName, l.type);
 
@@ -362,8 +385,7 @@ void GLTFData::createLights()
     // Color is optional, default:[1.0,1.0,1.0]
     auto lightColor = rgb(1.f);
     if (!l.color.empty())
-      lightColor =
-          rgb{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
+      lightColor = rgb{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
     newLight->child("color") = lightColor;
 
     if (l.intensity)
@@ -373,7 +395,7 @@ void GLTFData::createLights()
 
     // TODO:: Address extras property on lights
 
-    lights.push_back(newLight);
+    lightTemplates.push_back(newLight);
   }
 }
 
@@ -415,9 +437,7 @@ void GLTFData::createCameraTemplates()
 
       sgCamera->child("fovy") = fovy;
       sgCamera->child("nearClip") = (float)m.perspective.znear;
-      if (m.perspective.aspectRatio > 0)
-        sgCamera->child(
-            "aspect") = (float)m.perspective.aspectRatio;
+      sgCamera->child("aspect") = (float)m.perspective.aspectRatio;
 
     } else if (m.type == "panoramic") { // custom extension
       sgCamera = createNode("camera", "camera_panoramic");
@@ -617,7 +637,7 @@ void GLTFData::createAnimations(std::vector<Animation> &animations)
         t->values.reserve(value.size());
         for (size_t i = 0; i < value.size(); ++i) {
           const auto &v = value[i];
-          t->values.push_back(quaternionf(v.w, v.x, v.y, v.z));
+          t->values.push_back(normalize(quaternionf(v.w, v.x, v.y, v.z)));
         }
       } else if (c.target_path == "weights") {
         WARN << "animating weights of morph targets not implemented yet"
@@ -684,6 +704,8 @@ void GLTFData::buildScene()
       if (n.skin != -1) {
         if (model.skins[n.skin].skeleton != -1)
           targetNode = sceneNodes[model.skins[n.skin].skeleton];
+        else
+          targetNode = rootNode;
         for (auto &m : ospMesh) {
           const auto &geom = m->nodeAs<Geometry>();
           geom->skin = skins[n.skin];
@@ -712,6 +734,8 @@ void GLTFData::visitNode(NodePtr sgNode,
 
   auto newXfm =
       createNode(nodeName + "_xfm_" + std::to_string(level), "transform");
+  if (n.name != "")
+    newXfm->setOrigName(n.name);
   if (ic == 1)
     newXfm->child("dynamicScene").setValue(true);
   else if (ic == 2)
@@ -724,6 +748,8 @@ void GLTFData::visitNode(NodePtr sgNode,
   applyNodeTransform(newXfm, n);
 
   if (level == 1 && !geomId.empty()) {
+    if (!isValidUUIDv4(geomId))
+      std::cerr << geomId << " is not a valid version 4 UUID\n";
     newXfm->createChild("geomId", "string", geomId);
     geomId = "";
   }
@@ -731,7 +757,11 @@ void GLTFData::visitNode(NodePtr sgNode,
   // create child animate camera for all camera nodes added to scene hierarchy,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
-  if (n.camera != -1 && n.camera < cameraTemplates.size() && cameras) {
+  if (n.camera != -1 && !importCameras && cameras) {
+    // add camera from existing .sg cameras
+    auto camera = cameras->at(n.name);
+    newXfm->add(camera);
+  } else if (n.camera != -1 && n.camera < cameraTemplates.size() && cameras) {
     auto cameraTemplate = cameraTemplates[n.camera];
     static auto nCamera = 0;
     auto camera = createNode("camera", cameraTemplate->subType());
@@ -747,10 +777,9 @@ void GLTFData::visitNode(NodePtr sgNode,
     auto uniqueCamName =
         n.name != "" ? n.name : "camera_" + std::to_string(nCamera);
     camera->child("uniqueCameraName") = uniqueCamName;
-    camera->createChild("cameraId", "int", ++nCamera);
+    camera->child("cameraId").setValue(++nCamera);
 
-    camera->child("cameraId").setSGOnly();
-    cameras->push_back(camera);
+    cameras->operator[](uniqueCamName) = camera;
     newXfm->add(camera);
   }
 
@@ -759,14 +788,41 @@ void GLTFData::visitNode(NodePtr sgNode,
   if (n.extensions.find("BIT_node_info") != n.extensions.end())
     loadNodeInfo(nid, sgNode);
 
-  // KHR_lights_punctual extension info on nodes
+  std::vector<int> lightIdxs;
+
+  // instantiate lights for extensions: INTEL_lights_sunsky and
+  // KHR_lights_punctual
+  if (n.extensions.find("INTEL_lights_sunsky") != n.extensions.end()) {
+    auto lightJson =
+        n.extensions.find("INTEL_lights_sunsky")->second.Get("light");
+    lightIdxs.push_back(lightJson.GetNumberAsInt());
+  }
+
   if (n.extensions.find("KHR_lights_punctual") != n.extensions.end()) {
-    // defines light orientation
-    auto lightIndex = n.extensions.find("KHR_lights_punctual")
-                          ->second.Get("light")
-                          .GetNumberAsInt();
-    auto lightNode = lights[lightIndex];
-    sgNode->add(lightNode);
+    auto lightJson =
+        n.extensions.find("KHR_lights_punctual")->second.Get("light");
+    lightIdxs.push_back(lightJson.GetNumberAsInt() + numIntelLights);
+  }
+
+  for (auto &lightIdx : lightIdxs) {
+    auto lightTemplate = lightTemplates[lightIdx];
+    static int lightCounter = 0;
+    // instantiate SG light nodes
+    auto uniqueLightName = n.name != ""
+        ? n.name + std::to_string(lightCounter++)
+        : lightTemplate->name() + std::to_string(lightCounter++);
+    auto light = createNode(uniqueLightName, lightTemplate->subType());
+    for (auto &c : lightTemplate->children()) {
+      if (light->hasChild(c.first))
+        light->child(c.first) = c.second->value();
+      else {
+        light->createChild(c.first, c.second->subType(), c.second->value());
+        if (lightTemplate->child(c.first).sgOnly())
+          light->child(c.first).setSGOnly();
+      }
+    }
+    lights.push_back(light);
+    sgNode->add(light);
   }
 
   // recursively process children nodes
@@ -792,7 +848,8 @@ void GLTFData::applyNodeTransform(NodePtr xfmNode, const tinygltf::Node &n)
     }
     if (!n.rotation.empty()) {
       const auto &r = n.rotation;
-      xfmNode->child("rotation") = quaternionf(r[3], r[0], r[1], r[2]);
+      xfmNode->child("rotation") =
+          normalize(quaternionf(r[3], r[0], r[1], r[2]));
     }
     if (!n.translation.empty()) {
       const auto &t = n.translation;
@@ -1034,6 +1091,10 @@ NodePtr GLTFData::createOSPMesh(
       } else
         WARN << "invalid WEIGHTS_" << set << std::endl;
     }
+
+    if (ospGeom->checkAndNormalizeWeights())
+      WARN << "non-normalized weights\n";
+
   } else if (ospGeom->subType() == "geometry_spheres") {
     // Positions: vec3f
     Accessor<vec3f> pos_accessor(
@@ -1121,6 +1182,7 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     auto ospMat = createNode(matName, "principled");
     ospMat->createChild("baseColor", "rgb") = rgb(
         pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
+    auto alpha = (float)pbr.baseColorFactor[3];
     ospMat->createChild("metallic", "float") = (float)pbr.metallicFactor;
     ospMat->createChild("roughness", "float") = (float)pbr.roughnessFactor;
 
@@ -1134,7 +1196,7 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     if (mat.alphaMode == "OPAQUE")
       ospMat->createChild("opacity", "float") = 1.f;
     else if (mat.alphaMode == "BLEND")
-      ospMat->createChild("opacity", "float") = 1.f;
+      ospMat->createChild("opacity", "float") = alpha;
     else if (mat.alphaMode == "MASK")
       ospMat->createChild("opacity", "float") = 1.f - (float)mat.alphaCutoff;
 
@@ -1536,9 +1598,26 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     auto ospMat = createNode(matName, "luminous");
 
     if (emissiveColor != rgb(0.f)) {
+      // Material Extensions
+      const auto &exts = mat.extensions;
+
+      float intensity = 1.f;
+
+      // KHR_materials_emissive_strength
+      if (exts.find("KHR_materials_emissive_strength") != exts.end()) {
+        // (Not yet ratified)
+        // https://github.com/KhronosGroup/glTF/tree/KHR_materials_emissive_strength/extensions/2.0/Khronos/KHR_materials_emissive_strength
+        auto params = exts.find("KHR_materials_emissive_strength")->second;
+
+        // default: 1.0
+        intensity = 1.f;
+        if (params.Has("emissiveStrength")) {
+          intensity = (float)params.Get("emissiveStrength").Get<double>();
+        }
+      }
+
       ospMat->createChild("color", "rgb") = emissiveColor;
-      ospMat->createChild("intensity", "float") =
-          20.f; // XXX what's good default intensity?
+      ospMat->createChild("intensity", "float") = intensity;
 
       // Already checked for constant color above.
       if (mat.emissiveTexture.index != -1) {
@@ -1588,16 +1667,18 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
   // The uri can be a stream of base64-encoded data!  If it is not, it
   // contains the base filename, whereas sometimes the img.name is less
   // descriptive.
-  if (img.uri.length() < 256) {
+  if (img.uri.length() > 0 && img.uri.length() < 256) {
     // XXX should decode the uri before using it as a filename.  Otherwise
     // FileName::canonical() returns "" for names containing '%20', etc.
     std::string fileName = FileName(img.uri).canonical();
     img.name = fileName != "" ? fileName : img.uri;
   }
 
-  // If the texture comes from a bufferView give it that name.
-  if (img.bufferView >= 0)
-    img.name = "texture_" + pad(std::to_string(img.bufferView));
+  // Last try, if the texture comes from a bufferView and we have no other name
+  // give it the <filename>_texture_<bufferview#>
+  if (img.name.empty() && img.bufferView >= 0)
+    img.name =
+        fileName.name() + "_texture_" + pad(std::to_string(img.bufferView));
 
 #if 0
     DEBUG << pad("", '.', 9) << "image name: |" << img.name << "|\n";
@@ -1765,10 +1846,12 @@ void glTFImporter::importScene()
     return;
 
   gltf.createMaterials();
-  gltf.createLights();
+  gltf.createLightTemplates();
 
-  if (importCameras)
+  if (importCameras) {
+    gltf.importCameras = true;
     gltf.createCameraTemplates();
+  }
 
   gltf.createSkins();
   gltf.createGeometries(); // needs skins

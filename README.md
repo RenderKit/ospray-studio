@@ -1,6 +1,6 @@
 # OSPRay Studio
 
-This is release v0.10.0 of Intel® OSPRay Studio. It is released under the
+This is release v0.11.0 of Intel® OSPRay Studio. It is released under the
 Apache 2.0 license.
 
 Visit [**OSPRay Studio**](http://www.ospray.org/ospray_studio)
@@ -42,25 +42,27 @@ OSPRay Studio has the following required and optional dependencies.
 ### Required dependencies
 
 -   [CMake](https://www.cmake.org) (v3.15+) and any C++14 compiler
--   Intel [OSPRay](https://www.github.com/ospray/ospray) (v2.9.0) and
+-   Intel [OSPRay](https://www.github.com/ospray/ospray) (v2.10.0) and
     its dependencies - OSPRay Studio builds on top of OSPRay.
     Instructions on building OSPRay are provided
     [here](http://www.ospray.org/downloads.html#building-and-finding-ospray).
-    -   Intel [Open VKL](https://www.github.com/openvkl/openvkl) (v1.2.0 or newer)
-    -   Intel [Embree](https://www.github.com/embree/embree) (v3.13.1 or newer)
+    -   Intel [Open VKL](https://www.github.com/openvkl/openvkl) (v1.3.0)
+    -   Intel [Embree](https://www.github.com/embree/embree) (v3.13.1)
     -   Intel oneAPI Rendering Toolkit common library
-        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.9.0)
+        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.10.0)
     -   Intel [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
 -   OpenGL and [GLFW](https://www.glfw.org) (v3.3.4) - for the windowing environment
 
 ### Optional Dependencies
 
--   Intel [Open Image Denoise](https://openimagedenoise.github.io) - (v1.2.3 or
+-   Intel [Open Image Denoise](https://openimagedenoise.github.io) - (v1.4.3 or
     newer) for denoising frames. To use with OSPRay Studio, OSPRay must be built
     with `-DBUILD_OIDN=ON` in CMake.
+-   [OpenVDB](https://www.openvdb.org/) to support loading VDB formatted volume files.
 -   [OpenImageIO](http://openimageio.org/) and [OpenEXR](https://www.openexr.com/)
-    to support images in a variety of file formats.  Set `OPENIMAGEIO_ROOT`
+    (pre-3.x versions) to support images in a variety of file formats.  Set `OPENIMAGEIO_ROOT`
     and `OPENEXR_ROOT` to the respective install directories to use these libraries.
+    (tested with OpenImageIO v2.3.16 and OpenEXR v2.5.8)
 -   [Python] (3.9.7) (https://python.org) for python bindings
 
 ### Building on Linux and macOS

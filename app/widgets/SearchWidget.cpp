@@ -1,10 +1,7 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "SearchWidget.h"
-
-#include "sg/visitors/Search.h"
-
 #include <imgui.h>
 
 SearchWidget::SearchWidget(
@@ -17,6 +14,7 @@ void SearchWidget::clear()
   searched = false;
   results.clear();
   searchTerm[0] = '\0';
+  selectedResultName = "";
   numPages = 0;
 }
 
@@ -31,6 +29,9 @@ void SearchWidget::search(NR root)
 
   searched = true;
   results.clear();
+
+  // Search the entire hierarchy of passed-in root node for nodes of specific
+  // searchTypes and name containing searchStr
   for (auto nt : searchTypes)
     root.traverse<ospray::sg::Search>(searchStr, nt, results);
 
@@ -71,6 +72,14 @@ void SearchWidget::addSearchResultsUI(NR root)
   lastRoot = &root;
 
   if (searched) {
+    // If any of the search results have expired, it means one of those nodes
+    // has been deleted.  Conduct search again to refresh results.
+    for (auto &r : results)
+      if (r.expired()) {
+        search(root);
+        break;
+      }
+
     ImGui::SameLine();
     ImGui::Text(
         "%lu %s", results.size(), (results.size() == 1 ? "result" : "results"));
@@ -117,10 +126,13 @@ void SearchWidget::addSearchResultsUI(NR root)
          i < std::min((int)results.size(), currentPage * numItemsPerPage);
          i++) {
       const bool isSelected = (selectedIndex == i);
-      if (results[i])
-        if (ImGui::Selectable(results[i]->name().c_str(), isSelected)) {
+      auto selectedNode = results[i].lock();
+      if (selectedNode)
+        if (ImGui::Selectable(selectedNode->name().c_str(), isSelected)) {
           selectedIndex = i;
-          selectedResult = results[selectedIndex]->name();
+          selectedResultName = selectedNode->name();
+          selectedResultParent =
+              selectedNode->parents().front()->nodeAs<ospray::sg::Node>();
         }
       if (isSelected)
         ImGui::SetItemDefaultFocus();
@@ -132,7 +144,9 @@ void SearchWidget::addSearchResultsUI(NR root)
         const bool isSelected = (selectedIndex == i);
         if (ImGui::Selectable(node.first.c_str(), isSelected)) {
           selectedIndex = i;
-          selectedResult = node.first;
+          selectedResultName = node.first;
+          selectedResultParent =
+              node.second->parents().front()->nodeAs<ospray::sg::Node>();
         }
         if (isSelected)
           ImGui::SetItemDefaultFocus();
@@ -151,7 +165,7 @@ bool SearchWidget::isOneOf(NT inNodeType, std::vector<NT> &nodeTypes)
 }
 
 void SearchWidget::addCustomAction(std::string title,
-    std::function<void(std::vector<ospray::sg::NodePtr> &)> searchOp,
+    std::function<void(ospray::sg::SearchResults &)> searchOp,
     std::function<void()> displayOp,
     bool sameLine)
 {

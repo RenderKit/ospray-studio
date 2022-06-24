@@ -1,4 +1,4 @@
-// Copyright 2018-2020 Intel Corporation
+// Copyright 2018 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include <iostream>
@@ -8,6 +8,7 @@
 #include "imgui.h"
 
 #include "FileBrowserWidget.h"
+#include "rkcommon/os/FileName.h"
 
 using namespace IGFD;
 namespace ospray_studio {
@@ -28,26 +29,37 @@ bool fileBrowser(FileList &fileList,
   ImVec2 maxSize = ImGui::GetIO().DisplaySize;
   ImVec2 minSize(maxSize.x * 0.5, maxSize.y * 0.5);
 
+  auto fd = ImGuiFileDialog::Instance();
+
   // Allow multiple selections if requested (pass 0 as the vCountSelectionMax)
-  ImGuiFileDialog::Instance()->OpenModal(prompt.c_str(),
+  fd->OpenModal(prompt.c_str(),
       prompt.c_str(),
       filters.c_str(),
       defaultPath,
+      "",
       allowMultipleSelection ? 0 : 1);
 
-  if (ImGuiFileDialog::Instance()->Display(prompt.c_str(),
-        ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
-    if (ImGuiFileDialog::Instance()->IsOk()) {
-      auto selection = ImGuiFileDialog::Instance()->GetSelection();
-      // selection: first: filename, second: full path
-      for (auto &s : selection)
-        fileList.push_back(s.second);
+  if (fd->Display(
+          prompt.c_str(), ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
+    if (fd->IsOk()) {
+      auto selection = fd->GetSelection();
 
-      // Change the default directory, so next time this opens it opens here.
-      defaultPath = ImGuiFileDialog::Instance()->GetCurrentPath();
+      // XXX sneaky trick to allow pasting full filenames into file bar
+      if (selection.empty() && fd->GetCurrentFilter() == "PasteFileName") {
+        fileList.push_back(fd->GetCurrentFileName());
+        // Change the default directory, so next time this opens it opens here.
+        rkcommon::FileName fileName(fd->GetCurrentFileName());
+        defaultPath = fileName.canonical().path();
+      } else {
+        // selection: first: filename, second: full path
+        for (auto &s : selection)
+          fileList.push_back(s.second);
+        // Change the default directory, so next time this opens it opens here.
+        defaultPath = fd->GetCurrentPath();
+      }
     }
 
-    ImGuiFileDialog::Instance()->Close();
+    fd->Close();
     close = true;
   }
 

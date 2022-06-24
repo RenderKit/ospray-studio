@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -16,7 +16,8 @@ struct OSPSG_INTERFACE World : public OSPNode<cpp::World, NodeType::WORLD>
   virtual void preCommit() override;
   virtual void postCommit() override;
 
-  std::shared_ptr<InstanceIDMap> instMap;
+  std::shared_ptr<OSPInstanceSGIdMap> instSGIdMap;
+  std::shared_ptr<OSPGeomModelSGIdMap> geomSGIdMap;
 };
 
 } // namespace sg

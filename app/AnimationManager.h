@@ -19,6 +19,11 @@ class AnimationManager
     return timeRange;
   }
 
+  void setTimeRange(const range1f &_timeRange)
+  {
+    timeRange = _timeRange;
+  }
+
   std::vector<ospray::sg::Animation> &getAnimations()
   {
     return animations;
@@ -26,7 +31,29 @@ class AnimationManager
 
   void init();
 
+  float getTime()
+  {
+    return time;
+  }
+
+  float getShutter()
+  {
+    return shutter;
+  }
+
+  void setTime(const float _time)
+  {
+    time = _time;
+  }
+
+  void setShutter(const float _shutter)
+  {
+    shutter = _shutter;
+  }
+
  private:
   std::vector<ospray::sg::Animation> animations;
   range1f timeRange;
+  float time{0.f}; // sync with animationWidget
+  float shutter{0.f};
 };

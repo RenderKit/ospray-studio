@@ -1519,7 +1519,8 @@ namespace IGFD
 #else // dirent
 			struct dirent** files = nullptr;
 			size_t n = scandir(path.c_str(), &files, nullptr, inAlphaSort);
-			if (n)
+			// scandir returns -1 on error
+			if ((int)n > 0)
 			{
 				size_t i;
 

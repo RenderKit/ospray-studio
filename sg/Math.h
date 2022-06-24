@@ -4,9 +4,28 @@
 #pragma once
 
 #include "Node.h"
+using namespace std;
 
 namespace ospray {
 namespace sg {
+
+// convert euler angles(in radians) to quaternion
+inline quaternionf eulerToQuaternion(const vec3f &rotation)
+{
+  float cy = cos(rotation[2] * 0.5);
+  float sy = sin(rotation[2] * 0.5);
+  float cp = cos(rotation[1] * 0.5);
+  float sp = sin(rotation[1] * 0.5);
+  float cr = cos(rotation[0] * 0.5);
+  float sr = sin(rotation[0] * 0.5);
+
+  auto w = cr * cp * cy + sr * sp * sy;
+  auto x = sr * cp * cy - cr * sp * sy;
+  auto y = cr * sp * cy + sr * cp * sy;
+  auto z = cr * cp * sy - sr * sp * cy;
+
+  return quaternionf(w, x, y, z);
+}
 
 inline quaternionf getRotationQuaternion(const LinearSpace3f &rot)
 {

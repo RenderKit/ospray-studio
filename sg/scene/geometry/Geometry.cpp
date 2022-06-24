@@ -1,4 +1,4 @@
-// Copyright 2009-2021 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Geometry.h"
@@ -62,10 +62,44 @@ void Geometry::postCommit()
 
   std::string type =
       child("isClipping").valueAs<bool>() ? "clippingGeometry" : "geometry";
+  if (child("visible").valueAs<bool>()) {
+    group = std::make_shared<cpp::Group>(cpp::Group());
+    group->setParam(type, cpp::CopiedData(*model));
+    group->commit();
+  } else
+    group = nullptr;
+}
 
-  group = std::make_shared<cpp::Group>(cpp::Group());
-  group->setParam(type, cpp::CopiedData(*model));
-  group->commit();
+bool Geometry::checkAndNormalizeWeights()
+{
+  bool warn = false;
+  if (!weightsPerVertex)
+    return warn;
+
+  const float eps = 2e-7f * weightsPerVertex; // glTF validator threshold
+  for (float *w = weights.data(); w < &weights[weights.size()];) {
+    float sum = 0.0f;
+    for (size_t i = 0; i < weightsPerVertex; ++i, ++w) {
+      if (*w < 0.0f) { // clamp negative weights
+        warn = true;
+        *w = 0.0f;
+      }
+      sum += *w;
+    }
+    if (std::abs(sum - 1.0f) > eps) { // normalize
+      warn = true;
+      if (sum == 0.0f) // handle all-zero weigths somehow gracefully
+        *(w-weightsPerVertex) = 1.0f;
+      else {
+        const float scale = 1.0f / sum;
+        w -= weightsPerVertex;
+        for (size_t i = 0; i < weightsPerVertex; ++i, ++w)
+          *w *= scale;
+      }
+    }
+  }
+
+  return warn;
 }
 
 } // namespace sg

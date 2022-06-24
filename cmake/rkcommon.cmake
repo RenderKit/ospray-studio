@@ -1,4 +1,4 @@
-## Copyright 2020-2022 Intel Corporation
+## Copyright 2020 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 ## rkcommon depends on tbb, so look for it first
@@ -13,7 +13,7 @@ message(STATUS "Looking for rkcommon...")
 find_package(rkcommon QUIET)
 
 if(NOT DEFINED RKCOMMON_VERSION)
-    set(RKCOMMON_VERSION 1.9.0)
+    set(RKCOMMON_VERSION 1.10.0)
 endif()
 
 if(rkcommon_FOUND)

@@ -1,4 +1,4 @@
-// Copyright 2017-2021 Intel Corporation
+// Copyright 2017 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ArcballCamera.h"
@@ -16,6 +16,13 @@ ArcballCamera::ArcballCamera(const box3f &worldBounds, const vec2i &windowSize)
   centerTranslation = AffineSpace3f::translate(-worldBounds.center());
   translation       = AffineSpace3f::translate(vec3f(0, 0, -worldDiag));
   updateCamera();
+}
+
+void ArcballCamera::updateCameraToWorld(
+    const affine3f &_cameraToWorld, const quaternionf &rot)
+{
+  cameraToWorld = _cameraToWorld;
+  rotation = rot;
 }
 
 void ArcballCamera::setNewWorldBounds(const box3f &worldBounds) {
@@ -78,7 +85,7 @@ void ArcballCamera::pan(const vec2f &delta)
 
 vec3f ArcballCamera::eyePos() const
 {
-  return xfmPoint(cameraToWorld, vec3f(0, 0, 0));
+  return cameraToWorld.p;
 }
 
 void ArcballCamera::setCenter(const vec3f &newCenter)
@@ -116,7 +123,7 @@ void ArcballCamera::updateCamera()
 {
   const AffineSpace3f rot           = LinearSpace3f(rotation);
   const AffineSpace3f worldToCamera = translation * rot * centerTranslation;
-  cameraToWorld                     = rcp(worldToCamera);
+  cameraToWorld = rcp(worldToCamera);
 }
 
 void ArcballCamera::setRotation(quaternionf q)
@@ -150,7 +157,7 @@ void ArcballCamera::setZoomLevel(float zoomLevel)
 
 CameraState ArcballCamera::getState() const
 {
-  return CameraState(centerTranslation, translation, rotation);
+  return CameraState(centerTranslation, translation, rotation, cameraToWorld);
 }
 
 void ArcballCamera::updateWindowSize(const vec2i &windowSize)

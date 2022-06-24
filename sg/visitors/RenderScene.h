@@ -1,17 +1,18 @@
-// Copyright 2009-2022 Intel Corporation
+// Copyright 2009 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
+#include "sg/Mpi.h"
 #include "sg/Node.h"
+#include "sg/Util.h"
+#include "sg/camera/Camera.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/Transform.h"
+#include "sg/scene/World.h"
 #include "sg/scene/geometry/Geometry.h"
 #include "sg/scene/lights/Light.h"
-#include "sg/camera/Camera.h"
 #include "sg/scene/volume/Volume.h"
-#include "sg/scene/World.h"
-#include "sg/Mpi.h"
 
 // std
 #include <stack>
@@ -36,6 +37,18 @@ namespace ospray {
     void placeInstancesInWorld();
     void setLightParams(Node &node);
 
+    unsigned int getInstId()
+    {
+      static unsigned int inst_counter = 1;
+      return inst_counter++;
+    }
+
+    unsigned int getGeomId()
+    {
+      static unsigned int geom_counter = 1;
+      return geom_counter++;
+    }
+
     // Data //
 
     struct
@@ -52,17 +65,20 @@ namespace ospray {
     cpp::World world;
     std::vector<box3f> worldRegions;
     std::vector<cpp::Instance> instances;
-    // string identifier associated with a geometry
-    std::vector<cpp::Group> groups;
+
+    // unique OSPRay object groups to avoid regenartion of groups
+    std::unordered_map<void *, cpp::Group> groups;
     int groupIndex{0};
     std::stack<affine3f> xfms;
     std::stack<affine3f> endXfms;
     std::stack<bool> xfmsDiverged;
     std::stack<uint32_t> materialIDs;
     std::stack<cpp::TransferFunction> tfns;
-    std::shared_ptr<InstanceIDMap> instMap{nullptr};
-    std::string instanceId{""};
+    std::shared_ptr<OSPInstanceSGIdMap> instSGIdMap{nullptr};
+    std::shared_ptr<OSPGeomModelSGIdMap> geomSGIdMap{nullptr};
     Node *instRoot{nullptr};
+    unsigned int sgGeomId;
+    unsigned int sgInstId;
   };
 
   // Inlined definitions //////////////////////////////////////////////////////
@@ -72,8 +88,6 @@ namespace ospray {
     xfms.emplace(math::one);
     endXfms.emplace(math::one);
     xfmsDiverged.emplace(false);
-    if (instMap)
-    instMap->clear();
   }
 
   inline RenderScene::~RenderScene()
@@ -89,8 +103,10 @@ namespace ospray {
     case NodeType::WORLD: {
       world = node.valueAs<cpp::World>();
       auto worldNode = node.nodeAs<World>();
-      instMap = worldNode->instMap;
-      instMap->clear();
+      instSGIdMap = worldNode->instSGIdMap;
+      instSGIdMap->clear();
+      geomSGIdMap = worldNode->geomSGIdMap;
+      geomSGIdMap->clear();
     } break;
     case NodeType::MATERIAL_REFERENCE:
       materialIDs.push(node.valueAs<int>());
@@ -98,9 +114,6 @@ namespace ospray {
     case NodeType::TEXTUREVOLUME:
       setTextureVolume = true;
       current.textures.push_back(node.valueAs<cpp::Texture>());
-      break;
-    case NodeType::GEOMETRY:
-      createGeometry(node);
       break;
     case NodeType::VOLUME:
       createVolume(node);
@@ -149,8 +162,24 @@ namespace ospray {
 
       if (!instRoot && node.hasChild("instanceId")) {
         instRoot = &node;
-        instanceId = node["instanceId"].valueAs<std::string>();
+        if (!node.hasChild("sgInstId")) {
+          sgInstId = reduce24(getInstId());
+          // for a node create SG-ids only once in SG
+          node.createChild("sgInstId", "uint32_t", sgInstId);
+          node.child("sgInstId").setSGOnly();
+          node.child("sgInstId").setSGNoUI();
+        } else if (node.hasChild("sgInstId"))
+          sgInstId = node.child("sgInstId").valueAs<unsigned int>();
       }
+
+      if (node.hasChild("geomId") && !node.hasChild("sgGeomId")) {
+        sgGeomId = reduce24(getGeomId());
+        node.createChild("sgGeomId", "uint32_t", sgGeomId);
+        node.child("sgGeomId").setSGOnly();
+        node.child("sgGeomId").setSGNoUI();
+      } else if (node.hasChild("sgGeomId"))
+        sgGeomId = node.child("sgGeomId").valueAs<unsigned int>();
+
       break;
     }
     case NodeType::CAMERA: {
@@ -194,6 +223,9 @@ namespace ospray {
     case NodeType::TRANSFER_FUNCTION:
       tfns.pop();
       break;
+    case NodeType::GEOMETRY:
+      createGeometry(node);
+      break;
     case NodeType::LIGHT: {
       // Only lights marked as "inGroup" belong in a group lights list, others
       // have been put on the world list.
@@ -219,10 +251,13 @@ namespace ospray {
       xfms.pop();
       endXfms.pop();
       xfmsDiverged.pop();
-      if (&node == instRoot) {
+      if (&node == instRoot)
         instRoot = nullptr;
-        instanceId = "";
-      }
+      if (node.hasChild("sgInstId"))
+        sgInstId = 0;
+      if (node.hasChild("sgGeomId"))
+        sgGeomId = 0;
+
       break;
     default:
       // Nothing
@@ -233,13 +268,9 @@ namespace ospray {
   inline void RenderScene::createGeometry(Node &node)
   {
     auto geomNode = node.nodeAs<Geometry>();
+    void* geomHandle = reinterpret_cast<void *>(node.valueAs<cpp::Geometry>().handle());
 
-    if (!node.child("visible").valueAs<bool>()) {
-      geomNode->groupIndex = -1;
-      return;
-    }
-
-    if (geomNode->groupIndex >= 0 && geomNode->groupIndex < groups.size())
+    if (groups.find(geomHandle) != groups.end())
       return;
 
     // skinning
@@ -326,25 +357,30 @@ namespace ospray {
         worldRegions.push_back(mpiRegion);
       }
     }
+    // update handle
+    geomHandle = reinterpret_cast<void *>(node.valueAs<cpp::Geometry>().handle());
+    if (geomNode->group)
+      groups.emplace(std::make_pair(geomHandle, *geomNode->group));
 
-    groups.push_back(*geomNode->group);
-    geomNode->groupIndex = groupIndex;
-    groupIndex++;
+    auto ospGeometricModel = geomNode->model->handle();
+    if (geomSGIdMap && sgGeomId)
+      geomSGIdMap->emplace(OSPGeomModelSGIdMap::value_type(
+          std::make_pair(ospGeometricModel, sgGeomId)));
   }
 
   inline void RenderScene::createVolume(Node &node)
   {
     auto volNode = node.nodeAs<sg::Volume>();
-
-    if (!node.child("visible").valueAs<bool>()) {
-      volNode->groupIndex = -1;
-      return;
-    }
-
-    if (volNode->groupIndex >= 0 && volNode->groupIndex < groups.size())
-      return;
-
     auto &vol = node.valueAs<cpp::Volume>();
+
+    void* volHandle = reinterpret_cast<void *>(vol.handle());
+
+    if (volNode->child("visible").valueAs<bool>() == false)
+      return;
+
+    if (groups.find(volHandle) != groups.end())
+      return;
+
     cpp::VolumetricModel model(vol);
     if (node.hasChildOfType(sg::NodeType::TRANSFER_FUNCTION)) {
       model.setParam("transferFunction",
@@ -378,11 +414,10 @@ namespace ospray {
     }
 
     group.commit();
-    groups.push_back(group);
-    volNode->groupIndex = groupIndex;
-    groupIndex++;
 
-
+    // update handle
+    volHandle = reinterpret_cast<void *>(node.valueAs<cpp::Volume>().handle());
+    groups.emplace(std::make_pair(volHandle, group));
   }
 
   inline void RenderScene::createInstanceFromGroup(Node &node)
@@ -405,10 +440,10 @@ namespace ospray {
       instances.push_back(inst);
 
       // sg picking
-      if (instMap && !instanceId.empty()) {
+      if (instSGIdMap && sgInstId) {
         auto ospInstance = inst.handle();
-        instMap->insert(
-            InstanceIDMap::value_type(std::make_pair(ospInstance, instanceId)));
+        instSGIdMap->emplace(OSPInstanceSGIdMap::value_type(
+            std::make_pair(ospInstance, sgInstId)));
       }
     };
 
@@ -419,10 +454,9 @@ namespace ospray {
 #endif
 
       for (auto geom : geomChildren) {
-        auto geomNode = geom->nodeAs<Geometry>();
-        auto geomIdentifier = geomNode->groupIndex;
-        if (geomIdentifier >= 0 && geomIdentifier < groups.size()) {
-          auto &group = groups[geomIdentifier];
+        auto geomHandle = geom->valueAs<cpp::Geometry>().handle();
+        if (groups.find(geomHandle) != groups.end()) {
+          auto &group = groups[geomHandle];
           setInstance(group);
         }
       }
@@ -431,10 +465,9 @@ namespace ospray {
     if (node.hasChildOfType(NodeType::VOLUME)) {
       auto &volChildren = node.childrenOfType(NodeType::VOLUME);
       for (auto vol : volChildren) {
-        auto volNode = vol->nodeAs<Volume>();
-        auto volumeIdentifier = volNode->groupIndex;
-        if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
-          auto &group = groups[volumeIdentifier];
+        auto volHandle = vol->valueAs<cpp::Volume>().handle();
+        if (groups.find(volHandle) != groups.end()) {
+          auto &group = groups[volHandle];
           setInstance(group);
         }
       }
@@ -445,10 +478,9 @@ namespace ospray {
       for (auto tfn : tfnChildren) {
         auto volChildren = tfn->childrenOfType(NodeType::VOLUME);
         for (auto vol : volChildren) {
-          auto volNode = vol->nodeAs<sg::Volume>();
-          auto volumeIdentifier = volNode->groupIndex;
-          if (volumeIdentifier >= 0 && volumeIdentifier < groups.size()) {
-            auto &group = groups[volumeIdentifier];
+          auto volHandle = vol->valueAs<cpp::Volume>().handle();
+          if (groups.find(volHandle) != groups.end()) {
+            auto &group = groups[volHandle];
             setInstance(group);
           }
         }

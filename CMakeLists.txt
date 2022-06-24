@@ -1,9 +1,9 @@
-## Copyright 2009-2021 Intel Corporation
+## Copyright 2009 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.15)
 
-project(ospray_studio VERSION 0.10.0 LANGUAGES CXX)
+project(ospray_studio VERSION 0.11.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(ProcessorCount)
@@ -67,7 +67,7 @@ find_package(OpenGL 2 REQUIRED)
 include(glfw)
 include(ospray)
 
-option(USE_BENCHMARK "Build benchmarking support into ospStudio" OFF)
+option(USE_BENCHMARK "Build benchmarking support into ospStudio" ON)
 
 if(USE_BENCHMARK)
   include(benchmark)
