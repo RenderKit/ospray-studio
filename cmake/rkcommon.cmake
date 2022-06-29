@@ -32,6 +32,9 @@ else()
     set(RKCOMMON_TBB_ROOT ${TBB_ROOT} CACHE INTERNAL "ensure rkcommon finds dependent tbb")
     set(BUILD_TESTING OFF CACHE INTERNAL "disable testing for rkcommon")
 
+    ## Build rkcommon as a static lib, to prevent conflict with rkcommon binary shipped with OSPRay
+    set(BUILD_SHARED_LIBS OFF)
+
     FetchContent_Declare(
         rkcommon
         GIT_REPOSITORY "${RKCOMMON_GIT_REPOSITORY}"
