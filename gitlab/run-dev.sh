@@ -12,11 +12,13 @@ set -e
 export DISPLAY=:1
 export USER=root
 mkdir -p $HOME/.vnc; echo testtest | vncpasswd -f > $HOME/.vnc/passwd; chmod 0600 $HOME/.vnc/passwd; touch $HOME/.vnc/xstartup; chmod +x $HOME/.vnc/xstartup
-vncserver $DISPLAY -geometry 1900x1000
-glxinfo
+vncserver $DISPLAY -geometry 1920x1080
+#glxinfo # informational only
 
-export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray/lib/:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/lib:$LD_LIBRARY_PATH
 cd $CI_PROJECT_DIR/build
+ctest -N -VV  # list tests
+ctest
 set +e
 timeout --preserve-status 10s ./ospStudio
 echo "Last exit code $?"

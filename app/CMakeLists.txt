@@ -1,6 +1,11 @@
 ## Copyright 2018 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
+## CTest testing ##
+if(BUILD_TESTING)
+  enable_testing()
+endif()
+
 if (APPLE)
   set_source_files_properties(imgui_impl_glfw_gl3.cpp GLFWSgWindow.cpp
     PROPERTIES COMPILE_FLAGS -w)
@@ -96,4 +101,10 @@ if(OSPRAY_INSTALL)
       ${_sharedlibs} DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
   endif()
+endif()
+
+## CTest testing ##
+if(BUILD_TESTING)
+  # Basic sanity test
+  add_test(NAME ospStudio-verify-install COMMAND $<TARGET_FILE:ospStudio> --verify_install)
 endif()

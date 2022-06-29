@@ -27,6 +27,12 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 message (STATUS "This build is for C++${CMAKE_CXX_STANDARD}")
 
+## CTest testing ##
+include(CTest) # Adds 'BUILD_TESTING' variable
+if(BUILD_TESTING)
+  enable_testing()
+endif()
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
@@ -46,7 +52,6 @@ endif()
 
 ## global options and variables
 option(OSPRAY_INSTALL "Install OSPRay libraries in addition to OSPRay Studio libraries / binaries" ON)
-
 set(OSPRAY_STUDIO_RESOURCE_FILE "${PROJECT_SOURCE_DIR}/resources/ospray_studio.rc")
 if(APPLE)
   ## ensures that build-time executables contain install-time rpaths, ensuring
@@ -68,7 +73,6 @@ include(glfw)
 include(ospray)
 
 option(USE_BENCHMARK "Build benchmarking support into ospStudio" ON)
-
 if(USE_BENCHMARK)
   include(benchmark)
 endif()
@@ -90,14 +94,12 @@ add_subdirectory(sg)
 ## make pysg module optional
 
 option(USE_PYSG "Enable PYSG module" ON)
-
 if(USE_PYSG)
   include(cmake/pybind11.cmake)
   add_subdirectory(pysg)
 endif()
 
 option(BUILD_APPS "Build OSPRay Studio Apps" ON)
-
 if (BUILD_APPS)
   add_subdirectory(app)
 endif()
@@ -105,7 +107,6 @@ endif()
 ## Build plugins ##
 
 option(BUILD_PLUGINS "Build plugins subtree" OFF)
-
 if (BUILD_APPS AND BUILD_PLUGINS)
   add_subdirectory(plugins)
 endif()
