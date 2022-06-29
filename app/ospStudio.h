@@ -44,6 +44,18 @@ enum class StudioMode
 #endif
 };
 
+enum class OSPRayRendererType
+{
+  SCIVIS,
+  PATHTRACER,
+  AO,
+  DEBUGGER,
+#ifdef USE_MPI
+  MPIRAYCAST,
+#endif
+  OTHER
+};
+
 const static std::map<std::string, StudioMode> StudioModeMap = {
     {"gui", StudioMode::GUI},
     {"batch", StudioMode::BATCH},

@@ -15,11 +15,12 @@ endif()
 add_executable(ospStudio
   ospStudio.cpp
   PluginManager.cpp
-
-  MainWindow.cpp
   Batch.cpp
-  TimeSeriesWindow.cpp
+  # TimeSeriesWindow.cpp
   AnimationManager.cpp
+
+  GUIContext.cpp
+  MainWindow.cpp
 
   $<$<BOOL:${USE_BENCHMARK}>:Benchmark.cpp>
 

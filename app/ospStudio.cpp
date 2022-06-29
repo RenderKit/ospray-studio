@@ -3,7 +3,7 @@
 
 #include "ospStudio.h"
 
-#include "MainWindow.h"
+#include "GUIContext.h"
 #include "Batch.h"
 #include "TimeSeriesWindow.h"
 #include "sg/Mpi.h"
@@ -365,7 +365,7 @@ int main(int argc, const char *argv[])
     // non-gui modes to still require glfw/GL
     switch (mode) {
     case StudioMode::GUI:
-      context = std::make_shared<MainWindow>(studioCommon);
+      context = std::make_shared<GUIContext>(studioCommon);
       break;
     case StudioMode::BATCH:
       context = std::make_shared<BatchContext>(studioCommon);
@@ -373,9 +373,9 @@ int main(int argc, const char *argv[])
     case StudioMode::HEADLESS:
       std::cerr << "Headless mode\n";
       break;
-    case StudioMode::TIMESERIES:
-      context = std::make_shared<TimeSeriesWindow>(studioCommon);
-      break;
+    // case StudioMode::TIMESERIES:
+    //   context = std::make_shared<TimeSeriesWindow>(studioCommon);
+    //   break;
 #ifdef USE_BENCHMARK
     case StudioMode::BENCHMARK:
       context = std::make_shared<BenchmarkContext>(studioCommon);

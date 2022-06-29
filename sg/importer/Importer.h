@@ -162,6 +162,7 @@ inline std::shared_ptr<Importer> getImporter(
   }
   std::string importer = fnd->second;
   std::string nodeName;
+  static int baseNameCtr = 0;
 
   if (cat.find(fullName) != cat.end()) {
     // Importer node and its rootXfm
@@ -179,7 +180,8 @@ inline std::shared_ptr<Importer> getImporter(
 
     // Create a unique instanceXfm nodeName
     int count = ++origNode->child("count").valueAs<int>();
-    nodeName = baseName + "_instanceXfm_" + std::to_string(count);
+
+    nodeName = baseName + "_" + std::to_string(baseNameCtr++) + "_instanceXfm_" + std::to_string(count);
     
     auto instanceXfm = createNode(nodeName, "transform");
 
@@ -190,7 +192,7 @@ inline std::shared_ptr<Importer> getImporter(
     return nullptr;
 
   } else {
-    nodeName = baseName + "_importer";
+    nodeName = baseName + "_" + std::to_string(baseNameCtr++) + "_importer";
     auto importNode = createNodeAs<Importer>(nodeName, importer);
     importNode->createChild("count", "int", 0);
     importNode->child("count").setSGNoUI();

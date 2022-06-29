@@ -5,7 +5,7 @@
 
 #include <unordered_map>
 
-#include "MainWindow.h"
+#include "MainWindowOld.h"
 #include "StateUtils.h"
 #include "sg/fb/FrameBuffer.h"
 #include "sg/Frame.h"
