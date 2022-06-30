@@ -21,4 +21,10 @@ ctest -N -VV  # list tests
 ctest
 set +e
 timeout --preserve-status 10s ./ospStudio
+
+set -e
+# glTF 3D Commerce Certification Tests
+export PATH=${CI_PROJECT_DIR}/build:${PATH}
+${CACHE_DIR}/glTF-Certification/run_cert.sh cert-tests
+
 echo "Last exit code $?"
