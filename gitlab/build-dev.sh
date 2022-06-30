@@ -22,6 +22,7 @@ then
     mkdir build && cd build
     cmake -L \
       -DBUILD_OIDN=ON \
+      -DBUILD_EMBREE_FROM_SOURCE=OFF \
       -DBUILD_RKCOMMON_VERSION=$RKCOMMON_VER \
       -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF \
       "$@" \
