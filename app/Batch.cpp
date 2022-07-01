@@ -66,8 +66,8 @@ void BatchContext::start()
           << std::endl;
     }
 
-    cameraRange.upper = std::min(cameraRange.upper, (int)cameras->size());
-    for (int cameraIdx = cameraRange.lower; cameraIdx <= cameraRange.upper;
+    optCameraRange.upper = std::min(optCameraRange.upper, (int)cameras->size());
+    for (int cameraIdx = optCameraRange.lower; cameraIdx <= optCameraRange.upper;
          ++cameraIdx) {
       resetFileId = true;
       refreshCamera(cameraIdx);
@@ -146,11 +146,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     optStereoMode,
     "Set the stereo mode"
   )->check(CLI::PositiveNumber);
-  app->add_flag(
-    "--denoiser",
-    optDenoiser,
-    "Set the denoiser"
-  );
   app->add_option(
     "--grid",
     [&](const std::vector<std::string> val) {
@@ -175,20 +170,6 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     forceRewrite,
     "Force overwriting saved files if they exist"
   );
-  app->add_option(
-    "--camera",
-    cameraRange,
-    "Set the camera index to use"
-  )->check(CLI::PositiveNumber);
-  app->add_option(
-    "--cameras",
-    [&](const std::vector<std::string> val) {
-      cameraRange.lower = std::max(1, std::stoi(val[0]));
-      cameraRange.upper = std::stoi(val[1]);
-      return true;
-    },
-    "Set the camera range"
-  )->expected(2);
   app->add_option(
     "--frameRange",
     [&](const std::vector<std::string> val) {
@@ -554,7 +535,7 @@ void BatchContext::updateCamera()
     cameraView = nullptr;
   }
   // if no camera  view or scene camera is selected calculate a default view
-  else if (cameraRange.lower == 0) {
+  else if (optCameraRange.lower == 0) {
     auto worldBounds = getSceneBounds();
     auto worldDiag = length(worldBounds.size());
     auto centerTranslation = AffineSpace3f::translate(-worldBounds.center());

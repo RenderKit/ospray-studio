@@ -238,7 +238,7 @@ OSPSG_INTERFACE void importScene(
     context->refreshScene(true);
   }
 
-  if (j.contains("camera")) {
+  if (!context->optCameraRange.lower && j.contains("camera")) {
     auto cameraJ = j["camera"];
     affine3f cameraToWorld = cameraJ["cameraToWorld"];
     context->cameraView = std::make_shared<affine3f>(cameraToWorld);

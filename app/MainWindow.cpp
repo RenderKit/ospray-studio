@@ -612,10 +612,15 @@ void MainWindow::updateCamera()
   frame->currentAccum = 0;
   auto camera = frame->child("camera").nodeAs<sg::Camera>();
 
-  if (cameraIdx) {
-    // switch to index specific scene camera
-    auto &newCamera = g_sceneCameras.at_index(cameraIdx);
-    g_selectedSceneCamera = newCamera.second;
+  if (cameraIdx || optCameraRange.lower) {
+    // switch to index/cameraRange specific scene camera
+    if (optCameraRange.lower) {
+      auto &newCamera = g_sceneCameras.at_index(optCameraRange.lower);
+      g_selectedSceneCamera = newCamera.second;
+    } else if (cameraIdx) {
+      auto &newCamera = g_sceneCameras.at_index(cameraIdx);
+      g_selectedSceneCamera = newCamera.second;
+    }
     frame->remove("camera");
     frame->add(g_selectedSceneCamera);
     // update camera pointer
@@ -2015,7 +2020,8 @@ void MainWindow::buildWindowFrameBufferEditor()
     ImGui::Checkbox("Tonemap nav", &frame->toneMapNavFB);
 
     if (studioCommon.denoiserAvailable) {
-      ImGui::Checkbox("Denoise", &frame->denoiseFB);
+      if (ImGui::Checkbox("Denoise", &optDenoiser))
+        frame->denoiseFB = optDenoiser;
       ImGui::SameLine();
       ImGui::Checkbox("Denoise nav", &frame->denoiseNavFB);
     }
