@@ -240,11 +240,16 @@ OSPSG_INTERFACE void importScene(
 
   if (!context->optCameraRange.lower && j.contains("camera")) {
     auto cameraJ = j["camera"];
-    affine3f cameraToWorld = cameraJ["cameraToWorld"];
-    context->cameraView = std::make_shared<affine3f>(cameraToWorld);
-    context->cameraIdx = j["camera"]["cameraIdx"];
-    if (cameraJ.contains("cameraSettingsIdx"))
-      context->cameraSettingsIdx = j["camera"]["cameraSettingsIdx"];
+    if (cameraJ.contains("cameraToWorld")) {
+      affine3f cameraToWorld = cameraJ["cameraToWorld"];
+      context->cameraView = std::make_shared<affine3f>(cameraToWorld);
+      if (cameraJ.contains("cameraIdx"))
+        context->cameraIdx = j["camera"]["cameraIdx"];
+      if (cameraJ.contains("cameraSettingsIdx"))
+        context->cameraSettingsIdx = j["camera"]["cameraSettingsIdx"];
+    } else
+      std::cerr << "scene file incompatible with versions later than v0.9.0\n"
+                << "resetting camera\n";
     context->updateCamera();
   }
 
