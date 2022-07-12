@@ -1,6 +1,21 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v0.11.1
+
+-   Compatible with OSPRay release v2.10.0
+
+- Features and Improvements
+  - Updated README.md to clarify build and superbuild process.
+<br>
+
+- Bug Fixes:
+  - Fixed a potential linker error when building OSPRay Studio against release
+  binaries of OSPRay v2.10.0.
+  - Fixed a crash due to loading scene files created prior to Studio v0.9.0.
+  - Fixed an error where all command line arguments were ignored in batch and
+    benchmark modes.
+
 ### Changes in OSPRay Studio v0.11.0
 
 -   Compatible with OSPRay release v2.10.0
