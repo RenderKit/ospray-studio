@@ -208,7 +208,10 @@ bool BatchContext::parseCommandLine()
         argExt = arg.substr(extStart, arg.length());
       if (argExt == ".sg") {
         std::cout
-            << "loading a .sg file, batch-mode cmd-line arguments not allowed. Please remove the arguments and try again.\n";
+            << "!!! When loading a scene file (.sg), fewer command-line arguments are permitted.\n"
+            << "!!!   If the application exits unexpectedly, please check below for errors,\n"
+            << "!!!   remove any 'not expected' arguments and try again."
+            << std::endl;
         sgScene = true;
       }
     }
