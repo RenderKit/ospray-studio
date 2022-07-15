@@ -408,7 +408,9 @@ void GLTFData::createMaterials()
   ospMaterials.reserve(model.materials.size() + 1);
 
   // "default" material for glTF '-1' index (no material)
-  ospMaterials.emplace_back(createNode(fileName.name() + ":default", "obj"));
+  static int defMatNum = 0;
+  ospMaterials.emplace_back(createNode(
+      fileName.name() + std::to_string(defMatNum++) + ":default", "obj"));
 
   // Create materials (also sets textures to material params)
   for (const auto &material : model.materials) {
