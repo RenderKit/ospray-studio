@@ -15,7 +15,7 @@ mkdir -p $HOME/.vnc; echo testtest | vncpasswd -f > $HOME/.vnc/passwd; chmod 060
 vncserver $DISPLAY -geometry 1900x1000
 glxinfo
 
-export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray/lib/:$CACHE_DIR/ospray-$OSPRAY_VER/build/install/oidn/lib/:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/ospray/lib/:$LD_LIBRARY_PATH
 cd $CI_PROJECT_DIR/build
 set +e
 timeout --preserve-status 10s ./ospStudio

@@ -30,6 +30,7 @@ then
 else
     cmake -L \
         -D CMAKE_INSTALL_PREFIX=install \
+        -D INSTALL_IN_SEPARATE_DIRECTORIES=OFF \
         -D ENABLE_OPENIMAGEIO=OFF \
         -D ENABLE_OPENVDB=OFF \
         -D ENABLE_EXR=OFF \
