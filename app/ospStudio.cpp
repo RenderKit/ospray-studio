@@ -215,6 +215,25 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     optDoAsyncTasking,
     "Disable asynchronous tasking (and asynchronous dataset loading)"
   );
+  app->add_flag(
+    "--denoiser",
+    optDenoiser,
+    "Set the denoiser"
+  );
+  app->add_option(
+    "--camera",
+    optCameraRange,
+    "Set the camera index to use"
+  )->check(CLI::PositiveNumber);
+  app->add_option(
+    "--cameras",
+    [&](const std::vector<std::string> val) {
+      optCameraRange.lower = std::max(1, std::stoi(val[0]));
+      optCameraRange.upper = std::stoi(val[1]);
+      return true;
+    },
+    "Set the camera range; in GUI mode displays optCameraRange.lower"
+  )->expected(2);
 }
 
 box3f StudioContext::getSceneBounds()

@@ -174,6 +174,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   bool optSaveDepth{false};
   bool optSaveNormal{false};
   bool optSaveLayersSeparately{false};
+  range1i optCameraRange{0, 0};
 
   StudioCommon &studioCommon;
 

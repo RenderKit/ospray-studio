@@ -1,6 +1,6 @@
 # OSPRay Studio
 
-This is release v0.11.0 of Intel® OSPRay Studio. It is released under the
+This is release v0.11.1 of Intel® OSPRay Studio. It is released under the
 Apache 2.0 license.
 
 Visit [**OSPRay Studio**](http://www.ospray.org/ospray_studio)
@@ -26,32 +26,63 @@ or scivis renderer.
 More information can be found in the [**high-level feature
 description**](https://github.com/ospray/ospray_studio/blob/master/FEATURES.md).
 
-## Building OSPRay Studio
+Building OSPRay Studio
+========================
 
-tl;dr - For most installations, these 5 steps will build a plain vanilla OSPRay Studio
-``` bash
-  1. git clone https://github.com/ospray/ospray_studio.git
-  2. mkdir ospray_studio/build
-  3. cd ospray_studio/build
-  4. cmake ..
-  5. cmake --build .
+CMake Superbuild
+----------------
+
+### Required dependencies for superbuild
+
+-   [CMake](https://www.cmake.org) (v3.15+) and any C++14 compiler
+
+For convenience, OSPRay Studio provides a CMake Superbuild script which will
+pull down its dependencies i.e. GLFW, OSPRay, rkcommon and TBB. It builds OSPRay
+Studio without OpemImageIO and OpenEXR support.  `stb_image` is used for all
+image operations by default instead. 
+
+To use the superbuild run with:
+
+``` sh
+mkdir build
+cd build
+cmake ..
+cmake --build .
 ```
 
-OSPRay Studio has the following required and optional dependencies.
+For other full set of options, run:
+
+``` sh
+ccmake ..
+```
+
+or
+
+``` sh
+cmake-gui ..
+```
+
+Standard CMake build
+--------------------
+
+For standard cmake process turn off cmake option `OSPRAY_INSTALL` and provide
+following required dependencies with their respective cmake options as will be
+listed in OS-specific building process below. 
 
 ### Required dependencies
 
 -   [CMake](https://www.cmake.org) (v3.15+) and any C++14 compiler
--   Intel [OSPRay](https://www.github.com/ospray/ospray) (v2.10.0) and
-    its dependencies - OSPRay Studio builds on top of OSPRay.
-    Instructions on building OSPRay are provided
+-   Intel [OSPRay](https://www.github.com/ospray/ospray) (v2.10.0) and its
+    dependencies - OSPRay Studio builds on top of OSPRay. Instructions on
+    building OSPRay are provided
     [here](http://www.ospray.org/downloads.html#building-and-finding-ospray).
-    -   Intel [Open VKL](https://www.github.com/openvkl/openvkl) (v1.3.0)
-    -   Intel [Embree](https://www.github.com/embree/embree) (v3.13.1)
+    OSPRay and OSPRay Studio have the following common dependencies which Studio
+    can hence leverage from an OSPRay build.
     -   Intel oneAPI Rendering Toolkit common library
         [rkcommon](https://www.github.com/ospray/rkcommon) (v1.10.0)
     -   Intel [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
 -   OpenGL and [GLFW](https://www.glfw.org) (v3.3.4) - for the windowing environment
+
 
 ### Optional Dependencies
 
@@ -69,14 +100,15 @@ OSPRay Studio has the following required and optional dependencies.
 
 -   Follow OSPRay's build instructions to install it, which will also
     fulfill most other required dependencies. Set the following
-    environment variables to easily locate OSPRay, Open VKL, Embree, and
+    environment variables to easily locate OSPRay and
     rkcommon during CMake.
+
+    
 
     ``` bash
     export ospray_DIR = ${OSPRAY_INSTALL_LOCATION}
-    export openvkl_DIR = ${OPENVKL_INSTALL_LOCATION}
-    export embree_DIR = ${EMBREE_INSTALL_LOCATION}
     export rkcommon_DIR = ${RKCOMMON_INSTALL_LOCATION}
+    export TBB_DIR = ${TBB_INSTALL_LOCATION}
     ```
 
     Alternatively, [CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html)
@@ -109,7 +141,7 @@ OSPRay Studio has the following required and optional dependencies.
     example,
 
     ``` bash
-    export LD_LIBRARY_PATH=${OSPRAY_INSTALL}/lib64:${OPENVKL_INSTALL}/lib64:...:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=${OSPRAY_INSTALL}/lib64:...:$LD_LIBRARY_PATH
     # then run!
     ./ospStudio
     ```
@@ -120,7 +152,7 @@ Use CMake (cmake-gui) to configure and generate a Microsoft Visual
 Studio solution file for OSPRay Studio.
 
 -   Specify the source folder and the build directory in CMake
--   Specify `ospray_DIR`, `openvkl_DIR` and `rkcommon_DIR` CMake
+-   Specify `ospray_DIR`, `rkcommon_DIR` CMake
     variables for the respective install locations
 -   Click 'Configure' and select the appropriate generator (we recommend
     using at least Visual Studio 15 2017)
