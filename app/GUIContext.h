@@ -18,6 +18,8 @@
 // json
 #include "sg/JSONDefs.h"
 
+#include "CameraStack.h"
+
 using namespace rkcommon::math;
 using namespace ospray;
 using rkcommon::make_unique;
@@ -72,8 +74,6 @@ class GUIContext : public StudioContext
   bool optAutorotate{false};
   bool optAnimate{false};
 
-  std::shared_ptr<std::vector<CameraState>> cameraStack;
-
   static MainWindow *mainWindow;
   
   std::shared_ptr<sg::FrameBuffer> framebuffer = nullptr;
@@ -85,13 +85,6 @@ class GUIContext : public StudioContext
 
   // windows and main menu builder related functions
   void selectBuffer(int whichBuffer);
-  void addCameraState();
-  void removeCameraState();
-  void viewCameraPath(bool showCameraPath);
-
-  void setCameraSnapshot(size_t snapshot);
-  void selectCamStackIndex(size_t i);
-
   void selectCamera(size_t whichCamera);
   void createNewCamera(const std::string newType);
   void removeLight(int whichLight);
@@ -103,10 +96,6 @@ class GUIContext : public StudioContext
   void setUpDir(const vec3f &upDir);
   void animationSetShowUI();
   void quitNextFrame();
-
-  float g_camPathSpeed = 5; // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
-  int g_camSelectedStackIndex = 0;
-  int g_camCurrentPathIndex = 0;
 
   // FPS measurement of last frame
   float latestFPS{0.f};

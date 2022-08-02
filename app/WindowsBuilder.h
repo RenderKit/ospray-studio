@@ -27,7 +27,7 @@ using namespace ospray_studio;
 struct WindowsBuilder
 {
  public:
-  WindowsBuilder(std::shared_ptr<GUIContext> _ctx);
+  WindowsBuilder(std::shared_ptr<GUIContext> _ctx, std::shared_ptr<CameraStack<CameraState>> cameraStack);
   ~WindowsBuilder() = default;
 
   void start();
@@ -71,6 +71,9 @@ struct WindowsBuilder
   bool static lightTypeUI_callback(void *, int index, const char **out_text);
   bool static cameraUI_callback(void *, int index, const char **out_text);
 
+  // utility functions
+  void viewCameraPath(bool showCameraPath);
+
   // main Util instance
   std::shared_ptr<GUIContext> ctx = nullptr;
 
@@ -80,6 +83,7 @@ struct WindowsBuilder
 
   std::shared_ptr<sg::LightsManager> lightsManager;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
+  std::shared_ptr<CameraStack<CameraState>> cameraStack = nullptr;
 };
 
   // initialize all static member variables
@@ -113,8 +117,9 @@ std::vector<std::string> WindowsBuilder::g_renderers = {
     "scivis", "pathtracer", "ao", "debug"};
 #endif
 
-WindowsBuilder::WindowsBuilder(std::shared_ptr<GUIContext> _ctx)
-    : ctx(_ctx)
+WindowsBuilder::WindowsBuilder(
+    std::shared_ptr<GUIContext> _ctx, std::shared_ptr<CameraStack<CameraState>> _cameraStack)
+    : ctx(_ctx), cameraStack(_cameraStack)
 {
   lightsManager = ctx->lightsManager;
   baseMaterialRegistry = ctx->baseMaterialRegistry;
@@ -409,7 +414,7 @@ void WindowsBuilder::buildWindowKeyframes()
   ImGui::SetNextItemWidth(25 * ImGui::GetFontSize());
 
   if (ImGui::Button("add")) // add current camera state after the selected one
-    ctx->addCameraState();
+    cameraStack->addCameraState();
 
   sg::showTooltip(
       "insert a new keyframe after the selected keyframe, based\n"
@@ -417,37 +422,41 @@ void WindowsBuilder::buildWindowKeyframes()
 
   ImGui::SameLine();
   if (ImGui::Button("remove")) // remove the selected camera state
-    ctx->removeCameraState();
+    cameraStack->removeCameraState();
 
   sg::showTooltip("remove the currently selected keyframe");
 
-  if (ctx->cameraStack->size() >= 2) {
+  if (cameraStack->size() >= 2) {
     ImGui::SameLine();
     if (ImGui::Button(ctx->g_animatingPath ? "stop" : "play")) {
       ctx->g_animatingPath = !ctx->g_animatingPath;
-      ctx->g_camCurrentPathIndex = 0;
+      cameraStack->g_camCurrentPathIndex = 0;
       // following moved to mainWindowNew display()
       // if (ctx->g_animatingPath)
-      //   g_camPath = buildPath(ctx->cameraStack, g_camPathSpeed * 0.01);
+      //   g_camPath = buildPath(cameraStack, g_camPathSpeed * 0.01);
     }
     ImGui::SameLine();
     ImGui::SetNextItemWidth(10 * ImGui::GetFontSize());
-    ImGui::SliderFloat("speed##path", &ctx->g_camPathSpeed, 0.f, 10.0);
+    ImGui::SliderFloat("speed##path", &cameraStack->g_camPathSpeed, 0.f, 10.0);
     sg::showTooltip(
         "Animation speed for computed path.\n"
         "Slow speeds may cause jitter for small objects");
 
     static bool showCameraPath = false;
-    if (ImGui::Checkbox("show camera path", &showCameraPath))
-      ctx->viewCameraPath(showCameraPath);
+    if (ImGui::Checkbox("show camera path", &showCameraPath)) {
+      viewCameraPath(showCameraPath);
+    }
   }
 
   if (ImGui::ListBoxHeader("##")) {
-    for (int i = 0; i < ctx->cameraStack->size(); i++) {
+    for (int i = 0; i < cameraStack->size(); i++) {
       if (ImGui::Selectable(
-              (std::to_string(i) + ": " + to_string(ctx->cameraStack->at(i))).c_str(),
-              (ctx->g_camSelectedStackIndex == (int)i)))
-              ctx->selectCamStackIndex(i);
+              (std::to_string(i) + ": " + to_string(cameraStack->at(i))).c_str(),
+              (cameraStack->g_camSelectedStackIndex == (int)i))) {
+                auto valid = cameraStack->selectCamStackIndex(i);
+                if (valid)
+                ctx->updateCamera();
+              }
     }
     ImGui::ListBoxFooter();
   }
@@ -462,16 +471,18 @@ void WindowsBuilder::buildWindowSnapshots()
     return;
   }
   ImGui::Text("+ key to add new snapshots");
-  for (size_t s = 0; s < ctx->cameraStack->size(); s++) {
+  for (size_t s = 0; s < cameraStack->size(); s++) {
     if (ImGui::Button(std::to_string(s).c_str())) {
-      ctx->setCameraSnapshot(s);
+      auto valid = cameraStack->setCameraSnapshot(s);
+      if (valid)
+        ctx->updateCamera();
     }
   }
-  if (ctx->cameraStack->size()) {
+  if (cameraStack->size()) {
     if (ImGui::Button("save to cams.json")) {
       std::ofstream cams("cams.json");
       if (cams) {
-        JSON j = *ctx->cameraStack;
+        JSON j = *cameraStack;
         cams << j;
       }
     }
@@ -964,4 +975,65 @@ void WindowsBuilder::buildWindowRenderingStats()
   }
 
   ImGui::End();
+}
+
+void WindowsBuilder::viewCameraPath(bool showCameraPath)
+{
+  if (!showCameraPath) {
+    ctx->frame->child("world").remove("cameraPath_xfm");
+    ctx->refreshScene(false);
+  } else {
+    auto pathXfm = sg::createNode("cameraPath_xfm", "transform");
+
+    const auto &worldBounds = ctx->frame->child("world").bounds();
+    float pathRad = 0.0075f * reduce_min(worldBounds.size());
+    auto cameraPath = cameraStack->buildPath();
+    std::vector<vec4f> pathVertices; // position and radius
+    for (const auto &state : cameraPath)
+      pathVertices.emplace_back(state.position(), pathRad);
+    pathVertices.emplace_back(cameraStack->back().position(), pathRad);
+
+    std::vector<uint32_t> indexes(pathVertices.size());
+    std::iota(indexes.begin(), indexes.end(), 0);
+
+    std::vector<vec4f> colors(pathVertices.size());
+    std::fill(colors.begin(), colors.end(), vec4f(0.8f, 0.4f, 0.4f, 1.f));
+
+    const std::vector<uint32_t> mID = {
+        static_cast<uint32_t>(baseMaterialRegistry->baseMaterialOffSet())};
+    auto mat = sg::createNode("pathGlass", "thinGlass");
+    baseMaterialRegistry->add(mat);
+
+    auto path = sg::createNode("cameraPath", "geometry_curves");
+    path->createChildData("vertex.position_radius", pathVertices);
+    path->createChildData("vertex.color", colors);
+    path->createChildData("index", indexes);
+    path->createChild("type", "uchar", (unsigned char)OSP_ROUND);
+    path->createChild("basis", "uchar", (unsigned char)OSP_CATMULL_ROM);
+    path->createChildData("material", mID);
+    path->child("material").setSGOnly();
+
+    std::vector<vec3f> capVertexes;
+    std::vector<vec4f> capColors;
+    for (int i = 0; i < cameraStack->size(); i++) {
+      capVertexes.push_back(cameraStack->at(i).position());
+      if (i == 0)
+        capColors.push_back(vec4f(.047f, .482f, .863f, 1.f));
+      else
+        capColors.push_back(vec4f(vec3f(0.8f), 1.f));
+    }
+
+    auto caps = sg::createNode("cameraPathCaps", "geometry_spheres");
+    caps->createChildData("sphere.position", capVertexes);
+    caps->createChildData("color", capColors);
+    caps->child("color").setSGOnly();
+    caps->child("radius") = pathRad * 1.5f;
+    caps->createChildData("material", mID);
+    caps->child("material").setSGOnly();
+
+    pathXfm->add(path);
+    pathXfm->add(caps);
+
+    ctx->frame->child("world").add(pathXfm);
+  }
 }

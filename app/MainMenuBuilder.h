@@ -21,7 +21,7 @@ using namespace ospray_studio;
 struct MainMenuBuilder
 {
  public:
-  MainMenuBuilder(std::shared_ptr<GUIContext> _ctx);
+  MainMenuBuilder(std::shared_ptr<GUIContext> _ctx, std::shared_ptr<WindowsBuilder> windowsBuilder);
   ~MainMenuBuilder() = default;
   void start();
   void buildMainMenu();
@@ -58,11 +58,10 @@ std::vector<std::string> MainMenuBuilder::g_scenes = {"tutorial_scene",
     "multilevel_hierarchy"};
 bool MainMenuBuilder::g_clearSceneConfirm = false;
 
-MainMenuBuilder::MainMenuBuilder(std::shared_ptr<GUIContext> _ctx)
-    : ctx(_ctx)
-{        // Initialize windows builder and its options
-  windowsBuilder = std::make_shared<WindowsBuilder>(ctx);
-}
+MainMenuBuilder::MainMenuBuilder(std::shared_ptr<GUIContext> _ctx,
+    std::shared_ptr<WindowsBuilder> _windowsBuilder)
+    : ctx(_ctx), windowsBuilder(_windowsBuilder)
+{}
 
 void MainMenuBuilder::start()
 {
@@ -73,7 +72,6 @@ void MainMenuBuilder::start()
   buildMainMenuView();
   buildMainMenuPlugins();
   ImGui::EndMainMenuBar();
-  windowsBuilder->start();
 }
 
 void MainMenuBuilder::buildMainMenuFile()
@@ -231,8 +229,10 @@ void MainMenuBuilder::buildMainMenuView()
 
     if (ImGui::MenuItem("Camera...", "", nullptr))
       windowsBuilder->showCameraEditor = true;
-    if (ImGui::MenuItem("Center camera", "", nullptr))
-      ctx->mainWindow->resetArcball();
+    if (ImGui::MenuItem("Center camera", "", nullptr)) {
+      ctx->mainWindow->resetArcball(ctx->frame->child("world").bounds(), ctx->windowSize);
+      ctx->updateCamera();
+    }
 
     static bool lockUpDir = false;
     if (ImGui::Checkbox("Lock UpDir", &lockUpDir))

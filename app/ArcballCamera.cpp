@@ -208,32 +208,3 @@ CameraState catmullRom(const CameraState &prefix,
 
   return cf;
 }
-
-std::vector<CameraState> buildPath(const std::vector<CameraState> &anchors,
-    const float stepSize)
-{
-  if (anchors.size() < 2) {
-    std::cout << "Must have at least 2 anchors to create path!" << std::endl;
-    return {};
-  }
-
-  // in order to touch all provided anchor, we need to extrapolate a new anchor
-  // on both ends for Catmull-Rom's prefix/suffix
-  size_t last = anchors.size() - 1;
-  CameraState prefix = anchors[0].slerp(anchors[1], -0.1f);
-  CameraState suffix = anchors[last - 1].slerp(anchors[last], 1.1f);
-
-  std::vector<CameraState> path;
-  for (size_t i = 0; i < last; i++) {
-    CameraState c0 = (i == 0) ? prefix : anchors[i - 1];
-    CameraState c1 = anchors[i];
-    CameraState c2 = anchors[i + 1];
-    CameraState c3 = (i == (last - 1)) ? suffix : anchors[i + 2];
-
-    for (float frac = 0.f; frac < 1.f; frac += stepSize) {
-      path.push_back(catmullRom(c0, c1, c2, c3, frac));
-    }
-  }
-
-  return path;
-}

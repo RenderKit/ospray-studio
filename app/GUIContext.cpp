@@ -44,7 +44,6 @@ GUIContext::GUIContext(StudioCommon &_common)
   if (frame->hasChild("framebuffer"))
   framebuffer = frame->child("framebuffer").nodeAs<sg::FrameBuffer>();
   windowSize = _common.defaultSize;
-  cameraStack = std::make_shared<std::vector<CameraState>>();
 }
 
 GUIContext::~GUIContext()
@@ -60,7 +59,6 @@ void GUIContext::start()
   currentUtil = std::shared_ptr<GUIContext>(this);
   if (!mainWindow) {
     mainWindow = new MainWindow(windowSize, currentUtil);
-    mainWindow->cameraStack = cameraStack;
     mainWindow->initGLFW();
   }
 
@@ -78,7 +76,7 @@ void GUIContext::start()
   if (cams) {
     JSON j;
     cams >> j;
-    cameraStack = std::make_shared<std::vector<CameraState>>(j.get<std::vector<CameraState>>());
+    mainWindow->cameraStack->setValues(j.get<std::vector<CameraState>>());
   }
 
   if (parseCommandLine()) {
@@ -291,7 +289,7 @@ void GUIContext::refreshScene(bool resetCam)
 
   if (resetCam && !sgScene) {
     const auto &worldBounds = frame->child("world").bounds();
-    mainWindow->arcballCamera.reset(new ArcballCamera(worldBounds, windowSize));
+    mainWindow->resetArcball(worldBounds, windowSize);
   }
   
   updateCamera();
@@ -599,87 +597,6 @@ void GUIContext::selectBuffer(int whichBuffer)
   }
 }
 
-void GUIContext::addCameraState()
-{
-  if (cameraStack->empty()) {
-    cameraStack->push_back(mainWindow->arcballCamera->getState());
-    g_camSelectedStackIndex = 0;
-  } else {
-    cameraStack->insert(cameraStack->begin() + g_camSelectedStackIndex + 1,
-        mainWindow->arcballCamera->getState());
-    g_camSelectedStackIndex++;
-  }
-}
-
-void GUIContext::removeCameraState()
-{
-  // remove the selected camera state
-  cameraStack->erase(cameraStack->begin() + g_camSelectedStackIndex);
-  g_camSelectedStackIndex = std::max(0, g_camSelectedStackIndex - 1);
-}
-
-void GUIContext::viewCameraPath(bool showCameraPath)
-{
-  if (!showCameraPath) {
-    frame->child("world").remove("cameraPath_xfm");
-    refreshScene(false);
-  } else {
-    auto pathXfm = sg::createNode("cameraPath_xfm", "transform");
-
-    const auto &worldBounds = frame->child("world").bounds();
-    float pathRad = 0.0075f * reduce_min(worldBounds.size());
-    std::vector<CameraState> cameraPath =
-        buildPath(*cameraStack, g_camPathSpeed * 0.01f);
-    std::vector<vec4f> pathVertices; // position and radius
-    for (const auto &state : cameraPath)
-      pathVertices.emplace_back(state.position(), pathRad);
-    pathVertices.emplace_back(cameraStack->back().position(), pathRad);
-
-    std::vector<uint32_t> indexes(pathVertices.size());
-    std::iota(indexes.begin(), indexes.end(), 0);
-
-    std::vector<vec4f> colors(pathVertices.size());
-    std::fill(colors.begin(), colors.end(), vec4f(0.8f, 0.4f, 0.4f, 1.f));
-
-    const std::vector<uint32_t> mID = {
-        static_cast<uint32_t>(baseMaterialRegistry->baseMaterialOffSet())};
-    auto mat = sg::createNode("pathGlass", "thinGlass");
-    baseMaterialRegistry->add(mat);
-
-    auto path = sg::createNode("cameraPath", "geometry_curves");
-    path->createChildData("vertex.position_radius", pathVertices);
-    path->createChildData("vertex.color", colors);
-    path->createChildData("index", indexes);
-    path->createChild("type", "uchar", (unsigned char)OSP_ROUND);
-    path->createChild("basis", "uchar", (unsigned char)OSP_CATMULL_ROM);
-    path->createChildData("material", mID);
-    path->child("material").setSGOnly();
-
-    std::vector<vec3f> capVertexes;
-    std::vector<vec4f> capColors;
-    for (int i = 0; i < cameraStack->size(); i++) {
-      capVertexes.push_back(cameraStack->at(i).position());
-      if (i == 0)
-        capColors.push_back(vec4f(.047f, .482f, .863f, 1.f));
-      else
-        capColors.push_back(vec4f(vec3f(0.8f), 1.f));
-    }
-
-    auto caps = sg::createNode("cameraPathCaps", "geometry_spheres");
-    caps->createChildData("sphere.position", capVertexes);
-    caps->createChildData("color", capColors);
-    caps->child("color").setSGOnly();
-    caps->child("radius") = pathRad * 1.5f;
-    caps->createChildData("material", mID);
-    caps->child("material").setSGOnly();
-
-    pathXfm->add(path);
-    pathXfm->add(caps);
-
-    frame->child("world").add(pathXfm);
-  }
-}
-
 void GUIContext::removeLight(int whichLight)
 {
   if (whichLight != -1) {
@@ -823,20 +740,3 @@ void GUIContext::animationSetShowUI()
 void GUIContext::quitNextFrame() {
   mainWindow->g_quitNextFrame = true;
 }
-
-void GUIContext::setCameraSnapshot(size_t snapshot)
-{
-  if (snapshot < cameraStack->size()) {
-    const CameraState &cs = cameraStack->at(snapshot);
-    arcballCamera->setState(cs);
-    updateCamera();
-  }
-}
-
-void GUIContext::selectCamStackIndex(size_t i)
-{
-  g_camSelectedStackIndex = i;
-  arcballCamera->setState(cameraStack->at(i));
-  updateCamera();
-}
-

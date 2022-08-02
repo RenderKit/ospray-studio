@@ -50,7 +50,7 @@ class MainWindow
   void reshape(const vec2i &newWindowSize);
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
-  void resetArcball();
+  void resetArcball(const box3f &worldBounds, const vec2i &windowSize);
 
   void motion(const vec2f &position);
   void keyboardMotion();
@@ -59,10 +59,6 @@ class MainWindow
   void display();
   void centerOnEyePos();
   void buildUI();
-  void pushLookMark();
-  void popLookMark();
-
-  std::shared_ptr<std::vector<CameraState>> cameraStack;
   
   void pickCenterOfRotation(float x, float y);
 
@@ -70,6 +66,7 @@ class MainWindow
   GLFWwindow *glfwWindow = nullptr;
 
   std::shared_ptr<MainMenuBuilder> mainMenuBuilder = nullptr;
+  std::shared_ptr<WindowsBuilder> windowsBuilder = nullptr;
 
   // OpenGL framebuffer texture
   GLuint framebufferTexture = 0;
@@ -100,9 +97,10 @@ class MainWindow
   std::shared_ptr<AnimationWidget> animationWidget{nullptr};
   
   std::shared_ptr<GUIContext> ctx = nullptr;
-  std::unique_ptr<ArcballCamera> arcballCamera;
+  std::shared_ptr<ArcballCamera> arcballCamera;
+  std::shared_ptr<CameraStack<CameraState>> cameraStack = nullptr;
 
-  std::vector<CameraState> g_camPath; // interpolated path through cameraStack
+  CameraStack<CameraState> g_camPath; // interpolated path through cameraStack
 
   // static member variables
   static int g_camPathPause; // _seconds_ to pause for at end of path

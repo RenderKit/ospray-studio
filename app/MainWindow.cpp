@@ -33,12 +33,17 @@ MainWindow::MainWindow(
     const vec2i &_windowSize, std::shared_ptr<GUIContext> _ctx)
     : windowSize(_windowSize), ctx(_ctx)
 {
-
   animationWidget = std::shared_ptr<AnimationWidget>(
       new AnimationWidget("Animation Controls", ctx->animationManager));
-  
+
+  arcballCamera = std::make_shared<ArcballCamera>(
+      ctx->frame->child("world").bounds(), windowSize);
+
+  cameraStack = std::make_shared<CameraStack<CameraState>>(arcballCamera);
+  // Initialize windows builder and its options
+  windowsBuilder = std::make_shared<WindowsBuilder>(ctx, cameraStack);
   // Initialize main menu builder and options
-  mainMenuBuilder = std::make_shared<MainMenuBuilder>(ctx);
+  mainMenuBuilder = std::make_shared<MainMenuBuilder>(ctx, windowsBuilder);
 }
 
 // GLFW callbacks
@@ -173,16 +178,18 @@ void MainWindow::initGLFW()
             case GLFW_KEY_SPACE:
               if (pw->cameraStack->size() >= 2) {
                 pw->ctx->g_animatingPath = !pw->ctx->g_animatingPath;
-                pw->ctx->g_camCurrentPathIndex = 0;
+                pw->cameraStack->g_camCurrentPathIndex = 0;
               }
               pw->animationWidget->togglePlay();
               break;
             case GLFW_KEY_EQUAL:
-              pw->pushLookMark();
+              pw->cameraStack->pushLookMark();
               break;
-            case GLFW_KEY_MINUS:
-              pw->popLookMark();
-              break;
+            case GLFW_KEY_MINUS: {
+              auto valid = pw->cameraStack->popLookMark();
+              if (valid)
+                pw->ctx->updateCamera();
+            } break;
             case GLFW_KEY_0: /* fallthrough */
             case GLFW_KEY_1: /* fallthrough */
             case GLFW_KEY_2: /* fallthrough */
@@ -192,9 +199,12 @@ void MainWindow::initGLFW()
             case GLFW_KEY_6: /* fallthrough */
             case GLFW_KEY_7: /* fallthrough */
             case GLFW_KEY_8: /* fallthrough */
-            case GLFW_KEY_9:
-              pw->ctx->setCameraSnapshot((key + 9 - GLFW_KEY_0) % 10);
-              break;
+            case GLFW_KEY_9: {
+              auto valid = pw->cameraStack->setCameraSnapshot(
+                  (key + 9 - GLFW_KEY_0) % 10);
+              if (valid)
+                pw->ctx->updateCamera();
+            } break;
             }
           }
         if (action == GLFW_RELEASE) {
@@ -366,36 +376,6 @@ void MainWindow::mainLoop()
   waitOnOSPRayFrame();
 }
 
-void MainWindow::pushLookMark()
-{
-  cameraStack->push_back(arcballCamera->getState());
-  vec3f from = arcballCamera->eyePos();
-  vec3f up = arcballCamera->upDir();
-  vec3f at = arcballCamera->lookDir() + from;
-  fprintf(stderr,
-      "-vp %f %f %f -vu %f %f %f -vi %f %f %f\n",
-      from.x,
-      from.y,
-      from.z,
-      up.x,
-      up.y,
-      up.z,
-      at.x,
-      at.y,
-      at.z);
-}
-
-void MainWindow::popLookMark()
-{
-  if (cameraStack->empty())
-    return;
-  CameraState cs = cameraStack->back();
-  cameraStack->pop_back();
-
-  arcballCamera->setState(cs);
-  ctx->updateCamera();
-}
-
 void MainWindow::reshape(const vec2i &newWindowSize)
 {
   windowSize = newWindowSize;
@@ -430,11 +410,10 @@ void MainWindow::reshape(const vec2i &newWindowSize)
   arcballCamera->updateWindowSize(windowSize);
 }
 
-void MainWindow::resetArcball()
+void MainWindow::resetArcball(const box3f &worldBounds, const vec2i &windowSize)
 {
-  arcballCamera.reset(
-      new ArcballCamera(ctx->frame->child("world").bounds(), windowSize));
-  ctx->updateCamera();
+  arcballCamera.reset(new ArcballCamera(worldBounds, windowSize));
+  cameraStack->updateArcball(arcballCamera);
 }
 
 void MainWindow::pickCenterOfRotation(float x, float y)
@@ -601,12 +580,10 @@ void MainWindow::display()
   }
 
   if (ctx->g_animatingPath) {
-
-    g_camPath = buildPath(
-                      *cameraStack, ctx->g_camPathSpeed * 0.01);
+    g_camPath = cameraStack->buildPath();
 
     static int framesPaused = 0;
-    auto &g_camCurrentPathIndex = ctx->g_camCurrentPathIndex;
+    auto &g_camCurrentPathIndex = cameraStack->g_camCurrentPathIndex;
     CameraState current = g_camPath[g_camCurrentPathIndex];
     arcballCamera->setState(current);
     ctx->updateCamera();
@@ -806,6 +783,7 @@ void MainWindow::centerOnEyePos()
 void MainWindow::buildUI()
 {
   mainMenuBuilder->start();
+  windowsBuilder->start();
 
   // Add the animation widget's UI
   animationWidget->addUI();
@@ -817,4 +795,3 @@ void MainWindow::buildUI()
     if (p->isShown())
       p->buildUI(ImGui::GetCurrentContext());
 }
-
