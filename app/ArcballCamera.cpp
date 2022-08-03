@@ -5,34 +5,34 @@
 
 ArcballCamera::ArcballCamera(const box3f &worldBounds, const vec2i &windowSize)
     : worldDiag(1),
-      invWindowSize(vec2f(1.0) / vec2f(windowSize)),
-      centerTranslation(one),
-      translation(one),
-      rotation(one)
+      invWindowSize(vec2f(1.0) / vec2f(windowSize))
 {
+  cs.centerTranslation = one;
+  cs.translation = one;
+  cs.rotation = one;
   // Affects camera placement and camera movement.
   worldDiag = length(worldBounds.size());
 
-  centerTranslation = AffineSpace3f::translate(-worldBounds.center());
-  translation       = AffineSpace3f::translate(vec3f(0, 0, -worldDiag));
+  cs.centerTranslation = AffineSpace3f::translate(-worldBounds.center());
+  cs.translation       = AffineSpace3f::translate(vec3f(0, 0, -worldDiag));
   updateCamera();
 }
 
 void ArcballCamera::updateCameraToWorld(
     const affine3f &_cameraToWorld, const quaternionf &rot)
 {
-  cameraToWorld = _cameraToWorld;
-  rotation = rot;
+  cs.cameraToWorld = _cameraToWorld;
+  cs.rotation = rot;
 }
 
 void ArcballCamera::setNewWorldBounds(const box3f &worldBounds) {
-  centerTranslation = AffineSpace3f::translate(-worldBounds.center());
+  cs.centerTranslation = AffineSpace3f::translate(-worldBounds.center());
   updateCamera();
 }
 
 void ArcballCamera::rotate(const vec2f &from, const vec2f &to)
 {
-  rotation = screenToArcball(to) * screenToArcball(from) * rotation;
+  cs.rotation = screenToArcball(to) * screenToArcball(from) * cs.rotation;
   updateCamera();
 }
 
@@ -53,23 +53,23 @@ void ArcballCamera::constrainedRotate(const vec2f &from, const vec2f &to, int ax
       break;
   }
   nrot = normalize(nrot);
-  rotation = nrot * rotation;
+  cs.rotation = nrot * cs.rotation;
   updateCamera();
 }
 
 void ArcballCamera::zoom(float amount)
 {
   amount *= worldDiag;
-  translation = AffineSpace3f::translate(vec3f(0, 0, -amount)) * translation;
+  cs.translation = AffineSpace3f::translate(vec3f(0, 0, -amount)) * cs.translation;
   // Don't allow zooming through the center of the arcBall
-  translation.p.z = std::min<float>(0.f, translation.p.z);
+  cs.translation.p.z = std::min<float>(0.f, cs.translation.p.z);
   updateCamera();
 }
 
 void ArcballCamera::dolly(float amount)
 {
   auto worldt = lookDir() * amount * worldDiag;
-  centerTranslation = AffineSpace3f::translate(worldt) * centerTranslation;
+  cs.centerTranslation = AffineSpace3f::translate(worldt) * cs.centerTranslation;
   updateCamera();
 }
 
@@ -78,35 +78,35 @@ void ArcballCamera::pan(const vec2f &delta)
   // XXX This should really be called "truck/pedestal". "pan/tilt" are
   // a fixed-base rotation about the camera (more like our rotate)
   const vec3f t = vec3f(delta.x, -delta.y, 0.f) * worldDiag;
-  const vec3f worldt = 0.1f * xfmVector(cameraToWorld, t);
-  centerTranslation  = AffineSpace3f::translate(worldt) * centerTranslation;
+  const vec3f worldt = 0.1f * xfmVector(cs.cameraToWorld, t);
+  cs.centerTranslation  = AffineSpace3f::translate(worldt) * cs.centerTranslation;
   updateCamera();
 }
 
 vec3f ArcballCamera::eyePos() const
 {
-  return cameraToWorld.p;
+  return cs.cameraToWorld.p;
 }
 
 void ArcballCamera::setCenter(const vec3f &newCenter)
 {
-  centerTranslation = AffineSpace3f::translate(-newCenter);
+  cs.centerTranslation = AffineSpace3f::translate(-newCenter);
   updateCamera();
 }
 
 vec3f ArcballCamera::center() const
 {
-  return -centerTranslation.p;
+  return -cs.centerTranslation.p;
 }
 
 vec3f ArcballCamera::lookDir() const
 {
-  return xfmVector(cameraToWorld, vec3f(0, 0, -1));
+  return xfmVector(cs.cameraToWorld, vec3f(0, 0, -1));
 }
 
 vec3f ArcballCamera::upDir() const
 {
-  return lockUpDir ? upVec : xfmVector(cameraToWorld, vec3f(0, 1, 0));
+  return lockUpDir ? upVec : xfmVector(cs.cameraToWorld, vec3f(0, 1, 0));
 }
 
 void ArcballCamera::setLockUpDir(bool locked)
@@ -121,43 +121,43 @@ void ArcballCamera::setUpDir(vec3f newDir)
 
 void ArcballCamera::updateCamera()
 {
-  const AffineSpace3f rot           = LinearSpace3f(rotation);
-  const AffineSpace3f worldToCamera = translation * rot * centerTranslation;
-  cameraToWorld = rcp(worldToCamera);
+  const AffineSpace3f rot           = LinearSpace3f(cs.rotation);
+  const AffineSpace3f worldToCamera = cs.translation * rot * cs.centerTranslation;
+  cs.cameraToWorld = rcp(worldToCamera);
 }
 
 void ArcballCamera::setRotation(quaternionf q)
 {
-  rotation = q;
+  cs.rotation = q;
   updateCamera();
 }
 
 void ArcballCamera::setState(const CameraState &state)
 {
   if (state.useCameraToWorld) {
-    cameraToWorld = state.cameraToWorld;
+    cs.cameraToWorld = state.cameraToWorld;
   } else {
-    centerTranslation = state.centerTranslation;
-    translation = state.translation;
-    rotation = state.rotation;
+    cs.centerTranslation = state.centerTranslation;
+    cs.translation = state.translation;
+    cs.rotation = state.rotation;
     updateCamera();
   }
 }
 
 float ArcballCamera::getZoomLevel()
 {
-  return translation.p.z;
+  return cs.translation.p.z;
 }
 
 void ArcballCamera::setZoomLevel(float zoomLevel)
 {
-  translation.p.z = zoomLevel;
+  cs.translation.p.z = zoomLevel;
   updateCamera();
 }
 
 CameraState ArcballCamera::getState() const
 {
-  return CameraState(centerTranslation, translation, rotation, cameraToWorld);
+  return cs;
 }
 
 void ArcballCamera::updateWindowSize(const vec2i &windowSize)
@@ -176,35 +176,4 @@ quaternionf ArcballCamera::screenToArcball(const vec2f &p)
     const vec2f unitDir = normalize(p);
     return quaternionf(0, unitDir.x, -unitDir.y, 0);
   }
-}
-
-// Catmull-Rom interpolation for rotation quaternions
-// linear interpolation for translation matrices
-// adapted from Graphics Gems 2
-CameraState catmullRom(const CameraState &prefix,
-    const CameraState &from,
-    const CameraState &to,
-    const CameraState &suffix,
-    float frac)
-{
-  if (frac == 0) {
-    return from;
-  } else if (frac == 1) {
-    return to;
-  }
-
-  // essentially this interpolation creates a "pyramid"
-  // interpolate 4 points to 3
-  CameraState c10 = prefix.slerp(from, frac + 1);
-  CameraState c11 = from.slerp(to, frac);
-  CameraState c12 = to.slerp(suffix, frac - 1);
-
-  // 3 points to 2
-  CameraState c20 = c10.slerp(c11, (frac + 1) / 2.f);
-  CameraState c21 = c11.slerp(c12, frac / 2.f);
-
-  // and 2 to 1
-  CameraState cf = c20.slerp(c21, frac);
-
-  return cf;
 }

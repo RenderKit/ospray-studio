@@ -6,40 +6,23 @@
 #include <vector>
 
 #include "rkcommon/math/AffineSpace.h"
+#include "sg/Math.h"
 
 using namespace rkcommon::math;
 
-class ArcballCamera;
-
-class CameraState
+struct CameraState
 {
  public:
-  CameraState() = default;
-  CameraState(const AffineSpace3f &centerTrans,
-      const AffineSpace3f &trans,
-      const quaternionf &rot,
-      const AffineSpace3f &camToWorld)
-      : centerTranslation(centerTrans),
-        translation(trans),
-        rotation(rot),
-        cameraToWorld(camToWorld)
-  {}
 
-  CameraState slerp(const CameraState &to, float frac) const
+  AffineSpace3f centerTranslation;
+  AffineSpace3f translation;
+  AffineSpace3f cameraToWorld;
+  quaternionf rotation;
+  bool useCameraToWorld{false};
+
+  // helper functions
+  vec3f position() const
   {
-    CameraState cs;
-
-    cs.centerTranslation = lerp(frac, centerTranslation, to.centerTranslation);
-    cs.translation       = lerp(frac, translation, to.translation);
-    if (rotation != to.rotation)
-      cs.rotation = slerp(rotation, to.rotation, frac);
-    else
-      cs.rotation = rotation;
-
-    return cs;
-  }
-
-  vec3f position() const {
     const AffineSpace3f rot = LinearSpace3f(rotation);
     const AffineSpace3f camera = translation * rot * centerTranslation;
     return xfmPoint(rcp(camera), vec3f(0, 0, 1));
@@ -52,50 +35,6 @@ class CameraState
     std::stringstream ss;
     ss << pos;
     return ss.str();
-  }
-
-  // participate in Cerealization
-  template<class Archive>
-  void serialize(Archive & archive)
-  {
-    archive(centerTranslation, translation, rotation, cameraToWorld);
-  }
-
-  AffineSpace3f centerTranslation, translation;
-  quaternionf rotation;
-
-  AffineSpace3f cameraToWorld;
-  bool useCameraToWorld{false};
-
- protected:
-  friend ArcballCamera;
-
-  float dot(const quaternionf &q0, const quaternionf &q1) const
-  {
-    return q0.r * q1.r + q0.i * q1.i + q0.j * q1.j + q0.k * q1.k;
-  }
-
-  quaternionf slerp(const quaternionf &q0, const quaternionf &q1, float t) const
-  {
-    quaternionf qt0 = q0, qt1 = q1;
-    float d = dot(qt0, qt1);
-    if (d < 0.f) {
-      // prevent "long way around"
-      qt0 = -qt0;
-      d   = -d;
-    } else if (d > 0.9995) {
-      // angles too small
-      quaternionf l = lerp(t, q0, q1);
-      return normalize(l);
-    }
-
-    float theta  = std::acos(d);
-    float thetat = theta * t;
-
-    float s0 = std::cos(thetat) - d * std::sin(thetat) / std::sin(theta);
-    float s1 = std::sin(thetat) / std::sin(theta);
-
-    return s0 * qt0 + s1 * qt1;
   }
 };
 
@@ -136,7 +75,7 @@ class ArcballCamera
 
   affine3f getTransform()
   {
-    return cameraToWorld;
+    return cs.cameraToWorld;
   }
 
  protected:
@@ -147,21 +86,11 @@ class ArcballCamera
 
   float worldDiag;  // length of the world bounds diagonal
   vec2f invWindowSize;
-  AffineSpace3f centerTranslation, translation, cameraToWorld;
-  quaternionf rotation;
+  CameraState cs;
 
   bool lockUpDir{false};
   vec3f upVec{0, 1, 0};
 };
-
-// Catmull-Rom quaternion interpolation
-// requires "endpoint" states `prefix` and `suffix`
-// returns an interpolated state at `frac` [0, 1] between `from` and `to`
-CameraState catmullRom(const CameraState &prefix,
-                       const CameraState &from,
-                       const CameraState &to,
-                       const CameraState &suffix,
-                       float frac);
 
 inline std::ostream &operator<<(std::ostream &os, const CameraState &cs)
 {

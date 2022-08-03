@@ -77,7 +77,7 @@ class GUIContext : public StudioContext
   static MainWindow *mainWindow;
   
   std::shared_ptr<sg::FrameBuffer> framebuffer = nullptr;
-  std::shared_ptr<GUIContext> currentUtil = nullptr;
+
   vec2i windowSize;
 
   // list of cameras imported with the scene definition
@@ -91,26 +91,8 @@ class GUIContext : public StudioContext
   void createIsoSurface(
       int currentVolume, std::vector<ospray::sg::NodePtr> &volumes);
   void clearScene();
-  void renderTexturedQuad(vec2f &border);
-  void setLockUpDir(const vec3f &lockUpDir);
-  void setUpDir(const vec3f &upDir);
-  void animationSetShowUI();
-  void quitNextFrame();
-
-  // FPS measurement of last frame
-  float latestFPS{0.f};
-  float lockAspectRatio = 0.0;
-  // Option to always show a gamma corrected display to user.  Native sRGB
-  // buffer is untouched, linear buffers are displayed as sRGB.
-  bool uiDisplays_sRGB{true};
-
-  // Camera motion controls
-  float maxMoveSpeed{1.f};
-  float fineControl{0.2f};
-  float preFPVZoom{0.f};
-
-  // auto rotation speed, 1=0.1% window width mouse movement, 100=10%
-  int autorotateSpeed{1};
 
   std::string scene;
+  
+  float lockAspectRatio = 0.0;
 };

@@ -78,6 +78,53 @@ struct CameraStack
   float g_camPathSpeed = 5 * 0.01f; // defined in hundredths (e.g. 10 = 10 * 0.01 = 0.1)
   int g_camCurrentPathIndex = 0;
 
+  // Helper functions for building CameraStack paths
+  CameraState slerp(
+      const CameraState &from, const CameraState &to, float frac) const
+  {
+    CameraState cs;
+
+    cs.centerTranslation = lerp(frac, from.centerTranslation, to.centerTranslation);
+    cs.translation = lerp(frac, from.translation, to.translation);
+    if (from.rotation != to.rotation)
+      cs.rotation = ospray::sg::slerp(from.rotation, to.rotation, frac);
+    else
+      cs.rotation = from.rotation;
+
+    return cs;
+  }
+
+  // Catmull-Rom interpolation for rotation quaternions
+  // linear interpolation for translation matrices
+  // adapted from Graphics Gems 2
+  CameraState catmullRom(const CameraState &prefix,
+      const CameraState &from,
+      const CameraState &to,
+      const CameraState &suffix,
+      float frac)
+  {
+    if (frac == 0) {
+      return from;
+    } else if (frac == 1) {
+      return to;
+    }
+
+    // essentially this interpolation creates a "pyramid"
+    // interpolate 4 points to 3
+    CameraState c10 = slerp(prefix, from, frac + 1);
+    CameraState c11 = slerp(from, to, frac);
+    CameraState c12 = slerp(to, suffix, frac - 1);
+
+    // 3 points to 2
+    CameraState c20 = slerp(c10, c11, (frac + 1) / 2.f);
+    CameraState c21 = slerp(c11, c12, frac / 2.f);
+
+    // and 2 to 1
+    CameraState cf = slerp(c20, c21, frac);
+
+    return cf;
+  }
+
  private:
   // Data //
   storage_t values;
@@ -256,8 +303,8 @@ CameraStack<VALUE> CameraStack<VALUE>::buildPath()
   // in order to touch all provided anchor, we need to extrapolate a new anchor
   // on both ends for Catmull-Rom's prefix/suffix
   size_t last = values.size() - 1;
-  CameraState prefix = values[0].slerp(values[1], -0.1f);
-  CameraState suffix = values[last - 1].slerp(values[last], 1.1f);
+  CameraState prefix = slerp(values[0], values[1], -0.1f);
+  CameraState suffix = slerp(values[last - 1], values[last], 1.1f);
 
   CameraStack<CameraState> path;
 

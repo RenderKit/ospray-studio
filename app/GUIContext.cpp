@@ -56,7 +56,7 @@ GUIContext::~GUIContext()
 void GUIContext::start()
 {
   std::cerr << "GUI mode\n";
-  currentUtil = std::shared_ptr<GUIContext>(this);
+  auto currentUtil = std::shared_ptr<GUIContext>(this);
   if (!mainWindow) {
     mainWindow = new MainWindow(windowSize, currentUtil);
     mainWindow->initGLFW();
@@ -287,10 +287,8 @@ void GUIContext::refreshScene(bool resetCam)
 
   frame->add(world);
 
-  if (resetCam && !sgScene) {
-    const auto &worldBounds = frame->child("world").bounds();
-    mainWindow->resetArcball(worldBounds, windowSize);
-  }
+  if (resetCam && !sgScene)
+    mainWindow->resetArcball();
   
   updateCamera();
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -318,7 +316,7 @@ bool GUIContext::parseCommandLine()
   // because it desyncs window and framebuffer size with any scaling
   if (optResolution.x != 0) {
     windowSize = optResolution;
-    mainWindow->reshape(windowSize);
+    mainWindow->reshape(windowSize, true);
   }
   return true;
 }
@@ -485,6 +483,7 @@ void GUIContext::getWindowTitle(std::stringstream &windowTitle)
   } else if (fb.variance() < varianceThreshold) {
     windowTitle << "variance threshold reached";
   } else {
+    auto latestFPS = mainWindow->latestFPS;
     windowTitle << std::setprecision(3) << latestFPS << " fps";
     if (latestFPS < 2.f) {
       float progress = frame->frameProgress();
@@ -704,39 +703,4 @@ void GUIContext::clearScene()
   baseMaterialRegistry->updateRendererType();
   scene = "";
   refreshScene(true);
-}
-
-void GUIContext::renderTexturedQuad(vec2f &border)
-{
-  // render textured quad with OSPRay frame buffer contents
-  if (lockAspectRatio) {
-    // when rendered aspect ratio doesn't match window, compute texture
-    // coordinates to center the display
-    float aspectCorrection = lockAspectRatio * static_cast<float>(windowSize.y)
-        / static_cast<float>(windowSize.x);
-    if (aspectCorrection > 1.f) {
-      border.y = 1.f - aspectCorrection;
-    } else {
-      border.x = 1.f - 1.f / aspectCorrection;
-    }
-  }
-}
-
-void GUIContext::setLockUpDir(const vec3f &lockUpDir)
-{
-  mainWindow->arcballCamera->setLockUpDir(lockUpDir);
-}
-
-void GUIContext::setUpDir(const vec3f &upDir)
-{
-  mainWindow->arcballCamera->setUpDir(upDir);
-}
-
-void GUIContext::animationSetShowUI()
-{
-  mainWindow->animationWidget->setShowUI();
-}
-
-void GUIContext::quitNextFrame() {
-  mainWindow->g_quitNextFrame = true;
 }

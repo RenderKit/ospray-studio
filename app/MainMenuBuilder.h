@@ -156,7 +156,7 @@ void MainMenuBuilder::buildMainMenuFile()
           ImVec4(.8f, .2f, .2f, 1.f), "ShowMode, use ctrl-Q to exit");
     } else {
       if (ImGui::MenuItem("Quit", "Alt+F4"))
-        ctx->quitNextFrame();
+        ctx->mainWindow->quitNextFrame();
     }
 
     ImGui::EndMenu();
@@ -230,13 +230,13 @@ void MainMenuBuilder::buildMainMenuView()
     if (ImGui::MenuItem("Camera...", "", nullptr))
       windowsBuilder->showCameraEditor = true;
     if (ImGui::MenuItem("Center camera", "", nullptr)) {
-      ctx->mainWindow->resetArcball(ctx->frame->child("world").bounds(), ctx->windowSize);
+      ctx->mainWindow->resetArcball();
       ctx->updateCamera();
     }
 
     static bool lockUpDir = false;
     if (ImGui::Checkbox("Lock UpDir", &lockUpDir))
-      ctx->setLockUpDir(lockUpDir);
+      ctx->mainWindow->setLockUpDir(lockUpDir);
 
     if (lockUpDir) {
       ImGui::SameLine();
@@ -248,23 +248,23 @@ void MainMenuBuilder::buildMainMenuView()
       ImGui::SameLine();
       ImGui::RadioButton("Z##setUpDir", &dir, 2);
       if (dir != _dir) {
-        ctx->setUpDir(vec3f(dir == 0, dir == 1, dir == 2));
+        ctx->mainWindow->setUpDir(vec3f(dir == 0, dir == 1, dir == 2));
         _dir = dir;
       }
     }
 
     ImGui::Text("Camera Movement Speed:");
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-    ImGui::SliderFloat("Speed##camMov", &ctx->maxMoveSpeed, 0.1f, 5.0f);
+    ImGui::SliderFloat("Speed##camMov", &ctx->mainWindow->maxMoveSpeed, 0.1f, 5.0f);
     ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
     ImGui::SliderFloat(
-        "fineControl##camMov", &ctx->fineControl, 0.1f, 1.0f, "%0.2fx");
+        "fineControl##camMov", &ctx->mainWindow->fineControl, 0.1f, 1.0f, "%0.2fx");
     sg::showTooltip("hold <left-Ctrl> for more sensitive camera movement.");
 
     ImGui::Separator();
 
     if (ImGui::MenuItem("Animation Controls...", "", nullptr))
-      ctx->animationSetShowUI();
+      ctx->mainWindow->animationSetShowUI();
 
     if (ImGui::MenuItem("Keyframes...", "", nullptr))
       windowsBuilder->showKeyframes = true;
@@ -275,7 +275,7 @@ void MainMenuBuilder::buildMainMenuView()
     if (ctx->optAutorotate) {
       ImGui::SameLine();
       ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-      ImGui::SliderInt(" speed", &ctx->autorotateSpeed, 1, 100);
+      ImGui::SliderInt(" speed", &ctx->mainWindow->autorotateSpeed, 1, 100);
     }
     ImGui::Separator();
 
@@ -330,12 +330,12 @@ void MainMenuBuilder::buildMainMenuView()
             sizeChoice.x,
             sizeChoice.y);
         if (ImGui::MenuItem(label))
-          ctx->mainWindow->reshape(sizeChoice);
+          ctx->mainWindow->reshape(sizeChoice, true);
 
       }
       ImGui::EndMenu();
     }
-    ImGui::Checkbox("Display as sRGB", &ctx->uiDisplays_sRGB);
+    ImGui::Checkbox("Display as sRGB", &ctx->mainWindow->uiDisplays_sRGB);
     sg::showTooltip(
         "Display linear framebuffers as sRGB,\n"
         "maintains consistent display across all formats.");

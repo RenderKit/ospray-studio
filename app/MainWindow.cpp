@@ -376,7 +376,7 @@ void MainWindow::mainLoop()
   waitOnOSPRayFrame();
 }
 
-void MainWindow::reshape(const vec2i &newWindowSize)
+void MainWindow::reshape(const vec2i &newWindowSize, bool reshapeGLFW)
 {
   windowSize = newWindowSize;
   vec2i fSize = windowSize;
@@ -408,10 +408,13 @@ void MainWindow::reshape(const vec2i &newWindowSize)
 
   // update camera
   arcballCamera->updateWindowSize(windowSize);
+  if (reshapeGLFW)
+    glfwSetWindowSize(glfwWindow, windowSize.x, windowSize.y);
 }
 
-void MainWindow::resetArcball(const box3f &worldBounds, const vec2i &windowSize)
+void MainWindow::resetArcball()
 {
+  const auto &worldBounds = ctx->frame->child("world").bounds();
   arcballCamera.reset(new ArcballCamera(worldBounds, windowSize));
   cameraStack->updateArcball(arcballCamera);
 }
@@ -424,8 +427,8 @@ void MainWindow::pickCenterOfRotation(float x, float y)
       // Constraining rotation around the up works pretty well.
       arcballCamera->constrainedRotate(vec2f(0.5f, 0.5f), vec2f(x, y), 1);
       // Restore any preFPV zoom level, then clear it.
-      arcballCamera->setZoomLevel(ctx->preFPVZoom + arcballCamera->getZoomLevel());
-      ctx->preFPVZoom = 0.f;
+      arcballCamera->setZoomLevel(preFPVZoom + arcballCamera->getZoomLevel());
+      preFPVZoom = 0.f;
       arcballCamera->setCenter(vec3f(worldPosition));
     }
 }
@@ -436,9 +439,9 @@ void MainWindow::keyboardMotion()
           || g_camMoveR))
     return;
 
-  auto sensitivity = ctx->maxMoveSpeed;
+  auto sensitivity = maxMoveSpeed;
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    sensitivity *= ctx->fineControl;
+    sensitivity *= fineControl;
 
   // 6 degrees of freedom, four arrow keys? no problem.
   double inOut = g_camMoveZ;
@@ -496,9 +499,9 @@ void MainWindow::motion(const vec2f &position)
           != "default")
       ctx->changeToDefaultCamera();
 
-    auto sensitivity = ctx->maxMoveSpeed;
+    auto sensitivity = maxMoveSpeed;
     if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-      sensitivity *= ctx->fineControl;
+      sensitivity *= fineControl;
 
     auto displaySize = windowSize * contentScale;
 
@@ -551,9 +554,9 @@ void MainWindow::mouseWheel(const vec2f &scroll)
 
   // scroll is +/- 1 for horizontal/vertical mouse-wheel motion
 
-  auto sensitivity = ctx->maxMoveSpeed;
+  auto sensitivity = maxMoveSpeed;
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    sensitivity *= ctx->fineControl;
+    sensitivity *= fineControl;
 
   if (scroll.y)
     ctx->updateFovy(sensitivity, scroll.y);
@@ -568,7 +571,7 @@ void MainWindow::display()
 
   if (ctx->optAutorotate) {
     vec2f from(0.f, 0.f);
-    vec2f to(ctx->autorotateSpeed * 0.001f, 0.f);
+    vec2f to(autorotateSpeed * 0.001f, 0.f);
     arcballCamera->rotate(from, to);
     ctx->updateCamera();
   }
@@ -618,7 +621,7 @@ void MainWindow::display()
           std::chrono::duration_cast<std::chrono::milliseconds>(
               displayEnd - displayStart);
 
-      ctx->latestFPS = 1000.f / float(durationMilliseconds.count());
+      latestFPS = 1000.f / float(durationMilliseconds.count());
 
       // map OSPRay framebuffer, update OpenGL texture with contents, then unmap
       waitOnOSPRayFrame();
@@ -698,13 +701,13 @@ void MainWindow::display()
   }
 
   // Allow OpenGL to show linear buffers as sRGB.
-  if (ctx->uiDisplays_sRGB && !ctx->framebuffer->isSRGB())
+  if (uiDisplays_sRGB && !ctx->framebuffer->isSRGB())
     glEnable(GL_FRAMEBUFFER_SRGB);
 
   // clear current OpenGL color buffer
   glClear(GL_COLOR_BUFFER_BIT);
   vec2f border(0.f);
-  ctx->renderTexturedQuad(border);
+  renderTexturedQuad(border);
   border *= 0.5f;
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -730,7 +733,7 @@ void MainWindow::display()
   if (showUi) {
     // Notify ImGui of the colorspace for color picker widgets
     // (to match the colorspace of the framebuffer)
-    if (ctx->uiDisplays_sRGB || ctx->framebuffer->isSRGB())
+    if (uiDisplays_sRGB || ctx->framebuffer->isSRGB())
       ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
     buildUI();
@@ -775,7 +778,7 @@ void MainWindow::centerOnEyePos()
 {
   // Recenters camera at the eye position and zooms all the way in, like FPV
   // Save current zoom level
-  ctx->preFPVZoom = arcballCamera->getZoomLevel();
+  preFPVZoom = arcballCamera->getZoomLevel();
   arcballCamera->setCenter(arcballCamera->eyePos());
   arcballCamera->setZoomLevel(0.f);
 }
@@ -794,4 +797,39 @@ void MainWindow::buildUI()
   for (auto &p : ctx->pluginPanels)
     if (p->isShown())
       p->buildUI(ImGui::GetCurrentContext());
+}
+
+void MainWindow::renderTexturedQuad(vec2f &border)
+{
+  // render textured quad with OSPRay frame buffer contents
+  if (ctx->lockAspectRatio) {
+    // when rendered aspect ratio doesn't match window, compute texture
+    // coordinates to center the display
+    float aspectCorrection = ctx->lockAspectRatio * static_cast<float>(windowSize.y)
+        / static_cast<float>(windowSize.x);
+    if (aspectCorrection > 1.f) {
+      border.y = 1.f - aspectCorrection;
+    } else {
+      border.x = 1.f - 1.f / aspectCorrection;
+    }
+  }
+}
+
+void MainWindow::setLockUpDir(const vec3f &lockUpDir)
+{
+  arcballCamera->setLockUpDir(lockUpDir);
+}
+
+void MainWindow::setUpDir(const vec3f &upDir)
+{
+  arcballCamera->setUpDir(upDir);
+}
+
+void MainWindow::animationSetShowUI()
+{
+  animationWidget->setShowUI();
+}
+
+void MainWindow::quitNextFrame() {
+  g_quitNextFrame = true;
 }

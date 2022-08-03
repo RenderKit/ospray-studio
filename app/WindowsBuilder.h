@@ -935,7 +935,7 @@ void WindowsBuilder::buildWindowRenderingStats()
   ImGui::Text("frame size: (%d,%d)", ctx->windowSize.x, ctx->windowSize.y);
   ImGui::SameLine();
   ImGui::Text("x%1.2f", scale);
-  ImGui::Text("framerate: %-4.1f fps", ctx->latestFPS);
+  ImGui::Text("framerate: %-4.1f fps", ctx->mainWindow->latestFPS);
   ImGui::Text("ui framerate: %-4.1f fps", ImGui::GetIO().Framerate);
 
   if (varianceThreshold == 0) {
@@ -967,7 +967,7 @@ void WindowsBuilder::buildWindowRenderingStats()
     ImGui::ProgressBar(progress, ImVec2(0.f, 0.f), message);
     auto remaining = ctx->frame->accumLimit - ctx->frame->currentAccum;
     if (remaining > 0) {
-      auto secondsPerFrame = 1.f / (ctx->latestFPS + 1e-6);
+      auto secondsPerFrame = 1.f / (ctx->mainWindow->latestFPS + 1e-6);
       ImGui::SameLine();
       ImGui::Text(
           "ETA: %4.2f s", int(remaining * secondsPerFrame * 100.f) / 100.f);

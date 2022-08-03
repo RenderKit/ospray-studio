@@ -47,10 +47,10 @@ class MainWindow
 
   void mainLoop();
 
-  void reshape(const vec2i &newWindowSize);
+  void reshape(const vec2i &newWindowSize, bool reshapeGLFW = false);
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
-  void resetArcball(const box3f &worldBounds, const vec2i &windowSize);
+  void resetArcball();
 
   void motion(const vec2f &position);
   void keyboardMotion();
@@ -118,5 +118,26 @@ class MainWindow
   static bool showUi; // toggles display of ImGui UI, if an ImGui callback is provided
   static bool g_saveNextFrame;
 
+  // FPS measurement of last frame
+  float latestFPS{0.f};
+
+  // Option to always show a gamma corrected display to user.  Native sRGB
+  // buffer is untouched, linear buffers are displayed as sRGB.
+  bool uiDisplays_sRGB{true};
+
+  // Camera motion controls
+  float maxMoveSpeed{1.f};
+  float fineControl{0.2f};
+  float preFPVZoom{0.f};
+
+  // auto rotation speed, 1=0.1% window width mouse movement, 100=10%
+  int autorotateSpeed{1};
+
   void static error_callback(int error, const char *desc);
+
+  void renderTexturedQuad(vec2f &border);
+  void setLockUpDir(const vec3f &lockUpDir);
+  void setUpDir(const vec3f &upDir);
+  void animationSetShowUI();
+  void quitNextFrame();
 };
