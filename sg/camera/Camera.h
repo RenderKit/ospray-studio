@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "app/ArcballCamera.h"
 #include "sg/Node.h"
 
 namespace ospray {

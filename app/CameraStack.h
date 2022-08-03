@@ -89,16 +89,12 @@ struct CameraStack
 template <typename VALUE>
 inline VALUE &CameraStack<VALUE>::at(size_t index)
 {
-  if (index >= values.size())
-    throw std::out_of_range("accessing out-of-range index");
   return values.at(index);
 }
 
 template <typename VALUE>
 inline VALUE &CameraStack<VALUE>::operator[](size_t index)
 {
-  if (index >= values.size())
-    throw std::out_of_range("accessing out-of-range index");
   return values.at(index);
 }
 

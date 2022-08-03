@@ -81,7 +81,8 @@ class MainWindow : public StudioContext
 
   void changeToDefaultCamera();
   void updateCamera() override;
-  void setCameraState(CameraState &cs) override;
+  // following moved to cameraStack
+//   void setCameraState(CameraState &cs) override;
   void refreshScene(bool resetCamera) override;
   int whichLightType{-1};
   int whichCamera{0};

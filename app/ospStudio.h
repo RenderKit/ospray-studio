@@ -17,7 +17,6 @@
 #include "sg/scene/lights/LightsManager.h"
 // studio app
 #include "AnimationManager.h"
-#include "ArcballCamera.h"
 // ospcommon
 #include "rkcommon/common.h"
 
@@ -135,10 +134,6 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   virtual void refreshScene(bool resetCam) = 0;
   virtual void updateCamera() = 0;
 
-  // this method is so that importScene (in sg) does not need
-  // to compile/link with ArcballCamera/UI
-  virtual void setCameraState(CameraState &cs){};
-
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
   std::shared_ptr<sg::LightsManager> lightsManager;
@@ -147,7 +142,6 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<sg::Scheduler> scheduler;
 
   std::vector<std::string> filesToImport;
-  std::unique_ptr<ArcballCamera> arcballCamera;
 
   // global context camera settings for loading external cameras
   std::shared_ptr<affine3f> cameraView{nullptr};
