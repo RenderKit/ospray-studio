@@ -326,7 +326,7 @@ void MainMenuBuilder::buildMainMenuView()
         snprintf(label,
             sizeof(label),
             "%s%d x %d",
-            ctx->windowSize == sizeChoice ? "*" : " ",
+            ctx->mainWindow->windowSize == sizeChoice ? "*" : " ",
             sizeChoice.x,
             sizeChoice.y);
         if (ImGui::MenuItem(label))

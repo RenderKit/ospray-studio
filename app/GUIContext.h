@@ -78,7 +78,7 @@ class GUIContext : public StudioContext
   
   std::shared_ptr<sg::FrameBuffer> framebuffer = nullptr;
 
-  vec2i windowSize;
+  vec2i defaultSize;
 
   // list of cameras imported with the scene definition
   static CameraMap g_sceneCameras;

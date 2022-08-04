@@ -43,7 +43,7 @@ GUIContext::GUIContext(StudioCommon &_common)
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
   if (frame->hasChild("framebuffer"))
   framebuffer = frame->child("framebuffer").nodeAs<sg::FrameBuffer>();
-  windowSize = _common.defaultSize;
+  defaultSize = _common.defaultSize;
 }
 
 GUIContext::~GUIContext()
@@ -58,7 +58,7 @@ void GUIContext::start()
   std::cerr << "GUI mode\n";
   auto currentUtil = std::shared_ptr<GUIContext>(this);
   if (!mainWindow) {
-    mainWindow = new MainWindow(windowSize, currentUtil);
+    mainWindow = new MainWindow(defaultSize, currentUtil);
     mainWindow->initGLFW();
   }
 
@@ -102,7 +102,7 @@ void GUIContext::updateCamera()
     if (g_selectedSceneCamera->hasChild("aspect"))
       lockAspectRatio =
           g_selectedSceneCamera->child("aspect").valueAs<float>();
-    mainWindow->reshape(windowSize); // resets aspect
+    mainWindow->reshape(defaultSize); // resets aspect
     cameraIdx = 0; // reset global-context cameraIndex
     mainWindow->arcballCamera->updateCameraToWorld(affine3f{one}, one);
     cameraView = nullptr; // only used for arcball/default
@@ -129,7 +129,7 @@ void GUIContext::updateCamera()
       if (settingsCamera->hasChild("aspect"))
         lockAspectRatio =
             settingsCamera->child("aspect").valueAs<float>();
-      mainWindow->reshape(windowSize); // resets aspect
+      mainWindow->reshape(defaultSize); // resets aspect
     }
 
     auto worldToCamera = rcp(*cameraView);
@@ -315,8 +315,8 @@ bool GUIContext::parseCommandLine()
   // XXX: changing windowSize here messes causes some display scaling issues
   // because it desyncs window and framebuffer size with any scaling
   if (optResolution.x != 0) {
-    windowSize = optResolution;
-    mainWindow->reshape(windowSize, true);
+    defaultSize = optResolution;
+    mainWindow->reshape(defaultSize, true);
   }
   return true;
 }
@@ -458,8 +458,8 @@ bool GUIContext::resHasHit(float &x, float &y, vec3f &worldPosition)
   auto &c = frame->childAs<sg::Camera>("camera");
   auto &w = frame->childAs<sg::World>("world");
   res = fb.handle().pick(r, c, w, x, y);
-  x = clamp(x / windowSize.x, 0.f, 1.f);
-  y = 1.f - clamp(y / windowSize.y, 0.f, 1.f);
+  x = clamp(x / mainWindow->windowSize.x, 0.f, 1.f);
+  y = 1.f - clamp(y / mainWindow->windowSize.y, 0.f, 1.f);
   worldPosition = res.worldPosition;
   if (res.hasHit) {
     c["lookAt"] = vec3f(worldPosition);
@@ -620,7 +620,7 @@ void GUIContext::selectCamera(size_t whichCamera)
     if (g_selectedSceneCamera->hasChild("aspect"))
       lockAspectRatio =
           g_selectedSceneCamera->child("aspect").valueAs<float>();
-    mainWindow->reshape(windowSize); // resets aspect
+    mainWindow->reshape(defaultSize); // resets aspect
     if (!hasParents)
       updateCamera();
   }
@@ -629,7 +629,7 @@ void GUIContext::selectCamera(size_t whichCamera)
 void GUIContext::createNewCamera(const std::string newType)
 {
   frame->createChildAs<sg::Camera>("camera", newType);
-  mainWindow->reshape(windowSize); // resets aspect
+  mainWindow->reshape(defaultSize); // resets aspect
   updateCamera();
 }
 

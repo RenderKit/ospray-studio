@@ -388,7 +388,7 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
   } else {
     if (ImGui::Button("Lock")) {
       ctx->lockAspectRatio =
-          static_cast<float>(ctx->windowSize.x) / static_cast<float>(ctx->windowSize.y);
+          static_cast<float>(ctx->mainWindow->windowSize.x) / static_cast<float>(ctx->mainWindow->windowSize.y);
     }
     sg::showTooltip("Lock to current aspect ratio");
   }
@@ -399,7 +399,7 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
   ctx->lockAspectRatio = std::max(ctx->lockAspectRatio, 0.f);
 
   if (origAspect != ctx->lockAspectRatio)
-    ctx->mainWindow->reshape(ctx->windowSize);
+    ctx->mainWindow->reshape(ctx->mainWindow->windowSize);
 
   ImGui::End();
 }
@@ -932,7 +932,7 @@ void WindowsBuilder::buildWindowRenderingStats()
   float scale = ctx->frame->child("scale" + mode).valueAs<float>();
 
   ImGui::Text("renderer: %s", rendererTypeStr.c_str());
-  ImGui::Text("frame size: (%d,%d)", ctx->windowSize.x, ctx->windowSize.y);
+  ImGui::Text("frame size: (%d,%d)", ctx->mainWindow->windowSize.x, ctx->mainWindow->windowSize.y);
   ImGui::SameLine();
   ImGui::Text("x%1.2f", scale);
   ImGui::Text("framerate: %-4.1f fps", ctx->mainWindow->latestFPS);
