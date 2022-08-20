@@ -487,6 +487,7 @@ void MainWindow::start()
     refreshRenderer();
     refreshScene(true);
     mainLoop();
+    saveCurrentFrame();
   }
 }
 
@@ -1395,14 +1396,15 @@ void MainWindow::importFiles(sg::NodePtr world)
 
 void MainWindow::saveCurrentFrame()
 {
+  const size_t FILENAME_LENGTH = 256;
   int filenum = 0;
-  char filename[64];
+  char filename[FILENAME_LENGTH];
   const char *ext = optImageFormat.c_str();
 
-  // Find an unused filename to ensure we don't overwrite and existing file
+  // Find an unused filename to ensure we don't overwrite an existing file
   do
     std::snprintf(
-        filename, 64, "%s.%04d.%s", optImageName.c_str(), filenum++, ext);
+        filename, FILENAME_LENGTH, "%s.%04d.%s", optImageName.c_str(), filenum++, ext);
   while (std::ifstream(filename).good());
 
   int screenshotFlags = optSaveLayersSeparately << 3 | optSaveNormal << 2
