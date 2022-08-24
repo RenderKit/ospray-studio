@@ -610,7 +610,7 @@ void GUIContext::removeLight(int whichLight)
 
 void GUIContext::selectCamera(size_t whichCamera)
 {
-  if (whichCamera > -1 && whichCamera < (int)g_sceneCameras.size()) {
+  if (whichCamera < (int)g_sceneCameras.size()) {
     auto &newCamera = g_sceneCameras.at_index(whichCamera);
     g_selectedSceneCamera = newCamera.second;
     auto hasParents = g_selectedSceneCamera->parents().size();
