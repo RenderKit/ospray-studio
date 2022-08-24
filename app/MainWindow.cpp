@@ -422,6 +422,8 @@ void MainWindow::resetArcball()
 void MainWindow::pickCenterOfRotation(float x, float y)
 {
   vec3f worldPosition;
+  x = clamp(x / windowSize.x, 0.f, 1.f);
+  y = 1.f - clamp(y / windowSize.y, 0.f, 1.f);
   if (ctx->resHasHit(x, y, worldPosition))
     if (!(glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)) {
       // Constraining rotation around the up works pretty well.

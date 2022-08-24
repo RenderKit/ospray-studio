@@ -458,8 +458,6 @@ bool GUIContext::resHasHit(float &x, float &y, vec3f &worldPosition)
   auto &c = frame->childAs<sg::Camera>("camera");
   auto &w = frame->childAs<sg::World>("world");
   res = fb.handle().pick(r, c, w, x, y);
-  x = clamp(x / mainWindow->windowSize.x, 0.f, 1.f);
-  y = 1.f - clamp(y / mainWindow->windowSize.y, 0.f, 1.f);
   worldPosition = res.worldPosition;
   if (res.hasHit) {
     c["lookAt"] = vec3f(worldPosition);
