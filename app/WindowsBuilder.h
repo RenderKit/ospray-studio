@@ -399,7 +399,7 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
   ctx->lockAspectRatio = std::max(ctx->lockAspectRatio, 0.f);
 
   if (origAspect != ctx->lockAspectRatio)
-    ctx->mainWindow->reshape(ctx->mainWindow->windowSize);
+    ctx->mainWindow->reshape();
 
   ImGui::End();
 }

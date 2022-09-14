@@ -240,7 +240,8 @@ void MainWindow::initGLFW()
   glfwSetFramebufferSizeCallback(
       glfwWindow, [](GLFWwindow *glfwWindow, int newWidth, int newHeight) {
         auto pw = (MainWindow*)glfwGetWindowUserPointer(glfwWindow);
-        pw->reshape(vec2i{newWidth, newHeight});
+        pw->windowSize = vec2i{newWidth, newHeight};
+        pw->reshape();
       });
 
   glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow *glfwWindow, int, int action, int) {
@@ -308,7 +309,7 @@ void MainWindow::initGLFW()
 
   // trigger window reshape events with current window size
   glfwGetFramebufferSize(glfwWindow, &windowSize.x, &windowSize.y);
-  reshape(windowSize);
+  reshape();
 }
 
 MainWindow::~MainWindow()
@@ -376,17 +377,16 @@ void MainWindow::mainLoop()
   waitOnOSPRayFrame();
 }
 
-void MainWindow::reshape(const vec2i &newWindowSize, bool reshapeGLFW)
+void MainWindow::reshape(bool reshapeGLFW)
 {
-  windowSize = newWindowSize;
   vec2i fSize = windowSize;
   auto frame = ctx->frame;
   if (ctx->lockAspectRatio) {
     // Tell OSPRay to render the largest subset of the window that satisies the
     // aspect ratio
     float aspectCorrection = ctx->lockAspectRatio
-        * static_cast<float>(newWindowSize.y)
-        / static_cast<float>(newWindowSize.x);
+        * static_cast<float>(windowSize.y)
+        / static_cast<float>(windowSize.x);
     if (aspectCorrection > 1.f) {
       fSize.y /= aspectCorrection;
     } else {

@@ -102,7 +102,7 @@ void GUIContext::updateCamera()
     if (g_selectedSceneCamera->hasChild("aspect"))
       lockAspectRatio =
           g_selectedSceneCamera->child("aspect").valueAs<float>();
-    mainWindow->reshape(defaultSize); // resets aspect
+    mainWindow->reshape(); // resets aspect
     cameraIdx = 0; // reset global-context cameraIndex
     mainWindow->arcballCamera->updateCameraToWorld(affine3f{one}, one);
     cameraView = nullptr; // only used for arcball/default
@@ -129,7 +129,7 @@ void GUIContext::updateCamera()
       if (settingsCamera->hasChild("aspect"))
         lockAspectRatio =
             settingsCamera->child("aspect").valueAs<float>();
-      mainWindow->reshape(defaultSize); // resets aspect
+      mainWindow->reshape(); // resets aspect
     }
 
     auto worldToCamera = rcp(*cameraView);
@@ -316,7 +316,9 @@ bool GUIContext::parseCommandLine()
   // because it desyncs window and framebuffer size with any scaling
   if (optResolution.x != 0) {
     defaultSize = optResolution;
-    mainWindow->reshape(defaultSize, true);
+    // since parseCommandLine happens after MainWindow object creation update the windowSize of that class
+    mainWindow->windowSize = defaultSize;
+    mainWindow->reshape(true);
   }
   return true;
 }
@@ -618,7 +620,7 @@ void GUIContext::selectCamera(size_t whichCamera)
     if (g_selectedSceneCamera->hasChild("aspect"))
       lockAspectRatio =
           g_selectedSceneCamera->child("aspect").valueAs<float>();
-    mainWindow->reshape(defaultSize); // resets aspect
+    mainWindow->reshape(); // resets aspect
     if (!hasParents)
       updateCamera();
   }
@@ -627,7 +629,7 @@ void GUIContext::selectCamera(size_t whichCamera)
 void GUIContext::createNewCamera(const std::string newType)
 {
   frame->createChildAs<sg::Camera>("camera", newType);
-  mainWindow->reshape(defaultSize); // resets aspect
+  mainWindow->reshape(); // resets aspect
   updateCamera();
 }
 

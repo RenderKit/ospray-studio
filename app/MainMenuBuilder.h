@@ -329,9 +329,11 @@ void MainMenuBuilder::buildMainMenuView()
             ctx->mainWindow->windowSize == sizeChoice ? "*" : " ",
             sizeChoice.x,
             sizeChoice.y);
-        if (ImGui::MenuItem(label))
-          ctx->mainWindow->reshape(sizeChoice, true);
-
+        if (ImGui::MenuItem(label)) {
+          // update the windowSize attribute of MainWindow object directly
+          ctx->mainWindow->windowSize = sizeChoice;
+          ctx->mainWindow->reshape(true);
+        }
       }
       ImGui::EndMenu();
     }

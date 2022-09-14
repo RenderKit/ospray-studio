@@ -47,7 +47,7 @@ class MainWindow
 
   void mainLoop();
 
-  void reshape(const vec2i &newWindowSize, bool reshapeGLFW = false);
+  void reshape(bool reshapeGLFW = false);
   void startNewOSPRayFrame();
   void waitOnOSPRayFrame();
   void resetArcball();
