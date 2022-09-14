@@ -8,9 +8,9 @@
 #include "rkcommon/math/AffineSpace.h"
 #include "sg/Math.h"
 
-using namespace rkcommon::math;
+#include "Node.h" // for OSPSG_INTERFACE
 
-struct CameraState
+struct OSPSG_INTERFACE CameraState
 {
  public:
 
@@ -38,7 +38,7 @@ struct CameraState
   }
 };
 
-class ArcballCamera
+class OSPSG_INTERFACE ArcballCamera
 {
  public:
   ArcballCamera(const box3f &worldBounds, const vec2i &windowSize);

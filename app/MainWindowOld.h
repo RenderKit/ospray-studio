@@ -5,7 +5,7 @@
 
 #include "ospStudio.h"
 
-#include "ArcballCamera.h"
+#include "sg/ArcballCamera.h"
 // glfw
 #include <GLFW/glfw3.h>
 // ospray sg

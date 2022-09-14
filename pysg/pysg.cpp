@@ -24,7 +24,7 @@
 #include <sg/scene/transfer_function/TransferFunction.h>
 #include <sg/scene/volume/Volume.h>
 
-#include "app/ArcballCamera.h"
+#include <sg/ArcballCamera.h>
 
 namespace py = pybind11;
 using namespace ospray::sg;

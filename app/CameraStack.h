@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "ArcballCamera.h"
+#include <sg/ArcballCamera.h>
 
 // A template wrapper around std::vector for implementing a generic CameraStack
 

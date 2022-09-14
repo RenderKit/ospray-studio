@@ -46,7 +46,6 @@ elseif(UNIX)
 endif()
 
 add_library(ospray_ui STATIC
-  ArcballCamera.cpp
   imgui_impl_glfw.cpp
   imgui_impl_opengl2.cpp
   widgets/TransferFunctionWidget.cpp

@@ -9,7 +9,7 @@
 #include "importer/Importer.h"
 #include "scene/lights/LightsManager.h"
 
-#include "app/ArcballCamera.h"
+#include "ArcballCamera.h"
 
 // This file contains definitions of `to_json` and `from_json` for custom types
 // used within Studio. These methods allow us to easily serialize and
