@@ -432,6 +432,7 @@ void MainWindow::pickCenterOfRotation(float x, float y)
       arcballCamera->setZoomLevel(preFPVZoom + arcballCamera->getZoomLevel());
       preFPVZoom = 0.f;
       arcballCamera->setCenter(vec3f(worldPosition));
+      ctx->updateCamera();
     }
 }
 

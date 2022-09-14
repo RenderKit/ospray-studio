@@ -461,10 +461,8 @@ bool GUIContext::resHasHit(float &x, float &y, vec3f &worldPosition)
   auto &w = frame->childAs<sg::World>("world");
   res = fb.handle().pick(r, c, w, x, y);
   worldPosition = res.worldPosition;
-  if (res.hasHit) {
+  if (res.hasHit)
     c["lookAt"] = vec3f(worldPosition);
-    updateCamera();
-  }
   return res.hasHit;
 }
 
