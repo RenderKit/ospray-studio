@@ -710,7 +710,23 @@ void MainWindow::display()
   // clear current OpenGL color buffer
   glClear(GL_COLOR_BUFFER_BIT);
   vec2f border(0.f);
-  renderTexturedQuad(border);
+
+  // clear current OpenGL color buffer
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  if (ctx->lockAspectRatio) {
+    // when rendered aspect ratio doesn't match window, compute texture
+    // coordinates to center the display
+    float aspectCorrection = ctx->lockAspectRatio
+        * static_cast<float>(windowSize.y) / static_cast<float>(windowSize.x);
+    if (aspectCorrection > 1.f) {
+      border.y = 1.f - aspectCorrection;
+    } else {
+      border.x = 1.f - 1.f / aspectCorrection;
+    }
+  }
+
+  // render textured quad with OSPRay frame buffer contents
   border *= 0.5f;
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -800,22 +816,6 @@ void MainWindow::buildUI()
   for (auto &p : ctx->pluginPanels)
     if (p->isShown())
       p->buildUI(ImGui::GetCurrentContext());
-}
-
-void MainWindow::renderTexturedQuad(vec2f &border)
-{
-  // render textured quad with OSPRay frame buffer contents
-  if (ctx->lockAspectRatio) {
-    // when rendered aspect ratio doesn't match window, compute texture
-    // coordinates to center the display
-    float aspectCorrection = ctx->lockAspectRatio * static_cast<float>(windowSize.y)
-        / static_cast<float>(windowSize.x);
-    if (aspectCorrection > 1.f) {
-      border.y = 1.f - aspectCorrection;
-    } else {
-      border.x = 1.f - 1.f / aspectCorrection;
-    }
-  }
 }
 
 void MainWindow::setLockUpDir(const vec3f &lockUpDir)

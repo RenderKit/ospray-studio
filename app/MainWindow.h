@@ -135,7 +135,6 @@ class MainWindow
 
   void static error_callback(int error, const char *desc);
 
-  void renderTexturedQuad(vec2f &border);
   void setLockUpDir(const vec3f &lockUpDir);
   void setUpDir(const vec3f &upDir);
   void animationSetShowUI();
