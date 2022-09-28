@@ -169,7 +169,7 @@ inline std::shared_ptr<Importer> getImporter(
     std::string rootXfmName = baseName + "_rootXfm";
 
     // Existing import, instance it!
-    std::cout << "Instancing: " << origNode->name() << std::endl;
+    std::cout << "Instancing: " << fullName << " as " << origNode->name() << std::endl;
 
     if (!origNode->hasChild(rootXfmName)) {
       std::cout << "!!! error... importer rootXfm is missing?! Is async tasking enabled? --no-async-tasking to disable" << std::endl;
@@ -179,8 +179,7 @@ inline std::shared_ptr<Importer> getImporter(
 
     // Create a unique instanceXfm nodeName
     int count = ++origNode->child("count").valueAs<int>();
-
-    nodeName = baseName + "_instanceXfm_" + std::to_string(count);
+    nodeName = origNode->name() + "_instanceXfm_" + std::to_string(count);
     
     auto instanceXfm = createNode(nodeName, "transform");
 
@@ -192,6 +191,11 @@ inline std::shared_ptr<Importer> getImporter(
 
   } else {
     nodeName = baseName + "_importer";
+    if (root->hasChild(nodeName)) {
+      auto count = ++root->child(nodeName)["count"].valueAs<int>();
+      root->child(nodeName)["count"] = count;
+      nodeName += "_" + std::to_string(count);
+    }
     auto importNode = createNodeAs<Importer>(nodeName, importer);
     importNode->createChild("count", "int", 0);
     importNode->child("count").setSGNoUI();
