@@ -418,15 +418,16 @@ void GUIContext::importFiles(sg::NodePtr world)
 
 void GUIContext::saveCurrentFrame()
 {
+  std::string filename;
+  char filenumber[16];
   int filenum = 0;
-  char filename[64];
-  const char *ext = optImageFormat.c_str();
 
-  // Find an unused filename to ensure we don't overwrite and existing file
-  do
-    std::snprintf(
-        filename, 64, "%s.%04d.%s", optImageName.c_str(), filenum++, ext);
-  while (std::ifstream(filename).good());
+  // Find an unused filename to ensure we don't overwrite an existing file
+  // XXX refactor to allow forceRewrite option, as in batch mode
+  do {
+    std::snprintf(filenumber, 16, ".%05d.", filenum++);
+    filename = optImageName + filenumber + optImageFormat;
+  } while (std::ifstream(filename).good());
 
   int screenshotFlags = optSaveLayersSeparately << 3 | optSaveNormal << 2
       | optSaveDepth << 1 | optSaveAlbedo;
