@@ -97,14 +97,14 @@ stages:
     - /^release-.*$/
     - devel
 
-source-protex-scan:
-  stage: scan
-  image: amd64/openjdk:8
-  script:
-    - gitlab/source-scan-protex.sh
-  tags: [docker]
-  needs: []
-  allow_failure: true
+      #source-protex-scan:
+      #  stage: scan
+      #  image: amd64/openjdk:8
+      #  script:
+      #    - gitlab/source-scan-protex.sh
+      #  tags: [docker]
+      #  needs: []
+      #  allow_failure: true
 
 ########
 # These build phases will no longer work on current branches, due to non-release branch dependencies
