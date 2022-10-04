@@ -5,7 +5,6 @@
 
 #include "GUIContext.h"
 #include "Batch.h"
-#include "TimeSeriesWindow.h"
 #include "sg/Mpi.h"
 
 // CLI
@@ -373,9 +372,6 @@ int main(int argc, const char *argv[])
     case StudioMode::HEADLESS:
       std::cerr << "Headless mode\n";
       break;
-    // case StudioMode::TIMESERIES:
-    //   context = std::make_shared<TimeSeriesWindow>(studioCommon);
-    //   break;
 #ifdef USE_BENCHMARK
     case StudioMode::BENCHMARK:
       context = std::make_shared<BenchmarkContext>(studioCommon);
