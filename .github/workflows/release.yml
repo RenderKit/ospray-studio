@@ -20,29 +20,6 @@ concurrency:
 jobs:
 
   ## Linux
-  # build-centos7:
-  #   secrets: inherit
-  #   uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-  #   with:
-  #     image: centos:7
-  #     cmd: |
-  #       module load intel/2020.1
-  #       export CC=icc
-  #       export CXX=icpc
-  #       export CXXFLAGS="-static-intel -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
-  #       gitlab/build.sh
-  #     artifact-out: build-centos7
-  #     artifact-path: build
-
-  # build-centos8:
-  #   secrets: inherit
-  #   uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-  #   with:
-  #     image: centos:8
-  #     cmd: gitlab/build.sh
-  #     artifact-out: build-centos8
-  #     artifact-path: build
-
   build-ubuntu18-04:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
@@ -51,33 +28,6 @@ jobs:
       cmd: gitlab/build.sh
       artifact-out: build-ubuntu18-04
       artifact-path: build
-
-  # build-ubuntu20-04:
-  #   secrets: inherit
-  #   uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-  #   with:
-  #     image: ubuntu:20.04
-  #     cmd: gitlab/build.sh
-  #     artifact-out: build-ubuntu20-04
-  #     artifact-path: build
-
-  # build-arch:
-  #   secrets: inherit
-  #   uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-  #   with:
-  #     image: ospray/docker-images:arch
-  #     cmd: gitlab/build.sh
-  #     artifact-out: build-arch
-  #     artifact-path: build
-  
-  # test-run-centos7:
-  #   needs: build-centos7
-  #   uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-  #   with:
-  #     image: centos:7
-  #     cmd: |
-  #       build/install/bin/ospStudio --verify_install
-  #     artifact-in: build-centos7
 
   test-run-ubuntu18-04:
     needs: build-ubuntu18-04
@@ -88,20 +38,24 @@ jobs:
         gitlab/run.sh
       artifact-in: build-ubuntu18-04
 
-
   ## Windows
   build-windows-msvc15:
-    secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      cmd: gitlab/win.ps1
-
-  ## macOS
+      cmd: |
+        $env:Python3_ROOT = "N:/packages/apps/python/3.9.7/windows"
+        gitlab\win.ps1
+      artifact-out: build-windows
+      artifact-path: build-win
+  
+  ## MacOS
   build-macOS:
-    secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
     with:
-      cmd: gitlab/macos.sh
+      cmd: |
+        gitlab/macos.sh
+      artifact-out: build-macos
+      artifact-path: build-macos
 
   ## Scan Jobs ##
     ## Linux

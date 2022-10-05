@@ -16,8 +16,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  CACHE_DIR: /NAS/ci-cache
+# env:
+#   PYTHON_ROOT_WINDOWS: "N:/packages/apps/python/$PYTHON_VERSION/windows"
+#   CACHE_DIR: /NAS/ci-cache
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -65,10 +66,6 @@ jobs:
       artifact-out: build-arch
       artifact-path: build
 
-  ## Windows
-
-  ## MacOS
-  
   ## Test Jobs ##
   test-run-centos7:
     needs: build-centos7
@@ -103,14 +100,26 @@ jobs:
       artifact-path: build
       artifact-out: build-ubuntu18-04-dev
 
-  # build-ubuntu18-04-dev:
-  #   secrets: inherit
-  #   uses: ./.github/workflows/cache-ospray.yml
-  #   with:
-  #     image: ubuntu:18.04
-  #     artifact-out: build-ubuntu18-04-dev
-
-  # Test Dev Jobs
+  ## MacOS
+  build-macos-clang-dev:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
+    with:
+      cmd: |
+        gitlab/macos-dev.sh
+      artifact-out: build-macos
+      artifact-path: build-macos
+  
+  ## Windows
+  build-windows-msvc15-dev:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      cmd: |
+        $env:Python3_ROOT = "N:/packages/apps/python/3.9.7/windows"
+        gitlab\win-dev.ps1
+      artifact-out: build-windows
+      artifact-path: build-win
+  
+  ## Dev Test Jobs
   test-run-ubuntu18-04-dev:
     needs: build-ubuntu18-04-dev
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
