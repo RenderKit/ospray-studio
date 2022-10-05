@@ -5,21 +5,25 @@ on:
       image:
         required: true
         type: string
-      cache-dir:
+      ospray-version:
         required: true
         type: string
-      # artifact-out:
-      #   required: false
-      #   type: string
+      rkcommon-version:
+        required: true
+        type: string
+      cache-dir:
+        required: false
+        type: string
+        default: /NAS/ci-cache
       runs-on:
         required: false
         type: string
         default: '[ "Linux", "build" ]'
-
-env:
-  CACHE_DIR: ${{ inputs.cache-dir }}
-  OSPRAY_VER: devel
-  RKCOMMON_VER: devel
+    outputs:
+      cache-dir:
+        value: ${{ inputs.cache-dir }}
+      ospray-version:
+        value: ${{ inputs.ospray-version }}
 
 defaults:
   run:
@@ -38,47 +42,20 @@ jobs:
 
     steps:
 
-      # - name: Checkout
-      #   uses: actions/checkout@v3
-      
-      - name: Checkout dependencies
+      - name: Checkout OSPRay
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.SDVIS_DEVOPS_PAT }}
           repository: intel-innersource/libraries.graphics.renderkit.ospray
           ref: devel
-          path: ospray-${{ env.OSPRAY_VER }}
+          path: ospray-${{ inputs.ospray-version }}
 
       - name: Cache OSPRay
         run: |
-          if [[ ! -d "$CACHE_DIR/ospray-$OSPRAY_VER" ]]
+          if [[ ! -d "${{ inputs.cache-dir }}/ospray-${{ inputs.ospray-version }}" ]]
           then
-            cmake -L -S ./scripts/superbuild -B ospray-$OSPRAY_VER -DBUILD_OIDN=ON -DBUILD_EMBREE_FROM_SOURCE=OFF -DBUILD_RKCOMMON_VERSION=$RKCOMMON_VER -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF
-            cmake --build ospray-$OSPRAY_VER
-            cp -r ospray-$OSPRAY_VER $CACHE_DIR
+            cmake -L -S ospray-${{ inputs.ospray-version }}/scripts/superbuild -B ospray-${{ inputs.ospray-version }}/build -DBUILD_OIDN=ON -DBUILD_EMBREE_FROM_SOURCE=OFF -DBUILD_RKCOMMON_VERSION=${{ inputs.rkcommon-version }} -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF
+            cmake --build ospray-${{ inputs.ospray-version }}/build
+            cp -r ospray-${{ inputs.ospray-version }} ${{ inputs.cache-dir }}
           fi
-
-      # - name: Configure dependencies
-      #   run: |
-      #     cmake -L -S ospray-$OSPRAY_VER/scripts/superbuild -B ospray-$OSPRAY_VER/build -DBUILD_OIDN=ON -DBUILD_EMBREE_FROM_SOURCE=OFF -DBUILD_RKCOMMON_VERSION=$RKCOMMON_VER -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF
-
-      # - name: Build dependencies
-      #   run: |
-      #     cmake --build ospray-$OSPRAY_VER/build
-
-      # - name: Configure
-      #   run: |
-      #     export CMAKE_PREFIX_PATH="ospray-$OSPRAY_VER/build/install"
-      #     export TBB_ROOT="ospray-$OSPRAY_VER/build/tbb/src/tbb"
-      #     cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
-
-      # - name: Build
-      #   run: |
-      #     cmake --build build
-
-      # - name: Upload artifact
-      #   uses: intel-innersource/libraries.devops.renderkit.actions/upload-artifact@main
-      #   with:
-      #     name: ${{ inputs.artifact-out }}
-      #     path: build ospray-devel
 

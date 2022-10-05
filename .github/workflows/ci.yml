@@ -83,7 +83,8 @@ jobs:
     uses: ./.github/workflows/cache-ospray.yml
     with:
       image: ubuntu:18.04
-      cache-dir: /NAS/ci-cache
+      ospray-version: devel
+      rkcommon-version: devel
   
   build-ubuntu18-04-dev:
     needs: cache-ospray
@@ -91,11 +92,11 @@ jobs:
     with:
       image: ubuntu:18.04
       cmd: |
-        export CACHE_DIR=/NAS/ci-cache
-        export OSPRAY_VER=devel
+        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }}
+        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }}
         export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install
         export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
-        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
+        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
         cmake --build build
       artifact-path: build
       artifact-out: build-ubuntu18-04-dev
@@ -137,6 +138,16 @@ jobs:
     ## macOS
 
   ### KW Jobs ###
+  static-analysis:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/ospray-studio
+    with:
+      project: ospray_studio
+      image: ubuntu:18.04-tgt-klockwork
+      prebuild: |
+        cmake -L -S . -B build -DCMAKE_INSTALL_PREFIX=install -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
+      build: cmake --build build
+
 
   ## Release Jobs ##
     ## Linux

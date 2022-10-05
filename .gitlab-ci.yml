@@ -34,7 +34,7 @@ stages:
 
 .ubuntu18.04:
   tags: [build, docker, modules]
-  image: $DOCKER_REGISTRY/ubuntu:18.04
+  image: $DOCKER_REGISTRY/ubuntu:18.04-tgt-klockwork
 
 .ubuntu20.04:
   tags: [build, docker]
@@ -162,6 +162,7 @@ build-kw:
     - gitlab/build-kw.sh
   artifacts:
     paths:
+      - kw_tables
       - klocwork/*
   only:
     - master
@@ -239,11 +240,12 @@ build-windows-icl:
 
 build-kw-dev:
   stage: build
-  extends: .centos7
+  extends: .ubuntu18.04
   script:
     - gitlab/build-kw-dev.sh
   artifacts:
     paths:
+      - kw_tables
       - klocwork/*
 
 test-kw-dev:
