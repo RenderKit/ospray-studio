@@ -40,13 +40,8 @@ jobs:
     with:
       image: centos:8
       cmd: gitlab/build.sh
-
-  build-ubuntu18-04:
-    secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-    with:
-      image: ubuntu:18.04
-      cmd: gitlab/build.sh
+      artifact-out: build-centos8
+      artifact-path: build
 
   build-ubuntu20-04:
     secrets: inherit
@@ -54,6 +49,8 @@ jobs:
     with:
       image: ubuntu:20.04
       cmd: gitlab/build.sh
+      artifact-out: build-ubuntu20-04
+      artifact-path: build
 
   build-arch:
     secrets: inherit
@@ -61,20 +58,20 @@ jobs:
     with:
       image: ospray/docker-images:arch
       cmd: gitlab/build.sh
-
-  ## Windows
-  build-windows-msvc15:
-    secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+      artifact-out: build-arch
+      artifact-path: build
+  
+  test-run-centos7:
+    needs: build-centos7
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      cmd: gitlab/win.ps1
+      image: centos:7
+      cmd: |
+        build/install/bin/ospStudio --verify_install
+      artifact-in: build-centos7
 
-  ## macOS
-  build-macOS:
-    secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
-    with:
-      cmd: gitlab/macos.sh
+
+
 
   ## Scan Jobs ##
     ## Linux

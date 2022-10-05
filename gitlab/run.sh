@@ -10,8 +10,8 @@ mkdir -p $HOME/.vnc; echo testtest | vncpasswd -f > $HOME/.vnc/passwd; chmod 060
 vncserver $DISPLAY -geometry 1920x1080
 glxinfo
 
-export LD_LIBRARY_PATH=$CI_PROJECT_DIR/build/install/lib/:$LD_LIBRARY_PATH
-cd $CI_PROJECT_DIR/build
+export LD_LIBRARY_PATH=./build/install/lib/:$LD_LIBRARY_PATH
+cd ./build
 set +e
 timeout --preserve-status 10s ./ospStudio
 echo "Last exit code $?"
