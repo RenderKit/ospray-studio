@@ -148,7 +148,7 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/ospray-studio
     with:
       project: ospray_studio
-      image: ubuntu:18.04-tgt-klockwork
+      image: klocwork/ubuntu:18.04-tgt-klockwork
       prebuild: |
         export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }}
         export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }}
