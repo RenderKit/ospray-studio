@@ -16,7 +16,7 @@ vncserver $DISPLAY -geometry 1920x1080
 #glxinfo # informational only
 
 export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/lib:$LD_LIBRARY_PATH
-cd $CI_PROJECT_DIR/build
+cd ./build
 ctest -N -VV  # list tests
 ctest
 set +e
@@ -24,7 +24,7 @@ timeout --preserve-status 10s ./ospStudio
 
 set -e
 # glTF 3D Commerce Certification Tests
-export PATH=${CI_PROJECT_DIR}/build:${PATH}
+export PATH=$(pwd):${PATH}
 ${CACHE_DIR}/glTF-Certification/run_cert.sh cert-tests
 
 echo "Last exit code $?"

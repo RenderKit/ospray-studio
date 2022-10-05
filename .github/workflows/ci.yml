@@ -16,9 +16,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CACHE_DIR: /NAS/ci-cache
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
 
+  ## Build Jobs ##
   ## Linux
   build-centos7:
     secrets: inherit
@@ -60,7 +64,12 @@ jobs:
       cmd: gitlab/build.sh
       artifact-out: build-arch
       artifact-path: build
+
+  ## Windows
+
+  ## MacOS
   
+  ## Test Jobs ##
   test-run-centos7:
     needs: build-centos7
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
@@ -69,10 +78,50 @@ jobs:
       cmd: |
         build/install/bin/ospStudio --verify_install
       artifact-in: build-centos7
+  
+  ## Dev Build Jobs ##
+  ## Linux
+  cache-ospray:
+    secrets: inherit
+    uses: ./.github/workflows/cache-ospray.yml
+    with:
+      image: ubuntu:18.04
+      cache-dir: /NAS/ci-cache
+  
+  build-ubuntu18-04-dev:
+    needs: cache-ospray
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: |
+        export CACHE_DIR=/NAS/ci-cache
+        export OSPRAY_VER=devel
+        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install
+        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
+        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF ..
+        cmake --build build
+      artifact-path: build
+      artifact-out: build-ubuntu18-04-dev
 
+  # build-ubuntu18-04-dev:
+  #   secrets: inherit
+  #   uses: ./.github/workflows/cache-ospray.yml
+  #   with:
+  #     image: ubuntu:18.04
+  #     artifact-out: build-ubuntu18-04-dev
 
-
-
+  # Test Dev Jobs
+  test-run-ubuntu18-04-dev:
+    needs: build-ubuntu18-04-dev
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: |
+        export CACHE_DIR=/NAS/ci-cache
+        export OSPRAY_VER=devel
+        gitlab/run-dev.sh
+      artifact-in: build-ubuntu18-04-dev
+ 
   ## Scan Jobs ##
     ## Linux
     ## Windows

@@ -1,7 +1,7 @@
 .*.swp
 .*.swo
 *vscode*
-*build*
+*build*/
 *#
 *~
 *DS_Store*
