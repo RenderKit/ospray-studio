@@ -12,59 +12,69 @@ on:
   #   branches: '**'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
 
-  ## Build Jobs ##
-    ## Linux
-    build-centos7:
-      secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-      with:
-        image: centos:7
-        cmd: gitlab/build.sh
+  ## Linux
+  build-centos7:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: centos:7
+      cmd: |
+        module load intel/2020.1
+        export CC=icc
+        export CXX=icpc
+        export CXXFLAGS="-static-intel -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
+        gitlab/build.sh
+      artifact-out: build-centos7
+      artifact-path: build
 
-    build-centos8:
-      secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-      with:
-        image: centos:8
-        cmd: gitlab/build.sh
+  build-centos8:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: centos:8
+      cmd: gitlab/build.sh
 
-    build-ubuntu18-04:
-      secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-      with:
-        image: ubuntu:18.04
-        cmd: gitlab/build.sh
+  build-ubuntu18-04:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: gitlab/build.sh
 
-    build-ubuntu20-04:
-      secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-      with:
-        image: ubuntu:20.04
-        cmd: gitlab/build.sh
+  build-ubuntu20-04:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:20.04
+      cmd: gitlab/build.sh
 
-    build-arch:
-      secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-      with:
-        image: ospray/docker-images:arch
-        cmd: gitlab/build.sh
+  build-arch:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ospray/docker-images:arch
+      cmd: gitlab/build.sh
 
-    ## Windows
-    build-windows-msvc15:
-      secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
-      with:
-        cmd: gitlab/win.ps1
+  ## Windows
+  build-windows-msvc15:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      cmd: gitlab/win.ps1
 
-    ## macOS
-    build-macOS:
-      secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
-      with:
-        cmd: gitlab/macos.sh
+  ## macOS
+  build-macOS:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
+    with:
+      cmd: gitlab/macos.sh
 
   ## Scan Jobs ##
     ## Linux
