@@ -7,9 +7,6 @@ name: OSPRay Studio Release
 # Controls when the workflow will run
 on:
   push:
-  #   branches: '**'
-  # pull_request:
-  #   branches: '**'
   workflow_dispatch:
 
 concurrency:

@@ -31,7 +31,6 @@ then
     cp -r /tmp/ospray-$OSPRAY_VER $CACHE_DIR/
 fi
 
-# cd $CI_PROJECT_DIR
 mkdir build && cd build
 export CMAKE_PREFIX_PATH="$CACHE_DIR/ospray-$OSPRAY_VER/build/install"
 export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb

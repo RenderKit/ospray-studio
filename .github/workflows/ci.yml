@@ -7,18 +7,11 @@ name: OSPRay Studio Main CI
 # Controls when the workflow will run
 on:
   push:
-  #   branches: '**'
-  # pull_request:
-  #   branches: '**'
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-# env:
-#   PYTHON_ROOT_WINDOWS: "N:/packages/apps/python/$PYTHON_VERSION/windows"
-#   CACHE_DIR: /NAS/ci-cache
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
