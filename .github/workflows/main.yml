@@ -1,4 +1,3 @@
-# This is a basic workflow to help you get started with Actions
 
 name: OSPRay Studio Main CI
 
@@ -7,13 +6,10 @@ name: OSPRay Studio Main CI
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "devel" branch
   push:
-    branches: '**'
-  pull_request:
-    branches: '**'
-
-  # Allows you to run this workflow manually from the Actions tab
+  #   branches: '**'
+  # pull_request:
+  #   branches: '**'
   workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -23,36 +19,35 @@ jobs:
     ## Linux
     build-centos7:
       secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@devel
+      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
       with:
         image: centos:7
         cmd: gitlab/build.sh
 
-## Needs updated cmake
-#    build-centos8:
-#      secrets: inherit
-#      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@devel
-#      with:
-#        image: ospray/docker-images:centos8
-#        cmd: gitlab/build.sh
+    build-centos8:
+      secrets: inherit
+      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+      with:
+        image: centos:8
+        cmd: gitlab/build.sh
 
     build-ubuntu18-04:
       secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@devel
+      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
       with:
         image: ubuntu:18.04
         cmd: gitlab/build.sh
 
     build-ubuntu20-04:
       secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@devel
+      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
       with:
         image: ubuntu:20.04
         cmd: gitlab/build.sh
 
     build-arch:
       secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@devel
+      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
       with:
         image: ospray/docker-images:arch
         cmd: gitlab/build.sh
@@ -60,7 +55,7 @@ jobs:
     ## Windows
     build-windows-msvc15:
       secrets: inherit
-      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/win_powershell.yml@devel
+      uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
       with:
         cmd: gitlab/win.ps1
 
