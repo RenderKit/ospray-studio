@@ -134,13 +134,13 @@ jobs:
       artifact-in: build-ubuntu18-04-dev
  
   ### KW Jobs ###
-  static-analysis:
-    secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/ospray-studio
-    with:
-      project: ospray_studio
-      image: ubuntu:18.04-tgt-klockwork
-      prebuild: |
-        cmake -L -S . -B build -DCMAKE_INSTALL_PREFIX=install -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
-      build: cmake --build build
+# static-analysis:
+#   secrets: inherit
+#   uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/ospray-studio
+#   with:
+#     project: ospray_studio
+#     image: ubuntu:18.04-tgt-klockwork
+#     prebuild: |
+#       cmake -L -S . -B build -DCMAKE_INSTALL_PREFIX=install -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
+#     build: cmake --build build
 
