@@ -351,6 +351,7 @@ void GUIContext::importFiles(sg::NodePtr world)
         if (importer) {
           if (volumeParams->children().size() > 0) {
             auto vp = importer->getVolumeParams();
+            std::cout << "Using command-line volume parameters ..." << std::endl;
             for (auto &c : volumeParams->children()) {
               vp->remove(c.first);
               vp->add(c.second);

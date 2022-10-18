@@ -64,7 +64,7 @@ void Volume::load(const FileName &fileNameAbs)
   if (!fileLoaded) {
     auto &voxelType = child("voxelType").valueAs<int>();
     FileName realFileName = fileNameAbs;
-    FILE *file = fopen(realFileName.c_str(), "r");
+    FILE *file = fopen(realFileName.c_str(), "rb");
 
     if (!file) {
       throw std::runtime_error(

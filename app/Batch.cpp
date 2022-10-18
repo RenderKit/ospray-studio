@@ -582,6 +582,7 @@ void BatchContext::importFiles(sg::NodePtr world)
         auto importer = sg::getImporter(world, file);
         if (importer) {
           if (volumeParams->children().size() > 0) {
+            std::cout << "Using command-line volume parameters ..." << std::endl;
             auto vp = importer->getVolumeParams();
             for (auto &c : volumeParams->children()) {
               vp->remove(c.first);
