@@ -648,11 +648,11 @@ void GUIContext::createIsoSurface(
 
   auto isoXfm = sg::createNode(surfName + "_xfm", "transform", affine3f{one});
 
-  auto valueRange = selected->child("valueRange").valueAs<range1f>();
+  auto valueRange = selected->child("value").valueAs<range1f>();
 
   auto isoGeom = sg::createNode(surfName, "geometry_isosurfaces");
-  isoGeom->createChild("valueRange", "range1f", valueRange);
-  isoGeom->child("valueRange").setSGOnly();
+  isoGeom->createChild("value", "range1f", valueRange);
+  isoGeom->child("value").setSGOnly();
   isoGeom->createChild("isovalue", "float", valueRange.center());
   isoGeom->child("isovalue").setMinMax(valueRange.lower, valueRange.upper);
 

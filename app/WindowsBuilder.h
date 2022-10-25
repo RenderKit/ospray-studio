@@ -720,7 +720,7 @@ void WindowsBuilder::buildWindowTransferFunctionEditor()
 
             tfn.createChildData("color", colors);
             tfn.createChildData("opacity", opacities);
-            tfn["valueRange"] = valueRange.toVec2();
+            tfn["value"] = valueRange;
           }
         };
 
@@ -740,7 +740,7 @@ void WindowsBuilder::buildWindowTransferFunctionEditor()
           const auto numSamples = tfn.colors.size();
 
           if (numSamples > 1) {
-            auto vRange = tfn["valueRange"].valueAs<vec2f>();
+            auto vRange = tfn["value"].valueAs<range1f>();
 
             // Create a c4 from c3 + opacity
             std::vector<vec4f> c4;
@@ -752,7 +752,7 @@ void WindowsBuilder::buildWindowTransferFunctionEditor()
               c4.emplace_back(vec4f(tfn.colors.at(n), tfn.opacities.at(n)));
             }
 
-            transferFunctionWidget.setValueRange(range1f(vRange[0], vRange[1]));
+            transferFunctionWidget.setValueRange(vRange);
             transferFunctionWidget.setColorsAndOpacities(c4);
           }
         }

@@ -85,8 +85,8 @@ void RawImporter::importScene()
     }
 
     auto tf = createNode("transferFunction", "transfer_function_turbo");
-    auto valueRange = volume->child("valueRange").valueAs<range1f>();
-    tf->child("valueRange") = valueRange.toVec2();
+    auto valueRange = volume->child("value").valueAs<range1f>();
+    tf->child("value") = valueRange;
     volume->add(tf);
 
     rootNode->add(volume);

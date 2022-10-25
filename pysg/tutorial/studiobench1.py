@@ -81,8 +81,8 @@ if filetype == ".vti" or filetype == ".vtu":
   transform = importer.child("xfm")
   tfOrig = transform.child("transferFunction")
   if scalarRange is not None:
-    tfOrig.remove("valueRange")
-    tfOrig.createChild("valueRange", "vec2f", Any(scalarRange))
+    tfOrig.remove("value")
+    tfOrig.createChild("value", "range1f", Any(scalarRange))
   if colors is not None:
     npColors = numpy.array(colors,dtype=numpy.float32)
     tfOrig.remove("color")
