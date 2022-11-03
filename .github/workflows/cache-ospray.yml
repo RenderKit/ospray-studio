@@ -47,7 +47,7 @@ jobs:
         with:
           token: ${{ secrets.SDVIS_DEVOPS_PAT }}
           repository: intel-innersource/libraries.graphics.renderkit.ospray
-          ref: devel
+          ref: ${{ inputs.ospray-version }}
           path: ospray-${{ inputs.ospray-version }}
 
       - name: Cache OSPRay
