@@ -1195,12 +1195,14 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     // XXX will require texture tweaks to get closer to glTF spec, if needed
     // BLEND is always used, so OPAQUE can be achieved by setting all texture
     // texels alpha to 1.0.  OSPRay doesn't support alphaCutoff for MASK mode.
+    // Masking turned off atm due to issues with unwanted opacity values,
+    // specially for Valerie scenes(some large city buildings)
     if (mat.alphaMode == "OPAQUE")
       ospMat->createChild("opacity", "float") = 1.f;
     else if (mat.alphaMode == "BLEND")
       ospMat->createChild("opacity", "float") = alpha;
-    else if (mat.alphaMode == "MASK")
-      ospMat->createChild("opacity", "float") = 1.f - (float)mat.alphaCutoff;
+    // else if (mat.alphaMode == "MASK")
+    //   ospMat->createChild("opacity", "float") = 1.f - (float)mat.alphaCutoff;
 
     // All textures *can* specify a texcoord other than 0.  OSPRay only
     // supports one set of texcoords (TEXCOORD_0).
