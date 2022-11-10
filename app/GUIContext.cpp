@@ -349,14 +349,15 @@ void GUIContext::importFiles(sg::NodePtr world)
 
         auto importer = sg::getImporter(world, file);
         if (importer) {
-          if (volumeParams->children().size() > 0) {
-            auto vp = importer->getVolumeParams();
+          auto vp = importer->getVolumeParams();
+          if (volumeParams->children().size() > 0 && vp) {
             std::cout << "Using command-line volume parameters ..." << std::endl;
             for (auto &c : volumeParams->children()) {
               vp->remove(c.first);
               vp->add(c.second);
             }
-          }
+          } else 
+            importer->setVolumeParams(volumeParams);
 
           importer->pointSize = pointSize;
           importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));

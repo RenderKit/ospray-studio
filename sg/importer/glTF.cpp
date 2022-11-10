@@ -82,6 +82,9 @@ struct GLTFData
   void setScheduler(SchedulerPtr _scheduler) {
     scheduler = _scheduler;
   }
+  void setVolumeParams(NodePtr _volumeParams) {
+    volumeParams = _volumeParams;
+  }
 
  private:
   InstanceConfiguration ic;
@@ -94,6 +97,7 @@ struct GLTFData
   std::vector<std::vector<NodePtr>> ospMeshes;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry;
   SchedulerPtr scheduler{nullptr};
+  NodePtr volumeParams;
   std::vector<NodePtr> sceneNodes; // lookup table glTF:nodeID -> NodePtr
 
   tinygltf::Model model;
@@ -299,7 +303,12 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   auto importer =
       std::static_pointer_cast<sg::Importer>(sg::getImporter(sgNode, file));
   if (importer) {
-    importer->setScheduler(scheduler);
+    if (scheduler)
+      importer->setScheduler(scheduler);
+
+    if (volumeParams)
+      importer->setVolumeParams(volumeParams);
+
     importer->setMaterialRegistry(materialRegistry);
     auto parentImporter = currentImporter->nodeAs<sg::Importer>();
 
@@ -1860,6 +1869,7 @@ void glTFImporter::importScene()
   if (!gltf.parseAsset())
     return;
   gltf.setScheduler(scheduler);
+  gltf.setVolumeParams(volumeParams);
   gltf.createMaterials();
   gltf.createLightTemplates();
 
