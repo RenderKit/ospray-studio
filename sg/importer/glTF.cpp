@@ -79,6 +79,10 @@ struct GLTFData
   std::vector<NodePtr> lightTemplates;
   std::string geomId{""};
   bool importCameras{false};
+  void setScheduler(SchedulerPtr _scheduler) {
+    scheduler = _scheduler;
+  }
+
  private:
   InstanceConfiguration ic;
   NodePtr currentImporter;
@@ -89,6 +93,7 @@ struct GLTFData
   std::vector<SkinPtr> skins;
   std::vector<std::vector<NodePtr>> ospMeshes;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry;
+  SchedulerPtr scheduler{nullptr};
   std::vector<NodePtr> sceneNodes; // lookup table glTF:nodeID -> NodePtr
 
   tinygltf::Model model;
@@ -294,6 +299,7 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   auto importer =
       std::static_pointer_cast<sg::Importer>(sg::getImporter(sgNode, file));
   if (importer) {
+    importer->setScheduler(scheduler);
     importer->setMaterialRegistry(materialRegistry);
     auto parentImporter = currentImporter->nodeAs<sg::Importer>();
 
@@ -1853,7 +1859,7 @@ void glTFImporter::importScene()
 
   if (!gltf.parseAsset())
     return;
-
+  gltf.setScheduler(scheduler);
   gltf.createMaterials();
   gltf.createLightTemplates();
 
