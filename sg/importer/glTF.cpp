@@ -265,9 +265,11 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
 
   // load referenced asset if reference-link found
   std::string refTitle{""};
+  bool isVolume{false};
   if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
     auto refLink = n.extensions.find("BIT_reference_link")->second;
     refTitle = refLink.Get("title").Get<std::string>();
+    isVolume = refLink.Get("type").Get<std::string>() == "volume";
   }
 
   auto node = n.extensions.find("BIT_node_info")->second;
@@ -282,8 +284,10 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   if (refTitle.empty())
     return;
 
-  std::string refLinkFileName = refTitle + ".gltf";
-  std::string refLinkFullPath = fileName.path() + refLinkFileName;
+  if (!isVolume)
+    refTitle += ".gltf";
+
+  std::string refLinkFullPath = fileName.path() + refTitle;
   rkcommon::FileName file(refLinkFullPath);
   std::cout << "Importing: " << file << std::endl;
 
@@ -787,7 +791,8 @@ void GLTFData::visitNode(NodePtr sgNode,
 
   sgNode = newXfm;
 
-  if (n.extensions.find("BIT_node_info") != n.extensions.end())
+  if (n.extensions.find("BIT_node_info") != n.extensions.end()
+      || n.extensions.find("BIT_reference_link") != n.extensions.end())
     loadNodeInfo(nid, sgNode);
 
   std::vector<int> lightIdxs;
