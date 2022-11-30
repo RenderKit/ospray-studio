@@ -29,8 +29,7 @@ void RawImporter::importScene()
   // Keep this object alive for the duration of any lambdas
   auto self = shared_from_this();
 
-  auto name = "load raw volume from "s + fileName.str();
-  scheduler->background()->push(name, [&, self](SchedulerPtr scheduler) {
+  auto loadDataCallback = [&, self](SchedulerPtr scheduler) {
     // Create a root Transform/Instance off the Importer, then place the volume
     // under this.
     auto rootName = fileName.name() + "_rootXfm";
@@ -91,12 +90,25 @@ void RawImporter::importScene()
 
     rootNode->add(volume);
 
-    auto name = "add raw volume from "s + fileName.str() + " to scene"s;
-    scheduler->ospray()->push(name, [&, self, rootNode](SchedulerPtr scheduler) {
+    auto addToSceneCallback = [&, self, rootNode](SchedulerPtr scheduler) {
       // Finally, add node hierarchy to importer parent
       add(rootNode);
-    });
-  });
+    }; // addToSceneCallback
+
+    if (scheduler) {
+      auto name = "add raw volume from "s + fileName.str() + " to scene"s;
+      scheduler->ospray()->push(name, addToSceneCallback);
+    } else {
+      addToSceneCallback(nullptr);
+    }
+  }; // loadDataCallback
+
+  if (scheduler) {
+    auto name = "load raw volume from "s + fileName.str();
+    scheduler->background()->push(name, loadDataCallback);
+  } else {
+    loadDataCallback(nullptr);
+  }
 }
 
 } // namespace sg
