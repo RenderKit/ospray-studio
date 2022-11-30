@@ -180,6 +180,13 @@ namespace ospray {
       } else if (node.hasChild("sgGeomId"))
         sgGeomId = node.child("sgGeomId").valueAs<unsigned int>();
 
+      // Allow hiding entire branches of the hierarchy
+      // If transform is hidden, stop traversing children
+      if (node.hasChild("visible")) {
+        if (!node["visible"].valueAs<bool>())
+            return false;
+      }
+
       break;
     }
     case NodeType::CAMERA: {

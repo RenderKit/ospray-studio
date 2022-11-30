@@ -21,6 +21,9 @@ World::World()
       "bool",
       "tell Embree to enable more robust ray intersection code paths(slightly slower)",
       false);
+  child("dynamicScene").setSGNoUI();
+  child("compactMode").setSGNoUI();
+  child("robustMode").setSGNoUI();
 
   instSGIdMap = std::make_shared<OSPInstanceSGIdMap>();
   geomSGIdMap = std::make_shared<OSPGeomModelSGIdMap>();
