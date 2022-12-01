@@ -342,6 +342,21 @@ PYBIND11_MODULE(pysg, sg)
 
   py::class_<Node, std::shared_ptr<Node>>(sg, "Node")
       .def(py::init<>())
+      .def("keys", [](const Node &node) {
+        return py::make_key_iterator(node.children().begin(), node.children().end());
+      })
+      // XXX(th): pybind11 v2.6.2 doesn't have a py::make_value_iterator
+      // function, but later versions do. This method can be re-added when
+      // pybind11 is updated.
+      // .def("values", [](const Node &node) {
+      //   return py::make_value_iterator(node.children().begin(), node.children().end());
+      // })
+      .def("items", [](const Node &node) {
+        return py::make_iterator(node.children().begin(), node.children().end());
+      })
+      .def("children", [](const Node &node) {
+        return py::make_iterator(node.children().begin(), node.children().end());
+      })
       .def("bounds", &Node::bounds)
       .def(
           "setValue", static_cast<void (Node::*)(float, bool)>(&Node::setValue))
