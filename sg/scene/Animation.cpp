@@ -117,6 +117,12 @@ VALUE_T AnimationTrack<VALUE_T>::get(const float time)
   return val;
 }
 
+template <>
+NodePtr AnimationTrack<NodePtr>::get(const float time) {
+  updateIndex(time);
+  return values[std::max(index, ssize_t(0))];
+}
+
 template <typename VALUE_T>
 void AnimationTrack<VALUE_T>::update(const float time, const float shutter)
 {
@@ -136,8 +142,7 @@ void AnimationTrack<VALUE_T>::update(const float time, const float shutter)
 template <>
 void AnimationTrack<NodePtr>::update(const float time, const float)
 {
-  updateIndex(time);
-  target->add(values[std::max(index, ssize_t(0))], "timeseries");
+  target->add(get(time), "timeseries");
 }
 
 template void AnimationTrack<float>::update(const float, const float);
