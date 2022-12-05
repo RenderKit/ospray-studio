@@ -131,6 +131,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   virtual void importFiles(sg::NodePtr world) = 0;
   virtual void refreshScene(bool resetCam) = 0;
   virtual void updateCamera() = 0;
+  virtual void updateCameraIndices(uint32_t idx);
 
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
@@ -185,6 +186,11 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   bool showPoseBBox{false};
   bool showInstBBox{false};
   bool showInstBBoxFrame{false};
+
+  // expose scene cameras for plugins:
+  // list of cameras imported with the scene definition
+  CameraMap g_sceneCameras;
+  int whichCamera{0};
 
  protected:
   virtual box3f getSceneBounds();

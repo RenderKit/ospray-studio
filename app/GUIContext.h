@@ -80,12 +80,9 @@ class GUIContext : public StudioContext
 
   vec2i defaultSize;
 
-  // list of cameras imported with the scene definition
-  static CameraMap g_sceneCameras;
-
   // windows and main menu builder related functions
   void selectBuffer(int whichBuffer);
-  void selectCamera(size_t whichCamera);
+  void selectCamera();
   void createNewCamera(const std::string newType);
   void removeLight(int whichLight);
   void createIsoSurface(

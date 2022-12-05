@@ -34,8 +34,6 @@ MainWindow *GUIContext::mainWindow = nullptr;
 
 // GUIContext definitions ///////////////////////////////////////////////
 
-CameraMap GUIContext::g_sceneCameras;
-
 GUIContext::GUIContext(StudioCommon &_common)
     : StudioContext(_common, StudioMode::GUI)
 {
@@ -609,7 +607,7 @@ void GUIContext::removeLight(int whichLight)
   }
 }
 
-void GUIContext::selectCamera(size_t whichCamera)
+void GUIContext::selectCamera()
 {
   if (whichCamera < (int)g_sceneCameras.size()) {
     auto &newCamera = g_sceneCameras.at_index(whichCamera);

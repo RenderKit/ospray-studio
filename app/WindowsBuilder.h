@@ -69,7 +69,6 @@ struct WindowsBuilder
   bool static rendererUI_callback(void *, int index, const char **out_text);
   bool static debugTypeUI_callback(void *, int index, const char **out_text);
   bool static lightTypeUI_callback(void *, int index, const char **out_text);
-  bool static cameraUI_callback(void *, int index, const char **out_text);
 
   // utility functions
   void viewCameraPath(bool showCameraPath);
@@ -78,7 +77,7 @@ struct WindowsBuilder
   std::shared_ptr<GUIContext> ctx = nullptr;
 
   int whichLightType{-1};
-  int whichCamera{0};
+
   std::string lightTypeStr{"ambient"};
 
   std::shared_ptr<sg::LightsManager> lightsManager;
@@ -145,14 +144,6 @@ bool WindowsBuilder::lightTypeUI_callback(
     void *, int index, const char **out_text)
 {
   *out_text = g_lightTypes[index].c_str();
-  return true;
-};
-
-bool WindowsBuilder::cameraUI_callback(void *, int index, const char **out_text)
-{
-  static std::string outText;
-  outText = std::to_string(index) + ": " + GUIContext::g_sceneCameras.at_index(index).first;
-  *out_text = outText.c_str();
   return true;
 };
 
@@ -607,16 +598,27 @@ void WindowsBuilder::buildWindowCameraEditor()
     return;
   }
 
-  whichCamera = ctx->frame->child("camera").child("cameraId").valueAs<int>();
+  auto frameCameraId = ctx->frame->child("camera").child("cameraId").valueAs<int>();
+  ctx->whichCamera = frameCameraId;
+
+  const char* preview_value = NULL;
+  auto &items = ctx->g_sceneCameras;
 
   // Only present selector UI if more than one camera
-  if (!GUIContext::g_sceneCameras.empty()
-      && ImGui::Combo("sceneCameras##whichCamera",
-          &whichCamera,
-          cameraUI_callback,
-          nullptr,
-          GUIContext::g_sceneCameras.size()))
-          ctx->selectCamera(whichCamera);
+  if (ImGui::BeginCombo("sceneCameras##whichCamera",
+          items.at_index(ctx->whichCamera).first.c_str())) {
+    for (int i = 0; i < items.size(); ++i) {
+      const bool isSelected = (ctx->whichCamera == i);
+      if (ImGui::Selectable(items.at_index(i).first.c_str(), isSelected)) {
+        ctx->whichCamera = i;
+        ctx->selectCamera();
+      }
+      if (isSelected) {
+        ImGui::SetItemDefaultFocus();
+      }
+    }
+    ImGui::EndCombo();
+  }
 
   // Change camera type
   ImGui::Text("Type:");

@@ -235,6 +235,12 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   )->expected(2);
 }
 
+void StudioContext::updateCameraIndices(uint32_t idx)
+{
+  whichCamera = idx;
+  cameraIdx = idx;
+}
+
 box3f StudioContext::getSceneBounds()
 {
   box3f bounds;
