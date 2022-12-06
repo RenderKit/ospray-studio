@@ -41,6 +41,11 @@ void BatchContext::start()
   for (auto &p : studioCommon.pluginsToLoad)
     pluginManager->loadPlugin(p);
 
+  pluginManager->main(shared_from_this());
+    // set camera correctly to Id set externally via JSON or plugins:
+  frame->child("camera").child("cameraId").setValue(whichCamera);
+  cameraIdx = whichCamera;
+
   // read from cams.json
   std::ifstream cams("cams.json");
   if (cams) {
@@ -426,8 +431,6 @@ void BatchContext::renderFrame()
       dump << j.dump();
     }
   }
-  
-  pluginManager->main(shared_from_this());
 }
 
 void BatchContext::renderAnimation()

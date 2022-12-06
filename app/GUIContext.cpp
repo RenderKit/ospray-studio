@@ -54,6 +54,7 @@ GUIContext::~GUIContext()
 void GUIContext::start()
 {
   std::cerr << "GUI mode\n";
+
   auto currentUtil = std::shared_ptr<GUIContext>(this);
   if (!mainWindow) {
     mainWindow = new MainWindow(defaultSize, currentUtil);
@@ -67,8 +68,11 @@ void GUIContext::start()
   // create panels //
   // doing this outside constructor to ensure shared_from_this()
   // can wrap a valid weak_ptr (in constructor, not guaranteed)
-
   pluginManager->main(shared_from_this(), &pluginPanels);
+
+  // set camera correctly to Id set externally via JSON or plugins:
+  frame->child("camera").child("cameraId").setValue(whichCamera);
+  cameraIdx = whichCamera;
 
   std::ifstream cams("cams.json");
   if (cams) {
