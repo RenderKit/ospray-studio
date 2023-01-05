@@ -82,6 +82,13 @@ void GUIContext::start()
   }
 
   if (parseCommandLine()) {
+    // If command line options are set, enable denoiser
+    if (studioCommon.denoiserAvailable && optDenoiser) {
+      frame->denoiseFB = true;
+      frame->denoiseFBFinalFrame = optDenoiseFinalFrame;
+      framebuffer->child("floatFormat") = true;
+      framebuffer->commit();
+    }
     refreshRenderer();
     refreshScene(true);
     mainWindow->mainLoop();

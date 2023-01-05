@@ -162,6 +162,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   sg::rgba optBackGroundColor{vec3f(0.0f), 1.f}; // default to black
   OSPPixelFilterTypes optPF{OSP_PIXELFILTER_GAUSS};
   bool optDenoiser{false};
+  bool optDenoiseFinalFrame{false};
   bool optGridEnable{false};
   vec3i optGridSize{1, 1, 1};
   OSPStereoMode optStereoMode{OSP_STEREO_NONE};

@@ -218,12 +218,17 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_flag(
     "--async-tasking{true},--no-async-tasking{false}",
     optDoAsyncTasking,
-    "Disable asynchronous tasking (and asynchronous dataset loading)"
+    "Enable/Disable asynchronous tasking (and asynchronous dataset loading)"
   );
   app->add_flag(
     "--denoiser",
     optDenoiser,
-    "Set the denoiser"
+    "Enable frame denoising"
+  );
+  app->add_flag(
+    "--denoiseFinalFrame",
+    optDenoiseFinalFrame,
+    "Denoise only when accum limit is reached"
   );
   app->add_option(
     "--camera",
