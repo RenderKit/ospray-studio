@@ -127,6 +127,8 @@ struct OSPSG_INTERFACE Importer : public Node
   float pointSize{0.0f};
   bool importCameras{false};
 
+  bool verboseImport{false};
+
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;

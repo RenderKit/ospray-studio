@@ -19,8 +19,8 @@
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
-#define DEBUG std::cout << prefix << "(D): "
-#define INFO std::cout << prefix << "(I): "
+#define DEBUG if (verboseImport) std::cout << prefix << "(D): "
+#define INFO if (verboseImport) std::cout << prefix << "(I): "
 #define WARN std::cout << prefix << "(W): "
 #define ERR std::cerr << prefix << "(E): "
 
@@ -50,14 +50,17 @@ struct GLTFData
       std::shared_ptr<CameraMap> _cameras,
       sg::FrameBuffer *_fb,
       NodePtr _currentImporter,
-      InstanceConfiguration _ic)
+      InstanceConfiguration _ic,
+      bool verboseImport
+      )
       : fileName(fileName),
         rootNode(rootNode),
         materialRegistry(_materialRegistry),
         cameras(_cameras),
         fb(_fb),
         currentImporter(_currentImporter),
-        ic(_ic)
+        ic(_ic),
+        verboseImport(verboseImport)
   {}
 
  public:
@@ -87,6 +90,7 @@ struct GLTFData
   }
 
  private:
+  bool verboseImport{false}; // Enable/disable import logging
   InstanceConfiguration ic;
   NodePtr currentImporter;
   NodePtr rootNode;
@@ -1864,7 +1868,8 @@ void glTFImporter::importScene()
       cameras,
       fb,
       shared_from_this(),
-      ic);
+      ic,
+      verboseImport);
 
   if (!gltf.parseAsset())
     return;

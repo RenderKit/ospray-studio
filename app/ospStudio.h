@@ -156,6 +156,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   std::string optRendererTypeStr{"pathtracer"};
   std::string optCameraTypeStr{"perspective"};
+  bool optVerboseImporter{false};
   int optSPP{32};
   float optVariance{0.f}; // varianceThreshold
   sg::rgba optBackGroundColor{vec3f(0.0f), 1.f}; // default to black

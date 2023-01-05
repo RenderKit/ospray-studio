@@ -40,7 +40,7 @@ GUIContext::GUIContext(StudioCommon &_common)
   pluginManager = std::make_shared<PluginManager>();
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
   if (frame->hasChild("framebuffer"))
-  framebuffer = frame->child("framebuffer").nodeAs<sg::FrameBuffer>();
+    framebuffer = frame->child("framebuffer").nodeAs<sg::FrameBuffer>();
   defaultSize = _common.defaultSize;
 }
 
@@ -361,6 +361,7 @@ void GUIContext::importFiles(sg::NodePtr world)
           } else 
             importer->setVolumeParams(volumeParams);
 
+          importer->verboseImport = optVerboseImporter;
           importer->pointSize = pointSize;
           importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
           importer->setMaterialRegistry(baseMaterialRegistry);

@@ -118,7 +118,13 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_flag(
     "--saveLayers",
     optSaveLayersSeparately,
-    "Save layers in separate files");
+    "Save layers in separate files"
+  );
+  app->add_flag(
+    "--verboseImporter",
+    optVerboseImporter,
+    "Additional console info messages when importing files"
+  );
   app->add_option(
     "--resolution",
     [&](const std::vector<std::string> val) {
