@@ -82,7 +82,7 @@ void SearchWidget::addSearchResultsUI(NR root)
 
     ImGui::SameLine();
     ImGui::Text(
-        "%lu %s", results.size(), (results.size() == 1 ? "result" : "results"));
+        "%lu result%s", results.size(), (results.size() == 1 ? "" : "s"));
 
     // paginate results
     if (ImGui::ArrowButton("##prevPage", ImGuiDir_Left))
@@ -116,10 +116,12 @@ void SearchWidget::addSearchResultsUI(NR root)
     }
   }
 
-  ImGui::BeginChild("Results",
-      ImVec2(0, numItemsPerPage * ImGui::GetFontSize()),
-      true,
-      ImGuiWindowFlags_HorizontalScrollbar);
+  float height = 
+      std::min(numItemsPerPage,
+          (searched ? (int)results.size() : (int)root.children().size()) + 1)
+      * ImGui::GetFontSize();
+  ImGui::BeginChild(
+      "Results", ImVec2(0, height), true, ImGuiWindowFlags_HorizontalScrollbar);
   static int selectedIndex;
   if (searched) {
     for (int i = (currentPage - 1) * numItemsPerPage;
