@@ -324,7 +324,8 @@ PYBIND11_MODULE(pysg, sg)
       .def(py::init<vec3i>())
       .def(py::init<vec4i>())
       .def(py::init<box2f>())
-      .def(py::init<box3f>());
+      .def(py::init<box3f>())
+      .def(py::init<quaternionf>());
 
   // rkcommon::math specializations ////////////////
 
@@ -337,6 +338,10 @@ PYBIND11_MODULE(pysg, sg)
   py::class_<rkcommon::math::affine3f>(sg, "affine3f")
       .def(py::init<>())
       .def("translate", &rkcommon::math::affine3f::translate);
+
+  py::class_<rkcommon::math::quaternionf>(sg, "quaternionf")
+      .def(py::init<>())
+      .def(py::init<float, float, float, float>());
 
   // Generic Node class definition ////////////////////////////////////////////
 
@@ -367,6 +372,9 @@ PYBIND11_MODULE(pysg, sg)
           "setValue", static_cast<void (Node::*)(box3f, bool)>(&Node::setValue))
       .def("setValue",
           static_cast<void (Node::*)(affine3f, bool)>(&Node::setValue))
+      .def("setValue",
+          static_cast<void (Node::*)(quaternionf, bool)>(&Node::setValue))
+      .def("setValue", static_cast<void (Node::*)(bool, bool)>(&Node::setValue))
       .def("valueAsFloat",
           static_cast<float &(Node::*)()>(&Node::valueAs<float>))
       .def("valueAsInt", static_cast<int &(Node::*)()>(&Node::valueAs<int>))
@@ -455,7 +463,9 @@ PYBIND11_MODULE(pysg, sg)
       .def("saveFrame", &Frame::saveFrame)
       .def("waitOnFrame", &Frame::waitOnFrame)
       .def("startNewFrame", &Frame::startNewFrame)
-      .def_readwrite("immediatelyWait", &Frame::immediatelyWait);
+      .def_readwrite("immediatelyWait", &Frame::immediatelyWait)
+      .def_readwrite("toneMapFB", &Frame::toneMapFB)
+      .def_readwrite("denoiseFB", &Frame::denoiseFB);
 
   py::class_<Renderer,
       OSPNode<ospray::cpp::Renderer, NodeType::RENDERER>,
