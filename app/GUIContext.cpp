@@ -585,7 +585,7 @@ void GUIContext::saveNodesJson(const std::string nodeTypeStr)
     JSON j = {{"lightsManager", *lightsManager}};
     lights << j.dump();
   }
-  if (nodeTypeStr == "Camera") {
+  if (nodeTypeStr == "camera") {
     std::ofstream camera("studio_camera.sg");
     JSON j = {{"camera", mainWindow->arcballCamera->getState()}};
     camera << j.dump();

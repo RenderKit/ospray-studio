@@ -825,8 +825,7 @@ void MainWindow::buildUI()
     uiCallback();
 
   for (auto &p : ctx->pluginPanels)
-    if (p->isShown())
-      p->buildUI(ImGui::GetCurrentContext());
+    p->buildUI(ImGui::GetCurrentContext());
 }
 
 void MainWindow::setLockUpDir(const vec3f &lockUpDir)
