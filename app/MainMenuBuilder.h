@@ -315,6 +315,22 @@ void MainMenuBuilder::buildMainMenuView()
     if (ImGui::MenuItem("Framebuffer..."))
       windowsBuilder->showFrameBufferEditor = true;
     if (ImGui::BeginMenu("Quick window size")) {
+      const std::vector<float> scaleOptions = {
+          0.25f, 0.5f, 0.75f, 1.25f, 1.5f, 1.75f, 2.f};
+      for (auto &scale : scaleOptions) {
+        char label[64];
+        snprintf(label,
+            sizeof(label),
+            "%1.2fx (%d, %d)", scale,
+            int(ctx->mainWindow->windowSize.x * scale),
+            int(ctx->mainWindow->windowSize.y * scale));
+        if (ImGui::MenuItem(label)) {
+          // update the windowSize attribute of MainWindow object directly
+          ctx->mainWindow->windowSize = ctx->mainWindow->windowSize * scale;
+          ctx->mainWindow->reshape(true);
+        }
+      }
+      ImGui::Separator();
       const std::vector<vec2i> options = {{480, 270},
           {960, 540},
           {1280, 720},
