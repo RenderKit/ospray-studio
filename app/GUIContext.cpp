@@ -174,6 +174,10 @@ void GUIContext::updateCamera()
 
 void GUIContext::changeToDefaultCamera()
 {
+  if (frame->child("camera").child("uniqueCameraName").valueAs<std::string>()
+      == "default")
+    return;
+
   auto defaultCamera = g_sceneCameras["default"];
   auto sgSceneCamera = frame->child("camera").nodeAs<sg::Camera>();
 
@@ -296,8 +300,11 @@ void GUIContext::refreshScene(bool resetCam)
 
   frame->add(world);
 
-  if (resetCam && !sgScene)
+  if (resetCam && !sgScene) {
+    // Switch back to default-camera before modifying any parameters
+    changeToDefaultCamera();
     mainWindow->resetArcball();
+  }
   
   updateCamera();
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
@@ -422,6 +429,7 @@ void GUIContext::importFiles(sg::NodePtr world)
   // Initializes time range for newly imported models
   mainWindow->animationWidget->init();
 
+  // XXX this shouldn't completely replace g_sceneCameras, but add to it.
   if (sgFileCameras)
     g_sceneCameras = *sgFileCameras;
   else if (cameras)

@@ -186,6 +186,8 @@ void MainWindow::initGLFW()
               pw->cameraStack->pushLookMark();
               break;
             case GLFW_KEY_MINUS: {
+              // Switch back to default-camera before modifying any parameters
+              pw->ctx->changeToDefaultCamera();
               auto valid = pw->cameraStack->popLookMark();
               if (valid)
                 pw->ctx->updateCamera();
@@ -200,6 +202,7 @@ void MainWindow::initGLFW()
             case GLFW_KEY_7: /* fallthrough */
             case GLFW_KEY_8: /* fallthrough */
             case GLFW_KEY_9: {
+              pw->ctx->changeToDefaultCamera();
               auto valid = pw->cameraStack->setCameraSnapshot(
                   (key + 9 - GLFW_KEY_0) % 10);
               if (valid)
@@ -442,6 +445,9 @@ void MainWindow::keyboardMotion()
           || g_camMoveR))
     return;
 
+  // Switch back to default-camera before modifying any parameters
+  ctx->changeToDefaultCamera();
+
   auto sensitivity = maxMoveSpeed;
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     sensitivity *= fineControl;
@@ -485,52 +491,53 @@ void MainWindow::motion(const vec2f &position)
     return;
 
   const vec2f mouse = position * contentScale;
-  if (previousMouse != vec2f(-1)) {
-    const bool leftDown =
-        glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    const bool rightDown =
-        glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-    const bool middleDown =
-        glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
-    const vec2f prev = previousMouse;
-
-    bool cameraChanged = leftDown || rightDown || middleDown;
-
-    // if cameraChanged then switch back to default-camera and use current scene
-    // SG camera state
-    if (cameraChanged && ctx->frame->child("camera").child("uniqueCameraName").valueAs<std::string>()
-          != "default")
-      ctx->changeToDefaultCamera();
-
-    auto sensitivity = maxMoveSpeed;
-    if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-      sensitivity *= fineControl;
-
-    auto displaySize = windowSize * contentScale;
-
-    const vec2f mouseFrom(clamp(prev.x * 2.f / displaySize.x - 1.f, -1.f, 1.f),
-        clamp(prev.y * 2.f / displaySize.y - 1.f, -1.f, 1.f));
-    const vec2f mouseTo(clamp(mouse.x * 2.f / displaySize.x - 1.f, -1.f, 1.f),
-        clamp(mouse.y * 2.f / displaySize.y - 1.f, -1.f, 1.f));
-
-    if (leftDown) {
-      arcballCamera->constrainedRotate(mouseFrom,
-          lerp(sensitivity, mouseFrom, mouseTo),
-          g_rotationConstraint);
-    } else if (rightDown) {
-      if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        arcballCamera->dolly((mouseTo - mouseFrom).y * sensitivity);
-      else
-        arcballCamera->zoom((mouseTo - mouseFrom).y * sensitivity);
-    } else if (middleDown) {
-      arcballCamera->pan((mouseTo - mouseFrom) * sensitivity);
-    }
-
-    if (cameraChanged)
-      ctx->updateCamera();
+  if (previousMouse == vec2f(-1)) {
+    previousMouse = mouse;
+    return;
   }
 
+  const bool leftDown =
+    glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+  const bool rightDown =
+    glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+  const bool middleDown =
+    glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
+  const vec2f prev = previousMouse;
   previousMouse = mouse;
+
+  if (!(leftDown || rightDown || middleDown))
+    return;
+
+  // Switch back to default-camera before modifying any parameters
+  ctx->changeToDefaultCamera();
+
+  auto sensitivity = maxMoveSpeed;
+  if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    sensitivity *= fineControl;
+
+  auto displaySize = windowSize * contentScale;
+
+  const vec2f mouseFrom(clamp(prev.x * 2.f / displaySize.x - 1.f, -1.f, 1.f),
+      clamp(prev.y * 2.f / displaySize.y - 1.f, -1.f, 1.f));
+  const vec2f mouseTo(clamp(mouse.x * 2.f / displaySize.x - 1.f, -1.f, 1.f),
+      clamp(mouse.y * 2.f / displaySize.y - 1.f, -1.f, 1.f));
+
+  if (leftDown) {
+    arcballCamera->constrainedRotate(mouseFrom,
+        lerp(sensitivity, mouseFrom, mouseTo),
+        g_rotationConstraint);
+  } else if (rightDown) {
+    // empirically, 10.f feels about right.
+    // still needs to be scaled based on world bounds
+    if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+      arcballCamera->dolly((mouseTo - mouseFrom).y * 10.f * sensitivity);
+    else
+      arcballCamera->zoom((mouseTo - mouseFrom).y * 10.f * sensitivity);
+  } else if (middleDown) {
+    arcballCamera->pan((mouseTo - mouseFrom) * 10.f * sensitivity);
+  }
+
+  ctx->updateCamera();
 }
 
 void MainWindow::mouseButton(const vec2f &position)
@@ -540,10 +547,8 @@ void MainWindow::mouseButton(const vec2f &position)
     
   if (glfwGetKey(glfwWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
       && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-    // when picking new center of rotation change to default camera first
-    if (ctx->frame->child("camera").child("uniqueCameraName").valueAs<std::string>()
-          != "default")
-      ctx->changeToDefaultCamera();
+    // Switch back to default-camera before modifying any parameters
+    ctx->changeToDefaultCamera();
 
     vec2f scaledPosition = position * contentScale;
     pickCenterOfRotation(scaledPosition.x, scaledPosition.y);
@@ -554,6 +559,9 @@ void MainWindow::mouseWheel(const vec2f &scroll)
 {
   if (!scroll || ctx->frame->pauseRendering)
     return;
+
+  // Switch back to default-camera before modifying any parameters
+  ctx->changeToDefaultCamera();
 
   // scroll is +/- 1 for horizontal/vertical mouse-wheel motion
 
@@ -795,6 +803,9 @@ void MainWindow::updateTitleBar()
 
 void MainWindow::centerOnEyePos()
 {
+  // Switch back to default-camera before modifying any parameters
+  ctx->changeToDefaultCamera();
+
   // Recenters camera at the eye position and zooms all the way in, like FPV
   // Save current zoom level
   preFPVZoom = arcballCamera->getZoomLevel();
