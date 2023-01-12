@@ -31,7 +31,7 @@ set(OSPRAY_STUDIO_PLUGINS "" CACHE PATH
     "OSPRay Studio will build plugins defined in these directories")
 
 if(DEFINED OSPRAY_STUDIO_PLUGINS)
-  if(NOT OSPRAY_STUDIO_PLUGINS STREQUAL "")
+  if(NOT "${OSPRAY_STUDIO_PLUGINS}" STREQUAL "")
 
 	set(_external_plugin_source_dirs ${OSPRAY_STUDIO_PLUGINS})
 	foreach(_source_dir ${_external_plugin_source_dirs})
