@@ -13,7 +13,7 @@ set(_binary_dir)
 
 # Detect plugins relative to this file.
 
-file(GLOB _local_plugin_names ${CMAKE_CURRENT_SOURCE_DIR}/ *)
+file(GLOB _local_plugin_names RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/ *)
 foreach(_name ${_local_plugin_names})
   set(_source_dir ${CMAKE_CURRENT_SOURCE_DIR}/${_name})
   set(_binary_dir ${CMAKE_CURRENT_BINARY_DIR}/${_name})
