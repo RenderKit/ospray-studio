@@ -67,6 +67,8 @@ class GUIContext : public StudioContext
   rkcommon::FileName backPlateTexture = "";
 
   // CLI
+  bool optSaveImageOnGUIExit{false};
+
   bool optShowColor{true};
   bool optShowAlbedo{false};
   bool optShowDepth{false};

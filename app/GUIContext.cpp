@@ -92,6 +92,8 @@ void GUIContext::start()
     refreshRenderer();
     refreshScene(true);
     mainWindow->mainLoop();
+    if (optSaveImageOnGUIExit)
+      saveCurrentFrame();
   }
 }
 
@@ -311,7 +313,13 @@ void GUIContext::refreshScene(bool resetCam)
   fb.resetAccumulation();
 }
 
-void GUIContext::addToCommandLine(std::shared_ptr<CLI::App> app) {}
+void GUIContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
+  app->add_flag(
+    "--saveImageOnExit",
+    optSaveImageOnGUIExit,
+    "Save final image when exiting GUI mode"
+  );
+}
 
 bool GUIContext::parseCommandLine()
 {
