@@ -44,7 +44,7 @@ WaveletSlices::WaveletSlices()
   parameters.createChild("actualTriangles", "int", 10000);
   parameters.child("actualTriangles").setReadOnly();
 
-  auto &xfm = createChild("xfm", "transform");
+  createChild("xfm", "transform");
 }
 
 void WaveletSlices::generateData()
@@ -101,12 +101,8 @@ void WaveletSlices::generateData()
       int gridSteps = sqrt(tslice/2); //quads
       //std::cerr << "slice " << s << " goal " << tslice << " gridSteps " << gridSteps <<  std::endl;
 
-      float sf = s/(float)numSlices;
-
       for (int y = 0; y < gridSteps; ++y) {
           //std::cerr << y << std::endl;
-
-          float yf = y/(float)gridSteps;
 
           for (int z = 0; z < gridSteps; ++z) {
               vec3f corner0(
@@ -128,7 +124,6 @@ void WaveletSlices::generateData()
 
               size_t i0 = vertex.size();
 
-              float zf = z/(float)gridSteps;
               float wv = getWaveletValue(corner0);
 
               //poor man's threshold

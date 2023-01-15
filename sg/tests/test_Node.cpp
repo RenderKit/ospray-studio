@@ -53,6 +53,7 @@ SCENARIO("sg::createNode()")
     {
       FloatNode *asFloatNode = dynamic_cast<FloatNode *>(node_ptr.get());
       REQUIRE(asFloatNode != nullptr);
+      REQUIRE(node.valueAs<float>() == asFloatNode->value());
     }
   }
 }

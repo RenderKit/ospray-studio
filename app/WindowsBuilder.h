@@ -604,7 +604,6 @@ void WindowsBuilder::buildWindowCameraEditor()
   auto frameCameraId = ctx->frame->child("camera").child("cameraId").valueAs<int>();
   ctx->whichCamera = frameCameraId;
 
-  const char* preview_value = NULL;
   auto &items = ctx->g_sceneCameras;
 
   // Only present selector UI if more than one camera

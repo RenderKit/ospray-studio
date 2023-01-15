@@ -297,6 +297,8 @@ void MainWindow::initGLFW()
 
   ImFont *font = io.Fonts->AddFontFromMemoryCompressedTTF(
       ProggyClean_compressed_data, ProggyClean_compressed_size, scaledFontSize);
+  if (!font)
+    std::cerr << "ImGui font did not load correctly." << std::endl;
   io.FontGlobalScale = 1.f / scaleFactor;
   io.DisplayFramebufferScale = imScale;
 
