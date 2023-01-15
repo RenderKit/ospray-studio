@@ -343,6 +343,7 @@ namespace sg {
   using VoidPtrNode = Node_T<void *>;
   using Box3fNode   = Node_T<box3f>;
   using Box3iNode   = Node_T<box3i>;
+  using Range1iNode = Node_T<range1i>;
   using Range1fNode = Node_T<range1f>;
   using Affine3fNode = Node_T<affine3f>;
   using QuaternionfNode = Node_T<quaternionf>;

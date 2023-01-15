@@ -490,6 +490,7 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
   OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
   OSP_REGISTER_SG_NODE_NAME(Box3iNode, box3i);
+  OSP_REGISTER_SG_NODE_NAME(Range1iNode, range1i);
   OSP_REGISTER_SG_NODE_NAME(Range1fNode, range1f);
   OSP_REGISTER_SG_NODE_NAME(Affine3fNode, affine3f);
   OSP_REGISTER_SG_NODE_NAME(QuaternionfNode, quaternionf);
