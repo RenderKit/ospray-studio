@@ -302,7 +302,7 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
 
   std::string refLinkFullPath = fileName.path() + refTitle;
   rkcommon::FileName file(refLinkFullPath);
-  std::cout << "Importing: " << file << std::endl;
+  INFO << "Importing: " << file << std::endl;
 
   auto importer =
       std::static_pointer_cast<sg::Importer>(sg::getImporter(sgNode, file));
@@ -414,7 +414,7 @@ void GLTFData::createLightTemplates()
     if (l.intensity)
       newLight->child("intensity") = (float)l.intensity;
     if (l.range)
-      std::cout << "Range value for light is not supported yet" << std::endl;
+      WARN << "Range value for light is not supported yet" << std::endl;
 
     // TODO:: Address extras property on lights
 
