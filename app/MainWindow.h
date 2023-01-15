@@ -1,3 +1,6 @@
+// Copyright 2018 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
 /* ----------------------------------------------------------
 ** MainWindow class holds functions and member variables for 
 ** implementing the windowing infrastructure of Studio

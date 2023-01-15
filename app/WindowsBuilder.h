@@ -1,3 +1,6 @@
+// Copyright 2018 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
 /* ----------------------------------------------------------
 ** WindowsBuilder class holds all functions and member 
 ** varibles for creating imgui windows and editors on top of 
