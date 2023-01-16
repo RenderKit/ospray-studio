@@ -7,6 +7,7 @@
 #include "sg/Frame.h"
 #include "sg/visitors/PrintNodes.h"
 using namespace ospray::sg;
+using namespace rkcommon::math;
 
 #include "rkcommon/utility/SaveImage.h"
 
