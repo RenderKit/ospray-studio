@@ -86,6 +86,17 @@ if(OSPRAY_INSTALL)
   # message(STATUS "_sharedlib_glob: ${_sharedlib_glob}")
   file(GLOB _sharedlibs LIST_DIRECTORIES false "${_sharedlib_glob}")
   # message(STATUS "_sharedlibs: ${_sharedlibs}")
+  
+  # get *_debug*.dylib* files from the tbb's lib directory
+  if (CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    get_target_property(TBB_LIBNAME TBB::tbb IMPORTED_LOCATION_DEBUG)
+    string(REGEX MATCH "^.*/" _tbbLib_glob "${TBB_LIBNAME}")
+    string(APPEND _tbbLib_glob "*_debug*${CMAKE_SHARED_LIBRARY_SUFFIX}*")
+    file(GLOB tbb_sharedlibs LIST_DIRECTORIES false "${_tbbLib_glob}")
+    list(APPEND _sharedlibs ${tbb_sharedlibs})
+    unset(_tbbLib_glob)
+    unset(tbb_sharedlibs)
+  endif()
 
   if(WIN32)
     install(FILES
