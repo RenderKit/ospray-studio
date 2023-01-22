@@ -11,7 +11,7 @@ if (BUILD_PLUGIN_EXAMPLE)
     PanelExample.cpp
   )
 
-  target_link_libraries(${pluginName} ospray_sg)
+  target_link_libraries(${pluginName} ospray_sg ospray_ui)
 
   # Only link against imgui if needed (ie, pure file importers don't)
   target_link_libraries(${pluginName} imgui)
