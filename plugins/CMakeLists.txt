@@ -35,7 +35,7 @@ if(DEFINED OSPRAY_STUDIO_PLUGINS)
 
 	set(_external_plugin_source_dirs ${OSPRAY_STUDIO_PLUGINS})
 	foreach(_source_dir ${_external_plugin_source_dirs})
-	  cmake_path(GET _source_dir FILENAME _name)
+	  get_filename_component(_name "${_source_dir}" NAME)
 	  set(_binary_dir ${CMAKE_CURRENT_BINARY_DIR}/${_name})
 
 	  list(APPEND _plugin_names ${_name})
