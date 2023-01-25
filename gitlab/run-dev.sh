@@ -26,5 +26,4 @@ set -e
 # glTF 3D Commerce Certification Tests
 export PATH=$(pwd):${PATH}
 ${CACHE_DIR}/glTF-Certification/run_cert.sh cert-tests
-
-echo "Last exit code $?"
+exit $?

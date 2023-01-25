@@ -14,4 +14,4 @@ export LD_LIBRARY_PATH=./build/install/lib/:$LD_LIBRARY_PATH
 cd ./build
 set +e
 timeout --preserve-status 10s ./ospStudio
-echo "Last exit code $?"
+exit $?
