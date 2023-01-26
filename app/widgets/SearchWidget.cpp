@@ -118,7 +118,7 @@ void SearchWidget::addSearchResultsUI(NR root)
 
   float height = 
       std::min(numItemsPerPage,
-          (searched ? (int)results.size() : (int)root.children().size()) + 1)
+          (searched ? (int)results.size() : (int)root.children().size()) + 2)
       * ImGui::GetFontSize();
   ImGui::BeginChild(
       "Results", ImVec2(0, height), true, ImGuiWindowFlags_HorizontalScrollbar);
