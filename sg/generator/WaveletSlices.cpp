@@ -101,7 +101,8 @@ void WaveletSlices::generateData()
     startSlice = sgMpiRank() * mpiChunks;
     endSlice = std::min<int>(numSlices, startSlice + mpiChunks);
   }
-  
+
+  float interslice = 2.0f/numSlices;
   for (int s = startSlice; s < endSlice; s++) {
       int tslice = requestedTriangles/tr * ratios[s];
       expectedTriangles = expectedTriangles + tslice;
@@ -114,7 +115,7 @@ void WaveletSlices::generateData()
 
           for (int z = 0; z < gridSteps; ++z) {
               vec3f corner0(
-                          (s*128.f/numSlices * 2.f/100.f + -1.f), //from Wavelet's default dims (128), spacing (2/100) and origin (-1) respectively
+                          (s*128.f/numSlices * 2.f/100.f + -1.f + interslice*0.1), //from Wavelet's default dims (128), spacing (2/100) and origin (-1) respectively
                           (y*128.f/gridSteps * 2.f/100.f + -1.f),
                           (z*128.f/gridSteps * 2.f/100.f + -1.f));
               vec3f corner1(
@@ -122,7 +123,7 @@ void WaveletSlices::generateData()
                           ((y+1)*128.f/gridSteps * 2.f/100.f + -1.f),
                           (z*128.f/gridSteps * 2.f/100.f + -1.f));
               vec3f corner2(
-                          (s*128.f/numSlices * 2.f/100.f + -1.f),
+                          (s*128.f/numSlices * 2.f/100.f + -1.f - interslice*0.2),
                           (y*128.f/gridSteps * 2.f/100.f + -1.f),
                           ((z+1)*128.f/gridSteps * 2.f/100.f + -1.f));
               vec3f corner3(
