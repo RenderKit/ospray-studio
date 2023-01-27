@@ -337,6 +337,7 @@ namespace sg {
   using UcharNode   = Node_T<unsigned char>;
   using IntNode     = Node_T<int>;
   using UIntNode    = Node_T<uint32_t>;
+  using LongNode    = Node_T<long>;
   using Vec2iNode   = Node_T<vec2i>;
   using Vec3iNode   = Node_T<vec3i>;
   using Vec4iNode   = Node_T<vec4i>;

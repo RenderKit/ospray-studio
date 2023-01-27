@@ -106,14 +106,15 @@ world = frame.child("world")
 lightsMan = frame.child("lights")
 baseMaterialRegistry = frame.child("baseMaterialRegistry")
 
- 
+nTrianglesGetter = None
 if filename == "slices":
   ws = world.createChildAs("generator", "generator_wavelet_slices")
   params = ws.child("parameters")
-  params.createChild("requestedTriangles", "uint32_t", Any(numTriangles))
+  params.createChild("requestedTriangles", "long", Any(numTriangles))
   params.createChild("numSlices", "int", Any(200))
-  params.createChild("thresholdLow", "float", Any(-0.5))
-  params.createChild("thresholdHigh", "float", Any(0.5))
+  params.createChild("thresholdLow", "float", Any(-0.00005))
+  params.createChild("thresholdHigh", "float", Any(0.00005))
+  nTrianglesGetter = params.child("actualTriangles")
 elif filename == "wavelet":
   ws = world.createChildAs("generator", "generator_wavelet")
   params = ws.child("parameters")
@@ -203,6 +204,9 @@ else:
           fid = fid + 1
 
 world.render()
+
+if nTrianglesGetter is not None:
+  print("rank", mpiRank, "numTriangles", nTrianglesGetter.valueAsInt())
 
 bounds = world.bounds()
 '''

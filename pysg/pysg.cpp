@@ -316,6 +316,7 @@ PYBIND11_MODULE(pysg, sg)
       .def(py::init<int>())
       .def(py::init<unsigned char>())
       .def(py::init<uint32_t>())
+      .def(py::init<long>())
       .def(py::init<float>())
       .def(py::init<vec2f>())
       .def(py::init<vec3f>())
@@ -366,6 +367,7 @@ PYBIND11_MODULE(pysg, sg)
       .def(
           "setValue", static_cast<void (Node::*)(float, bool)>(&Node::setValue))
       .def("setValue", static_cast<void (Node::*)(int, bool)>(&Node::setValue))
+      .def("setValue", static_cast<void (Node::*)(long, bool)>(&Node::setValue))
       .def(
           "setValue", static_cast<void (Node::*)(vec3f, bool)>(&Node::setValue))
       .def(
@@ -420,6 +422,7 @@ PYBIND11_MODULE(pysg, sg)
   pysg_nodeType<unsigned char>(sg, "UcharNode");
   pysg_nodeType<int>(sg, "IntNode");
   pysg_nodeType<uint32_t>(sg, "UIntNode");
+  pysg_nodeType<long>(sg, "LongNode");
   pysg_nodeType<vec2f>(sg, "Vec2fNode");
   pysg_nodeType<vec3f>(sg, "Vec3fNode");
   pysg_nodeType<vec4f>(sg, "Vec4fNode");

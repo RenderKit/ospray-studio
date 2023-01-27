@@ -36,7 +36,7 @@ WaveletSlices::WaveletSlices()
 {
   auto &parameters = child("parameters");
 
-  parameters.createChild("requestedTriangles", "int", 10000);
+  parameters.createChild("requestedTriangles", "long", 10000l);
   parameters.createChild("numSlices", "int", 20);
   parameters.createChild("sizeRatio", "float", 4.f);
   parameters.createChild("thresholdLow", "float", -6.f);
@@ -59,7 +59,15 @@ void WaveletSlices::generateData()
   if (sizeRatio <= 0) sizeRatio = 1;
   auto numSlices = parameters["numSlices"].valueAs<int>();
   if (numSlices < 1) numSlices = 1;
-  auto requestedTriangles = parameters["requestedTriangles"].valueAs<int>();
+  long requestedTriangles;
+  if (parameters["requestedTriangles"].valueIsType<int>()) {
+    requestedTriangles = static_cast<long>(parameters["requestedTriangles"].valueAs<int>());
+  } else if (parameters["requestedTriangles"].valueIsType<unsigned int>()) {
+    requestedTriangles = static_cast<long>(parameters["requestedTriangles"].valueAs<unsigned int>());
+  } else {
+    requestedTriangles = parameters["requestedTriangles"].valueAs<long>();
+  }
+
   if (requestedTriangles < numSlices*2) requestedTriangles = numSlices*2;
 
   auto thresholdLow = parameters["thresholdLow"].valueAs<float>();
@@ -76,7 +84,7 @@ void WaveletSlices::generateData()
       ratios.push_back(r);
       tr = tr + r;
   }
-  int expectedTriangles = 0;
+  long expectedTriangles = 0;
   int actualTriangles = 0;
   std::vector<vec3f> vertex;
   std::vector<vec4f> color;
