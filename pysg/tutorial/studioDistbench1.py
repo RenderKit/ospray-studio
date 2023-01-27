@@ -30,6 +30,7 @@ sg.assignMPI(mpiRank, mpiWorldSize)
 #optional command line arguments
 scalarRange = None
 colors = None
+opacity = 1.0
 opacities = None
 numTriangles = 1000000
 dim = 200
@@ -52,6 +53,8 @@ for idx in range(0, len(args)):
       G = float(args[idx+2+x*3+1])
       B = float(args[idx+2+x*3+2])
       colors.append([R,G,B])
+  if a == "-opacity":
+    opacity = float(args[idx+1])
   if a == "-opacities":
     no = int(args[idx+1])
     opacities = []
@@ -115,6 +118,7 @@ if filename == "slices":
   params.createChild("thresholdLow", "float", Any(-0.00005))
   params.createChild("thresholdHigh", "float", Any(0.00005))
   nTrianglesGetter = params.child("actualTriangles")
+  baseMaterialRegistry.child("sgDefault").child("d").setValue(opacity, True)
 elif filename == "wavelet":
   ws = world.createChildAs("generator", "generator_wavelet")
   params = ws.child("parameters")
