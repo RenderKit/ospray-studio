@@ -80,6 +80,9 @@ install(TARGETS ospStudio
 
 if(OSPRAY_INSTALL)
   get_target_property(OSPRAY_LIBNAME ospray::ospray IMPORTED_LOCATION_RELEASE)
+  if (CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    get_target_property(OSPRAY_LIBNAME ospray::ospray IMPORTED_LOCATION_DEBUG)
+  endif()
 
   string(REGEX MATCH "^.*/" _sharedlib_glob "${OSPRAY_LIBNAME}")
   string(APPEND _sharedlib_glob "*${CMAKE_SHARED_LIBRARY_SUFFIX}*")
