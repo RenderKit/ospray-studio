@@ -15,6 +15,7 @@ add_executable(ospStudio
   Batch.cpp
   TimeSeriesWindow.cpp
   AnimationManager.cpp
+  MultiWindows.cpp
 
   $<$<BOOL:${USE_BENCHMARK}>:Benchmark.cpp>
 

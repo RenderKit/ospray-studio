@@ -6,6 +6,7 @@
 #include "MainWindow.h"
 #include "Batch.h"
 #include "TimeSeriesWindow.h"
+#include "MultiWindows.h"
 #include "sg/Mpi.h"
 
 // CLI
@@ -379,6 +380,11 @@ int main(int argc, const char *argv[])
 #ifdef USE_BENCHMARK
     case StudioMode::BENCHMARK:
       context = std::make_shared<BenchmarkContext>(studioCommon);
+      break;
+#endif
+#ifdef USE_MPI
+    case StudioMode::MULTIWINDOWS:
+      context = std::make_shared<devel::MultiWindows>(studioCommon);
       break;
 #endif
     default:

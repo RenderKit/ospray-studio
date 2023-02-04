@@ -42,6 +42,9 @@ enum class StudioMode
 #ifdef USE_BENCHMARK
   BENCHMARK,
 #endif
+#ifdef USE_MPI
+  MULTIWINDOWS,
+#endif
 };
 
 const static std::map<std::string, StudioMode> StudioModeMap = {
@@ -51,6 +54,9 @@ const static std::map<std::string, StudioMode> StudioModeMap = {
     {"timeseries", StudioMode::TIMESERIES},
 #ifdef USE_BENCHMARK
     {"benchmark", StudioMode::BENCHMARK},
+#endif
+#ifdef USE_MPI
+    {"multiwindows", StudioMode::MULTIWINDOWS},
 #endif
 };
 
