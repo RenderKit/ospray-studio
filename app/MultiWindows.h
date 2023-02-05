@@ -52,6 +52,18 @@ enum class OSPRayRendererType
   OTHER
 };
 
+struct SharedState
+{
+  bool quit;
+
+  bool camChanged;
+  vec3f eyePos;
+  vec3f lookDir;
+  vec3f upDir;
+
+  SharedState();
+};
+
 class MultiWindows : public StudioContext
 {
  public:
@@ -225,6 +237,11 @@ class MultiWindows : public StudioContext
   bool optShowDepthInvert{false};
   bool optAutorotate{false};
   bool optAnimate{false};
+
+  // configuration for displays
+  nlohmann::ordered_json configDisplay;
+  // the state to be sent out over MPI to the other rendering processes
+  SharedState sharedState;
 };
 
 } // namespace devel

@@ -25,6 +25,7 @@
 #include "sg/visitors/CollectTransferFunctions.h"
 #include "sg/scene/volume/Volume.h"
 #include "sg/Math.h"
+#include "sg/Mpi.h"
 // rkcommon
 #include "rkcommon/math/rkmath.h"
 #include "rkcommon/os/FileName.h"
@@ -176,11 +177,15 @@ void error_callback(int error, const char *desc)
   std::cerr << "error " << error << ": " << desc << std::endl;
 }
 
+SharedState::SharedState() : quit(false), camChanged(false) { }
+
 MultiWindows *MultiWindows::activeWindow = nullptr;
 
 MultiWindows::MultiWindows(StudioCommon &_common)
     : StudioContext(_common, StudioMode::GUI), windowSize(_common.defaultSize), scene("")
 {
+  parseCommandLine();
+
   pluginManager = std::make_shared<PluginManager>();
   if (activeWindow != nullptr) {
     throw std::runtime_error("Cannot create more than one MultiWindows!");
@@ -201,6 +206,13 @@ MultiWindows::MultiWindows(StudioCommon &_common)
   if (!glfwInit()) {
     throw std::runtime_error("Failed to initialize GLFW!");
   }
+
+  // set the window size and show/hide the frame
+  windowSize.x = configDisplay[sg::sgMpiRank()]["screenWidth"];
+  windowSize.y = configDisplay[sg::sgMpiRank()]["screenHeight"];
+  optResolution.x = windowSize.x;
+  optResolution.y = windowSize.y;
+  glfwWindowHint(GLFW_DECORATED, sg::sgMpiRank() == 0 ? GLFW_TRUE : GLFW_FALSE);
 
   glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
@@ -230,183 +242,201 @@ MultiWindows::MultiWindows(StudioCommon &_common)
     gl_rgba_format = GL_RGBA32F;
   }
 
-  glfwSetKeyCallback(
-      glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
-        auto &io = ImGui::GetIO();
-        if (!io.WantCaptureKeyboard)
-          if (action == GLFW_PRESS) {
+  // set the window position
+  int numOfMonitors;
+  GLFWmonitor** monitors = glfwGetMonitors(&numOfMonitors);
+  int displayIndex = configDisplay[sg::sgMpiRank()]["display"];
+  if (numOfMonitors <= displayIndex) {
+    throw std::runtime_error("The display index should be less than numOfMonitors: " + std::to_string(numOfMonitors));
+  }
+  int xVirtual, yVirtual;
+  glfwGetMonitorPos(monitors[displayIndex], &xVirtual, &yVirtual);
+  int x = (int) configDisplay[sg::sgMpiRank()]["screenX"] + xVirtual;
+  int y = (int) configDisplay[sg::sgMpiRank()]["screenY"] + yVirtual;
+  glfwSetWindowPos(glfwWindow, x, y);
+
+  // further configure GLFW window based on rank
+  if (sg::sgMpiRank() == 0) {
+    glfwSetWindowAspectRatio(glfwWindow, windowSize.x, windowSize.y);
+
+    glfwSetKeyCallback(
+        glfwWindow, [](GLFWwindow *, int key, int, int action, int mod) {
+          auto &io = ImGui::GetIO();
+          if (!io.WantCaptureKeyboard)
+            if (action == GLFW_PRESS) {
+              switch (key) {
+              case GLFW_KEY_UP:
+                if (mod != GLFW_MOD_ALT)
+                  g_camMoveZ = -CAM_MOVERATE;
+                else
+                  g_camMoveY = -CAM_MOVERATE;
+                break;
+              case GLFW_KEY_DOWN:
+                if (mod != GLFW_MOD_ALT)
+                  g_camMoveZ = CAM_MOVERATE;
+                else
+                  g_camMoveY = CAM_MOVERATE;
+                break;
+              case GLFW_KEY_LEFT:
+                g_camMoveX = -CAM_MOVERATE;
+                break;
+              case GLFW_KEY_RIGHT:
+                g_camMoveX = CAM_MOVERATE;
+                break;
+              case GLFW_KEY_W:
+                g_camMoveE = CAM_MOVERATE;
+                break;
+              case GLFW_KEY_S:
+                if (mod != GLFW_MOD_CONTROL)
+                  g_camMoveE = -CAM_MOVERATE;
+                else
+                  g_saveNextFrame = true;
+                break;
+              case GLFW_KEY_A:
+                if (mod != GLFW_MOD_ALT)
+                  g_camMoveA = -CAM_MOVERATE;
+                else
+                  g_camMoveR = -CAM_MOVERATE;
+                break;
+              case GLFW_KEY_D:
+                if (mod != GLFW_MOD_ALT)
+                  g_camMoveA = CAM_MOVERATE;
+                else
+                  g_camMoveR = CAM_MOVERATE;
+                break;
+
+              case GLFW_KEY_X:
+                g_rotationConstraint = 0;
+                break;
+              case GLFW_KEY_Y:
+                g_rotationConstraint = 1;
+                break;
+              case GLFW_KEY_Z:
+                g_rotationConstraint = 2;
+                break;
+
+              case GLFW_KEY_I:
+                activeWindow->centerOnEyePos();
+                break;
+
+              case GLFW_KEY_G:
+                activeWindow->showUi = !(activeWindow->showUi);
+                break;
+              case GLFW_KEY_Q: {
+                auto showMode =
+                    rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
+                // Enforce "ctrl-Q" to make it more difficult to exit by mistake.
+                if (showMode && mod != GLFW_MOD_CONTROL)
+                  std::cout << "Use ctrl-Q to exit\n";
+                else
+                  g_quitNextFrame = true;
+              } break;
+              case GLFW_KEY_P:
+                activeWindow->frame->traverse<sg::PrintNodes>();
+                break;
+              case GLFW_KEY_M:
+                activeWindow->baseMaterialRegistry->traverse<sg::PrintNodes>();
+                break;
+              case GLFW_KEY_L:
+                activeWindow->lightsManager->traverse<sg::PrintNodes>();
+                break;
+              case GLFW_KEY_B:
+                PRINT(activeWindow->frame->bounds());
+                break;
+              case GLFW_KEY_V:
+                activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
+                break;
+              case GLFW_KEY_SPACE:
+                if (activeWindow->cameraStack.size() >= 2) {
+                  g_animatingPath = !g_animatingPath;
+                  g_camCurrentPathIndex = 0;
+                  if (g_animatingPath) {
+                    g_camPath = buildPath(
+                        activeWindow->cameraStack, g_camPathSpeed * 0.01);
+                  }
+                }
+                activeWindow->animationWidget->togglePlay();
+                break;
+              case GLFW_KEY_EQUAL:
+                activeWindow->pushLookMark();
+                break;
+              case GLFW_KEY_MINUS:
+                activeWindow->popLookMark();
+                break;
+              case GLFW_KEY_0: /* fallthrough */
+              case GLFW_KEY_1: /* fallthrough */
+              case GLFW_KEY_2: /* fallthrough */
+              case GLFW_KEY_3: /* fallthrough */
+              case GLFW_KEY_4: /* fallthrough */
+              case GLFW_KEY_5: /* fallthrough */
+              case GLFW_KEY_6: /* fallthrough */
+              case GLFW_KEY_7: /* fallthrough */
+              case GLFW_KEY_8: /* fallthrough */
+              case GLFW_KEY_9:
+                activeWindow->setCameraSnapshot((key + 9 - GLFW_KEY_0) % 10);
+                break;
+              }
+            }
+          if (action == GLFW_RELEASE) {
             switch (key) {
-            case GLFW_KEY_UP:
-              if (mod != GLFW_MOD_ALT)
-                g_camMoveZ = -CAM_MOVERATE;
-              else
-                g_camMoveY = -CAM_MOVERATE;
+            case GLFW_KEY_X:
+            case GLFW_KEY_Y:
+            case GLFW_KEY_Z:
+              g_rotationConstraint = -1;
               break;
+            case GLFW_KEY_UP:
             case GLFW_KEY_DOWN:
-              if (mod != GLFW_MOD_ALT)
-                g_camMoveZ = CAM_MOVERATE;
-              else
-                g_camMoveY = CAM_MOVERATE;
+              g_camMoveZ = 0;
+              g_camMoveY = 0;
               break;
             case GLFW_KEY_LEFT:
-              g_camMoveX = -CAM_MOVERATE;
-              break;
             case GLFW_KEY_RIGHT:
-              g_camMoveX = CAM_MOVERATE;
+              g_camMoveX = 0;
               break;
             case GLFW_KEY_W:
-              g_camMoveE = CAM_MOVERATE;
-              break;
             case GLFW_KEY_S:
-              if (mod != GLFW_MOD_CONTROL)
-                g_camMoveE = -CAM_MOVERATE;
-              else
-                g_saveNextFrame = true;
+              g_camMoveE = 0;
               break;
             case GLFW_KEY_A:
-              if (mod != GLFW_MOD_ALT)
-                g_camMoveA = -CAM_MOVERATE;
-              else
-                g_camMoveR = -CAM_MOVERATE;
-              break;
             case GLFW_KEY_D:
-              if (mod != GLFW_MOD_ALT)
-                g_camMoveA = CAM_MOVERATE;
-              else
-                g_camMoveR = CAM_MOVERATE;
-              break;
-
-            case GLFW_KEY_X:
-              g_rotationConstraint = 0;
-              break;
-            case GLFW_KEY_Y:
-              g_rotationConstraint = 1;
-              break;
-            case GLFW_KEY_Z:
-              g_rotationConstraint = 2;
-              break;
-
-            case GLFW_KEY_I:
-              activeWindow->centerOnEyePos();
-              break;
-
-            case GLFW_KEY_G:
-              activeWindow->showUi = !(activeWindow->showUi);
-              break;
-            case GLFW_KEY_Q: {
-              auto showMode =
-                  rkcommon::utility::getEnvVar<int>("OSPSTUDIO_SHOW_MODE");
-              // Enforce "ctrl-Q" to make it more difficult to exit by mistake.
-              if (showMode && mod != GLFW_MOD_CONTROL)
-                std::cout << "Use ctrl-Q to exit\n";
-              else
-                g_quitNextFrame = true;
-            } break;
-            case GLFW_KEY_P:
-              activeWindow->frame->traverse<sg::PrintNodes>();
-              break;
-            case GLFW_KEY_M:
-              activeWindow->baseMaterialRegistry->traverse<sg::PrintNodes>();
-              break;
-            case GLFW_KEY_L:
-              activeWindow->lightsManager->traverse<sg::PrintNodes>();
-              break;
-            case GLFW_KEY_B:
-              PRINT(activeWindow->frame->bounds());
-              break;
-            case GLFW_KEY_V:
-              activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
-              break;
-            case GLFW_KEY_SPACE:
-              if (activeWindow->cameraStack.size() >= 2) {
-                g_animatingPath = !g_animatingPath;
-                g_camCurrentPathIndex = 0;
-                if (g_animatingPath) {
-                  g_camPath = buildPath(
-                      activeWindow->cameraStack, g_camPathSpeed * 0.01);
-                }
-              }
-              activeWindow->animationWidget->togglePlay();
-              break;
-            case GLFW_KEY_EQUAL:
-              activeWindow->pushLookMark();
-              break;
-            case GLFW_KEY_MINUS:
-              activeWindow->popLookMark();
-              break;
-            case GLFW_KEY_0: /* fallthrough */
-            case GLFW_KEY_1: /* fallthrough */
-            case GLFW_KEY_2: /* fallthrough */
-            case GLFW_KEY_3: /* fallthrough */
-            case GLFW_KEY_4: /* fallthrough */
-            case GLFW_KEY_5: /* fallthrough */
-            case GLFW_KEY_6: /* fallthrough */
-            case GLFW_KEY_7: /* fallthrough */
-            case GLFW_KEY_8: /* fallthrough */
-            case GLFW_KEY_9:
-              activeWindow->setCameraSnapshot((key + 9 - GLFW_KEY_0) % 10);
+              g_camMoveA = 0;
+              g_camMoveR = 0;
               break;
             }
           }
-        if (action == GLFW_RELEASE) {
-          switch (key) {
-          case GLFW_KEY_X:
-          case GLFW_KEY_Y:
-          case GLFW_KEY_Z:
-            g_rotationConstraint = -1;
-            break;
-          case GLFW_KEY_UP:
-          case GLFW_KEY_DOWN:
-            g_camMoveZ = 0;
-            g_camMoveY = 0;
-            break;
-          case GLFW_KEY_LEFT:
-          case GLFW_KEY_RIGHT:
-            g_camMoveX = 0;
-            break;
-          case GLFW_KEY_W:
-          case GLFW_KEY_S:
-            g_camMoveE = 0;
-            break;
-          case GLFW_KEY_A:
-          case GLFW_KEY_D:
-            g_camMoveA = 0;
-            g_camMoveR = 0;
-            break;
-          }
-        }
-      });
+        });
 
-  // set GLFW callbacks
-  glfwSetFramebufferSizeCallback(
-      glfwWindow, [](GLFWwindow *, int newWidth, int newHeight) {
-        activeWindow->reshape(vec2i{newWidth, newHeight});
-      });
+    // set GLFW callbacks
+    glfwSetFramebufferSizeCallback(
+        glfwWindow, [](GLFWwindow *, int newWidth, int newHeight) {
+          activeWindow->reshape(vec2i{newWidth, newHeight});
+        });
 
-  glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow *win, int, int action, int) {
-    ImGuiIO &io = ImGui::GetIO();
-    if (!activeWindow->showUi || !io.WantCaptureMouse) {
-      double x, y;
-      glfwGetCursorPos(win, &x, &y);
-      activeWindow->mouseButton(vec2f{float(x), float(y)});
+    glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow *win, int, int action, int) {
+      ImGuiIO &io = ImGui::GetIO();
+      if (!activeWindow->showUi || !io.WantCaptureMouse) {
+        double x, y;
+        glfwGetCursorPos(win, &x, &y);
+        activeWindow->mouseButton(vec2f{float(x), float(y)});
 
-      activeWindow->getFrame()->setNavMode(action == GLFW_PRESS);
-    }
-  });
+        activeWindow->getFrame()->setNavMode(action == GLFW_PRESS);
+      }
+    });
 
-  glfwSetScrollCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
-    ImGuiIO &io = ImGui::GetIO();
-    if (!activeWindow->showUi || !io.WantCaptureMouse) {
-      activeWindow->mouseWheel(vec2f{float(x), float(y)});
-    }
-  });
+    glfwSetScrollCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
+      ImGuiIO &io = ImGui::GetIO();
+      if (!activeWindow->showUi || !io.WantCaptureMouse) {
+        activeWindow->mouseWheel(vec2f{float(x), float(y)});
+      }
+    });
 
-  glfwSetCursorPosCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
-    ImGuiIO &io = ImGui::GetIO();
-    if (!activeWindow->showUi || !io.WantCaptureMouse) {
-      activeWindow->motion(vec2f{float(x), float(y)});
-    }
-  });
+    glfwSetCursorPosCallback(glfwWindow, [](GLFWwindow *, double x, double y) {
+      ImGuiIO &io = ImGui::GetIO();
+      if (!activeWindow->showUi || !io.WantCaptureMouse) {
+        activeWindow->motion(vec2f{float(x), float(y)});
+      }
+    });
+  }
 
   ImGui::CreateContext();
 
@@ -442,6 +472,14 @@ MultiWindows::MultiWindows(StudioCommon &_common)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   refreshScene(true);
+
+  // set the initial state
+  sharedState.camChanged = true;
+  auto camera = frame->child("camera").nodeAs<sg::Camera>();
+  sharedState.eyePos = camera->child("position").valueAs<vec3f>();
+  sharedState.lookDir = camera->child("direction").valueAs<vec3f>();
+  sharedState.upDir = camera->child("up").valueAs<vec3f>();
+  showUi = sg::sgMpiRank() == 0;
 
   // trigger window reshape events with current window size
   glfwGetFramebufferSize(glfwWindow, &windowSize.x, &windowSize.y);
@@ -523,7 +561,24 @@ void MultiWindows::mainLoop()
   // continue until the user closes the window
   startNewOSPRayFrame();
 
-  while (!glfwWindowShouldClose(glfwWindow) && !g_quitNextFrame) {
+  while (true) {
+    MPI_Bcast(&sharedState, sizeof(sharedState), MPI_BYTE, 0, MPI_COMM_WORLD);
+
+    { // process changes in the shared state
+      if (sharedState.quit) {
+        break;
+      }
+
+      if (sharedState.camChanged) {
+        auto camera = frame->child("camera").nodeAs<sg::Camera>();
+        camera->child("position").setValue(sharedState.eyePos);
+        camera->child("direction").setValue(sharedState.lookDir);
+        camera->child("up").setValue(sharedState.upDir);
+
+        sharedState.camChanged = false;
+      }
+    }
+
     ImGui_ImplOpenGL2_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -569,7 +624,21 @@ void MultiWindows::mainLoop()
 
     display();
 
+    // poll and process events
     glfwPollEvents();
+    if (sg::sgMpiRank() == 0) {
+      sharedState.quit = glfwWindowShouldClose(glfwWindow) || g_quitNextFrame;
+
+      // check if the camera has been updated
+      auto camera = frame->child("camera").nodeAs<sg::Camera>();
+      if (camera->isModified()) {
+        sharedState.camChanged = true;
+        sharedState.eyePos = camera->child("position").valueAs<vec3f>();
+        sharedState.lookDir = camera->child("direction").valueAs<vec3f>();
+        sharedState.upDir = camera->child("up").valueAs<vec3f>();
+      }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   waitOnOSPRayFrame();
@@ -1103,6 +1172,9 @@ void MultiWindows::display()
     glfwMakeContextCurrent(backup_current_context);
   }
 
+  // wait for other ranks to reach this point before swapping the buffer
+  MPI_Barrier(MPI_COMM_WORLD);
+
   // swap buffers
   glfwSwapBuffers(glfwWindow);
 }
@@ -1275,6 +1347,43 @@ void MultiWindows::refreshScene(bool resetCam)
 }
 
 void MultiWindows::addToCommandLine(std::shared_ptr<CLI::App> app) {
+  app->add_option(
+    "--displayConfig",
+    [&](const std::vector<std::string> val) {
+      try {
+        std::ifstream configFile(val[0]);
+        if (!configFile) {
+          std::cerr << "The display config file does not exist." << std::endl;
+          return false;
+        }
+        configFile >> configDisplay;
+      } catch (nlohmann::json::exception &e) {
+        std::cerr << "Failed to parse the display config file: " << e.what() << std::endl;
+        return false;
+      }
+      if (configDisplay.empty()) {
+        std::cerr << "The display config file is empty." << std::endl;
+        return false;
+      }
+      return true;
+    },
+    "Sets the display configuration file path"
+  );
+
+  app->add_option(
+    "--scene",
+    [&](const std::vector<std::string> val) {
+      for (size_t i = 0; i < g_scenes.size(); ++i) {
+        if (val[0] == g_scenes[i]) {
+          scene = g_scenes[i];
+          return true;
+        }
+      }
+      std::cerr << "The scene name does not exist." << std::endl;
+      return false;
+    },
+    "Sets the opening scene name"
+  );
 }
 
 bool MultiWindows::parseCommandLine()
@@ -1284,6 +1393,8 @@ bool MultiWindows::parseCommandLine()
 
   std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>("OSPRay Studio MULTIWINDOWS");
   StudioContext::addToCommandLine(app);
+  // remove --resolution option as it is set by a config file
+  app->remove_option(app->get_option("--resolution"));
   MultiWindows::addToCommandLine(app);
   try {
     app->parse(ac, av);
@@ -1291,13 +1402,6 @@ bool MultiWindows::parseCommandLine()
     exit(app->exit(e));
   }
 
-  // XXX: changing windowSize here messes causes some display scaling issues
-  // because it desyncs window and framebuffer size with any scaling
-  if (optResolution.x != 0) {
-    windowSize = optResolution;
-    glfwSetWindowSize(glfwWindow, optResolution.x, optResolution.y);
-    reshape(windowSize);
-  }
   rendererTypeStr = optRendererTypeStr;
 
   return true;
