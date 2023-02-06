@@ -1593,8 +1593,8 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
       // attenuationDistance <float> Density of the medium given as the
       // average distance that light travels in the medium before interacting
       // with a particle. The value is given in world space.
-      // No, default: +Infinity
-      float attenuationDistance = FLT_LARGE;
+      // No, default: +Infinity (inf doesn't behave well with UI sliders)
+      float attenuationDistance = std::numeric_limits<float>::max();
       if (params.Has("attenuationDistance")) {
         attenuationDistance =
             (float)params.Get("attenuationDistance").Get<double>();
