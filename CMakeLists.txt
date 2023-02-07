@@ -66,10 +66,14 @@ include(functions)
 
 ## Find dependencies ##
 
-set(OpenGL_GL_PREFERENCE "LEGACY")
-find_package(OpenGL 2 REQUIRED)
+option(BUILD_APPS "Build OSPRay Studio Apps" ON)
+if (BUILD_APPS)
+  set(OpenGL_GL_PREFERENCE "LEGACY")
+  find_package(OpenGL 2 REQUIRED)
 
-include(glfw)
+  include(glfw)
+endif()
+
 include(ospray)
 
 option(USE_BENCHMARK "Build benchmarking support into ospStudio" ON)
@@ -99,7 +103,6 @@ if(USE_PYSG)
   add_subdirectory(pysg)
 endif()
 
-option(BUILD_APPS "Build OSPRay Studio Apps" ON)
 if (BUILD_APPS)
   add_subdirectory(app)
 endif()
@@ -107,7 +110,7 @@ endif()
 ## Build plugins ##
 
 option(BUILD_PLUGINS "Build plugins subtree" OFF)
-if (BUILD_APPS AND BUILD_PLUGINS)
+if (BUILD_PLUGINS)
   add_subdirectory(plugins)
 endif()
 
