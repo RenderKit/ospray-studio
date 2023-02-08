@@ -45,10 +45,26 @@ if(DEFINED OSPRAY_STUDIO_PLUGINS)
   endif()
 endif()
 
-foreach(_name _source_dir _binary_dir IN ZIP_LISTS _plugin_names _plugin_source_dirs _plugin_binary_dirs)
+# CMake <3.17 doesn't have "foreach(... IN ZIP_LISTS ...)", so we have to
+# manually iterate over the plugin names and directories if we want to support
+# earlier versions. If we upgrade our minimum to 3.17, then the following
+# foreach() loop can be simplified a lot.
+
+list(LENGTH _plugin_names _plugin_count)
+math(EXPR _plugin_last_index "${_plugin_count}-1")
+
+foreach(_index RANGE "${_plugin_last_index}")
+  list(GET _plugin_names "${_index}" _name)
+  list(GET _plugin_source_dirs "${_index}" _source_dir)
+  list(GET _plugin_binary_dirs "${_index}" _binary_dir)
+
   message(STATUS "OSPRay Studio detected plugin: ${_name}")
-  add_subdirectory(${_source_dir} ${_binary_dir})
+  add_subdirectory("${_source_dir}" "${_binary_dir}")
 endforeach()
+
+unset(_plugin_count)
+unset(_plugin_last_index)
+unset(_index)
 
 # Clean up temporary variables
 unset(_plugin_names)
