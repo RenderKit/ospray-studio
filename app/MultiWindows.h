@@ -57,9 +57,7 @@ struct SharedState
   bool quit;
 
   bool camChanged;
-  vec3f eyePos;
-  vec3f lookDir;
-  vec3f upDir;
+  affine3f transform;
 
   SharedState();
 };
@@ -242,6 +240,10 @@ class MultiWindows : public StudioContext
   nlohmann::ordered_json configDisplay;
   // the state to be sent out over MPI to the other rendering processes
   SharedState sharedState;
+  // three corners of a display
+  vec3f topLeftLocal;
+  vec3f botLeftLocal;
+  vec3f botRightLocal;
 };
 
 } // namespace devel

@@ -255,6 +255,50 @@ MultiWindows::MultiWindows(StudioCommon &_common)
   int y = (int) configDisplay[sg::sgMpiRank()]["screenY"] + yVirtual;
   glfwSetWindowPos(glfwWindow, x, y);
 
+  // update three corners of the image plane
+  {
+    topLeftLocal = configDisplay[sg::sgMpiRank()]["topLeft"].get<vec3f>();
+    botLeftLocal = configDisplay[sg::sgMpiRank()]["botLeft"].get<vec3f>();
+    botRightLocal = configDisplay[sg::sgMpiRank()]["botRight"].get<vec3f>();
+    vec3f eyePos = configDisplay[sg::sgMpiRank()]["eye"].get<vec3f>();
+    vec4f mullion {
+      configDisplay[sg::sgMpiRank()]["mullionLeft"], 
+      configDisplay[sg::sgMpiRank()]["mullionRight"], 
+      configDisplay[sg::sgMpiRank()]["mullionTop"], 
+      configDisplay[sg::sgMpiRank()]["mullionBottom"]};
+
+    // use mullion values to update the three corners
+    vec3f tl = topLeftLocal, bl = botLeftLocal, br = botRightLocal;
+
+    float mullionLeft = mullion[0];
+    botLeftLocal += normalize(br - bl) * mullionLeft;
+    topLeftLocal +=  normalize(br - bl) * mullionLeft;
+
+    float mullionRight = mullion[1];
+    botRightLocal += normalize(bl - br) * mullionRight;
+
+    float mullionTop = mullion[2];
+    topLeftLocal += normalize(bl - tl) * mullionTop;
+
+    float mullionBottom = mullion[3];
+    botLeftLocal += normalize(tl - bl) * mullionBottom;
+    botRightLocal += normalize(tl - bl) * mullionBottom;
+
+    // update the camera
+    auto camera = frame->child("camera").nodeAs<sg::Camera>();
+    
+    camera->child("offAxisMode").setValue(true);
+    camera->child("position").setValue(eyePos);
+    camera->child("topLeft").setValue(topLeftLocal);
+    camera->child("botLeft").setValue(botLeftLocal);
+    camera->child("botRight").setValue(botRightLocal);
+
+    camera->child("aspect").setValue(length(botRightLocal - botLeftLocal) / length(topLeftLocal - botLeftLocal));
+    float angle = acos(dot(topLeftLocal, botLeftLocal) / (length(topLeftLocal) * length(botLeftLocal))) * 180.f / M_PI;
+    camera->child("fovy").setValue(angle);
+    camera->child("direction").setValue(vec3f{0,0,-1});
+  }
+
   // further configure GLFW window based on rank
   if (sg::sgMpiRank() == 0) {
     glfwSetWindowAspectRatio(glfwWindow, windowSize.x, windowSize.y);
@@ -476,9 +520,7 @@ MultiWindows::MultiWindows(StudioCommon &_common)
   // set the initial state
   sharedState.camChanged = true;
   auto camera = frame->child("camera").nodeAs<sg::Camera>();
-  sharedState.eyePos = camera->child("position").valueAs<vec3f>();
-  sharedState.lookDir = camera->child("direction").valueAs<vec3f>();
-  sharedState.upDir = camera->child("up").valueAs<vec3f>();
+  sharedState.transform = camera->child("transform").valueAs<affine3f>();
   showUi = sg::sgMpiRank() == 0;
 
   // trigger window reshape events with current window size
@@ -571,9 +613,10 @@ void MultiWindows::mainLoop()
 
       if (sharedState.camChanged) {
         auto camera = frame->child("camera").nodeAs<sg::Camera>();
-        camera->child("position").setValue(sharedState.eyePos);
-        camera->child("direction").setValue(sharedState.lookDir);
-        camera->child("up").setValue(sharedState.upDir);
+        camera->child("transform").setValue(sharedState.transform);
+        camera->child("topLeft").setValue(xfmPoint(sharedState.transform, topLeftLocal));
+        camera->child("botLeft").setValue(xfmPoint(sharedState.transform, botLeftLocal));
+        camera->child("botRight").setValue(xfmPoint(sharedState.transform, botRightLocal));
 
         sharedState.camChanged = false;
       }
@@ -628,15 +671,6 @@ void MultiWindows::mainLoop()
     glfwPollEvents();
     if (sg::sgMpiRank() == 0) {
       sharedState.quit = glfwWindowShouldClose(glfwWindow) || g_quitNextFrame;
-
-      // check if the camera has been updated
-      auto camera = frame->child("camera").nodeAs<sg::Camera>();
-      if (camera->isModified()) {
-        sharedState.camChanged = true;
-        sharedState.eyePos = camera->child("position").valueAs<vec3f>();
-        sharedState.lookDir = camera->child("direction").valueAs<vec3f>();
-        sharedState.upDir = camera->child("up").valueAs<vec3f>();
-      }
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
@@ -736,10 +770,6 @@ void MultiWindows::updateCamera()
     activeWindow->centerOnEyePos();
   }
 
-  camera->child("position").setValue(arcballCamera->eyePos());
-  camera->child("direction").setValue(arcballCamera->lookDir());
-  camera->child("up").setValue(arcballCamera->upDir());
-
   if (camera->hasChild("focusDistance")
       && !camera->child("cameraId").valueAs<int>()) {
     float focusDistance = rkcommon::math::length(
@@ -754,6 +784,9 @@ void MultiWindows::updateCamera()
     }
     camera->child("focusDistance").setValue(focusDistance);
   }
+
+  sharedState.camChanged = true;
+  sharedState.transform = arcballCamera->getTransform();
 }
 
 void MultiWindows::setCameraState(CameraState &cs)
