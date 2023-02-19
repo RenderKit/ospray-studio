@@ -28,6 +28,9 @@ struct PANEL_INTERFACE Panel
 
   virtual void buildUI(void* ImGuiCtx) = 0;
 
+  // Process 'key' even though the UI is not shown, e.g, check "update" to run something in every frame in mainLoop()
+  virtual void process(std::string key) {};
+
   // Controls to show/hide the panel in the app //
 
   void setShown(bool shouldBeShown);

@@ -446,6 +446,10 @@ MultiWindows::MultiWindows(StudioCommon &_common)
               g_camMoveA = 0;
               g_camMoveR = 0;
               break;
+            case GLFW_KEY_C:
+              for (auto &p : activeWindow->pluginPanels)
+                p->process("start");
+              break;
             }
           }
         });
@@ -670,6 +674,9 @@ void MultiWindows::mainLoop()
     // poll and process events
     glfwPollEvents();
     if (sg::sgMpiRank() == 0) {
+      for (auto &p : pluginPanels)
+        p->process("update");
+
       sharedState.camChanged = true;
       sharedState.transform = arcballCamera->getTransform();
       sharedState.quit = glfwWindowShouldClose(glfwWindow) || g_quitNextFrame;

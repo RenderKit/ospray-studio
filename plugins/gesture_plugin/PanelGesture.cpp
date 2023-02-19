@@ -35,13 +35,6 @@ void PanelGesture::buildUI(void *ImGuiCtx)
     if (ImGui::Button("Disconnect")) {
       trackingManager->close();
     }
-    else {
-      // poll state... update the camera
-      TrackingState state = trackingManager->pollState();
-      if (state.mode == INTERACTION_FLYING) {
-        context->arcballCamera->move(state.leaningDir);
-      }
-    }
   }
   else {
     ImGui::Text("%s", "Currently NOT connected to the server...");
@@ -94,6 +87,18 @@ void PanelGesture::buildUI(void *ImGuiCtx)
   ImGui::Separator();
 
   ImGui::EndPopup();
+}
+
+void PanelGesture::process(std::string key) {
+  if (key == "update") {
+    TrackingState state = trackingManager->pollState();
+    if (state.mode == INTERACTION_FLYING) {
+      context->arcballCamera->move(state.leaningDir);
+    }
+  }
+  else if (key == "start") {
+    trackingManager->start();
+  }
 }
 
 }  // namespace gesture_plugin

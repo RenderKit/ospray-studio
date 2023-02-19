@@ -14,6 +14,8 @@ struct PanelGesture : public Panel
 
   void buildUI(void *ImGuiCtx) override;
 
+  void process(std::string key) override;
+
 private:
   std::string panelName;
   std::string configFilePath;
