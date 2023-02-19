@@ -670,6 +670,8 @@ void MultiWindows::mainLoop()
     // poll and process events
     glfwPollEvents();
     if (sg::sgMpiRank() == 0) {
+      sharedState.camChanged = true;
+      sharedState.transform = arcballCamera->getTransform();
       sharedState.quit = glfwWindowShouldClose(glfwWindow) || g_quitNextFrame;
     }
     MPI_Barrier(MPI_COMM_WORLD);
@@ -784,9 +786,6 @@ void MultiWindows::updateCamera()
     }
     camera->child("focusDistance").setValue(focusDistance);
   }
-
-  sharedState.camChanged = true;
-  sharedState.transform = arcballCamera->getTransform();
 }
 
 void MultiWindows::setCameraState(CameraState &cs)

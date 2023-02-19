@@ -113,6 +113,7 @@ class ArcballCamera
   void zoom(float amount);
   void dolly(float amount);
   void pan(const vec2f &delta);
+  void move(const vec3f &dir);
 
   vec3f eyePos() const;
   vec3f center() const;

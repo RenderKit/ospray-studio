@@ -8,4 +8,5 @@
 !/plugins
 /plugins/*
 !/plugins/example_plugin
+!/plugins/gesture_plugin
 doc/*.html

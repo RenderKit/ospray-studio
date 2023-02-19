@@ -83,6 +83,11 @@ void ArcballCamera::pan(const vec2f &delta)
   updateCamera();
 }
 
+void ArcballCamera::move(const rkcommon::math::vec3f &dir) {
+  translation = AffineSpace3f::translate(-dir) * translation;
+  updateCamera();
+}
+
 vec3f ArcballCamera::eyePos() const
 {
   return cameraToWorld.p;
