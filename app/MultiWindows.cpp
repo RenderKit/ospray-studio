@@ -1059,6 +1059,8 @@ void MultiWindows::display()
   auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
   fbSize = frameBuffer.child("size").valueAs<vec2i>();
 
+  waitOnOSPRayFrame();
+
   if (frame->frameIsReady()) {
     if (!frame->isCanceled()) {
       // display frame rate in window title
