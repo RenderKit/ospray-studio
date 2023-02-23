@@ -232,6 +232,8 @@ namespace ospray {
       createGeometry(node);
       break;
     case NodeType::LIGHT: {
+      if (! node.child("enable").valueAs<bool>())
+        break;
       // Only lights marked as "inGroup" belong in a group lights list, others
       // have been put on the world list.
       if (node.nodeAs<Light>()->inGroup) {

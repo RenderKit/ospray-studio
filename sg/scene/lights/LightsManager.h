@@ -30,6 +30,7 @@ struct OSPSG_INTERFACE LightsManager
   void addGroupLights(std::vector<NodePtr> &lights);
   bool removeLight(std::string name);
   void clear();
+  NodePtr getLight(std::string name);
 
   inline bool hasDefaultLight()
   {

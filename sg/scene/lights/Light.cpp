@@ -15,6 +15,8 @@ Light::Light(std::string type)
       "visible", "bool", "whether the light can be seen directly", true);
   createChild("color", "rgb", "color of the light", vec3f(1.f));
   createChild("intensity", "float", "intensity of the light (a factor)", 1.f);
+  createChild(
+      "enable", "bool", "Is the light contributing to the scene", true);
 
   // Default unknown here because light type determines default
   createChild("intensityQuantity",
@@ -36,6 +38,7 @@ Light::Light(std::string type)
           uint8_t(OSP_INTENSITY_QUANTITY_SCALE));
 
   child("type").setSGOnly();
+  child("enable").setSGOnly();
 }
 
 NodeType Light::type() const
