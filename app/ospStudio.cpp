@@ -84,7 +84,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the renderer background color"
-    )->expected(4);
+    )->expected(4)->check(CLI::NonNegativeNumber);
   app->add_option(
     "--pixelfilter",
     optPF,
@@ -164,7 +164,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the dimensions for imported volumes"
-  )->expected(3);
+  )->expected(3)->check(CLI::NonNegativeNumber);;
   app->add_option(
     "--gridSpacing",
     [&](const std::vector<std::string> val) {
@@ -173,7 +173,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the grid spacing for imported volumes"
-  )->expected(3);
+  )->expected(3)->check(CLI::Number);;
   app->add_option(
     "--gridOrigin",
     [&](const std::vector<std::string> val) {
@@ -182,7 +182,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the grid origin for imported volumes"
-  )->expected(3);
+  )->expected(3)->check(CLI::Number);;
   app->add_option_function<OSPDataType>(
     "--voxelType",
     [&](const OSPDataType &voxelType) {
@@ -243,7 +243,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the camera range; in GUI mode displays optCameraRange.lower"
-  )->expected(2);
+  )->expected(2)->check(CLI::NonNegativeNumber);
 }
 
 void StudioContext::updateCameraIndices(uint32_t idx)
