@@ -419,7 +419,8 @@ namespace ospray {
 
     static bool libraryLoaded = false;
     if (!libraryLoaded) {
-      loadLibrary("ospray_sg");
+      // the anchor can be any symbol within this library, use nodeRegistry
+      loadLibrary("ospray_sg", reinterpret_cast<const void *>(&nodeRegistry));
       libraryLoaded = true;
     }
 
