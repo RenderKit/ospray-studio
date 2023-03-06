@@ -6,7 +6,7 @@ if(glfw3_FOUND)
 endif()
 
 if(NOT DEFINED GLFW_VERSION)
-    set(GLFW_VERSION 3.3.4)
+    set(GLFW_VERSION 3.3.8)
 endif()
 
 ## Look for any available version
@@ -30,6 +30,12 @@ else()
     FetchContent_Declare(
         glfw
         URL "${GLFW_URL}"
+        #  `patch` is not available on all systems, so use `git apply` instead.Note
+        # that we initialize a Git repo in the GLFW download directory to allow the
+        # Git patching approach to work.Also note that we don't want to actually
+        # check out the GLFW Git repo, since we want our GLFW_HASH security checks
+        # to still function correctly.
+        PATCH_COMMAND git init -q . && git apply --ignore-whitespace -v -p1 < ${CMAKE_CURRENT_LIST_DIR}/glfw.patch
     )
     ## Bypass FetchContent_MakeAvailable() shortcut to disable install
     FetchContent_GetProperties(glfw)
