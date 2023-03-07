@@ -607,7 +607,7 @@ void WindowsBuilder::buildWindowCameraEditor()
   auto &items = ctx->g_sceneCameras;
 
   // Only present selector UI if more than one camera
-  if (ImGui::BeginCombo("sceneCameras##whichCamera",
+  if (!items.empty() && ImGui::BeginCombo("sceneCameras##whichCamera",
           items.at_index(ctx->whichCamera).first.c_str())) {
     for (int i = 0; i < items.size(); ++i) {
       const bool isSelected = (ctx->whichCamera == i);
