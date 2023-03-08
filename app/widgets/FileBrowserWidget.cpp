@@ -32,12 +32,14 @@ bool fileBrowser(FileList &fileList,
   auto fd = ImGuiFileDialog::Instance();
 
   // Allow multiple selections if requested (pass 0 as the vCountSelectionMax)
-  fd->OpenModal(prompt.c_str(),
+  fd->OpenDialog(prompt.c_str(),
       prompt.c_str(),
       filters.c_str(),
       defaultPath,
       "",
-      allowMultipleSelection ? 0 : 1);
+      allowMultipleSelection ? 0 : 1,
+      nullptr,
+      ImGuiFileDialogFlags_Modal);
 
   if (fd->Display(
           prompt.c_str(), ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {

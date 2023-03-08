@@ -378,7 +378,7 @@ void MainMenuBuilder::buildMainMenuView()
       ImGui::DragInt("delay", &g_TooltipDelay, 50, 0, 1000, "%d ms");
     }
 
-#if 1 // XXX example new features that need to be integrated
+#if 0 // XXX example new features that need to be integrated
     ImGui::Separator();
 
     ImGuiIO &io = ImGui::GetIO();

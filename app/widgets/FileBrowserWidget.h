@@ -13,7 +13,7 @@ static const FilterList defaultFilterList = {".*",
     "Scene (.sg){.sg}",
     "Geometry (.obj .gltf .glb){.obj,.gltf,.glb}",
     "Volume (.raw .vdb){.raw,.vdb}",
-    "Image (.jpg .hdr .exr){.jpg,.jpeg,.hdr,.exr}",
+    "Image (.jpg .png .hdr .exr){.jpg,.jpeg,.png,.hdr,.exr}",
     "EULUMDAT (.ldt ){.ldt}",
     "PasteFileName{.xxx}"};
 
