@@ -1485,7 +1485,8 @@ static bool exportGroupsToShape(shape_t *shape, const PrimGroup &prim_group,
         continue;
       }
 
-      if (triangulate && npolys != 3) {
+      // XXX: Allow triangles & quads without triangulation
+      if (triangulate || npolys > 4) {
         if (npolys == 4) {
           vertex_index_t i0 = face.vertex_indices[0];
           vertex_index_t i1 = face.vertex_indices[1];
