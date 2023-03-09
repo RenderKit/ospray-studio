@@ -14,7 +14,7 @@ endif()
 ##
 
 message(STATUS "Getting pybind11 ${PYBIND11_VERSION}...")
-
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 ${PYBIND11_VERSION} QUIET)
 
