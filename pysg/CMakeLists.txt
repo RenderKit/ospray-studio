@@ -4,7 +4,7 @@
 ## manually add python flags to avoid compile time errors 
 # set(CMAKE_CXX_FLAGS "-I/usr/include/python3.8 -lpython3.8")
 
-pybind11_add_module(pysg pysg.cpp ../app/ArcballCamera.cpp)
+pybind11_add_module(pysg pysg.cpp)
 
 target_include_directories(pysg
   PUBLIC

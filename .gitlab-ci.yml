@@ -34,11 +34,7 @@ stages:
 
 .ubuntu18.04:
   tags: [build, docker, modules]
-  image: $DOCKER_REGISTRY/ubuntu:18.04
-  before_script:
-    - module load python/$PYTHON_VERSION
-    - echo $Python3_ROOT
-    - ls $Python3_ROOT
+  image: $DOCKER_REGISTRY/ubuntu:18.04-tgt-klockwork
 
 .ubuntu20.04:
   tags: [build, docker]
@@ -101,14 +97,14 @@ stages:
     - /^release-.*$/
     - devel
 
-source-protex-scan:
-  stage: scan
-  image: amd64/openjdk:8
-  script:
-    - gitlab/source-scan-protex.sh
-  tags: [docker]
-  needs: []
-  allow_failure: true
+      #source-protex-scan:
+      #  stage: scan
+      #  image: amd64/openjdk:8
+      #  script:
+      #    - gitlab/source-scan-protex.sh
+      #  tags: [docker]
+      #  needs: []
+      #  allow_failure: true
 
 ########
 # These build phases will no longer work on current branches, due to non-release branch dependencies
@@ -166,6 +162,7 @@ build-kw:
     - gitlab/build-kw.sh
   artifacts:
     paths:
+      - kw_tables
       - klocwork/*
   only:
     - master
@@ -243,11 +240,12 @@ build-windows-icl:
 
 build-kw-dev:
   stage: build
-  extends: .centos7
+  extends: .ubuntu18.04
   script:
     - gitlab/build-kw-dev.sh
   artifacts:
     paths:
+      - kw_tables
       - klocwork/*
 
 test-kw-dev:

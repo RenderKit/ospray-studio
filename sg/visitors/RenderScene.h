@@ -32,10 +32,8 @@ namespace ospray {
     // Helper Functions //
     void createGeometry(Node &node);
     void createVolume(Node &node);
-    void addGeometriesToGroup();
     void createInstanceFromGroup(Node &node);
     void placeInstancesInWorld();
-    void setLightParams(Node &node);
 
     unsigned int getInstId()
     {
@@ -179,6 +177,13 @@ namespace ospray {
         node.child("sgGeomId").setSGNoUI();
       } else if (node.hasChild("sgGeomId"))
         sgGeomId = node.child("sgGeomId").valueAs<unsigned int>();
+
+      // Allow hiding entire branches of the hierarchy
+      // If transform is hidden, stop traversing children
+      if (node.hasChild("visible")) {
+        if (!node["visible"].valueAs<bool>())
+            return false;
+      }
 
       break;
     }

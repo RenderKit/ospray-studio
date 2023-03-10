@@ -19,8 +19,8 @@
 // Note: may want to disable warnings/errors from TinyGLTF
 #define REPORT_TINYGLTF_WARNINGS
 
-#define DEBUG std::cout << prefix << "(D): "
-#define INFO std::cout << prefix << "(I): "
+#define DEBUG if (verboseImport) std::cout << prefix << "(D): "
+#define INFO if (verboseImport) std::cout << prefix << "(I): "
 #define WARN std::cout << prefix << "(W): "
 #define ERR std::cerr << prefix << "(E): "
 
@@ -50,14 +50,17 @@ struct GLTFData
       std::shared_ptr<CameraMap> _cameras,
       sg::FrameBuffer *_fb,
       NodePtr _currentImporter,
-      InstanceConfiguration _ic)
+      InstanceConfiguration _ic,
+      bool verboseImport
+      )
       : fileName(fileName),
         rootNode(rootNode),
         materialRegistry(_materialRegistry),
         cameras(_cameras),
         fb(_fb),
         currentImporter(_currentImporter),
-        ic(_ic)
+        ic(_ic),
+        verboseImport(verboseImport)
   {}
 
  public:
@@ -79,7 +82,15 @@ struct GLTFData
   std::vector<NodePtr> lightTemplates;
   std::string geomId{""};
   bool importCameras{false};
+  void setScheduler(SchedulerPtr _scheduler) {
+    scheduler = _scheduler;
+  }
+  void setVolumeParams(NodePtr _volumeParams) {
+    volumeParams = _volumeParams;
+  }
+
  private:
+  bool verboseImport{false}; // Enable/disable import logging
   InstanceConfiguration ic;
   NodePtr currentImporter;
   NodePtr rootNode;
@@ -89,6 +100,8 @@ struct GLTFData
   std::vector<SkinPtr> skins;
   std::vector<std::vector<NodePtr>> ospMeshes;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry;
+  SchedulerPtr scheduler{nullptr};
+  NodePtr volumeParams;
   std::vector<NodePtr> sceneNodes; // lookup table glTF:nodeID -> NodePtr
 
   tinygltf::Model model;
@@ -265,9 +278,11 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
 
   // load referenced asset if reference-link found
   std::string refTitle{""};
+  bool isVolume{false};
   if (n.extensions.find("BIT_reference_link") != n.extensions.end()) {
     auto refLink = n.extensions.find("BIT_reference_link")->second;
     refTitle = refLink.Get("title").Get<std::string>();
+    isVolume = refLink.Get("type").Get<std::string>() == "volume";
   }
 
   auto node = n.extensions.find("BIT_node_info")->second;
@@ -282,14 +297,22 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
   if (refTitle.empty())
     return;
 
-  std::string refLinkFileName = refTitle + ".gltf";
-  std::string refLinkFullPath = fileName.path() + refLinkFileName;
+  if (!isVolume)
+    refTitle += ".gltf";
+
+  std::string refLinkFullPath = fileName.path() + refTitle;
   rkcommon::FileName file(refLinkFullPath);
-  std::cout << "Importing: " << file << std::endl;
+  INFO << "Importing: " << file << std::endl;
 
   auto importer =
       std::static_pointer_cast<sg::Importer>(sg::getImporter(sgNode, file));
   if (importer) {
+    if (scheduler)
+      importer->setScheduler(scheduler);
+
+    if (volumeParams)
+      importer->setVolumeParams(volumeParams);
+
     importer->setMaterialRegistry(materialRegistry);
     auto parentImporter = currentImporter->nodeAs<sg::Importer>();
 
@@ -391,7 +414,7 @@ void GLTFData::createLightTemplates()
     if (l.intensity)
       newLight->child("intensity") = (float)l.intensity;
     if (l.range)
-      std::cout << "Range value for light is not supported yet" << std::endl;
+      WARN << "Range value for light is not supported yet" << std::endl;
 
     // TODO:: Address extras property on lights
 
@@ -787,7 +810,8 @@ void GLTFData::visitNode(NodePtr sgNode,
 
   sgNode = newXfm;
 
-  if (n.extensions.find("BIT_node_info") != n.extensions.end())
+  if (n.extensions.find("BIT_node_info") != n.extensions.end()
+      || n.extensions.find("BIT_reference_link") != n.extensions.end())
     loadNodeInfo(nid, sgNode);
 
   std::vector<int> lightIdxs;
@@ -1195,12 +1219,14 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     // XXX will require texture tweaks to get closer to glTF spec, if needed
     // BLEND is always used, so OPAQUE can be achieved by setting all texture
     // texels alpha to 1.0.  OSPRay doesn't support alphaCutoff for MASK mode.
+    // Masking turned off atm due to issues with unwanted opacity values,
+    // specially for Valerie scenes(some large city buildings)
     if (mat.alphaMode == "OPAQUE")
       ospMat->createChild("opacity", "float") = 1.f;
     else if (mat.alphaMode == "BLEND")
       ospMat->createChild("opacity", "float") = alpha;
-    else if (mat.alphaMode == "MASK")
-      ospMat->createChild("opacity", "float") = 1.f - (float)mat.alphaCutoff;
+    // else if (mat.alphaMode == "MASK")
+    //   ospMat->createChild("opacity", "float") = 1.f - (float)mat.alphaCutoff;
 
     // All textures *can* specify a texcoord other than 0.  OSPRay only
     // supports one set of texcoords (TEXCOORD_0).
@@ -1567,8 +1593,8 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
       // attenuationDistance <float> Density of the medium given as the
       // average distance that light travels in the medium before interacting
       // with a particle. The value is given in world space.
-      // No, default: +Infinity
-      float attenuationDistance = FLT_LARGE;
+      // No, default: +Infinity (inf doesn't behave well with UI sliders)
+      float attenuationDistance = std::numeric_limits<float>::max();
       if (params.Has("attenuationDistance")) {
         attenuationDistance =
             (float)params.Get("attenuationDistance").Get<double>();
@@ -1842,11 +1868,13 @@ void glTFImporter::importScene()
       cameras,
       fb,
       shared_from_this(),
-      ic);
+      ic,
+      verboseImport);
 
   if (!gltf.parseAsset())
     return;
-
+  gltf.setScheduler(scheduler);
+  gltf.setVolumeParams(volumeParams);
   gltf.createMaterials();
   gltf.createLightTemplates();
 

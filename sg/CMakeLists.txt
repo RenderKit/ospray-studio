@@ -3,6 +3,11 @@
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+## CTest testing ##
+if(BUILD_TESTING)
+  enable_testing()
+endif()
+
 ## OpenImageIO support ##
 
 option(ENABLE_OPENIMAGEIO "Enable OpenImageIO support" OFF)
@@ -57,6 +62,7 @@ add_library(ospray_sg SHARED
   Frame.cpp
   PluginCore.cpp
   Scheduler.cpp
+  ArcballCamera.cpp
 
   camera/Camera.cpp
   camera/Perspective.cpp
@@ -241,6 +247,7 @@ target_include_directories(ospray_sg
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
-## Build Tests ##
-
-add_subdirectory(tests)
+## CTest testing ##
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()

@@ -3,9 +3,8 @@
 
 #include "ospStudio.h"
 
-#include "MainWindow.h"
+#include "GUIContext.h"
 #include "Batch.h"
-#include "TimeSeriesWindow.h"
 #include "sg/Mpi.h"
 
 // CLI
@@ -85,7 +84,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the renderer background color"
-    )->expected(4);
+    )->expected(4)->check(CLI::NonNegativeNumber);
   app->add_option(
     "--pixelfilter",
     optPF,
@@ -119,7 +118,13 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_flag(
     "--saveLayers",
     optSaveLayersSeparately,
-    "Save layers in separate files");
+    "Save layers in separate files"
+  );
+  app->add_flag(
+    "--verboseImporter",
+    optVerboseImporter,
+    "Additional console info messages when importing files"
+  );
   app->add_option(
     "--resolution",
     [&](const std::vector<std::string> val) {
@@ -159,7 +164,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the dimensions for imported volumes"
-  )->expected(3);
+  )->expected(3)->check(CLI::NonNegativeNumber);;
   app->add_option(
     "--gridSpacing",
     [&](const std::vector<std::string> val) {
@@ -168,7 +173,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the grid spacing for imported volumes"
-  )->expected(3);
+  )->expected(3)->check(CLI::Number);;
   app->add_option(
     "--gridOrigin",
     [&](const std::vector<std::string> val) {
@@ -177,7 +182,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the grid origin for imported volumes"
-  )->expected(3);
+  )->expected(3)->check(CLI::Number);;
   app->add_option_function<OSPDataType>(
     "--voxelType",
     [&](const OSPDataType &voxelType) {
@@ -213,12 +218,17 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_flag(
     "--async-tasking{true},--no-async-tasking{false}",
     optDoAsyncTasking,
-    "Disable asynchronous tasking (and asynchronous dataset loading)"
+    "Enable/Disable asynchronous tasking (and asynchronous dataset loading)"
   );
   app->add_flag(
     "--denoiser",
     optDenoiser,
-    "Set the denoiser"
+    "Enable frame denoising"
+  );
+  app->add_flag(
+    "--denoiseFinalFrame",
+    optDenoiseFinalFrame,
+    "Denoise only when accum limit is reached"
   );
   app->add_option(
     "--camera",
@@ -233,7 +243,13 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the camera range; in GUI mode displays optCameraRange.lower"
-  )->expected(2);
+  )->expected(2)->check(CLI::NonNegativeNumber);
+}
+
+void StudioContext::updateCameraIndices(uint32_t idx)
+{
+  whichCamera = idx;
+  cameraIdx = idx;
 }
 
 box3f StudioContext::getSceneBounds()
@@ -310,6 +326,10 @@ int main(int argc, const char *argv[])
 
   // Initialize OSPRay
   OSPError error = initializeOSPRay(argc, argv, use_mpi);
+  if (error != OSP_NO_ERROR) {
+    std::cerr << " OSPRay Initialization Error: " << error << std::endl;
+    return error;
+  }
 
   // Verify install then exit
   if (verify_install) {
@@ -365,16 +385,13 @@ int main(int argc, const char *argv[])
     // non-gui modes to still require glfw/GL
     switch (mode) {
     case StudioMode::GUI:
-      context = std::make_shared<MainWindow>(studioCommon);
+      context = std::make_shared<GUIContext>(studioCommon);
       break;
     case StudioMode::BATCH:
       context = std::make_shared<BatchContext>(studioCommon);
       break;
     case StudioMode::HEADLESS:
       std::cerr << "Headless mode\n";
-      break;
-    case StudioMode::TIMESERIES:
-      context = std::make_shared<TimeSeriesWindow>(studioCommon);
       break;
 #ifdef USE_BENCHMARK
     case StudioMode::BENCHMARK:

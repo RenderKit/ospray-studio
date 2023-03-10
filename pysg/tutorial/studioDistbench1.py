@@ -30,6 +30,7 @@ sg.assignMPI(mpiRank, mpiWorldSize)
 #optional command line arguments
 scalarRange = None
 colors = None
+opacity = 1.0
 opacities = None
 numTriangles = 1000000
 dim = 200
@@ -52,6 +53,8 @@ for idx in range(0, len(args)):
       G = float(args[idx+2+x*3+1])
       B = float(args[idx+2+x*3+2])
       colors.append([R,G,B])
+  if a == "-opacity":
+    opacity = float(args[idx+1])
   if a == "-opacities":
     no = int(args[idx+1])
     opacities = []
@@ -106,14 +109,16 @@ world = frame.child("world")
 lightsMan = frame.child("lights")
 baseMaterialRegistry = frame.child("baseMaterialRegistry")
 
- 
+nTrianglesGetter = None
 if filename == "slices":
   ws = world.createChildAs("generator", "generator_wavelet_slices")
   params = ws.child("parameters")
-  params.createChild("requestedTriangles", "uint32_t", Any(numTriangles))
+  params.createChild("requestedTriangles", "long", Any(numTriangles))
   params.createChild("numSlices", "int", Any(200))
-  params.createChild("thresholdLow", "float", Any(-0.5))
-  params.createChild("thresholdHigh", "float", Any(0.5))
+  params.createChild("thresholdLow", "float", Any(-0.00005))
+  params.createChild("thresholdHigh", "float", Any(0.00005))
+  nTrianglesGetter = params.child("actualTriangles")
+  baseMaterialRegistry.child("sgDefault").child("d").setValue(opacity, True)
 elif filename == "wavelet":
   ws = world.createChildAs("generator", "generator_wavelet")
   params = ws.child("parameters")
@@ -132,8 +137,8 @@ else:
     transform = importer.child("xfm")
     tfOrig = transform.child("transferFunction")
     if scalarRange is not None:
-      tfOrig.remove("valueRange")
-      tfOrig.createChild("valueRange", "vec2f", Any(scalarRange))
+      tfOrig.remove("value")
+      tfOrig.createChild("value", "range1f", Any(scalarRange))
     if colors is not None:
       npColors = numpy.array(colors,dtype=numpy.float32)
       tfOrig.remove("color")
@@ -144,8 +149,8 @@ else:
       tfOrig.createChildData("opacity", Data(npOpacities))
   else:
     if scalarRange is not None:
-      importer.remove("valueRange")
-      importer.createChild("valueRange", "vec2f", Any(scalarRange))
+      importer.remove("value")
+      importer.createChild("value", "range1f", Any(scalarRange))
     if colors is not None:
       npColors = numpy.array(colors,dtype=numpy.float32)
       importer.remove("color")
@@ -203,6 +208,9 @@ else:
           fid = fid + 1
 
 world.render()
+
+if nTrianglesGetter is not None:
+  print("rank", mpiRank, "numTriangles", nTrianglesGetter.valueAsInt())
 
 bounds = world.bounds()
 '''

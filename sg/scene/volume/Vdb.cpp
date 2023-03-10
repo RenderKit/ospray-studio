@@ -230,7 +230,7 @@ namespace ospray {
       // Query VDB voxel value range and set volume range
       range1f valueRange;
       vdb->evalMinMax(valueRange.lower, valueRange.upper);
-      child("valueRange") = valueRange;
+      child("value") = valueRange;
     }
 #endif //USE_OPENVDB
 

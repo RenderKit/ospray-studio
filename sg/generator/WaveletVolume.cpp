@@ -149,10 +149,10 @@ void WaveletVolume::generateData()
   }
 #endif
 
-  volume["valueRange"] = valueRange;
+  volume["value"] = valueRange;
   // Although cell values lie outside (0, 1), leave the default transfer
   // function range.  It's an interesting image.
-  tf["valueRange"] = vec2f(0.f, 1.f);
+  tf["value"] = range1f(0.f, 1.f);
 
 }
 

@@ -13,6 +13,10 @@ Transform::Transform()
   createChild("rotation", "quaternionf", quaternionf(one));
   createChild("scale", "vec3f", vec3f(one));
   setValue(affine3f(one));
+
+  createChild("visible", "bool", true);
+  child("visible").setSGOnly();
+
   createChild(
       "dynamicScene", "bool", "faster BVH build, slower ray traversal", false);
   createChild("compactMode",
@@ -23,6 +27,9 @@ Transform::Transform()
       "bool",
       "tell Embree to enable more robust ray intersection code paths(slightly slower)",
       false);
+  child("dynamicScene").setSGNoUI();
+  child("compactMode").setSGNoUI();
+  child("robustMode").setSGNoUI();
 }
 
 NodeType Transform::type() const

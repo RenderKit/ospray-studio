@@ -1,0 +1,146 @@
+
+name: OSPRay Studio Main CI
+
+# XXX This uses FetchContent on the other components' release packages
+# XXX not their devel branches.
+
+# Controls when the workflow will run
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+
+  ## Build Jobs ##
+  ## Linux
+  build-centos7:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: centos:7
+      cmd: |
+        module load intel/2020.1
+        export CC=icc
+        export CXX=icpc
+        export CXXFLAGS="-static-intel -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
+        gitlab/build.sh
+      artifact-out: build-centos7
+      artifact-path: build
+
+  build-centos8:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: centos:8
+      cmd: gitlab/build.sh
+      artifact-out: build-centos8
+      artifact-path: build
+
+  build-ubuntu20-04:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:20.04
+      cmd: gitlab/build.sh
+      artifact-out: build-ubuntu20-04
+      artifact-path: build
+
+  build-arch:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ospray/docker-images:arch
+      cmd: gitlab/build.sh
+      artifact-out: build-arch
+      artifact-path: build
+
+  ## Test Jobs ##
+  test-run-centos7:
+    needs: build-centos7
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: centos:7
+      cmd: |
+        build/install/bin/ospStudio --verify_install
+      artifact-in: build-centos7
+  
+  ## Dev Build Jobs ##
+  ## Linux
+  cache-ospray:
+    secrets: inherit
+    uses: ./.github/workflows/cache-ospray.yml
+    with:
+      image: ubuntu:18.04
+      ospray-version: devel
+      rkcommon-version: devel
+  
+  build-ubuntu18-04-dev:
+    needs: cache-ospray
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: |
+        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }}
+        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }}
+        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install
+        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
+        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
+        cmake --build build
+      artifact-path: build
+      artifact-out: build-ubuntu18-04-dev
+
+  ## MacOS
+  build-macos-clang-dev:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
+    with:
+      cmd: |
+        gitlab/macos-dev.sh
+      artifact-out: build-macos
+      artifact-path: build-macos
+  
+  ## Windows
+  build-windows-msvc15-dev:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      cmd: |
+        $env:Python3_ROOT = "N:/packages/apps/python/3.9.7/windows"
+        gitlab\win-dev.ps1
+      artifact-out: build-windows
+      artifact-path: build-win
+
+  build-windows-icl:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      runs-on: '[ "Windows", "build", "NAS" ]'
+      cmd: |
+        cmake -L -S . -B build-win-icl -G "Visual Studio 16 2019" -T "Intel C++ Compiler 19.2" -DCMAKE_INSTALL_PREFIX="install"
+        cmake --build build-win-icl --config Release --target install
+
+  ## Dev Test Jobs
+  test-run-ubuntu18-04-dev:
+    needs: build-ubuntu18-04-dev
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: |
+        export CACHE_DIR=/NAS/ci-cache
+        export OSPRAY_VER=devel
+        gitlab/run-dev.sh
+      artifact-in: build-ubuntu18-04-dev
+ 
+  ### KW Jobs ###
+# static-analysis:
+#   secrets: inherit
+#   uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/ospray-studio
+#   with:
+#     project: ospray_studio
+#     image: ubuntu:18.04-tgt-klockwork
+#     prebuild: |
+#       cmake -L -S . -B build -DCMAKE_INSTALL_PREFIX=install -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
+#     build: cmake --build build
+

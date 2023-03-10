@@ -19,7 +19,6 @@
 // ospray
 #include "ospray/ospray_cpp.h"
 #include "ospray/ospray_cpp/ext/rkcommon.h"
-#include "ospray/SDK/common/OSPCommon.h"
 // ospray_sg
 #include "version.h"
 #include "NodeType.h"
@@ -39,10 +38,11 @@
 #endif
 
 namespace ospray {
-namespace sg {
 
   using namespace rkcommon;
   using namespace rkcommon::math;
+
+namespace sg {
 
   using Any       = utility::Any;
   using TimeStamp = utility::TimeStamp;
@@ -337,12 +337,14 @@ namespace sg {
   using UcharNode   = Node_T<unsigned char>;
   using IntNode     = Node_T<int>;
   using UIntNode    = Node_T<uint32_t>;
+  using LongNode    = Node_T<long>;
   using Vec2iNode   = Node_T<vec2i>;
   using Vec3iNode   = Node_T<vec3i>;
   using Vec4iNode   = Node_T<vec4i>;
   using VoidPtrNode = Node_T<void *>;
   using Box3fNode   = Node_T<box3f>;
   using Box3iNode   = Node_T<box3i>;
+  using Range1iNode = Node_T<range1i>;
   using Range1fNode = Node_T<range1f>;
   using Affine3fNode = Node_T<affine3f>;
   using QuaternionfNode = Node_T<quaternionf>;

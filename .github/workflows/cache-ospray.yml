@@ -1,0 +1,61 @@
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      ospray-version:
+        required: true
+        type: string
+      rkcommon-version:
+        required: true
+        type: string
+      cache-dir:
+        required: false
+        type: string
+        default: /NAS/ci-cache
+      runs-on:
+        required: false
+        type: string
+        default: '[ "Linux", "build" ]'
+    outputs:
+      cache-dir:
+        value: ${{ inputs.cache-dir }}
+      ospray-version:
+        value: ${{ inputs.ospray-version }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  exec:
+
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+
+    container:
+      image: amr-registry.caas.intel.com/renderkit/${{ inputs.image }}
+      options: --user root
+      volumes:
+        - /NAS:/NAS
+
+    steps:
+
+      - name: Checkout OSPRay
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.SDVIS_DEVOPS_PAT }}
+          repository: intel-innersource/libraries.graphics.renderkit.ospray
+          ref: ${{ inputs.ospray-version }}
+          path: ospray-${{ inputs.ospray-version }}
+
+      - name: Cache OSPRay
+        run: |
+          if [[ ! -d "${{ inputs.cache-dir }}/ospray-${{ inputs.ospray-version }}" ]]
+          then
+            cmake -L -S ospray-${{ inputs.ospray-version }}/scripts/superbuild -B ospray-${{ inputs.ospray-version }}/build -DBUILD_OIDN=ON -DBUILD_EMBREE_FROM_SOURCE=OFF -DBUILD_RKCOMMON_VERSION=${{ inputs.rkcommon-version }} -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF
+            cmake --build ospray-${{ inputs.ospray-version }}/build
+            cp -r ospray-${{ inputs.ospray-version }} ${{ inputs.cache-dir }}
+          fi
+

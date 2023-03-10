@@ -15,7 +15,8 @@ void * loadPluginCore(const std::string &name) {
   std::cout << "...attempting to load plugin '" << name << "'\n";
   std::string libName = "ospray_studio_plugin_" + name;
   try {
-    rkcommon::loadLibrary(libName, false);
+    rkcommon::loadLibrary(
+        libName, reinterpret_cast<const void *>(&loadPluginCore));
   } catch (std::runtime_error &e) {
     std::cout << "...failed to load plugin '" << name << "'!"
               << " (plugin was not found). Please verify the name of the plugin"

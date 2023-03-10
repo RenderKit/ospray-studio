@@ -1,0 +1,183 @@
+
+name: OSPRay Studio Release
+
+# XXX This uses FetchContent on the other components' release packages
+# XXX not their devel branches.
+
+# Controls when the workflow will run
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  ## Build Jobs ##
+  ## Linux
+  build-ubuntu1804:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: gitlab/build.sh
+      artifact-out: build-ubuntu1804
+      artifact-path: build
+
+  test-run-ubuntu1804:
+    needs: build-ubuntu1804
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: |
+        gitlab/run.sh
+      artifact-in: build-ubuntu1804
+
+  ## Windows
+  build-windows-msvc15:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      cmd: |
+        $env:Python3_ROOT = "N:/packages/apps/python/3.9.7/windows"
+        gitlab\win.ps1
+      artifact-out: build-windows
+      artifact-path: build-win
+  
+  ## MacOS
+  build-macOS:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
+    with:
+      cmd: |
+        gitlab/macos.sh
+      artifact-out: build-macos
+      artifact-path: build-macos
+
+  ## Release Jobs ##
+  ## Linux
+  release-linux:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: centos:7
+      cmd: |
+        module load intel/2020.1
+        export CC=icc
+        export CXX=icpc
+        export CXXFLAGS="-static-intel -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
+        gitlab/build.sh package
+      artifact-out: release-linux
+      artifact-path: build/package/ospray_studio*
+
+  release-ubuntu1804:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: gitlab/build.sh package
+      artifact-out: release-ubuntu1804
+      artifact-path: build/package/ospray_studio*
+
+  ## Windows
+  release-windows:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      runs-on: '[ "Windows", "build", "NAS" ]'
+      cmd: |
+        gitlab\win.ps1 package
+        & $env:SIGN_FILE_WINDOWS $env:GITHUB_WORKSPACE\build-win\package\ospray_studio*.msi
+      artifact-out: release-windows
+      artifact-path: build-win\package\ospray_studio*
+
+  ## macOS
+  release-macos:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
+    with:
+      runs-on: '[ "macOS", "sign", "x86_64" ]'
+      cmd: |
+        gitlab/macos.sh package
+      artifact-out: release-macos
+      artifact-path: build-macos/package/ospray_studio*
+
+  ## Test Releases ##
+  ## Windows ##
+  test-release-windows-zip:
+    needs: release-windows
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      cmd: |
+        Expand-Archive $env:GITHUB_WORKSPACE\build-win\package\*.zip -DestinationPath .
+        & $env:SIGN_FILE_WINDOWS -t (Get-ChildItem $env:GITHUB_WORKSPACE\ospray_studio-*\bin\* | Select-Object -Expand FullName)
+      artifact-in: release-windows
+
+  test-release-windows-msi:
+    needs: release-windows
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      cmd: |
+        msiexec.exe /a (Get-ChildItem $env:GITHUB_WORKSPACE\build-win\package\*.msi | Select-Object -Expand FullName) /qn TARGETDIR=$env:GITHUB_WORKSPACE | Out-Null
+        & $env:SIGN_FILE_WINDOWS -t $env:GITHUB_WORKSPACE\build-win\package\*.msi (Get-ChildItem "$env:GITHUB_WORKSPACE\Intel\OSPRay Studio v0\bin\*" | Select-Object -Expand FullName)
+      artifact-in: release-windows
+
+  ## macOS ##
+  test-release-macos:
+    needs: release-macos
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
+    with:
+      runs-on: '[ "macOS", "sign", "x86_64" ]'
+      cmd: |
+        unzip $GITHUB_WORKSPACE/build-macos/package/*.zip
+        $SIGN_FILE_MAC -t $GITHUB_WORKSPACE/ospray_studio-*/bin/* $GITHUB_WORKSPACE/ospray_studio-*/lib/*.dylib $GITHUB_WORKSPACE/build-macos/package/*.pkg
+      artifact-in: release-macos
+
+  ## Scan Jobs ##
+
+  cache-ospray:
+    secrets: inherit
+    uses: ./.github/workflows/cache-ospray.yml
+    with:
+      image: centos:7
+      ospray-version: "v2.10.0"
+      rkcommon-version: "v1.10.0"
+
+  static-analysis:
+    needs: cache-ospray
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    with:
+      project: ospray_studio
+      ignore-files: pysg.cpp
+      prebuild: |
+        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }}
+        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }}
+        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install
+        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
+        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
+      build: cmake --build build
+
+  binary-analysis:
+    needs:
+      - release-linux
+      - release-macos
+      - release-windows
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/binary_analysis.yml@main
+    with:
+      project: ospray_studio
+      artifact-in-linux: release-linux
+      artifact-in-macos: release-macos
+      artifact-in-windows: release-windows
+      path: build*/package/ospray_studio*
+
+  antivirus-scan:
+    needs:
+      - release-linux
+      - release-macos
+      - release-windows
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/antivirus_scan.yml@main
+    with:
+      project: ospray_studio
+      artifact-in-linux: release-linux
+      artifact-in-macos: release-macos
+      artifact-in-windows: release-windows
+      path: build*/package/ospray_studio*

@@ -127,6 +127,8 @@ struct OSPSG_INTERFACE Importer : public Node
   float pointSize{0.0f};
   bool importCameras{false};
 
+  bool verboseImport{false};
+
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
@@ -169,17 +171,17 @@ inline std::shared_ptr<Importer> getImporter(
     std::string rootXfmName = baseName + "_rootXfm";
 
     // Existing import, instance it!
-    std::cout << "Instancing: " << origNode->name() << std::endl;
+    std::cout << "Instancing: " << fullName << " as " << origNode->name() << std::endl;
 
     if (!origNode->hasChild(rootXfmName)) {
-      std::cout << "!!! error... importer rootXfm is missing?! Is async tasking enabled? --no-async-tasking to disable" << std::endl;
+      std::cerr << "!!! error... importer rootXfm is missing?! Is async tasking enabled? --no-async-tasking to disable" << std::endl;
       return nullptr;
     }
     auto &rootXfmNode = origNode->child(rootXfmName);
 
     // Create a unique instanceXfm nodeName
     int count = ++origNode->child("count").valueAs<int>();
-    nodeName = baseName + "_instanceXfm_" + std::to_string(count);
+    nodeName = origNode->name() + "_instanceXfm_" + std::to_string(count);
     
     auto instanceXfm = createNode(nodeName, "transform");
 
@@ -191,6 +193,11 @@ inline std::shared_ptr<Importer> getImporter(
 
   } else {
     nodeName = baseName + "_importer";
+    if (root->hasChild(nodeName)) {
+      auto count = ++root->child(nodeName)["count"].valueAs<int>();
+      root->child(nodeName)["count"] = count;
+      nodeName += "_" + std::to_string(count);
+    }
     auto importNode = createNodeAs<Importer>(nodeName, importer);
     importNode->createChild("count", "int", 0);
     importNode->child("count").setSGNoUI();

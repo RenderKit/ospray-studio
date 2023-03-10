@@ -15,7 +15,9 @@ THREADS=`sysctl -n hw.logicalcpu`
 
 cmake --version
 
-mkdir -p build-macos && cd build-macos
+mkdir -p build-macos
+
+cd build-macos
 
 if [[ "$PACKAGE" == true ]]
 then
@@ -42,7 +44,7 @@ then
     cpack -B "${PWD}/package"
 
     $SIGN_FILE_MAC -o runtime package/ospray_studio-*pkg
-    $CI_PROJECT_DIR/gitlab/macosx_notarization.sh package/ospray_studio-*.pkg
+    ../gitlab/macosx_notarization.sh package/ospray_studio-*.pkg
 else
     cmake -L \
         -D CMAKE_INSTALL_PREFIX=install \
@@ -52,3 +54,5 @@ else
         ..
     cmake --build . --parallel $THREADS --config Release --target install
 fi
+
+cd ..

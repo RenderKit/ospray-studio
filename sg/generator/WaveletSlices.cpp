@@ -36,7 +36,7 @@ WaveletSlices::WaveletSlices()
 {
   auto &parameters = child("parameters");
 
-  parameters.createChild("requestedTriangles", "int", 10000);
+  parameters.createChild("requestedTriangles", "long", 10000l);
   parameters.createChild("numSlices", "int", 20);
   parameters.createChild("sizeRatio", "float", 4.f);
   parameters.createChild("thresholdLow", "float", -6.f);
@@ -44,7 +44,7 @@ WaveletSlices::WaveletSlices()
   parameters.createChild("actualTriangles", "int", 10000);
   parameters.child("actualTriangles").setReadOnly();
 
-  auto &xfm = createChild("xfm", "transform");
+  createChild("xfm", "transform");
 }
 
 void WaveletSlices::generateData()
@@ -59,7 +59,15 @@ void WaveletSlices::generateData()
   if (sizeRatio <= 0) sizeRatio = 1;
   auto numSlices = parameters["numSlices"].valueAs<int>();
   if (numSlices < 1) numSlices = 1;
-  auto requestedTriangles = parameters["requestedTriangles"].valueAs<int>();
+  long requestedTriangles;
+  if (parameters["requestedTriangles"].valueIsType<int>()) {
+    requestedTriangles = static_cast<long>(parameters["requestedTriangles"].valueAs<int>());
+  } else if (parameters["requestedTriangles"].valueIsType<unsigned int>()) {
+    requestedTriangles = static_cast<long>(parameters["requestedTriangles"].valueAs<unsigned int>());
+  } else {
+    requestedTriangles = parameters["requestedTriangles"].valueAs<long>();
+  }
+
   if (requestedTriangles < numSlices*2) requestedTriangles = numSlices*2;
 
   auto thresholdLow = parameters["thresholdLow"].valueAs<float>();
@@ -76,7 +84,7 @@ void WaveletSlices::generateData()
       ratios.push_back(r);
       tr = tr + r;
   }
-  int expectedTriangles = 0;
+  long expectedTriangles = 0;
   int actualTriangles = 0;
   std::vector<vec3f> vertex;
   std::vector<vec4f> color;
@@ -93,7 +101,8 @@ void WaveletSlices::generateData()
     startSlice = sgMpiRank() * mpiChunks;
     endSlice = std::min<int>(numSlices, startSlice + mpiChunks);
   }
-  
+
+  float interslice = 2.0f/numSlices;
   for (int s = startSlice; s < endSlice; s++) {
       int tslice = requestedTriangles/tr * ratios[s];
       expectedTriangles = expectedTriangles + tslice;
@@ -101,16 +110,12 @@ void WaveletSlices::generateData()
       int gridSteps = sqrt(tslice/2); //quads
       //std::cerr << "slice " << s << " goal " << tslice << " gridSteps " << gridSteps <<  std::endl;
 
-      float sf = s/(float)numSlices;
-
       for (int y = 0; y < gridSteps; ++y) {
           //std::cerr << y << std::endl;
 
-          float yf = y/(float)gridSteps;
-
           for (int z = 0; z < gridSteps; ++z) {
               vec3f corner0(
-                          (s*128.f/numSlices * 2.f/100.f + -1.f), //from Wavelet's default dims (128), spacing (2/100) and origin (-1) respectively
+                          (s*128.f/numSlices * 2.f/100.f + -1.f + interslice*0.1), //from Wavelet's default dims (128), spacing (2/100) and origin (-1) respectively
                           (y*128.f/gridSteps * 2.f/100.f + -1.f),
                           (z*128.f/gridSteps * 2.f/100.f + -1.f));
               vec3f corner1(
@@ -118,7 +123,7 @@ void WaveletSlices::generateData()
                           ((y+1)*128.f/gridSteps * 2.f/100.f + -1.f),
                           (z*128.f/gridSteps * 2.f/100.f + -1.f));
               vec3f corner2(
-                          (s*128.f/numSlices * 2.f/100.f + -1.f),
+                          (s*128.f/numSlices * 2.f/100.f + -1.f - interslice*0.2),
                           (y*128.f/gridSteps * 2.f/100.f + -1.f),
                           ((z+1)*128.f/gridSteps * 2.f/100.f + -1.f));
               vec3f corner3(
@@ -128,7 +133,6 @@ void WaveletSlices::generateData()
 
               size_t i0 = vertex.size();
 
-              float zf = z/(float)gridSteps;
               float wv = getWaveletValue(corner0);
 
               //poor man's threshold

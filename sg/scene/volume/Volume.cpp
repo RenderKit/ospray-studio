@@ -27,9 +27,9 @@ Volume::Volume(const std::string &osp_type)
       .setMinMax(-1.f, 1.f);
 
   // All volumes track their valueRange
-  createChild("valueRange", "range1f", range1f(0.f, 1.f));
-  child("valueRange").setSGOnly();
-  child("valueRange").setReadOnly();
+  createChild("value", "range1f", range1f(0.f, 1.f));
+  child("value").setSGOnly();
+  child("value").setReadOnly();
 }
 
 NodeType Volume::type() const
@@ -48,7 +48,7 @@ void Volume::loadVoxels(FILE *file, const vec3i dimensions)
         "read incomplete data (truncated file or wrong format?!)");
   }
   const auto minmax = std::minmax_element(begin(voxels), end(voxels));
-  child("valueRange") = range1f(*std::get<0>(minmax), *std::get<1>(minmax));
+  child("value") = range1f(*std::get<0>(minmax), *std::get<1>(minmax));
 
   createChildData("data", dimensions, 0, voxels.data());
 }
@@ -64,7 +64,7 @@ void Volume::load(const FileName &fileNameAbs)
   if (!fileLoaded) {
     auto &voxelType = child("voxelType").valueAs<int>();
     FileName realFileName = fileNameAbs;
-    FILE *file = fopen(realFileName.c_str(), "r");
+    FILE *file = fopen(realFileName.c_str(), "rb");
 
     if (!file) {
       throw std::runtime_error(

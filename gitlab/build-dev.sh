@@ -22,6 +22,7 @@ then
     mkdir build && cd build
     cmake -L \
       -DBUILD_OIDN=ON \
+      -DBUILD_EMBREE_FROM_SOURCE=OFF \
       -DBUILD_RKCOMMON_VERSION=$RKCOMMON_VER \
       -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF \
       "$@" \
@@ -30,7 +31,6 @@ then
     cp -r /tmp/ospray-$OSPRAY_VER $CACHE_DIR/
 fi
 
-cd $CI_PROJECT_DIR
 mkdir build && cd build
 export CMAKE_PREFIX_PATH="$CACHE_DIR/ospray-$OSPRAY_VER/build/install"
 export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb

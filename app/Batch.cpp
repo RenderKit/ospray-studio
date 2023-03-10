@@ -41,6 +41,11 @@ void BatchContext::start()
   for (auto &p : studioCommon.pluginsToLoad)
     pluginManager->loadPlugin(p);
 
+  pluginManager->main(shared_from_this());
+    // set camera correctly to Id set externally via JSON or plugins:
+  frame->child("camera").child("cameraId").setValue(whichCamera);
+  cameraIdx = whichCamera;
+
   // read from cams.json
   std::ifstream cams("cams.json");
   if (cams) {
@@ -117,7 +122,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the camera position"
-  )->expected(3);
+  )->expected(3)->check(CLI::Number);
   app->add_option(
     "--view",
     [&](const std::vector<std::string> val) {
@@ -126,7 +131,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the camera view vector"
-  )->expected(3);
+  )->expected(3)->check(CLI::Number);
   app->add_option(
     "--up",
     [&](const std::vector<std::string> val) {
@@ -135,7 +140,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the camera up vector"
-  )->expected(3);
+  )->expected(3)->check(CLI::Number);
   app->add_option(
     "--interpupillaryDistance",
     optInterpupillaryDistance,
@@ -153,8 +158,8 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       optGridEnable = true;
       return true;
     },
-    "Set the camera position"
-  )->expected(3);
+    "Set the grid size (intanced models)"
+  )->expected(3)->check(CLI::NonNegativeNumber);
   app->add_flag(
     "--saveMetadata",
     saveMetaData,
@@ -178,7 +183,7 @@ void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
       return true;
     },
     "Set the frames range"
-  )->expected(2);
+  )->expected(2)->check(CLI::NonNegativeNumber);
   app->add_option(
     "--frameStep",
     frameStep,
@@ -426,8 +431,6 @@ void BatchContext::renderFrame()
       dump << j.dump();
     }
   }
-  
-  pluginManager->main(shared_from_this());
 }
 
 void BatchContext::renderAnimation()
@@ -582,6 +585,7 @@ void BatchContext::importFiles(sg::NodePtr world)
         auto importer = sg::getImporter(world, file);
         if (importer) {
           if (volumeParams->children().size() > 0) {
+            std::cout << "Using command-line volume parameters ..." << std::endl;
             auto vp = importer->getVolumeParams();
             for (auto &c : volumeParams->children()) {
               vp->remove(c.first);

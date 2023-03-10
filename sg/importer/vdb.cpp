@@ -35,8 +35,8 @@ void VDBImporter::importScene()
   volumeImport->load(fileName);
 
   auto tf = createNode("transferFunction", "transfer_function_turbo");
-  auto valueRange = volumeImport->child("valueRange").valueAs<range1f>();
-  tf->child("valueRange") = valueRange.toVec2();
+  auto valueRange = volumeImport->child("value").valueAs<range1f>();
+  tf->child("value") = valueRange;
   volumeImport->add(tf);
 
   rootNode->add(volumeImport);

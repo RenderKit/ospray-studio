@@ -419,7 +419,8 @@ namespace ospray {
 
     static bool libraryLoaded = false;
     if (!libraryLoaded) {
-      loadLibrary("ospray_sg");
+      // the anchor can be any symbol within this library, use nodeRegistry
+      loadLibrary("ospray_sg", reinterpret_cast<const void *>(&nodeRegistry));
       libraryLoaded = true;
     }
 
@@ -484,12 +485,14 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(UcharNode, uchar);
   OSP_REGISTER_SG_NODE_NAME(IntNode, int);
   OSP_REGISTER_SG_NODE_NAME(UIntNode, uint32_t);
+  OSP_REGISTER_SG_NODE_NAME(LongNode, long);
   OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
   OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
   OSP_REGISTER_SG_NODE_NAME(Vec4iNode, vec4i);
   OSP_REGISTER_SG_NODE_NAME(VoidPtrNode, void_ptr);
   OSP_REGISTER_SG_NODE_NAME(Box3fNode, box3f);
   OSP_REGISTER_SG_NODE_NAME(Box3iNode, box3i);
+  OSP_REGISTER_SG_NODE_NAME(Range1iNode, range1i);
   OSP_REGISTER_SG_NODE_NAME(Range1fNode, range1f);
   OSP_REGISTER_SG_NODE_NAME(Affine3fNode, affine3f);
   OSP_REGISTER_SG_NODE_NAME(QuaternionfNode, quaternionf);

@@ -17,7 +17,6 @@
 #include "sg/scene/lights/LightsManager.h"
 // studio app
 #include "AnimationManager.h"
-#include "ArcballCamera.h"
 // ospcommon
 #include "rkcommon/common.h"
 
@@ -38,17 +37,27 @@ enum class StudioMode
   GUI,
   BATCH,
   HEADLESS,
-  TIMESERIES,
 #ifdef USE_BENCHMARK
   BENCHMARK,
 #endif
+};
+
+enum class OSPRayRendererType
+{
+  SCIVIS,
+  PATHTRACER,
+  AO,
+  DEBUGGER,
+#ifdef USE_MPI
+  MPIRAYCAST,
+#endif
+  OTHER
 };
 
 const static std::map<std::string, StudioMode> StudioModeMap = {
     {"gui", StudioMode::GUI},
     {"batch", StudioMode::BATCH},
     {"server", StudioMode::HEADLESS},
-    {"timeseries", StudioMode::TIMESERIES},
 #ifdef USE_BENCHMARK
     {"benchmark", StudioMode::BENCHMARK},
 #endif
@@ -122,10 +131,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   virtual void importFiles(sg::NodePtr world) = 0;
   virtual void refreshScene(bool resetCam) = 0;
   virtual void updateCamera() = 0;
-
-  // this method is so that importScene (in sg) does not need
-  // to compile/link with ArcballCamera/UI
-  virtual void setCameraState(CameraState &cs){};
+  virtual void updateCameraIndices(uint32_t idx);
 
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
@@ -135,7 +141,6 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::shared_ptr<sg::Scheduler> scheduler;
 
   std::vector<std::string> filesToImport;
-  std::unique_ptr<ArcballCamera> arcballCamera;
 
   // global context camera settings for loading external cameras
   std::shared_ptr<affine3f> cameraView{nullptr};
@@ -151,11 +156,13 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   std::string optRendererTypeStr{"pathtracer"};
   std::string optCameraTypeStr{"perspective"};
+  bool optVerboseImporter{false};
   int optSPP{32};
   float optVariance{0.f}; // varianceThreshold
   sg::rgba optBackGroundColor{vec3f(0.0f), 1.f}; // default to black
   OSPPixelFilterTypes optPF{OSP_PIXELFILTER_GAUSS};
   bool optDenoiser{false};
+  bool optDenoiseFinalFrame{false};
   bool optGridEnable{false};
   vec3i optGridSize{1, 1, 1};
   OSPStereoMode optStereoMode{OSP_STEREO_NONE};
@@ -181,6 +188,11 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   bool showPoseBBox{false};
   bool showInstBBox{false};
   bool showInstBBoxFrame{false};
+
+  // expose scene cameras for plugins:
+  // list of cameras imported with the scene definition
+  CameraMap g_sceneCameras;
+  int whichCamera{0};
 
  protected:
   virtual box3f getSceneBounds();

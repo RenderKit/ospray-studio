@@ -1,13 +1,44 @@
-// Copyright 2021 Intel Corporation
+// Copyright 2022 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "Node.h"
+#include <utility>
+
 using namespace std;
+using namespace rkcommon::math;
 
 namespace ospray {
 namespace sg {
+
+// quaternion functions
+inline float dot(const quaternionf &q0, const quaternionf &q1)
+{
+  return q0.r * q1.r + q0.i * q1.i + q0.j * q1.j + q0.k * q1.k;
+}
+
+inline quaternionf slerp(const quaternionf &q0, const quaternionf &q1, float t)
+{
+  quaternionf qt0 = q0, qt1 = q1;
+  float d = dot(qt0, qt1);
+  if (d < 0.f) {
+    // prevent "long way around"
+    qt0 = -qt0;
+    d = -d;
+  } else if (d > 0.9995) {
+    // angles too small
+    quaternionf l = lerp(t, q0, q1);
+    return normalize(l);
+  }
+
+  float theta = std::acos(d);
+  float thetat = theta * t;
+
+  float s0 = std::cos(thetat) - d * std::sin(thetat) / std::sin(theta);
+  float s1 = std::sin(thetat) / std::sin(theta);
+
+  return s0 * qt0 + s1 * qt1;
+}
 
 // convert euler angles(in radians) to quaternion
 inline quaternionf eulerToQuaternion(const vec3f &rotation)

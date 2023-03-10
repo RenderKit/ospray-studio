@@ -6,7 +6,7 @@
 ##
 
 if(NOT DEFINED DRACO_VERSION)
-  set(DRACO_VERSION 1.4.3)
+  set(DRACO_VERSION 1.5.6)
 endif()
 
 ##
@@ -41,6 +41,9 @@ if(NOT "${draco_FOUND}")
   mark_as_advanced(DRACO_TESTS)
   mark_as_advanced(DRACO_UNITY_PLUGIN)
   mark_as_advanced(DRACO_WASM)
+  mark_as_advanced(DRACO_DEBUG_COMPILER_WARNINGS)
+  mark_as_advanced(DRACO_DEBUG_GLTF_BITSTREAM)
+  mark_as_advanced(DRACO_TRANSCODER_SUPPORTED)
 
   # draco needs to be build position independent to link with ospray_sg
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)

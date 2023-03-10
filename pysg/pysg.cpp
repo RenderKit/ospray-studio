@@ -24,6 +24,8 @@
 #include <sg/scene/transfer_function/TransferFunction.h>
 #include <sg/scene/volume/Volume.h>
 
+#include <sg/ArcballCamera.h>
+
 namespace py = pybind11;
 using namespace ospray::sg;
 
@@ -314,6 +316,7 @@ PYBIND11_MODULE(pysg, sg)
       .def(py::init<int>())
       .def(py::init<unsigned char>())
       .def(py::init<uint32_t>())
+      .def(py::init<long>())
       .def(py::init<float>())
       .def(py::init<vec2f>())
       .def(py::init<vec3f>())
@@ -322,7 +325,8 @@ PYBIND11_MODULE(pysg, sg)
       .def(py::init<vec3i>())
       .def(py::init<vec4i>())
       .def(py::init<box2f>())
-      .def(py::init<box3f>());
+      .def(py::init<box3f>())
+      .def(py::init<quaternionf>());
 
   // rkcommon::math specializations ////////////////
 
@@ -336,20 +340,43 @@ PYBIND11_MODULE(pysg, sg)
       .def(py::init<>())
       .def("translate", &rkcommon::math::affine3f::translate);
 
+  py::class_<rkcommon::math::quaternionf>(sg, "quaternionf")
+      .def(py::init<>())
+      .def(py::init<float, float, float, float>());
+
   // Generic Node class definition ////////////////////////////////////////////
 
   py::class_<Node, std::shared_ptr<Node>>(sg, "Node")
       .def(py::init<>())
+      .def("keys", [](const Node &node) {
+        return py::make_key_iterator(node.children().begin(), node.children().end());
+      })
+      // XXX(th): pybind11 v2.6.2 doesn't have a py::make_value_iterator
+      // function, but later versions do. This method can be re-added when
+      // pybind11 is updated.
+      // .def("values", [](const Node &node) {
+      //   return py::make_value_iterator(node.children().begin(), node.children().end());
+      // })
+      .def("items", [](const Node &node) {
+        return py::make_iterator(node.children().begin(), node.children().end());
+      })
+      .def("children", [](const Node &node) {
+        return py::make_iterator(node.children().begin(), node.children().end());
+      })
       .def("bounds", &Node::bounds)
       .def(
           "setValue", static_cast<void (Node::*)(float, bool)>(&Node::setValue))
       .def("setValue", static_cast<void (Node::*)(int, bool)>(&Node::setValue))
+      .def("setValue", static_cast<void (Node::*)(long, bool)>(&Node::setValue))
       .def(
           "setValue", static_cast<void (Node::*)(vec3f, bool)>(&Node::setValue))
       .def(
           "setValue", static_cast<void (Node::*)(box3f, bool)>(&Node::setValue))
       .def("setValue",
           static_cast<void (Node::*)(affine3f, bool)>(&Node::setValue))
+      .def("setValue",
+          static_cast<void (Node::*)(quaternionf, bool)>(&Node::setValue))
+      .def("setValue", static_cast<void (Node::*)(bool, bool)>(&Node::setValue))
       .def("valueAsFloat",
           static_cast<float &(Node::*)()>(&Node::valueAs<float>))
       .def("valueAsInt", static_cast<int &(Node::*)()>(&Node::valueAs<int>))
@@ -395,6 +422,7 @@ PYBIND11_MODULE(pysg, sg)
   pysg_nodeType<unsigned char>(sg, "UcharNode");
   pysg_nodeType<int>(sg, "IntNode");
   pysg_nodeType<uint32_t>(sg, "UIntNode");
+  pysg_nodeType<long>(sg, "LongNode");
   pysg_nodeType<vec2f>(sg, "Vec2fNode");
   pysg_nodeType<vec3f>(sg, "Vec3fNode");
   pysg_nodeType<vec4f>(sg, "Vec4fNode");
@@ -438,7 +466,9 @@ PYBIND11_MODULE(pysg, sg)
       .def("saveFrame", &Frame::saveFrame)
       .def("waitOnFrame", &Frame::waitOnFrame)
       .def("startNewFrame", &Frame::startNewFrame)
-      .def_readwrite("immediatelyWait", &Frame::immediatelyWait);
+      .def_readwrite("immediatelyWait", &Frame::immediatelyWait)
+      .def_readwrite("toneMapFB", &Frame::toneMapFB)
+      .def_readwrite("denoiseFB", &Frame::denoiseFB);
 
   py::class_<Renderer,
       OSPNode<ospray::cpp::Renderer, NodeType::RENDERER>,

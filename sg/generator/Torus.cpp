@@ -78,10 +78,10 @@ void Torus::generateData()
 
   // The torus is prominent in the 0.f - 1.f value range.
   auto valueRange = range1f(0.f, 1.f);
-  volume->child("valueRange") = valueRange;
+  volume->child("value") = valueRange;
 
   tf.add(volume);
-  tf["valueRange"] = vec2f(0.f, 1.f);
+  tf["value"] = valueRange;
 }
 
 } // namespace sg

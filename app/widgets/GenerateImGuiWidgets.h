@@ -10,8 +10,9 @@
 // widgets
 #include "app/widgets/FileBrowserWidget.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
-#include "imgui_internal.h"
+#include "imgui_internal.h" // Necessary for HoveredIdTimer
 
 #include <stack>
 
@@ -128,6 +129,34 @@ inline bool generateWidget_int(const std::string &title, Node &node)
   } else {
     if (ImGui::DragInt(title.c_str(), &i, 1)) {
       node.setValue(i);
+      return true;
+    }
+  }
+
+  nodeTooltip(node);
+  return false;
+}
+
+inline bool generateWidget_long(const std::string &title, Node &node)
+{
+  int i = static_cast<int>(node.valueAs<long>());
+
+  if (node.readOnly()) {
+    ImGui::Text("%s", (node.name() + ": " + std::to_string(i)).c_str());
+    nodeTooltip(node);
+    return false;
+  }
+
+  if (node.hasMinMax()) {
+    const long min = node.minAs<long>();
+    const long max = node.maxAs<long>();
+    if (ImGui::SliderInt(title.c_str(), &i, min, max)) {
+      node.setValue(static_cast<long>(i));
+      return true;
+    }
+  } else {
+    if (ImGui::DragInt(title.c_str(), &i, 1)) {
+      node.setValue(static_cast<long>(i));
       return true;
     }
   }
@@ -592,6 +621,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"bool", generateWidget_bool},
     {"uchar", generateWidget_uchar},
     {"int", generateWidget_int},
+    {"long", generateWidget_long},
     {"float", generateWidget_float},
     {"vec2i", generateWidget_vec2i},
     {"vec2f", generateWidget_vec2f},
