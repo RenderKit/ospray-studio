@@ -121,6 +121,10 @@ jobs:
       ospray-version: devel
       rkcommon-version: devel
 
+  snyk-scan:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/snyk.yml@main
+
   static-analysis:
     needs: cache-ospray
     secrets: inherit
