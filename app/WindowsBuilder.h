@@ -500,7 +500,7 @@ void WindowsBuilder::buildWindowLightEditor()
     whichLight = -1;
 
   ImGui::Text("lights");
-  if (ImGui::ListBoxHeader("", 3)) {
+  if (ImGui::ListBoxHeader("##lights", 3)) {
     int i = 0;
     for (auto &light : lights) {
       if (ImGui::Selectable(light.first.c_str(), (whichLight == i))) {
@@ -733,7 +733,7 @@ void WindowsBuilder::buildWindowTransferFunctionEditor()
         range1f(0.f, 1.f),
         "TransferFunctionEditor");
 
-    if (ImGui::ListBoxHeader("", transferFunctions.size())) {
+    if (ImGui::ListBoxHeader("##transferFunction", transferFunctions.size())) {
       int i = 0;
       for (auto t : transferFunctions) {
         if (ImGui::Selectable(t.first.c_str(), (whichTFn == i))) {
