@@ -1,6 +1,36 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v0.12.0
+
+-   Compatible with OSPRay release v2.11.0
+
+- Features and Improvements
+  - glTF VDB volume loading support - via custom reference link extension node
+  - Enhancement to the wavelet slice generator for much larger dataset generation
+  - Add command line option to save final image when GUI exits (github request)
+  - Add transform node "visible" boolean to permit hiding entire hierarchies
+  - Overhaul the plugins/CMakeLists.txt to allow plugins that exist outside
+    repository
+  - Loading glTF files will now only print INFO messages with the
+    `--optVerboseImporter` option.
+  - Change camera back to DefaultCamera on update so as not to overwrite scene
+   cameras
+<br><br>
+
+- Cleanup and bug fixes:
+  - Eliminate crash when there is no camera in an empty scene
+  - Fix Intel ICX Compiler build
+  - Updated all 3rd party dependencies
+  - Remove strict dependency on openGL for non-UI plugins and app modes
+  - Major refactor of functional units for more code reuse
+  - Load raw volumes as binary, closes
+    (https://github.com/ospray/ospray_studio/issues/20)
+  - Fix --denoiser command line for GUI mode
+    (https://github.com/ospray/ospray_studio/issues/21)
+  - Allow longer than 64 character save image filenames to accommodate full path name.
+
+
 ### Changes in OSPRay Studio v0.11.1
 
 -   Compatible with OSPRay release v2.10.0
