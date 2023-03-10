@@ -32,10 +32,8 @@ namespace ospray {
     // Helper Functions //
     void createGeometry(Node &node);
     void createVolume(Node &node);
-    void addGeometriesToGroup();
     void createInstanceFromGroup(Node &node);
     void placeInstancesInWorld();
-    void setLightParams(Node &node);
 
     unsigned int getInstId()
     {
