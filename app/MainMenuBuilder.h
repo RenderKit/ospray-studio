@@ -378,7 +378,6 @@ void MainMenuBuilder::buildMainMenuView()
       ImGui::DragInt("delay", &g_TooltipDelay, 50, 0, 1000, "%d ms");
     }
 
-#if 0 // XXX example new features that need to be integrated
     ImGui::Separator();
 
     ImGuiIO &io = ImGui::GetIO();
@@ -389,6 +388,7 @@ void MainMenuBuilder::buildMainMenuView()
         "ViewportsEnable", &io.ConfigFlags, ImGuiConfigFlags_ViewportsEnable);
     sg::showTooltip("[experimental] Mind blowing multi-viewports support");
 
+#if 0 // XXX example new features that need to be integrated
     ImGui::Checkbox("Guizmo", &guizmoOn);
 
     ImGui::Text("...right-click to open pie menu...");
