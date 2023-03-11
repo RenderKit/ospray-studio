@@ -134,7 +134,8 @@ jobs:
         gitlab/run-dev-img-cmp.sh
       artifact-in: build-ubuntu18-04-dev
       artifact-path: build/model-results   
-      artifact-out: test-run-ubuntu18-04-dev      
+      artifact-out: test-run-ubuntu18-04-dev     
+      artifact-on-failure: true 
  
   ### KW Jobs ###
 # static-analysis:
