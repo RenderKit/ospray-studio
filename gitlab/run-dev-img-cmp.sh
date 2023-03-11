@@ -18,6 +18,7 @@ models=(bunny hairball Peonies sponza)
 mse=(0.000001 0.000001 0.1 0.000001)
 results="model-results"
 
+mkdir -p ${results}
 for i in "${!models[@]}";do 
     ./ospStudio batch --format png --denoiser --spp 32 --forceRewrite \
         --resolution 1024x1024 --image ${results}/c-${models[i]} \
