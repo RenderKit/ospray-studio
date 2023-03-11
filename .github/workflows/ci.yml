@@ -133,6 +133,8 @@ jobs:
         gitlab/run-dev.sh
         gitlab/run-dev-img-cmp.sh
       artifact-in: build-ubuntu18-04-dev
+      artifact-path: build/model-results   
+      artifact-out: test-run-ubuntu18-04-dev      
  
   ### KW Jobs ###
 # static-analysis:
