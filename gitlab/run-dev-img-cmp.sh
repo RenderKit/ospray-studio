@@ -11,14 +11,13 @@ export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/lib:$LD_LIBRA
 SCRIPT_DIR=$(pwd)/$(dirname "$0")
 echo $SCRIPT_DIR
 
-cd ./build-superbuild
-
+cd ./build
 #IMG_DIFF_TOOL=$CACHE_DIR/../tools/img_diff/img_diff
 pip3 install --user --no-warn-script-location scikit-image argparse numpy sewar reportlab imagecodecs
 model_fns=(bunny.obj hairball.obj Peonies_2_obj.obj sponza.sg)
 model_dirs=(bunny hairball Peonies sponza)
 models=(bunny hairball Peonies sponza)
-mse=(0.0001 0.0001 0.1 0.000001)
+mse=(0.000001 0.000001 0.1 0.000001)
 results="model-results"
 
 mkdir -p ${results}
