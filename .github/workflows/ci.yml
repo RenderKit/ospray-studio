@@ -131,6 +131,7 @@ jobs:
         export CACHE_DIR=/NAS/ci-cache
         export OSPRAY_VER=devel
         gitlab/run-dev.sh
+        gitlab/run-dev-img-cmp.sh
       artifact-in: build-ubuntu18-04-dev
  
   ### KW Jobs ###
