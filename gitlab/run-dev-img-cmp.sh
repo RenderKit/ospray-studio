@@ -17,17 +17,22 @@ pip3 install --user --no-warn-script-location scikit-image argparse numpy sewar 
 model_fns=(bunny.obj hairball.obj Peonies_2_obj.obj sponza.sg)
 model_dirs=(bunny hairball Peonies sponza)
 models=(bunny hairball Peonies sponza)
+cli=("--forceRewrite" "--forceRewrite" "--forceRewrite" " ")
 mse=(0.000001 0.000001 0.1 0.000001)
 results="model-results"
 
 mkdir -p ${results}
 for i in "${!models[@]}";do 
-    ./ospStudio batch --format png --denoiser --spp 32 --forceRewrite \
+    ./ospStudio batch --format png --denoiser ${cli[i]} --spp 32 \
         --resolution 1024x1024 --image ${results}/c-${models[i]} \
         $CACHE_DIR/datasets/${model_dirs[i]}/${model_fns[i]}
     echo "model ${model_dirs[i]}/${model_fns[i]} -> c-${models[i]} CI exit code $?"
     #$IMG_DIFF_TOOL $CACHE_DIR/datasets/${models[i]}.png ${results}/c-${models[i]}.00000.png ${mse[i]}
     #echo "MSE c-${models[i]} CI exit code $?"
+
+    #using an sg means it can't have --forceRewrite, always move 00000 to -----
+    mv ${results}/c-${models[i]}.00000.png ${results}/c-${models[i]}.-----.png
     set -e 
-    python3 $SCRIPT_DIR/image-comparison.py --reference $CACHE_DIR/datasets/${models[i]}.png --candidate ${results}/c-${models[i]}.00000.png --mse ${mse[i]}
+    python3 $SCRIPT_DIR/image-comparison.py --reference $CACHE_DIR/datasets/${models[i]}.png --candidate ${results}/c-${models[i]}.-----.png --mse ${mse[i]}
+
 done
