@@ -129,11 +129,12 @@ if __name__ == "__main__":
     results = evaluate(reference_image, candidate_image, float(args.mse))
     if float(results["metrics"]["mse"]) > float(args.mse):
         print("Failure: MSE " + str(results["metrics"]["mse"]) + " is greater than the threshold " + args.mse)
+        sys.exit(-1)
     else:
         print("Success: MSE " + str(results["metrics"]["mse"]) + " is less than the threshold " + args.mse)
+        sys.exit(0)
     
     # CLI output
     #print_report(results)
     #sys.exit(float(results["metrics"]["mse"]) > float(args.mse))
-    sys.exit(0)
     

@@ -2,7 +2,10 @@
 ## Copyright 2015 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
+set -e
+
 OSPRAY_VER="devel"
+
 export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/lib:$LD_LIBRARY_PATH
 
 SCRIPT_DIR=$(pwd)/$(dirname "$0")
@@ -26,6 +29,6 @@ for i in "${!models[@]}";do
     echo "model ${model_dirs[i]}/${model_fns[i]} -> c-${models[i]} CI exit code $?"
     #$IMG_DIFF_TOOL $CACHE_DIR/datasets/${models[i]}.png ${results}/c-${models[i]}.00000.png ${mse[i]}
     #echo "MSE c-${models[i]} CI exit code $?"
-    set +e 
+    set -e 
     python3 $SCRIPT_DIR/image-comparison.py --reference $CACHE_DIR/datasets/${models[i]}.png --candidate ${results}/c-${models[i]}.00000.png --mse ${mse[i]}
 done
