@@ -22,7 +22,7 @@ results="model-results"
 
 mkdir -p ${results}
 for i in "${!models[@]}";do 
-    ./ospStudio batch --format png --spp 32 --forceRewrite \
+    ./ospStudio batch --format png --denoiser --spp 32 --forceRewrite \
         --resolution 1024x1024 --image ${results}/c-${models[i]} \
         $CACHE_DIR/datasets/${model_dirs[i]}/${model_fns[i]}
     echo "model ${model_dirs[i]}/${model_fns[i]} -> c-${models[i]} CI exit code $?"
