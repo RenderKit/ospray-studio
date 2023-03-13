@@ -33,6 +33,6 @@ for i in "${!models[@]}";do
     #using an sg means it can't have --forceRewrite, always move 00000 to -----
     mv ${results}/c-${models[i]}.00000.png ${results}/c-${models[i]}.-----.png
     set -e 
-    python3 $SCRIPT_DIR/image-comparison.py --reference $CACHE_DIR/datasets/${models[i]}.png --candidate ${results}/c-${models[i]}.-----.png --mse ${mse[i]}
+    python3 $SCRIPT_DIR/image-comparison.py --reference $CACHE_DIR/datasets/${models[i]}/${models[i]}_gold.png --candidate ${results}/c-${models[i]}.-----.png --mse ${mse[i]}
 
 done
