@@ -291,7 +291,9 @@ PYBIND11_MODULE(pysg, sg)
   // Arcball Camera ////////////////////////////////////////////////////
   py::class_<ArcballCamera>(sg, "ArcballCamera")
       .def(py::init<const box3f &, const vec2i &>())
-      .def("rotate", &ArcballCamera::rotate);
+      .def("rotate", &ArcballCamera::rotate)
+      .def("getZoomLevel", &ArcballCamera::getZoomLevel)
+      .def("setZoomLevel", &ArcballCamera::setZoomLevel);
 
   sg.def("updateCamera", &updateCamera);
 
