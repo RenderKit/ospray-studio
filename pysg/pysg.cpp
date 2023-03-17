@@ -382,6 +382,7 @@ PYBIND11_MODULE(pysg, sg)
       .def("valueAsFloat",
           static_cast<float &(Node::*)()>(&Node::valueAs<float>))
       .def("valueAsInt", static_cast<int &(Node::*)()>(&Node::valueAs<int>))
+      .def("valueAsLong", static_cast<long &(Node::*)()>(&Node::valueAs<long>))
       .def("valueAsBox3f",
           static_cast<box3f &(Node::*)()>(&Node::valueAs<box3f>))
       .def("createChild",
