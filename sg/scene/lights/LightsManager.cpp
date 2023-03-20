@@ -51,7 +51,7 @@ void LightsManager::addLights(std::vector<NodePtr> &lights)
 void LightsManager::addGroupLights(std::vector<NodePtr> &lights)
 {
   for (auto &l : lights) {
-    // Group lights created by an importer are part of the scene hierarchy, 
+    // Group lights created by an importer are part of the scene hierarchy,
     // added to a group lights list and not the world.
     l->nodeAs<Light>()->inGroup = true;
 
@@ -126,7 +126,7 @@ void LightsManager::updateWorld(World &world)
 
 NodePtr LightsManager::getLight(std::string name)
 {
-  return child(name).nodeAs<Node>();
+  return lightExists(name) ? child(name).nodeAs<Node>() : nullptr;
 }
 
 } // namespace sg
