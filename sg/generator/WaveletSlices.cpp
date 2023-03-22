@@ -97,7 +97,7 @@ void WaveletSlices::generateData()
   //TODO: not the best for load balancing, but simple.
   if (sgUsingMpi())
   {
-    int mpiChunks = int(ceilf(numSlices / float(sgMpiWorldSize())));
+    int mpiChunks = numSlices / sgMpiWorldSize();
     startSlice = sgMpiRank() * mpiChunks;
     endSlice = std::min<int>(numSlices, startSlice + mpiChunks);
   }

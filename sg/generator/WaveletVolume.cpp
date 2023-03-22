@@ -81,7 +81,8 @@ void WaveletVolume::generateData()
         }
     }
 
-    voxels = std::vector<float>(brick_ghostDims.long_product());
+    vec3i brick_ghostDims_plus1 = brick_ghostDims + vec3i(1,1,1);
+    voxels = std::vector<float>(brick_ghostDims_plus1.long_product());
 
     auto transformLocalToObject = [&](const vec3f &localCoordinates) {
       return brick_ghostBounds.lower + localCoordinates * gridSpacing;
