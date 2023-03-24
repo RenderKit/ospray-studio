@@ -42,7 +42,7 @@ else()
 
     ## XXX Necessary when using the github OSPRay release binaries.  Find better
     ## long-term solution.
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         ## The pre-built library was compiled pre-c++-11, so disable the CXX11 ABI
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0" CACHE STRING "Disable CXX11 ABI" FORCE)
         message (STATUS "Setting -D_GLIBCXX_USE_CXX11_ABI=0")

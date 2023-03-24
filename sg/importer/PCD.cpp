@@ -241,10 +241,9 @@ int readPCDHeader(const FileName &fileName, HeaderData &hData)
     }
 
     if (static_cast<int>(hData.width * hData.height) != hData.numPoints) {
-      throw("HEIGHT (%d) x WIDTH (%d) != number of points (%d)\n",
-          hData.height,
-          hData.width,
-          hData.numPoints);
+      throw("HEIGHT (" + std::to_string(hData.height) + ") x WIDTH ("
+          + std::to_string(hData.width) + ") != number of points ("
+          + std::to_string(hData.numPoints) + ")\n");
       return (-1);
     }
 

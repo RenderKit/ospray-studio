@@ -27,6 +27,11 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 message (STATUS "This build is for C++${CMAKE_CXX_STANDARD}")
 
+# Quiet warning about DOWNLOAD_EXTRACT_TIMESTAMP since CMake 3.24:
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 ## CTest testing ##
 include(CTest) # Adds 'BUILD_TESTING' variable
 if(BUILD_TESTING)
