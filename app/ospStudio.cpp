@@ -96,6 +96,11 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     "Sets the default format for saved image files"
   )->check(CLI::IsMember({"png", "jpg", "ppm", "pfm", "exr", "hdr"}));
   app->add_option(
+    "--loadCams",
+    optCamJsonName,
+    "JSON file name for multiple keyframe/snapshots."
+  );
+  app->add_option(
     "--image",
     optImageName,
     "Sets the image name (inclusive of path and filename)"

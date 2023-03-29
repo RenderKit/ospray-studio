@@ -32,7 +32,7 @@ class BatchContext : public StudioContext
   void renderAnimation();
   void refreshCamera(int cameraIdx);
   void reshape();
-
+  void loadCamJson();
  protected:
   NodePtr importedModels;
   bool cmdlCam{false};
