@@ -579,7 +579,6 @@ void BatchContext::importFiles(sg::NodePtr world)
   for (auto file : filesToImport) {
     try {
       rkcommon::FileName fileName(file);
-      std::cout << fileName << std::endl;
       if (fileName.ext() == "sg") {
         importScene(shared_from_this(), fileName);
         sgScene = true;
