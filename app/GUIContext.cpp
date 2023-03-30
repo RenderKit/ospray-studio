@@ -74,14 +74,8 @@ void GUIContext::start()
   frame->child("camera").child("cameraId").setValue(whichCamera);
   cameraIdx = whichCamera;
 
-  std::ifstream cams("cams.json");
-  if (cams) {
-    JSON j;
-    cams >> j;
-    mainWindow->cameraStack->setValues(j.get<std::vector<CameraState>>());
-  }
-
   if (parseCommandLine()) {
+    loadCamJson();
     // If command line options are set, enable denoiser
     if (studioCommon.denoiserAvailable && optDenoiser) {
       frame->denoiseFB = true;
@@ -97,6 +91,17 @@ void GUIContext::start()
   }
 }
 
+void GUIContext::loadCamJson()
+{
+  std::ifstream cams(optCamJsonName);
+  std::cout << "Load cameras for keyframe/snapshots from " << optCamJsonName << std::endl;
+
+  if (cams) {
+    JSON j;
+    cams >> j;
+    mainWindow->cameraStack->setValues(j.get<std::vector<CameraState>>());
+  }
+}
 void GUIContext::updateCamera()
 {
   frame->currentAccum = 0;

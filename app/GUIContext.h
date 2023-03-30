@@ -59,6 +59,7 @@ class GUIContext : public StudioContext
   void saveSGScene();
   void saveNodesJson(const std::string nodeTypeStr);
 
+  void loadCamJson() override;
   sg::NodePtr g_selectedSceneCamera;
 
   // Plugins //
