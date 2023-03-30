@@ -177,7 +177,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   int frameAccumLimit{0};
   std::string optImageName{"studio"}; // (each mode sets this default)
   std::string optImageFormat{"png"};
-  std::string optCamJsonName{"cams.json"};
+  std::string optCamJsonName{""};
   bool optSaveAlbedo{false};
   bool optSaveDepth{false};
   bool optSaveNormal{false};
