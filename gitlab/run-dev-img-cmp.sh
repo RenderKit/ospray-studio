@@ -29,6 +29,7 @@ for i in "${!models[@]}";do
 
     ./ospStudio batch --format png --denoiser --spp 32 \
         --resolution 1024x1024 --image ${results}/c-${models[i]} \
+        --loadCams cams.json \
         $CACHE_DIR/datasets/${model_dirs[i]}/${model_fns[i]}
 
     rm cams.json
