@@ -17,7 +17,7 @@ pip3 install --user --no-warn-script-location scikit-image argparse numpy sewar 
 model_fns=(bunny.sg hairball.sg Peonies.sg sponza.sg)
 model_dirs=(bunny hairball Peonies sponza)
 models=(bunny hairball Peonies sponza)
-cam_cnt=(2 1 1 1)
+cam_cnt=(2 1 2 1)
 
 mse=(0.000001 0.000001 0.1 0.000001)
 results="model-results"
