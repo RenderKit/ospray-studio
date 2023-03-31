@@ -32,12 +32,14 @@ BatchContext::BatchContext(StudioCommon &_common)
   // Default saved image baseName (cmdline --image to override)
   optImageName = "ospBatch";
 }
+
 void BatchContext::loadCamJson()
 {
   // read from cams.json
   std::ifstream cams(optCamJsonName);
-  std::cout << "Load cameras for keyframe/snapshots from " << optCamJsonName << std::endl;
   if (cams) {
+    std::cout << "Load cameras for keyframe/snapshots from " << optCamJsonName
+              << std::endl;
     JSON j;
     cams >> j;
     for (auto &cs : j) {
@@ -46,6 +48,7 @@ void BatchContext::loadCamJson()
     }
   }
 }
+
 void BatchContext::start()
 {
   std::cerr << "Batch mode\n";

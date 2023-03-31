@@ -94,14 +94,16 @@ void GUIContext::start()
 void GUIContext::loadCamJson()
 {
   std::ifstream cams(optCamJsonName);
-  std::cout << "Load cameras for keyframe/snapshots from " << optCamJsonName << std::endl;
-
   if (cams) {
+    std::cout << "Load cameras for keyframe/snapshots from " << optCamJsonName
+              << std::endl;
+
     JSON j;
     cams >> j;
     mainWindow->cameraStack->setValues(j.get<std::vector<CameraState>>());
   }
 }
+
 void GUIContext::updateCamera()
 {
   frame->currentAccum = 0;
