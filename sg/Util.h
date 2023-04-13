@@ -120,5 +120,35 @@ inline std::vector<std::vector<float>> perspectiveMatrix(
   return projMat;
 }
 
+// linear_to_srgba8(const T c)
+// srgb_to_linear(const T c)
+// 2.23333f provides a much more accurate approximation than 2.2
+static const float gamma_const = 2.23333f;
+inline float _pow(const float base, const float exp)
+{
+  return std::pow(std::max(base, 0.f), exp);
+};
+inline vec3f _pow(const vec3f base3, const float exp)
+{
+  return vec3f(_pow(base3.x, exp), _pow(base3.y, exp), _pow(base3.z, exp));
+};
+inline vec4f _pow(const vec4f base4, const float exp)
+{
+  // alpha is never corrected
+  vec3f g = _pow(rgb(base4.x, base4.y, base4.z), exp);
+  return vec4f(g.x, g.y, g.z, base4.w);
+};
+
+template <typename T>
+inline void srgb_to_linear(T &c)
+{
+  c = _pow(c, gamma_const);
+}
+template <typename T>
+inline void linear_to_srgb(T &c)
+{
+  c = _pow(c, 1.f / gamma_const);
+}
+
 } // namespace sg
 } // namespace ospray
