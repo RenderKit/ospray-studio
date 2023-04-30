@@ -3,8 +3,8 @@
 
 #include "ospStudio.h"
 
-#include "GUIContext.h"
 #include "Batch.h"
+#include "GUIContext.h"
 #include "sg/Mpi.h"
 
 // CLI
@@ -17,22 +17,23 @@
 using namespace ospray;
 using rkcommon::removeArgs;
 
-void StudioCommon::splitPluginArguments() {
+void StudioCommon::splitPluginArguments()
+{
   int original_argc = argc;
   const char **original_argv = argv;
-  for (int i=0; i<argc; ++i) {
+  for (int i = 0; i < argc; ++i) {
     if (std::string(argv[i]).rfind("--plugin:", 0) == 0) { // prefix match
       if (!(i + 1 < argc)) {
         throw std::runtime_error("--plugin: options require a value");
       }
       const char *arg1 = argv[i];
-      const char *arg2 = argv[i+1];
+      const char *arg2 = argv[i + 1];
 
       // before: original_argv = argv = { "ospStudio", "-flag1", "--plugin:foo:bar", "value", "-flag2" }
       // before: argc = original_argc = 5
       int j;
-      for (j=i; j+2<argc; ++j) {
-        argv[j] = argv[j+2];
+      for (j = i; j + 2 < argc; ++j) {
+        argv[j] = argv[j + 2];
       }
       argv[j++] = arg1;
       argv[j++] = arg2;
@@ -45,14 +46,16 @@ void StudioCommon::splitPluginArguments() {
       continue;
     }
   }
-  
-  // argv contains both regular arguments (indices 0<=i<argc) and plugin arguments (indices argc<=i<original_argc)
-  // set plugin_argc and plugin_argv accordingly
+
+  // argv contains both regular arguments (indices 0<=i<argc) and plugin
+  // arguments (indices argc<=i<original_argc) set plugin_argc and plugin_argv
+  // accordingly
   plugin_argc = original_argc - argc;
   plugin_argv = original_argv + argc;
 }
 
-void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
+void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app)
+{
   volumeParams = std::make_shared<sg::VolumeParams>();
   app->add_option(
     "files",
@@ -263,13 +266,20 @@ box3f StudioContext::getSceneBounds()
 
 #ifdef USE_MPI
   box3f localBounds = frame->child("world").bounds();
-  if (sgUsingMpi()){
-      MPI_Allreduce(
-          &localBounds.lower, &bounds.lower, 3, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(
-          &localBounds.upper, &bounds.upper, 3, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-  }
-  else
+  if (sgUsingMpi()) {
+    MPI_Allreduce(&localBounds.lower,
+        &bounds.lower,
+        3,
+        MPI_FLOAT,
+        MPI_MIN,
+        MPI_COMM_WORLD);
+    MPI_Allreduce(&localBounds.upper,
+        &bounds.upper,
+        3,
+        MPI_FLOAT,
+        MPI_MAX,
+        MPI_COMM_WORLD);
+  } else
 #endif
   {
     bounds = frame->child("world").bounds();
@@ -292,12 +302,10 @@ int main(int argc, const char *argv[])
     if (arg == "--version") {
       removeArgs(argc, argv, i, 1);
       version = true;
-    }
-    else if (arg == "--verify_install") {
+    } else if (arg == "--verify_install") {
       verify_install = true;
       removeArgs(argc, argv, i, 1);
-    }
-    else if (arg == "--mpi") {
+    } else if (arg == "--mpi") {
       use_mpi = true;
       removeArgs(argc, argv, i, 1);
     }
@@ -310,23 +318,25 @@ int main(int argc, const char *argv[])
   }
 
   if (use_mpi) {
-
 #ifdef USE_MPI
     use_mpi = ospLoadModule("mpi") == OSP_NO_ERROR;
     if (!use_mpi) {
-      std::cout << "Fatal: ospStudio launched with --mpi, but could not load the OSPRay MPI module." << std::endl;
+      std::cout
+          << "Fatal: ospStudio launched with --mpi, but could not load the OSPRay MPI module."
+          << std::endl;
       return 1;
-    }
-    else {
+    } else {
       sgInitializeMPI(argc, argv);
-      std::cout << "ospStudio --mpi, rank " << sgMpiRank() << "/" << sgMpiWorldSize() << "\n";
+      std::cout << "ospStudio --mpi, rank " << sgMpiRank() << "/"
+                << sgMpiWorldSize() << "\n";
     }
 
-#else //USE_MPI
-    std::cout << "Fatal: ospStudio launched with --mpi, but has not been compiled with MPI support." << std::endl;
+#else // USE_MPI
+    std::cout
+        << "Fatal: ospStudio launched with --mpi, but has not been compiled with MPI support."
+        << std::endl;
     return 1;
 #endif
-
   }
 
   // Initialize OSPRay
@@ -383,7 +393,7 @@ int main(int argc, const char *argv[])
 
   // This scope contains all OSPRay API calls. It enforces cleanly calling all
   // destructors before calling ospShutdown()
-  {
+  try {
     std::shared_ptr<StudioContext> context = nullptr;
 
     // XXX Modes should be module loaded, statically linked causes
@@ -411,6 +421,11 @@ int main(int argc, const char *argv[])
       context->start();
     else
       std::cerr << "Could not create a valid context. Stopping." << std::endl;
+
+  } catch (const std::exception &e) {
+    std::cerr << "ospStudio internal error: '" << e.what() << "'!" << std::endl;
+  } catch (...) {
+    std::cerr << "ospStudio unknown internal error!" << std::endl;
   }
 
   ospShutdown();
@@ -421,7 +436,6 @@ int main(int argc, const char *argv[])
     MPI_Finalize();
   }
 #endif
-
 
   return 0;
 }
