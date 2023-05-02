@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Importer.h"
+#include "sg/Util.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
 
@@ -48,18 +49,6 @@ struct PCDData
   NodePtr baseXfm;
   std::vector<float> fileData;
 };
-
-inline vec4f makeRandomColor(const int i)
-{
-  const int mx = 13 * 17 * 43;
-  const int my = 11 * 29;
-  const int mz = 7 * 23 * 63;
-  const uint32_t g = (i * (3 * 5 * 127) + 12312314);
-  return vec4f((g % mx) * (1.f / (mx - 1)),
-      (g % my) * (1.f / (my - 1)),
-      (g % mz) * (1.f / (mz - 1)),
-      1.0f);
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // read ascii header

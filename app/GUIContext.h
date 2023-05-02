@@ -70,10 +70,8 @@ class GUIContext : public StudioContext
   // CLI
   bool optSaveImageOnGUIExit{false};
 
-  bool optShowColor{true};
-  bool optShowAlbedo{false};
-  bool optShowDepth{false};
-  bool optShowDepthInvert{false};
+  uint32_t optDisplayBuffer{OSP_FB_COLOR}; // OSPFrameBufferChannel 
+  bool optDisplayBufferInvert{false};
   bool optAutorotate{false};
   bool optAnimate{false};
 
@@ -84,7 +82,8 @@ class GUIContext : public StudioContext
   vec2i defaultSize;
 
   // windows and main menu builder related functions
-  void selectBuffer(int whichBuffer);
+  void selectBuffer(OSPFrameBufferChannel whichBuffer, bool invert = false);
+
   void selectCamera();
   void createNewCamera(const std::string newType);
   void createIsoSurface(

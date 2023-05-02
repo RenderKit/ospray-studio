@@ -150,5 +150,20 @@ inline void linear_to_srgb(T &c)
   c = _pow(c, 1.f / gamma_const);
 }
 
+// Generate a "random" color given a 32-bit integer index
+// Identical function to rkcommon/utility/random.h, however, there are conflicts
+// within rkcommon/utility/detail/pcg_random.hpp.  So, duplicating here.
+inline vec4f makeRandomColor(const int i)
+{
+  const int mx = 13 * 17 * 43;
+  const int my = 11 * 29;
+  const int mz = 7 * 23 * 63;
+  const uint32_t g = (i * (3 * 5 * 127) + 12312314);
+  return vec4f((g % mx) * (1.f / (mx - 1)),
+      (g % my) * (1.f / (my - 1)),
+      (g % mz) * (1.f / (mz - 1)),
+      1.0f);
+}
+
 } // namespace sg
 } // namespace ospray

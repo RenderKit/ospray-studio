@@ -98,6 +98,7 @@ std::vector<std::string> WindowsBuilder::g_lightTypes = {"ambient",
     "sunSky",
     "quad"};
 std::vector<std::string> WindowsBuilder::g_debugRendererTypes = {"eyeLight",
+    "texCoord",
     "primID",
     "geomID",
     "instID",
@@ -257,27 +258,72 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
 
   ImGui::Separator();
 
-  static int whichBuffer = 0;
+  // OSP_FB_ACCUM or OSP_FB_VARIANCE cannot be mapped
+  // (https://www.ospray.org/documentation.html#framebuffer)
+  static OSPFrameBufferChannel whichBuffer = OSP_FB_COLOR;
+  static bool invertBuffer = false;
+
   ImGui::Text("Display Buffer");
-  ImGui::RadioButton("color##displayColor", &whichBuffer, 0);
 
-  if (!fb.hasAlbedoChannel() && !fb.hasDepthChannel()) {
-    ImGui::TextColored(
-        ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for more buffers");
+  // If there are no other channels or debug renderer, make sure color is
+  // selected
+  if (!fb.hasDepthChannel() && !fb.hasNormalChannel() && !fb.hasAlbedoChannel()
+          && !fb.hasPrimitiveIDChannel() && !fb.hasObjectIDChannel()
+          && !fb.hasInstanceIDChannel()
+      || ctx->optRendererTypeStr == "debug")
+    whichBuffer = OSP_FB_COLOR;
+
+  if (ImGui::RadioButton("color##displayColor", whichBuffer == OSP_FB_COLOR))
+    whichBuffer = OSP_FB_COLOR;
+
+  // Displaying other channels only makes sense for non-debug renderer
+  if (ctx->optRendererTypeStr != "debug") {
+    ImGui::SameLine();
+    if (fb.hasAlbedoChannel()
+        && ImGui::RadioButton(
+          "albedo##displayAlbedo", whichBuffer == OSP_FB_ALBEDO))
+      whichBuffer = OSP_FB_ALBEDO;
+
+    ImGui::SameLine();
+    if (fb.hasNormalChannel()
+        && ImGui::RadioButton(
+          "normal##displayNormal", whichBuffer == OSP_FB_NORMAL))
+      whichBuffer = OSP_FB_NORMAL;
+
+    ImGui::SameLine();
+    if (fb.hasDepthChannel() 
+        && ImGui::RadioButton("depth##displayDepth",
+          whichBuffer == OSP_FB_DEPTH))
+      whichBuffer = OSP_FB_DEPTH;
+
+    ImGui::NewLine();
+    ImGui::SameLine();
+    if (fb.hasPrimitiveIDChannel()
+        && ImGui::RadioButton(
+          "PrimID##displayPrimID", whichBuffer == OSP_FB_ID_PRIMITIVE))
+      whichBuffer = OSP_FB_ID_PRIMITIVE;
+
+    ImGui::SameLine();
+    if (fb.hasObjectIDChannel()
+        && ImGui::RadioButton(
+          "ObjectID##displayObjID", whichBuffer == OSP_FB_ID_OBJECT))
+      whichBuffer = OSP_FB_ID_OBJECT;
+
+    ImGui::SameLine();
+    if (fb.hasInstanceIDChannel()
+        && ImGui::RadioButton(
+          "InstanceID##displayInstID", whichBuffer == OSP_FB_ID_INSTANCE))
+      whichBuffer = OSP_FB_ID_INSTANCE;
+
+    ImGui::NewLine();
+    ImGui::Checkbox("Invert values##displayInverted", &invertBuffer);
+
+    if (!fb.isFloatFormat())
+      ImGui::TextColored(
+          ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for more buffers");
   }
 
-  if (fb.hasAlbedoChannel()) {
-    ImGui::SameLine();
-    ImGui::RadioButton("albedo##displayAlbedo", &whichBuffer, 1);
-  }
-  if (fb.hasDepthChannel()) {
-    ImGui::SameLine();
-    ImGui::RadioButton("depth##displayDepth", &whichBuffer, 2);
-    ImGui::SameLine();
-    ImGui::RadioButton("invert depth##displayDepthInv", &whichBuffer, 3);
-  }
-
-  ctx->selectBuffer(whichBuffer);
+  ctx->selectBuffer(whichBuffer, invertBuffer);
 
   ImGui::Separator();
 

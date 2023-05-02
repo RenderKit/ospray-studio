@@ -19,6 +19,10 @@ FrameBuffer::FrameBuffer()
       "bool",
       "framebuffer needs float format and channels compatible with denoising",
       false);
+  createChild("ID_Buffers",
+      "bool",
+      "add primitive, object and instance ID framebuffer channels",
+      false);
   createChild("size", "vec2i", vec2i(1024, 768));
   child("size").setReadOnly();
   createChild("colorFormat",
@@ -103,6 +107,10 @@ void FrameBuffer::updateHandle()
     auto sRGB = child("sRGB").valueAs<bool>();
     child("colorFormat") = std::string(sRGB ? "sRGB" : "RGBA8");
   }
+
+  auto idBuffers = child("ID_Buffers").valueAs<bool>();
+  if (idBuffers)
+    channels |= OSP_FB_ID_PRIMITIVE | OSP_FB_ID_OBJECT | OSP_FB_ID_INSTANCE;
 
   auto size = child("size").valueAs<vec2i>();
   // Assure that neither dimension is 0.

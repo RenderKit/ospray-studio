@@ -8,8 +8,9 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
 
-#include "Proggy.h"
+#include "rkcommon/tasking/parallel_for.h"
 
+#include "Proggy.h"
 
 // initialize static member variables
 double MainWindow::g_camMoveX = 0.0;
@@ -642,65 +643,97 @@ void MainWindow::display()
       // map OSPRay framebuffer, update OpenGL texture with contents, then unmap
       waitOnOSPRayFrame();
 
-      // Only enabled if they exist
-      ctx->optShowAlbedo &= ctx->framebuffer->hasAlbedoChannel();
-      ctx->optShowDepth &= ctx->framebuffer->hasDepthChannel();
+      bool displayBufferColor = ctx->optDisplayBuffer & OSP_FB_COLOR;
+      bool displayBufferDepth = ctx->optDisplayBuffer & OSP_FB_DEPTH;
+      bool displayBufferAccum = ctx->optDisplayBuffer & OSP_FB_ACCUM;
+      bool displayBufferVariance = ctx->optDisplayBuffer & OSP_FB_VARIANCE;
+      bool displayBufferNormal = ctx->optDisplayBuffer & OSP_FB_NORMAL;
+      bool displayBufferAlbedo = ctx->optDisplayBuffer & OSP_FB_ALBEDO;
+      bool displayBufferPrimitive = ctx->optDisplayBuffer & OSP_FB_ID_PRIMITIVE;
+      bool displayBufferObject = ctx->optDisplayBuffer & OSP_FB_ID_OBJECT;
+      bool displayBufferInstance = ctx->optDisplayBuffer & OSP_FB_ID_INSTANCE;
 
-      auto *mappedFB = (void *)ctx->frame->mapFrame(ctx->optShowDepth
-              ? OSP_FB_DEPTH
-              : (ctx->optShowAlbedo ? OSP_FB_ALBEDO : OSP_FB_COLOR));
-
-      // This needs to query the actual framebuffer format
-      const GLenum glType =
-          ctx->framebuffer->isFloatFormat() ? GL_FLOAT : GL_UNSIGNED_BYTE;
+      // optDisplayBufferInvert is separate
+      auto *mappedFB = (void *)ctx->frame->mapFrame(
+          OSPFrameBufferChannel(ctx->optDisplayBuffer));
 
       // Only create the copy if it's needed
-      float *pDepthCopy = nullptr;
-      if (ctx->optShowDepth) {
+      std::vector<float> bufferCopy;
+      if (ctx->optDisplayBufferInvert
+          && (displayBufferColor || displayBufferAlbedo
+              || displayBufferNormal)) {
+        // Create a local copy and don't modify OSPRay buffer
+        const auto *mappedColor = static_cast<const float *>(mappedFB);
+        const auto num = displayBufferColor ? 4 : 3;
+        std::vector<float> colorCopy(
+            mappedColor, mappedColor + fbSize.x * fbSize.y * num);
+        bufferCopy = std::move(colorCopy);
+
+      } else if (displayBufferPrimitive
+          || displayBufferObject || displayBufferInstance) {
+        const auto *mappedID = static_cast<const uint32_t *>(mappedFB);
+        std::vector<float> colorsID(fbSize.x * fbSize.y * 3);
+
+        tasking::parallel_for(fbSize.x * fbSize.y, [&](int px) {
+          const vec4f color = ospray::sg::makeRandomColor(mappedID[px]);
+          colorsID[px * 3 + 0] = color.x;
+          colorsID[px * 3 + 1] = color.y;
+          colorsID[px * 3 + 2] = color.z;
+        });
+
+        bufferCopy = std::move(colorsID);
+
+      } else if (displayBufferDepth) {
         // Create a local copy and don't modify OSPRay buffer
         const auto *mappedDepth = static_cast<const float *>(mappedFB);
         std::vector<float> depthCopy(
             mappedDepth, mappedDepth + fbSize.x * fbSize.y);
-        pDepthCopy = depthCopy.data();
 
         // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1, ignoring all
         // inf values
-        float minDepth = rkcommon::math::inf;
-        float maxDepth = rkcommon::math::neg_inf;
-        for (auto depth : depthCopy) {
-          if (isinf(depth))
+        float minValue = rkcommon::math::inf;
+        float maxValue = rkcommon::math::neg_inf;
+        for (auto value : depthCopy) {
+          if (isinf(value))
             continue;
-          minDepth = std::min(minDepth, depth);
-          maxDepth = std::max(maxDepth, depth);
+          minValue = std::min(minValue, value);
+          maxValue = std::max(maxValue, value);
         }
 
-        const float rcpDepthRange = 1.f / (maxDepth - minDepth);
+        const float rcpRange = 1.f / (maxValue - minValue);
+        std::transform(depthCopy.begin(),
+            depthCopy.end(),
+            depthCopy.begin(),
+            [&](float value) { return (value - minValue) * rcpRange; });
 
-        // Inverted depth (1.0 -> 0.0) may be more meaningful
-        if (ctx->optShowDepthInvert)
-          std::transform(depthCopy.begin(),
-              depthCopy.end(),
-              depthCopy.begin(),
-              [&](float depth) {
-                return (1.f - (depth - minDepth) * rcpDepthRange);
-              });
-        else
-          std::transform(depthCopy.begin(),
-              depthCopy.end(),
-              depthCopy.begin(),
-              [&](float depth) { return (depth - minDepth) * rcpDepthRange; });
+        bufferCopy = std::move(depthCopy);
       }
+
+      if (!bufferCopy.empty()) {
+        // Inverted values (1.0 -> 0.0) may be more meaningful
+        if (ctx->optDisplayBufferInvert)
+          std::transform(bufferCopy.begin(),
+              bufferCopy.end(),
+              bufferCopy.begin(),
+              [&](float value) { return (1.f - value); });
+      }
+
+      GLenum glType = GL_FLOAT;
+      if (displayBufferColor && !ctx->framebuffer->isFloatFormat())
+        glType = GL_UNSIGNED_BYTE;
 
       glBindTexture(GL_TEXTURE_2D, framebufferTexture);
       glTexImage2D(GL_TEXTURE_2D,
           0,
-          ctx->optShowAlbedo ? gl_rgb_format : gl_rgba_format,
+          displayBufferColor ? gl_rgba_format : gl_rgb_format,
           fbSize.x,
           fbSize.y,
           0,
-          ctx->optShowDepth ? GL_LUMINANCE : (ctx->optShowAlbedo ? GL_RGB : GL_RGBA),
+          displayBufferColor       ? GL_RGBA
+              : displayBufferDepth ? GL_LUMINANCE
+                                   : GL_RGB,
           glType,
-          ctx->optShowDepth ? pDepthCopy : mappedFB);
+          !bufferCopy.empty() ? bufferCopy.data() : mappedFB);
 
       ctx->frame->unmapFrame(mappedFB);
 
