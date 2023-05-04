@@ -1,7 +1,7 @@
 # Immersive OSPRay Studio
 > This project is part of a larger project called [Immersive OSPray](https://github.com/jungwhonam-tacc/Whitepaper).
 
-We extend [OSPRay v2.10.0](https://github.com/ospray/ospray/releases/tag/v2.11.0) to display a single, coherent 3D virtual environment on tiled display walls and use gesture-based interaction techniques to navigate the environment. We provide another mode of running the application with the ability to open multiple windows and coordinate these windows (see [MULTIWINDOWS Mode](#multiwindows-mode)). We provide gestured-based interaction techniques by integrating a separate server application sending tracking user data to a plugin to the rendering application (see [Gesture Plugin](#multiwindows-mode)).
+We extend [OSPRay v2.10.0](https://github.com/ospray/ospray/releases/tag/v2.11.0) to display a single, coherent 3D virtual environment on tiled display walls and use gesture-based interaction techniques to navigate the environment. We provide another mode of running the application with the ability to open multiple windows and coordinate these windows (see [MULTIWINDOWS Mode](#multiwindows-mode)). We provide gestured-based interaction techniques by integrating a separate server application sending tracking user data to a plugin to the rendering application (see [Gesture Plugin](#gesture-plugin)).
 
 # Build and Run
 ## CMake configuration and build
@@ -9,10 +9,8 @@ We extend [OSPRay v2.10.0](https://github.com/ospray/ospray/releases/tag/v2.11.0
 git clone https://github.com/jungwhonam-tacc/ospray_studio.git
 cd ospray_studio
 
-# switch to the devel branch
-git switch devel
+git checkout v0.12.0-alpha.x
 
-# create "build/release"
 mkdir build
 cd build
 mkdir release
