@@ -1,0 +1,56 @@
+[
+{
+	"hostName": "localhost",
+
+	"topLeft": [-0.357900, 0.320370, -1.000000],
+	"botLeft": [-0.357900, -0.320370, -1.000000],
+	"botRight": [0.379660, -0.320370, -1.000000],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.006320,
+	"mullionRight": 0.021536,
+	"mullionTop": 0.021180,
+	"mullionBottom": 0.021180,
+
+	"display": 1,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 840,
+	"screenHeight": 708
+},
+{
+	"hostName": "localhost",
+
+	"topLeft": [-0.357900, 0.122950, -1.000000],
+	"botLeft": [-0.357900, -0.122950, -1.000000],
+	"botRight": [0.000000, -0.122950, -1.000000],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.006320,
+	"mullionRight": 0.006320,
+	"mullionTop": 0.015056,
+	"mullionBottom": 0.015056,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 1792,
+	"screenHeight": 1120
+},
+{
+	"hostName": "localhost",
+
+	"topLeft": [0.000000, 0.320370, -1.000000],
+	"botLeft": [0.000000, -0.320370, -1.000000],
+	"botRight": [0.379660, -0.320370, -1.000000],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.021536,
+	"mullionRight": 0.021536,
+	"mullionTop": 0.021180,
+	"mullionBottom": 0.021180,
+
+	"display": 1,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 1440,
+	"screenHeight": 2560
+}
+]

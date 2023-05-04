@@ -1,0 +1,344 @@
+[
+{
+	"hostName": "localhost",
+
+	"topLeft": [-3.680400, 1.078200, -1.887851],
+	"botLeft": [-3.680400, -1.078200, -1.887851],
+	"botRight": [3.680400, -1.078200, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 1024,
+	"screenHeight": 295
+},
+{
+	"hostName": "r07",
+
+	"topLeft": [-3.680400, 1.078200, -1.887851],
+	"botLeft": [-3.680400, 0.359400, -1.887851],
+	"botRight": [-2.453600, 0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r08",
+
+	"topLeft": [-3.680400, 0.359400, -1.887851],
+	"botLeft": [-3.680400, -0.359400, -1.887851],
+	"botRight": [-2.453600, -0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r09",
+
+	"topLeft": [-3.680400, -0.359400, -1.887851],
+	"botLeft": [-3.680400, -1.078200, -1.887851],
+	"botRight": [-2.453600, -1.078200, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r04",
+
+	"topLeft": [-2.453600, 1.078200, -1.887851],
+	"botLeft": [-2.453600, 0.359400, -1.887851],
+	"botRight": [-1.226800, 0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r05",
+
+	"topLeft": [-2.453600, 0.359400, -1.887851],
+	"botLeft": [-2.453600, -0.359400, -1.887851],
+	"botRight": [-1.226800, -0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r06",
+
+	"topLeft": [-2.453600, -0.359400, -1.887851],
+	"botLeft": [-2.453600, -1.078200, -1.887851],
+	"botRight": [-1.226800, -1.078200, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r10",
+
+	"topLeft": [-1.226800, 1.078200, -1.887851],
+	"botLeft": [-1.226800, 0.359400, -1.887851],
+	"botRight": [0.000000, 0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r11",
+
+	"topLeft": [-1.226800, 0.359400, -1.887851],
+	"botLeft": [-1.226800, -0.359400, -1.887851],
+	"botRight": [0.000000, -0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r12",
+
+	"topLeft": [-1.226800, -0.359400, -1.887851],
+	"botLeft": [-1.226800, -1.078200, -1.887851],
+	"botRight": [0.000000, -1.078200, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r13",
+
+	"topLeft": [0.000000, 1.078200, -1.887851],
+	"botLeft": [0.000000, 0.359400, -1.887851],
+	"botRight": [1.226800, 0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r14",
+
+	"topLeft": [0.000000, 0.359400, -1.887851],
+	"botLeft": [0.000000, -0.359400, -1.887851],
+	"botRight": [1.226800, -0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r15",
+
+	"topLeft": [0.000000, -0.359400, -1.887851],
+	"botLeft": [0.000000, -1.078200, -1.887851],
+	"botRight": [1.226800, -1.078200, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r16",
+
+	"topLeft": [1.226800, 1.078200, -1.887851],
+	"botLeft": [1.226800, 0.359400, -1.887851],
+	"botRight": [2.453600, 0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r17",
+
+	"topLeft": [1.226800, 0.359400, -1.887851],
+	"botLeft": [1.226800, -0.359400, -1.887851],
+	"botRight": [2.453600, -0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r18",
+
+	"topLeft": [1.226800, -0.359400, -1.887851],
+	"botLeft": [1.226800, -1.078200, -1.887851],
+	"botRight": [2.453600, -1.078200, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r01",
+
+	"topLeft": [2.453600, 1.078200, -1.887851],
+	"botLeft": [2.453600, 0.359400, -1.887851],
+	"botRight": [3.680400, 0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r02",
+
+	"topLeft": [2.453600, 0.359400, -1.887851],
+	"botLeft": [2.453600, -0.359400, -1.887851],
+	"botRight": [3.680400, -0.359400, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+},
+{
+	"hostName": "r03",
+
+	"topLeft": [2.453600, -0.359400, -1.887851],
+	"botLeft": [2.453600, -1.078200, -1.887851],
+	"botRight": [3.680400, -1.078200, -1.887851],
+	"eye": [0.000000, 0.000000, 0.000000],
+	"mullionLeft": 0.011326,
+	"mullionRight": 0.011326,
+	"mullionTop": 0.020733,
+	"mullionBottom": 0.020733,
+
+	"display": 0,
+	"screenX": 0,
+	"screenY": 0,
+	"screenWidth": 3840,
+	"screenHeight": 2160
+}
+]
