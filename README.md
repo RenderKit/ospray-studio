@@ -28,7 +28,7 @@ cmake --build release -- -j 5
 
 cmake --install release
 ```
-OSPRay Studio needs to be built with ```-DUSE_MPI=ON```, ```-DBUILD_PLUGINS=ON```, and ```-BUILD_PLUGIN_GESTURE=ON``` in CMake. Also, we need to use [OSPRay we have customized](https://github.com/jungwhonam-tacc/ospray). After building the OSPRay, set ```ospray_DIR``` so CMake can locate OSPRay, e.g., ```/Users/jnam/Documents/GitHub/ospray/build/install/ospray/lib/cmake/ospray-2.10.0```.
+OSPRay Studio needs to be built with ```-DUSE_MPI=ON```, ```-DBUILD_PLUGINS=ON```, and ```-BUILD_PLUGIN_GESTURE=ON``` in CMake. Also, we need to use [OSPRay we have customized](https://github.com/jungwhonam-tacc/ospray/tree/v2.11.0-alpha.x). After building the OSPRay, set ```ospray_DIR``` so CMake can locate OSPRay, e.g., ```/Users/jnam/Documents/GitHub/ospray/build/install/ospray/lib/cmake/ospray-2.10.0```.
 
 ## Run the application
 ```
@@ -46,7 +46,7 @@ multiwindows \
 
 ```--mpi```: This option enables the OSPRay Studio's built-in MPI support, which is a required dependency of our custom mode.
 
-````--displayConfig config/display_settings.json````: The JSON configuration file contains information about off-axis projection cameras and windows. Information in the file is used to position and scale windows. See [Display Configuration JSON File](https://github.com/jungwhonam-tacc/ConfigurationGenerator#1-display-configuration-json-file) for details on the JSON file.
+````--displayConfig config/display_settings.json````: The JSON configuration file contains information about off-axis projection cameras and windows. Information in the file is used to position and scale windows. See [Display Configuration JSON File](https://github.com/jungwhonam-tacc/ConfigurationGenerator#display-configuration-json-file) for details on the JSON file.
 
 ```--scene multilevel_hierarchy```: This option starts the application with the scene opened (optional).
 
@@ -64,7 +64,7 @@ OSPRay Studio provides different modes of running the application. We added anot
 ### 1. Position and scale windows based on MPI ranks
 This new OSPRay Studio mode takes a command line option, ```--displayConfig```, which points to a JSON configuration file that specifies windows and off-axis cameras. At the start of the application, the JSON file is loaded, and values get stored in a JSON object ```nlohmann::ordered_json configDisplay```. Positioning and scaling GLFW windows are done in a constructor.
 
-> See [Display Configuration JSON File](https://github.com/jungwhonam-tacc/ConfigurationGenerator#1-display-configuration-json-file) for details on the JSON file.
+> See [Display Configuration JSON File](https://github.com/jungwhonam-tacc/ConfigurationGenerator#display-configuration-json-file) for details on the JSON file.
 
 > See ```void MultiWindows::addToCommandLine(std::shared_ptr<CLI::App> app)``` for implementation.
 
