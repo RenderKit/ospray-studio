@@ -45,7 +45,7 @@ class SearchWidget
 
   void addCustomAction(std::string title,
       std::function<void(ospray::sg::SearchResults &)> searchOp,
-      std::function<void()> displayOp,
+      std::function<void(ospray::sg::SearchResults &)> displayOp,
       bool sameLine = false);
 
   inline NP getSelected()
@@ -55,9 +55,27 @@ class SearchWidget
     if (selectedResultName.empty() || !parent)
       return nullptr;
 
+    // In the event the selected item has been removed
+    if (!parent->hasChild(selectedResultName)) {
+      selectedResultName = "";
+      allDisplayItems.clear();
+      return nullptr;
+    }
+
     // Use the parent and nodeName in the event the selected node has been
     // recreated.
     return parent->children().at(selectedResultName);
+  }
+
+  // Allows inserting a new result and selecting it without a new search
+  inline void setSelected(NR selectedNode)
+  {
+    // Set the new selected result
+    selectedResultName = selectedNode.name();
+    selectedResultParent =
+        selectedNode.parents().front()->nodeAs<ospray::sg::Node>();
+    selectedIndex = -1;
+    allDisplayItems.clear();
   }
 
  private:
@@ -71,17 +89,34 @@ class SearchWidget
   const char *numItemsOpt[4]{"10", "25", "50", "100"};
   int numItemsInd{0};
   int numItemsPerPage{10};
+  float childHeight{numItemsPerPage * ImGui::GetTextLineHeightWithSpacing()};
   int numPages{0};
   int currentPage{1};
   std::string paginateLabel{""};
 
+  int resultsCount{0};
+
+  void calculatePages()
+  {
+    resultsCount =
+        int(searched ? searchResults.size() : allDisplayItems.size());
+    numPages = std::max(resultsCount / numItemsPerPage, 1);
+    paginateLabel = "of " + std::to_string(numPages) + "##currentPage";
+    currentPage = std::min(currentPage, numPages);
+  };
+
+  // Number of children under the root matching type in displayTypes
+  int rootSize{0};
+  ospray::sg::SearchResults allDisplayItems;
+
   TS displayState;
 
   // XXX Search Results are complicated by the fact that the callee may delete
-  // the selected node.  Therefore, the name of the node and it's parent are
+  // the selected node.  Therefore, the name of the node and its parent are
   // saved and used to do fetch the node at getSelected time.
-  ospray::sg::SearchResults results;
+  ospray::sg::SearchResults searchResults;
   std::string selectedResultName;
+  int selectedIndex{-1};
   std::weak_ptr<ospray::sg::Node> selectedResultParent;
 
   // These must be references since they contain OSPRay objects.

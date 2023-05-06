@@ -79,8 +79,6 @@ struct WindowsBuilder
   // main Util instance
   std::shared_ptr<GUIContext> ctx = nullptr;
 
-  int whichLightType{-1};
-
   std::string lightTypeStr{"ambient"};
 
   std::shared_ptr<sg::LightsManager> lightsManager;
@@ -90,7 +88,7 @@ struct WindowsBuilder
 
   // initialize all static member variables
 ImGuiWindowFlags WindowsBuilder::g_imguiWindowFlags =
-    ImGuiWindowFlags_AlwaysAutoResize;
+    ImGuiWindowFlags_HorizontalScrollbar;
 std::vector<std::string> WindowsBuilder::g_lightTypes = {"ambient",
     "cylinder",
     "distant",
@@ -491,39 +489,55 @@ void WindowsBuilder::buildWindowLightEditor()
     return;
   }
 
-  auto &lights = lightsManager->children();
-  static int whichLight = -1;
+  typedef sg::NodeType NT;
+  static std::vector<sg::NodeType> types{NT::LIGHT};
 
-  // Validate that selected light is still a valid light.  Clear scene will
-  // change the lights list, elsewhere.
-  if (whichLight >= lights.size())
-    whichLight = -1;
-
-  ImGui::Text("lights");
-  if (ImGui::ListBoxHeader("##lights", 3)) {
-    int i = 0;
-    for (auto &light : lights) {
-      if (ImGui::Selectable(light.first.c_str(), (whichLight == i))) {
-        whichLight = i;
-      }
-      i++;
+  auto toggleSearch = [&](sg::SearchResults &results, bool enable) {
+    for (auto result : results) {
+      auto resultNode = result.lock();
+      if (resultNode->hasChild("enable"))
+        resultNode->child("enable").setValue(enable);
     }
-    ImGui::ListBoxFooter();
+  };
+  auto showSearch = [&](sg::SearchResults &r) { toggleSearch(r, true); };
+  auto hideSearch = [&](sg::SearchResults &r) { toggleSearch(r, false); };
 
-    if (whichLight != -1) {
-      ImGui::Text("edit");
-      GenerateWidget(lightsManager->child(lights.at_index(whichLight).first));
+  static SearchWidget searchWidget(types, types, sg::TreeState::ALLCLOSED);
+  searchWidget.addSearchBarUI(*lightsManager);
+  searchWidget.addCustomAction("enable all", showSearch, showSearch);
+  searchWidget.addCustomAction("disable all", hideSearch, hideSearch, true);
+  searchWidget.addSearchResultsUI(*lightsManager);
+
+  auto selected = searchWidget.getSelected();
+  if (selected) {
+    auto toggleSelected = [&](bool enable) {
+      selected->traverse<sg::SetParamByNode>(NT::LIGHT, "enable", enable);
+    };
+
+    ImGui::Text("Selected ");
+    ImGui::SameLine();
+    if (ImGui::Button("enable"))
+      toggleSelected(true);
+    ImGui::SameLine();
+    if (ImGui::Button("disable"))
+      toggleSelected(false);
+
+    GenerateWidget(*selected);
+
+    if (ImGui::Button("remove")) {
+      // Node removal requires waiting on previous frame completion
+      ctx->frame->cancelFrame();
+      ctx->frame->waitOnFrame();
+      lightsManager->removeLight(selected->name());
     }
   }
-
-  if (lights.size() > 1 && ImGui::Button("remove"))
-  ctx->removeLight(whichLight);
 
   ImGui::Separator();
 
   ImGui::Text("new light");
 
   static std::string lightType = "";
+  static int whichLightType{-1};
   if (ImGui::Combo("type##whichLightType",
           &whichLightType,
           lightTypeUI_callback,
@@ -572,8 +586,10 @@ void WindowsBuilder::buildWindowLightEditor()
           auto &hdri = lightsManager->child(lightName);
           hdri["filename"] = texFileName.str();
         }
-        // Select newly added light
-        whichLight = lights.size() - 1;
+
+        // Select newly added light, so it's the current edit item
+        searchWidget.setSelected(lightsManager->child(lightName));
+
       } else {
         lightNameWarning = true;
       }
@@ -596,7 +612,7 @@ void WindowsBuilder::buildWindowLightEditor()
 
 void WindowsBuilder::buildWindowCameraEditor()
 {
-  if (!ImGui::Begin("Camera editor", &showCameraEditor)) {
+  if (!ImGui::Begin("Camera editor", &showCameraEditor, g_imguiWindowFlags)) {
     ImGui::End();
     return;
   }
@@ -644,12 +660,15 @@ void WindowsBuilder::buildWindowCameraEditor()
 
 void WindowsBuilder::buildWindowMaterialEditor()
 {
-  if (!ImGui::Begin("Material editor", &showMaterialEditor)) {
+  if (!ImGui::Begin(
+          "Material editor", &showMaterialEditor, g_imguiWindowFlags)) {
     ImGui::End();
     return;
   }
 
-  static std::vector<sg::NodeType> types{sg::NodeType::MATERIAL};
+  typedef sg::NodeType NT;
+  static std::vector<NT> types{NT::MATERIAL};
+
   static SearchWidget searchWidget(types, types, sg::TreeState::ALLCLOSED);
   static AdvancedMaterialEditor advMaterialEditor;
 
@@ -679,7 +698,9 @@ void WindowsBuilder::buildWindowMaterialEditor()
 
 void WindowsBuilder::buildWindowTransferFunctionEditor()
 {
-  if (!ImGui::Begin("Transfer Function editor", &showTransferFunctionEditor)) {
+  if (!ImGui::Begin("Transfer Function editor",
+          &showTransferFunctionEditor,
+          g_imguiWindowFlags)) {
     ImGui::End();
     return;
   }
@@ -776,7 +797,8 @@ void WindowsBuilder::buildWindowTransferFunctionEditor()
 
 void WindowsBuilder::buildWindowIsosurfaceEditor()
 {
-  if (!ImGui::Begin("Isosurface editor", &showIsosurfaceEditor)) {
+  if (!ImGui::Begin(
+          "Isosurface editor", &showIsosurfaceEditor, g_imguiWindowFlags)) {
     ImGui::End();
     return;
   }
@@ -851,37 +873,52 @@ void WindowsBuilder::buildWindowIsosurfaceEditor()
 
 void WindowsBuilder::buildWindowTransformEditor()
 {
-  if (!ImGui::Begin("Transform Editor", &showTransformEditor)) {
+  if (!ImGui::Begin(
+          "Transform Editor", &showTransformEditor, g_imguiWindowFlags)) {
     ImGui::End();
     return;
   }
 
   typedef sg::NodeType NT;
-
-  auto toggleSearch = [&](sg::SearchResults &results, bool visible) {
-    for (auto result : results) {
-      auto resultNode = result.lock();
-      if (resultNode->hasChild("visible"))
-        resultNode->child("visible").setValue(visible);
-    }
-  };
-  auto showSearch = [&](sg::SearchResults &r) { toggleSearch(r, true); };
-  auto hideSearch = [&](sg::SearchResults &r) { toggleSearch(r, false); };
-
-  auto &warudo = ctx->frame->child("world");
-  auto toggleDisplay = [&](bool visible) {
-    warudo.traverse<sg::SetParamByNode>(NT::GEOMETRY, "visible", visible);
-    warudo.traverse<sg::SetParamByNode>(NT::VOLUME, "visible", visible);
-  };
-  auto showDisplay = [&]() { toggleDisplay(true); };
-  auto hideDisplay = [&]() { toggleDisplay(false); };
-
   static std::vector<NT> searchTypes{
       NT::IMPORTER, NT::TRANSFORM, NT::GENERATOR, NT::GEOMETRY, NT::VOLUME};
   static std::vector<NT> displayTypes{
       NT::IMPORTER, NT::TRANSFORM, NT::GENERATOR};
-  static SearchWidget searchWidget(searchTypes, displayTypes);
 
+  // When showing/hiding object, prefer transform visiblity over object enable
+  // due to the performance of creating/destroying an object vs simply skipping
+  // it to make it invisible.
+
+  auto toggleSearch = [&](sg::SearchResults &results, bool value) {
+    for (const auto result : results) {
+      auto resultNode = result.lock();
+      if (resultNode->hasChild("visible"))
+        resultNode->child("visible").setValue(value);
+      else if (resultNode->hasChild("enable"))
+        resultNode->child("enable").setValue(value);
+    }
+  };
+
+  auto showSearch = [&](sg::SearchResults &r) { toggleSearch(r, true); };
+  auto hideSearch = [&](sg::SearchResults &r) { toggleSearch(r, false); };
+
+  // Because searchTypes contains more types than displayTypes, must visit any
+  // nodes that the search may have affected
+  auto toggleDisplay = [&](sg::SearchResults &results, bool value) {
+    for (const auto result : results) {
+      for (const auto st : searchTypes) {
+        auto resultNode = result.lock();
+        resultNode->traverse<sg::SetParamByNode>(st, "visible", value);
+        if (!resultNode->isModified())
+          resultNode->traverse<sg::SetParamByNode>(st, "enable", value);
+      }
+    }
+  };
+  auto showDisplay = [&](sg::SearchResults &r) { toggleDisplay(r, true); };
+  auto hideDisplay = [&](sg::SearchResults &r) { toggleDisplay(r, false); };
+
+  auto &warudo = ctx->frame->child("world");
+  static SearchWidget searchWidget(searchTypes, displayTypes);
   searchWidget.addSearchBarUI(warudo);
   searchWidget.addCustomAction("show all", showSearch, showDisplay);
   searchWidget.addCustomAction("hide all", hideSearch, hideDisplay, true);
@@ -889,9 +926,14 @@ void WindowsBuilder::buildWindowTransformEditor()
 
   auto selected = searchWidget.getSelected();
   if (selected) {
-    auto toggleSelected = [&](bool visible) {
-      selected->traverse<sg::SetParamByNode>(NT::GEOMETRY, "visible", visible);
-      selected->traverse<sg::SetParamByNode>(NT::VOLUME, "visible", visible);
+    // Because searchTypes contains more types than displayTypes, must visit
+    // any nodes that the search may have affected
+    auto toggleSelected = [&](bool value) {
+      for (const auto st : searchTypes) {
+        selected->traverse<sg::SetParamByNode>(st, "visible", value);
+        if (!selected->isModified())
+          selected->traverse<sg::SetParamByNode>(st, "enable", value);
+      }
     };
 
     ImGui::Text("Selected ");

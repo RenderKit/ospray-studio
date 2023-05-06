@@ -33,11 +33,11 @@ namespace ospray {
     inline bool SetParamByNode::operator()(Node &node,
                                            TraversalContext &)
     {
-      if (node.type() == type) {
+      if (node.type() == type && node.hasChild(param)) {
         node.child(param).setValue(value);
         return false;
       }
-      
+
       return true;
     }
   }  // namespace sg

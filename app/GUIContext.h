@@ -87,7 +87,6 @@ class GUIContext : public StudioContext
   void selectBuffer(int whichBuffer);
   void selectCamera();
   void createNewCamera(const std::string newType);
-  void removeLight(int whichLight);
   void createIsoSurface(
       int currentVolume, std::vector<ospray::sg::NodePtr> &volumes);
   void clearScene();

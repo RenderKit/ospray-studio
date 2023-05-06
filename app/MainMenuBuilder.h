@@ -371,6 +371,15 @@ void MainMenuBuilder::buildMainMenuView()
     // UI options //////////////////////////////////////////////////////
     ImGui::Text("ui options");
 
+    ImGuiIO &io = ImGui::GetIO();
+
+    static int fontScale = 100;
+    ImGui::Text("FontScale:");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    if (ImGui::DragInt("##FontScale", &fontScale, 1, 50, 200, "%d%%"))
+      io.FontGlobalScale = fontScale / 100.f;
+
     ImGui::Checkbox("Show tooltips", &g_ShowTooltips);
     if (g_ShowTooltips) {
       ImGui::SameLine();
@@ -380,7 +389,6 @@ void MainMenuBuilder::buildMainMenuView()
 
     ImGui::Separator();
 
-    ImGuiIO &io = ImGui::GetIO();
     ImGui::CheckboxFlags(
         "DockingEnable", &io.ConfigFlags, ImGuiConfigFlags_DockingEnable);
     sg::showTooltip("[experimental] Menu docking");

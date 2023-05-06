@@ -630,18 +630,6 @@ void GUIContext::selectBuffer(int whichBuffer)
   }
 }
 
-void GUIContext::removeLight(int whichLight)
-{
-  if (whichLight != -1) {
-    // Node removal requires waiting on previous frame completion
-    frame->cancelFrame();
-    frame->waitOnFrame();
-    auto &lights = lightsManager->children();
-    lightsManager->removeLight(lights.at_index(whichLight).first);
-    whichLight = std::max(0, whichLight - 1);
-  }
-}
-
 void GUIContext::selectCamera()
 {
   if (whichCamera < (int)g_sceneCameras.size()) {
