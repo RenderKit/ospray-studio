@@ -9,4 +9,5 @@
 /plugins/*
 !/plugins/example_plugin
 !/plugins/gesture_plugin
+!/plugins/storyboard_plugin
 doc/*.html

@@ -1,0 +1,7 @@
+{
+    "ipAddress": "127.0.0.1",
+    "portNumber": 8888,
+    
+    "scaleOffset": [0.001, -0.001, -0.001],
+    "translationOffset": [0.0, -0.1, 1.19]
+}
