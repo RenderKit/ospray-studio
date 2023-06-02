@@ -550,9 +550,6 @@ void WindowsBuilder::buildWindowLightEditor()
 
   static SearchWidget searchWidget(types, types, sg::TreeState::ALLCLOSED);
   searchWidget.addSearchBarUI(*lightsManager);
-  searchWidget.addCustomAction("enable all", showSearch, showSearch);
-  searchWidget.addCustomAction("disable all", hideSearch, hideSearch, true);
-  searchWidget.addSearchResultsUI(*lightsManager);
 
   auto selected = searchWidget.getSelected();
   if (selected) {
@@ -560,14 +557,19 @@ void WindowsBuilder::buildWindowLightEditor()
       selected->traverse<sg::SetParamByNode>(NT::LIGHT, "enable", enable);
     };
 
-    ImGui::Text("Selected ");
-    ImGui::SameLine();
     if (ImGui::Button("enable"))
       toggleSelected(true);
     ImGui::SameLine();
     if (ImGui::Button("disable"))
       toggleSelected(false);
+  } else {
+    searchWidget.addCustomAction("enable all", showSearch, showSearch);
+    searchWidget.addCustomAction("disable all", hideSearch, hideSearch, true);
+  }
 
+  searchWidget.addSearchResultsUI(*lightsManager);
+
+  if (selected) {
     GenerateWidget(*selected);
 
     if (ImGui::Button("remove")) {
@@ -966,9 +968,6 @@ void WindowsBuilder::buildWindowTransformEditor()
   auto &warudo = ctx->frame->child("world");
   static SearchWidget searchWidget(searchTypes, displayTypes);
   searchWidget.addSearchBarUI(warudo);
-  searchWidget.addCustomAction("show all", showSearch, showDisplay);
-  searchWidget.addCustomAction("hide all", hideSearch, hideDisplay, true);
-  searchWidget.addSearchResultsUI(warudo);
 
   auto selected = searchWidget.getSelected();
   if (selected) {
@@ -982,16 +981,20 @@ void WindowsBuilder::buildWindowTransformEditor()
       }
     };
 
-    ImGui::Text("Selected ");
-    ImGui::SameLine();
     if (ImGui::Button("show"))
       toggleSelected(true);
     ImGui::SameLine();
     if (ImGui::Button("hide"))
       toggleSelected(false);
-
-    GenerateWidget(*selected);
+  } else {
+    searchWidget.addCustomAction("show all", showSearch, showDisplay);
+    searchWidget.addCustomAction("hide all", hideSearch, hideDisplay, true);
   }
+
+  searchWidget.addSearchResultsUI(warudo);
+
+  if (selected)
+    GenerateWidget(*selected);
 
   ImGui::End();
 }
