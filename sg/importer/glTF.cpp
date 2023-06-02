@@ -89,6 +89,10 @@ struct GLTFData
     volumeParams = _volumeParams;
   }
 
+  void setBaseMaterialOffset(uint32_t offset) {
+    baseMaterialOffset = offset;
+  }
+
  private:
   bool verboseImport{false}; // Enable/disable import logging
   InstanceConfiguration ic;
@@ -108,7 +112,7 @@ struct GLTFData
 
   std::vector<NodePtr> ospMaterials;
 
-  size_t baseMaterialOffset = 0; // set in createMaterials()
+  uint32_t baseMaterialOffset = 0;
   int numIntelLights{0};
 
   void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
@@ -440,7 +444,6 @@ void GLTFData::createMaterials()
     ospMaterials.push_back(createOSPMaterial(material));
   }
 
-  baseMaterialOffset = materialRegistry->baseMaterialOffSet();
   for (auto m : ospMaterials)
     materialRegistry->add(m);
 }
@@ -1860,7 +1863,8 @@ void glTFImporter::importScene()
   // Create a root Transform/Instance off the Importer, under which to build
   // the import hierarchy
   std::string baseName = fileName.name() + "_rootXfm";
-  auto rootNode = createNode(baseName, "transform");
+  NodePtr rootNode = hasChild(baseName) ? child(baseName).nodeAs<Node>()
+                                        : createNode(baseName, "transform");
 
   GLTFData gltf(rootNode,
       fileName,
@@ -1875,7 +1879,22 @@ void glTFImporter::importScene()
     return;
   gltf.setScheduler(scheduler);
   gltf.setVolumeParams(volumeParams);
-  gltf.createMaterials();
+  if (materialRegistry) {
+    // Create a child under the importer to hold the baseMaterialOffset
+    // used when the asset is reloaded, to keep the same material indices
+    uint32_t offset = materialRegistry->baseMaterialOffSet();
+    static std::string bmo = "baseMaterialOffset";
+    if (hasChild(bmo)) {
+      offset = child(bmo).valueAs<uint32_t>();
+    } else {
+      createChild(bmo, "uint32_t", offset);
+      child(bmo).setReadOnly();
+      child(bmo).setSGOnly();
+      child(bmo).setSGNoUI();
+    }
+    gltf.setBaseMaterialOffset(offset);
+    gltf.createMaterials();
+  }
   gltf.createLightTemplates();
 
   if (importCameras) {

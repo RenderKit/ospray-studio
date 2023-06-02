@@ -151,7 +151,7 @@ extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 // Providing a unique transform instance as root to add existing imported model to, 
 // should probably be the responsibility of the calling routine
 inline std::shared_ptr<Importer> getImporter(
-    NodePtr root, rkcommon::FileName fileName)
+    NodePtr root, rkcommon::FileName fileName, bool reloadAsset = false)
 {
   // Get the absolute path to the file for use in AssetsCatalogue 
   rkcommon::FileName fullName = fileName.canonical();
@@ -169,6 +169,18 @@ inline std::shared_ptr<Importer> getImporter(
     // Importer node and its rootXfm
     auto origNode = cat[fullName].lock();
     std::string rootXfmName = baseName + "_rootXfm";
+
+    // Only instance assets that have a rootXfm, otherwise just reload them.
+    // Interested in instancing mesh data, not pure lights files
+    if (!origNode->hasChild(rootXfmName))
+      reloadAsset = true;
+
+    // If reloading asset, simply return the original importer node
+    if (reloadAsset) {
+      std::cout << "Reloading: " << fullName << " as " << origNode->name()
+                << std::endl;
+      return origNode->nodeAs<Importer>();
+    }
 
     // Existing import, instance it!
     std::cout << "Instancing: " << fullName << " as " << origNode->name() << std::endl;

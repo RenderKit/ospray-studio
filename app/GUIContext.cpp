@@ -379,7 +379,7 @@ void GUIContext::importFiles(NodePtr world)
       } else {
         std::cout << "Importing: " << file << std::endl;
 
-        auto importer = getImporter(world, file);
+        auto importer = getImporter(world, file, optReloadAssets);
         if (importer) {
           auto vp = importer->getVolumeParams();
           if (volumeParams->children().size() > 0 && vp) {

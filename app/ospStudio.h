@@ -155,6 +155,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   StudioMode mode;
 
+  bool optReloadAssets{false};
   std::string optRendererTypeStr{"pathtracer"};
   std::string optCameraTypeStr{"perspective"};
   bool optVerboseImporter{false};

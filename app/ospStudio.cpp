@@ -63,6 +63,11 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app)
     "The list of files to import"
   );
   app->add_option(
+    "reload assets",
+    optReloadAssets,
+    "reload asset file contents, rather than creating an instance"
+  );
+  app->add_option(
     "--renderer",
     optRendererTypeStr,
     "set the renderer type"
