@@ -14,10 +14,13 @@ void SearchWidget::clear()
   searched = false;
   searchResults.clear();
   allDisplayItems.clear(); // force generation of non-searched items
+  resultsCount = 0;
   searchTerm[0] = '\0';
   selectedResultName = "";
-  numPages = 0;
+  numPages = 1;
   currentPage = 1;
+  numItemsPerPage = std::atoi(numItemsOpt[numItemsInd]);
+  childHeight = (numItemsPerPage + 1) * ImGui::GetTextLineHeightWithSpacing();
 }
 
 void SearchWidget::search(NR root)
@@ -30,6 +33,7 @@ void SearchWidget::search(NR root)
   }
 
   searched = true;
+  currentPage = 1;
   searchResults.clear();
 
   // Search the entire hierarchy of passed-in root node for nodes of specific
@@ -82,6 +86,7 @@ void SearchWidget::addSearchResultsUI(NR root)
   // Create a vector of all unsearched items matching displayTypes
   if (allDisplayItems.empty() || root.children().size() != rootSize) {
     rootSize = root.children().size();
+    allDisplayItems.clear(); // force generation of non-searched items
     for (const auto child : root.children()) {
       if (isOneOf(child.second->type(), displayTypes))
         allDisplayItems.push_back(child.second);
@@ -89,13 +94,16 @@ void SearchWidget::addSearchResultsUI(NR root)
     calculatePages();
   }
 
-  ImGui::BeginChild(
-      "Results", ImVec2(0, childHeight), true, ImGuiWindowFlags_HorizontalScrollbar);
-  for (int i = (currentPage - 1) * numItemsPerPage;
+  ImGui::BeginChild("Results",
+      ImVec2(0, childHeight),
+      true,
+      ImGuiWindowFlags_HorizontalScrollbar);
+  currentPage = std::max(currentPage, 1);
+  auto &itemVector = searched ? searchResults : allDisplayItems;
+  for (unsigned i = (currentPage - 1) * numItemsPerPage;
        i < std::min(resultsCount, currentPage * numItemsPerPage);
        i++) {
-    const auto itemVector = searched ? searchResults : allDisplayItems;
-    const auto node = itemVector.at(i).lock();
+    const auto node = i < itemVector.size() ? itemVector.at(i).lock() : nullptr;
     auto itemTypes = searched ? searchTypes : displayTypes;
     if (node && isOneOf(node->type(), itemTypes)) {
       const bool isSelected = (selectedIndex == i);

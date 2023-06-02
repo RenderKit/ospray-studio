@@ -90,7 +90,7 @@ class SearchWidget
   int numItemsInd{0};
   int numItemsPerPage{10};
   float childHeight{numItemsPerPage * ImGui::GetTextLineHeightWithSpacing()};
-  int numPages{0};
+  int numPages{1};
   int currentPage{1};
   std::string paginateLabel{""};
 
@@ -100,9 +100,12 @@ class SearchWidget
   {
     resultsCount =
         int(searched ? searchResults.size() : allDisplayItems.size());
-    numPages = std::max(resultsCount / numItemsPerPage, 1);
+    numPages =
+        std::max(int(std::ceil(float(resultsCount) / numItemsPerPage)), 1);
     paginateLabel = "of " + std::to_string(numPages) + "##currentPage";
     currentPage = std::min(currentPage, numPages);
+    childHeight = std::min(childHeight, (resultsCount + 1)
+        * ImGui::GetTextLineHeightWithSpacing());
   };
 
   // Number of children under the root matching type in displayTypes
