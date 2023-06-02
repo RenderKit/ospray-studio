@@ -81,38 +81,10 @@ inline bool generateWidget_bool(const std::string &title, Node &node)
   return false;
 }
 
-inline bool generateWidget_uchar(const std::string &title, Node &node)
-{
-  // ImGui has no native char types
-  int i = node.valueAs<uint8_t>();
-
-  if (node.readOnly()) {
-    ImGui::Text("%s", (node.name() + ": " + std::to_string(i)).c_str());
-    nodeTooltip(node);
-    return false;
-  }
-
-  if (node.hasMinMax()) {
-    const int min = node.minAs<uint8_t>();
-    const int max = node.maxAs<uint8_t>();
-    if (ImGui::SliderInt(title.c_str(), &i, min, max)) {
-      node.setValue(uint8_t(i));
-      return true;
-    }
-  } else {
-    if (ImGui::DragInt(title.c_str(), &i, 1)) {
-      node.setValue(uint8_t(i));
-      return true;
-    }
-  }
-
-  nodeTooltip(node);
-  return false;
-}
-
+template <typename T>
 inline bool generateWidget_int(const std::string &title, Node &node)
 {
-  int i = node.valueAs<int>();
+  int i = static_cast<int>(node.valueAs<T>());
 
   if (node.readOnly()) {
     ImGui::Text("%s", (node.name() + ": " + std::to_string(i)).c_str());
@@ -121,43 +93,15 @@ inline bool generateWidget_int(const std::string &title, Node &node)
   }
 
   if (node.hasMinMax()) {
-    const int min = node.minAs<int>();
-    const int max = node.maxAs<int>();
+    const int min = node.minAs<T>();
+    const int max = node.maxAs<T>();
     if (ImGui::SliderInt(title.c_str(), &i, min, max)) {
-      node.setValue(i);
+      node.setValue(static_cast<T>(i));
       return true;
     }
   } else {
     if (ImGui::DragInt(title.c_str(), &i, 1)) {
-      node.setValue(i);
-      return true;
-    }
-  }
-
-  nodeTooltip(node);
-  return false;
-}
-
-inline bool generateWidget_long(const std::string &title, Node &node)
-{
-  int i = static_cast<int>(node.valueAs<long>());
-
-  if (node.readOnly()) {
-    ImGui::Text("%s", (node.name() + ": " + std::to_string(i)).c_str());
-    nodeTooltip(node);
-    return false;
-  }
-
-  if (node.hasMinMax()) {
-    const long min = node.minAs<long>();
-    const long max = node.maxAs<long>();
-    if (ImGui::SliderInt(title.c_str(), &i, min, max)) {
-      node.setValue(static_cast<long>(i));
-      return true;
-    }
-  } else {
-    if (ImGui::DragInt(title.c_str(), &i, 1)) {
-      node.setValue(static_cast<long>(i));
+      node.setValue(static_cast<T>(i));
       return true;
     }
   }
@@ -611,9 +555,10 @@ inline bool generateWidget_filename(const std::string &title, Node &node)
 using WidgetGenerator = bool (*)(const std::string &, Node &);
 static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"bool", generateWidget_bool},
-    {"uchar", generateWidget_uchar},
-    {"int", generateWidget_int},
-    {"long", generateWidget_long},
+    {"uchar", generateWidget_int<uint8_t>},
+    {"int", generateWidget_int<int>},
+    {"uint32_t", generateWidget_int<uint32_t>},
+    {"long", generateWidget_int<long>},
     {"float", generateWidget_float},
     {"vec2i", generateWidget_vec2i},
     {"vec2f", generateWidget_vec2f},
