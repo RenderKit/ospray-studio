@@ -21,7 +21,7 @@
 
 #define DEBUG if (verboseImport) std::cout << prefix << "(D): "
 #define INFO if (verboseImport) std::cout << prefix << "(I): "
-#define WARN std::cout << prefix << "(W): "
+#define WARN if (verboseImport) std::cout << prefix << "(W): "
 #define ERR std::cerr << prefix << "(E): "
 
 namespace ospray {
@@ -211,7 +211,6 @@ bool GLTFData::parseAsset()
   if (!asset.extensions.empty())
     INFO << "   Extensions Listed:\n";
 
-  // XXX Warn on any extensions used
   if (!model.extensionsUsed.empty()) {
     WARN << "   ExtensionsUsed:\n";
     for (const auto &ext : model.extensionsUsed)
@@ -223,7 +222,6 @@ bool GLTFData::parseAsset()
       WARN << "      " << ext << "\n";
   }
 
-  // XXX
   INFO << "... " << model.accessors.size() << " accessors\n";
   INFO << "... " << model.animations.size() << " animations\n";
   INFO << "... " << model.buffers.size() << " buffers\n";
