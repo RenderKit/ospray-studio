@@ -666,18 +666,21 @@ void WindowsBuilder::buildWindowCameraEditor()
   }
 
   auto frameCameraId = ctx->frame->child("camera").child("cameraId").valueAs<int>();
-  ctx->whichCamera = frameCameraId;
-
   auto &items = ctx->g_sceneCameras;
 
+  if (frameCameraId >= items.size())
+    frameCameraId = items.size() - 1;
+
   // Only present selector UI if more than one camera
-  if (!items.empty() && ImGui::BeginCombo("sceneCameras##whichCamera",
-          items.at_index(ctx->whichCamera).first.c_str())) {
+  if (!items.empty()
+      && ImGui::BeginCombo("sceneCameras##whichCamera",
+          items.at_index(frameCameraId).first.c_str())) {
     for (int i = 0; i < items.size(); ++i) {
-      const bool isSelected = (ctx->whichCamera == i);
+      const bool isSelected = (frameCameraId == i);
       if (ImGui::Selectable(items.at_index(i).first.c_str(), isSelected)) {
         ctx->whichCamera = i;
         ctx->selectCamera();
+        break;
       }
       if (isSelected) {
         ImGui::SetItemDefaultFocus();
@@ -993,8 +996,13 @@ void WindowsBuilder::buildWindowTransformEditor()
 
   searchWidget.addSearchResultsUI(warudo);
 
-  if (selected)
+  if (selected) {
+    if (ImGui::Button("select parent"))
+      if (!selected->parents().empty() && selected->parents().front())
+        searchWidget.setSelected(*selected->parents().front());
+    sg::showTooltip("Move selection up one level to parent node.\n");
     GenerateWidget(*selected);
+  }
 
   ImGui::End();
 }

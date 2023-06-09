@@ -72,8 +72,11 @@ class SearchWidget
   {
     // Set the new selected result
     selectedResultName = selectedNode.name();
-    selectedResultParent =
-        selectedNode.parents().front()->nodeAs<ospray::sg::Node>();
+    // In case the user has selected upward to the root node
+    selectedResultParent = selectedNode.parents().empty()
+        ? lastRoot->nodeAs<ospray::sg::Node>()
+        : selectedNode.parents().front()->nodeAs<ospray::sg::Node>();
+
     selectedIndex = -1;
     allDisplayItems.clear();
   }
