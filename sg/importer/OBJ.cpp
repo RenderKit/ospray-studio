@@ -96,6 +96,9 @@ namespace ospray {
     } else if (floats.size() == 3) {
       paramType  = "vec3f";
       paramValue = vec3f(floats[0], floats[1], floats[2]);
+    } else if (floats.size() == 4) {
+      paramType  = "linear2f";
+      paramValue = linear2f(floats[0], floats[1], floats[2], floats[3]);
     } else {
       // Unknown type.
       paramValue = typeAndValueString;
