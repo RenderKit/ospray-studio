@@ -44,6 +44,11 @@ static std::vector<std::string> init(const std::vector<std::string> &args)
     std::cerr << "OSPRay not initialized correctly!" << std::endl;
   }
 
+  // Check for module denoiser support after iniaitlizing OSPRay
+  bool denoiser = ospLoadModule("denoiser") == OSP_NO_ERROR;
+  std::cerr << "OpenImageDenoise is " << (denoiser ? "" : "not ") << "available"
+            << std::endl;
+
   std::vector<std::string> newargs;
 
   if (argc > 1)
@@ -369,6 +374,7 @@ PYBIND11_MODULE(pysg, sg)
       .def("bounds", &Node::bounds)
       .def(
           "setValue", static_cast<void (Node::*)(float, bool)>(&Node::setValue))
+      .def("setValue", static_cast<void (Node::*)(bool, bool)>(&Node::setValue))
       .def("setValue", static_cast<void (Node::*)(int, bool)>(&Node::setValue))
       .def("setValue", static_cast<void (Node::*)(long, bool)>(&Node::setValue))
       .def(
@@ -473,7 +479,8 @@ PYBIND11_MODULE(pysg, sg)
       .def("frameDuration", &Frame::frameDuration)
       .def_readwrite("immediatelyWait", &Frame::immediatelyWait)
       .def_readwrite("toneMapFB", &Frame::toneMapFB)
-      .def_readwrite("denoiseFB", &Frame::denoiseFB);
+      .def_readwrite("denoiseFB", &Frame::denoiseFB)
+      .def_readwrite("denoiseOnlyPathTracer", &Frame::denoiseOnlyPathTracer);
 
   py::class_<Renderer,
       OSPNode<ospray::cpp::Renderer, NodeType::RENDERER>,
