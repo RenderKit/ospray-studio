@@ -1739,6 +1739,8 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
   if (ospTex.checkForUDIM(img.name))
     img.image.clear();
 
+  ospTex.params.flip = false; // glTF textures are not vertically flipped
+
   // Pre-loaded texture image (loaded by tinygltf)
   if (!img.image.empty()) {
     ospTex.params.size = vec2ul(img.width, img.height);
@@ -1754,8 +1756,6 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
 
   } else {
     // Load texture from file (external uri or udim tiles)
-    ospTex.params.flip = false; // glTF textures are not vertically flipped
-
     // use same path as gltf scene file
     // If load fails, remove the texture node
     if (!ospTex.load(img.name,

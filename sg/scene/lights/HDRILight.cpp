@@ -91,11 +91,14 @@ void HDRILight::preCommit()
         hasChild("map") ? child("map")["filename"].valueAs<std::string>() : "";
     // reload or remove if HDRI filename changes
     if (filename != mapFilename) {
-      // Remove texture if had a map, but mapFilename has been removed
-      if (hasChild("map") && mapFilename == "") {
-        add(defaultMap);
-        child("filename") = std::string("");
+      // If map has changed, update HDRI filename
+      if (hasChild("map") && child("map").isModified()) {
+        child("filename") = mapFilename;
+        // Remove texture if had a map, but mapFilename has been removed
+        if (mapFilename == "")
+          add(defaultMap);
       } else {
+        // Otherwise, create/replace map and load HDRI filename
         auto &hdriTex = createChild("map", "texture_2d");
         auto texture = hdriTex.nodeAs<sg::Texture2D>();
         if (!texture->load(filename, false, false)) {
