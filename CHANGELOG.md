@@ -1,6 +1,22 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v0.12.1
+
+-   Compatible with OSPRay release v2.12.0
+
+- Cleanup and bug fixes:
+  - Fix issues when running with 192+ MPI ranks
+  - Cleanup clang compile warnings
+  - Expose python bindings for camera getZoomLevel/setZoomLevel.
+  - Add light enable/disable property rather than relying on intensity=0
+  - Optimize texture load caching
+  - Batch mode camera fixes and improvments
+  - UI and SearchWidget improvements
+  - Additional display buffer channels in the Framebuffer menu
+    (albdeo, normal, depth, ID buffers)
+  - Added obj/mtl parsing of hexcode colors (#RGB or s#RGB)
+
 ### Changes in OSPRay Studio v0.12.0
 
 -   Compatible with OSPRay release v2.11.0

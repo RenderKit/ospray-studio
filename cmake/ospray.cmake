@@ -10,7 +10,7 @@ message(STATUS "Looking for OSPRay...")
 find_package(ospray QUIET)
 
 if(NOT DEFINED OSPRAY_VERSION)
-  set(OSPRAY_VERSION 2.11.0)
+  set(OSPRAY_VERSION 2.12.0)
 endif()
 
 if(ospray_FOUND)
@@ -39,14 +39,6 @@ else()
     FetchContent_MakeAvailable(ospray)
     ## This library is pre-built, so simply "find" the package
     set(ospray_ROOT "${ospray_SOURCE_DIR}")
-
-    ## XXX Necessary when using the github OSPRay release binaries.  Find better
-    ## long-term solution.
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        ## The pre-built library was compiled pre-c++-11, so disable the CXX11 ABI
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0" CACHE STRING "Disable CXX11 ABI" FORCE)
-        message (STATUS "Setting -D_GLIBCXX_USE_CXX11_ABI=0")
-    endif()
 
     ## Ensure same version of TBB is found that pre-build library was compiled with.
     set(FORCE_TBB_VERSION ON)

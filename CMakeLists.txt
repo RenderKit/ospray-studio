@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-project(ospray_studio VERSION 0.13.0 LANGUAGES CXX C)
+project(ospray_studio VERSION 0.12.1 LANGUAGES CXX C)
 
 include(GNUInstallDirs)
 include(ProcessorCount)
