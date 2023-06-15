@@ -7,12 +7,11 @@ if (BUILD_PLUGIN_STORYBOARD)
     plugin_storyboard.cpp
     PanelStoryboard.cpp
     request/RequestManager.cpp
+    request/ScreenShotContainer.cpp
   )
 
   target_link_libraries(${pluginName} ospray_sg ospray_ui)
-
-  # Only link against imgui if needed (ie, pure file importers don't)
-  target_link_libraries(${pluginName} imgui)
+  target_link_libraries(${pluginName} imgui stb_image)
 
   # Add external libraries for this plugin
   # add_subdirectory(external)

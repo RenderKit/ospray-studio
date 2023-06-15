@@ -9,11 +9,22 @@
 #include "sg/JSONDefs.h"
 #include "sg/Math.h"
 #include "sg/JSONDefs.h"
+#include "sg/fb/FrameBuffer.h"
 
 #include "imgui.h"
+#include "stb_image_write.h"
 
 namespace ospray {
 namespace storyboard_plugin {
+
+static void WriteToMemory_stbi(void *context, void *data, int size) {
+  std::vector<unsigned char> *buffer =
+      reinterpret_cast<std::vector<unsigned char> *>(context);
+
+  unsigned char *pData = reinterpret_cast<unsigned char *>(data);
+
+  buffer->insert(buffer->end(), pData, pData + size);
+}
 
 PanelStoryboard::PanelStoryboard(std::shared_ptr<StudioContext> _context, std::string _panelName, std::string _configFilePath)
     : Panel(_panelName.c_str(), _context)
@@ -23,6 +34,9 @@ PanelStoryboard::PanelStoryboard(std::shared_ptr<StudioContext> _context, std::s
   requestManager.reset(new RequestManager("localhost", 8888));
 
   requestManager->start();
+
+  context->frame->child("scale") = 0.5f;
+  context->frame->child("scaleNav") = 0.25f;
 }
 
 void PanelStoryboard::buildUI(void *ImGuiCtx)
@@ -109,28 +123,16 @@ void PanelStoryboard::process(std::string key) {
           req.contains("action") && req["action"] == "capture.image") {
         
         // 1) capture the image
-        vec2i size{16, 16};
-        std::vector<uint8_t> values
-        {
-          48,50,50,50,231,48,170,127,50,50,50,50,249,64,188,127,3,3,3,3,246,48,2,5,3,3,3,3,244,48,3,6,50,50,50,50,247,64,170,127,50,242,2,168,231,48,255,255,3,3,3,255,230,64,0,15,0,255,0,170,233,64,159,255,91,3,3,3,202,106,15,48,3,3,3,255,202,104,15,48,170,148,144,64,186,91,175,104,64,0,0,255,202,88,15,32,0,0,0,255,230,64,1,44,0,255,0,170,219,65,255,255,0,0,0,255,232,64,1,28,0,255,0,170,187,64,255,255
-        };
+        auto &fb = context->frame->childAs<sg::FrameBuffer>("framebuffer");
+        auto img = fb.map(OSP_FB_COLOR);
+        auto size = fb.child("size").valueAs<vec2i>(); // 2048 x 1280
+        auto fmt = fb.child("colorFormat").valueAs<std::string>(); // sRGB
 
-        // auto binary = nlohmann::ordered_json::binary_t(
-        // {
-        //     0x30, 0x32, 0x32, 0x32, 0xe7, 0x30, 0xaa, 0x7f, 0x32, 0x32, 0x32, 0x32, 0xf9, 0x40, 0xbc, 0x7f,
-        //     0x03, 0x03, 0x03, 0x03, 0xf6, 0x30, 0x02, 0x05, 0x03, 0x03, 0x03, 0x03, 0xf4, 0x30, 0x03, 0x06,
-        //     0x32, 0x32, 0x32, 0x32, 0xf7, 0x40, 0xaa, 0x7f, 0x32, 0xf2, 0x02, 0xa8, 0xe7, 0x30, 0xff, 0xff,
-        //     0x03, 0x03, 0x03, 0xff, 0xe6, 0x40, 0x00, 0x0f, 0x00, 0xff, 0x00, 0xaa,  0xe9, 0x40, 0x9f, 0xff,
-        //     0x5b, 0x03, 0x03, 0x03, 0xca, 0x6a, 0x0f, 0x30, 0x03, 0x03, 0x03, 0xff, 0xca, 0x68, 0x0f, 0x30,
-        //     0xaa, 0x94, 0x90, 0x40, 0xba, 0x5b, 0xaf, 0x68, 0x40, 0x00, 0x00, 0xff, 0xca, 0x58, 0x0f, 0x20,
-        //     0x00, 0x00, 0x00, 0xff, 0xe6, 0x40, 0x01, 0x2c, 0x00, 0xff, 0x00, 0xaa, 0xdb, 0x41, 0xff, 0xff,
-        //     0x00, 0x00, 0x00, 0xff, 0xe8, 0x40, 0x01, 0x1c, 0x00, 0xff, 0x00, 0xaa, 0xbb, 0x40, 0xff, 0xff,
-        // });
-
-        // auto binary = nlohmann::ordered_json::binary_t(
-        // {
-        //   48,50,50,50,231,48,170,127,50,50,50,50,249,64,188,127,3,3,3,3,246,48,2,5,3,3,3,3,244,48,3,6,50,50,50,50,247,64,170,127,50,242,2,168,231,48,255,255,3,3,3,255,230,64,0,15,0,255,0,170,233,64,159,255,91,3,3,3,202,106,15,48,3,3,3,255,202,104,15,48,170,148,144,64,186,91,175,104,64,0,0,255,202,88,15,32,0,0,0,255,230,64,1,44,0,255,0,170,219,65,255,255,0,0,0,255,232,64,1,28,0,255,0,170,187,64,255,255
-        // });
+        std::vector<unsigned char> values;
+        stbi_flip_vertically_on_write(1);
+        stbi_write_png_to_func(WriteToMemory_stbi, &values, size.x, size.y, 4, img, 4 * size.x);
+        requestManager->screenshotContainer->clear();
+        requestManager->screenshotContainer->setImage(size.x, size.y, values);
 
         // 2) send the setup information
         nlohmann::ordered_json jSetUp = 
@@ -139,40 +141,42 @@ void PanelStoryboard::process(std::string key) {
           {"action", "capture.image.setup"},
           {"snapshotIdx", req["snapshotIdx"].get<int>()},
           {"width", size.x},
-          {"height", size.y}
+          {"height", size.y},
+          {"length", values.size()}
         };
         requestManager->send(jSetUp.dump());
+      }
+      else if (req.contains("type") && req["type"] == "ack" && 
+          req.contains("action") && (req["action"] == "capture.image.setup" || req["action"] == "capture.image.data")) {
+        
+        if (!requestManager->screenshotContainer->isNextChunkAvailable()) {
+          // clear the memory
+          requestManager->screenshotContainer->clear();
+          // send the message to indicate the sending the image part is done
+          nlohmann::ordered_json jChunk = 
+          {
+            {"type", "response"},
+            {"action", "capture.image.done"},
+            {"snapshotIdx", req["snapshotIdx"].get<int>()}
+          };
+          requestManager->send(jChunk.dump());
+        }
+        else { // send the first message
+          int len = 512;
+          int start = requestManager->screenshotContainer->getStartIndex();
+          std::vector<unsigned char> chunk = requestManager->screenshotContainer->getNextChunk(len);
 
-        // 3) send the image data in chunks
-        int start = 0;
-        int chunckLen = 16 * 1;
-        while (start < size.x * size.y) {
-          int len = (start + chunckLen) > (size.x * size.y) ? (size.y * size.y - start) : chunckLen;
-          std::vector<uint8_t> chunk = std::vector<uint8_t>(values.begin() + start, values.begin() + start + len);
           auto binary = nlohmann::ordered_json::binary_t(chunk);
-
           nlohmann::ordered_json jChunk = 
           {
             {"type", "response"},
             {"action", "capture.image.data"},
             {"snapshotIdx", req["snapshotIdx"].get<int>()},
             {"start", start },
-            {"length", len },
             {"data", binary }
           };
           requestManager->send(jChunk.dump());
-
-          start += len;
         }
-
-        // 4) send the done message
-        nlohmann::ordered_json jDone = 
-        {
-          {"type", "response"},
-          {"action", "capture.image.done"},
-          {"snapshotIdx", req["snapshotIdx"].get<int>()}
-        };
-        requestManager->send(jDone.dump());
       }
       else if (req.contains("type") && req["type"] == "request" && 
                req.contains("action") && req["action"] == "update.view") {

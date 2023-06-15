@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tcpsocket.hpp"
+#include "ScreenShotContainer.h"
 #include "sg/JSONDefs.h"
 
 #include <string>
@@ -31,6 +32,8 @@ public:
 
     std::string ipAddress { "localhost" };
     uint portNumber { 8889 };
+
+    std::unique_ptr<ScreenShotContainer> screenshotContainer;
 
     std::list<std::string> statuses;
 private:

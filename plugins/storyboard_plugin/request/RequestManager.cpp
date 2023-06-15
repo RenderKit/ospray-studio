@@ -9,6 +9,8 @@ RequestManager::RequestManager(std::string ipAddress, uint portNumber) {
     tcpSocket = nullptr;
     this->ipAddress = ipAddress;
     this->portNumber = portNumber;
+
+    screenshotContainer.reset(new ScreenShotContainer());
 }
 
 RequestManager::~RequestManager() {
