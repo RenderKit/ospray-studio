@@ -14,7 +14,10 @@ Transform::Transform()
   createChild("scale", "vec3f", vec3f(one));
   setValue(affine3f(one));
 
-  createChild("visible", "bool", true);
+  createChild("visible",
+      "bool",
+      "visible affects whether the item can be seen. Item is created.",
+      true);
   child("visible").setSGOnly();
 
   createChild(

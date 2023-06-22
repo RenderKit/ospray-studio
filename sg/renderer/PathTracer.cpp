@@ -22,6 +22,10 @@ PathTracer::PathTracer() : Renderer("pathtracer")
       "int",
       "number of random light samples per path vertex",
       -1);
+  createChild("maxScatteringEvents",
+      "int",
+      "maximum number of non-specular (glossy and diffuse) bounces",
+      20);
   createChild("roulettePathLength",
       "int",
       "ray recursion depth at which to start roulette termination",
@@ -43,6 +47,7 @@ PathTracer::PathTracer() : Renderer("pathtracer")
       "shadow catcher plane offset and normal (all zeros disable)",
       vec4f(0));
 
+  child("maxScatteringEvents").setMinMax(1, 100);
   child("lightSamples").setMinMax(-1, 1000);
   child("roulettePathLength").setMinMax(0, 1000);
   child("maxContribution").setMinMax(0.f, 1e6f);

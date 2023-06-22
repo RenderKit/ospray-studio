@@ -33,6 +33,22 @@ BatchContext::BatchContext(StudioCommon &_common)
   optImageName = "ospBatch";
 }
 
+void BatchContext::loadCamJson()
+{
+  // read from cams.json
+  std::ifstream cams(optCamJsonName);
+  if (cams) {
+    std::cout << "Load cameras for keyframe/snapshots from " << optCamJsonName
+              << std::endl;
+    JSON j;
+    cams >> j;
+    for (auto &cs : j) {
+      if (cs.find("cameraToWorld") != cs.end())
+        cameraStack.push_back(cs.at("cameraToWorld"));
+    }
+  }
+}
+
 void BatchContext::start()
 {
   std::cerr << "Batch mode\n";
@@ -46,19 +62,10 @@ void BatchContext::start()
   frame->child("camera").child("cameraId").setValue(whichCamera);
   cameraIdx = whichCamera;
 
-  // read from cams.json
-  std::ifstream cams("cams.json");
-  if (cams) {
-    JSON j;
-    cams >> j;
-    for (auto &cs : j) {
-      if (cs.find("cameraToWorld") != cs.end())
-        cameraStack.push_back(cs.at("cameraToWorld"));
-    }
-  }
-
   if (parseCommandLine()) {
     std::cout << "...importing files!" << std::endl;
+
+    loadCamJson();
     refreshRenderer();
     refreshScene(true);
 
@@ -82,8 +89,7 @@ void BatchContext::start()
       if (cameraStack.size())
         for (auto &c : cameraStack) {
           cameraView = std::make_shared<affine3f>(c);
-          if (!sgScene)
-            updateCamera();
+          updateCamera();
           render();
           if (fps) {
             std::cout << "..rendering animation!" << std::endl;
@@ -92,8 +98,7 @@ void BatchContext::start()
             renderFrame();
         }
       else {
-        if (!sgScene)
-          updateCamera();
+        updateCamera();
         render();
         if (fps) {
           std::cout << "..rendering animation!" << std::endl;
@@ -106,6 +111,7 @@ void BatchContext::start()
     std::cout << "...finished!" << std::endl;
     sg::clearAssets();
   }
+  
 }
 
 void BatchContext::addToCommandLine(std::shared_ptr<CLI::App> app) {

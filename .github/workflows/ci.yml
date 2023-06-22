@@ -7,31 +7,20 @@ name: OSPRay Studio Main CI
 # Controls when the workflow will run
 on:
   push:
+# All branches
+#    branches:
+#      - '!**release**'
+#      - '!master'
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
 
   ## Build Jobs ##
   ## Linux
-  build-centos7:
-    secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-    with:
-      image: centos:7
-      cmd: |
-        module load intel/2020.1
-        export CC=icc
-        export CXX=icpc
-        export CXXFLAGS="-static-intel -fPIC -D_GLIBCXX_USE_CXX11_ABI=0"
-        gitlab/build.sh
-      artifact-out: build-centos7
-      artifact-path: build
-
   build-centos8:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
@@ -39,6 +28,15 @@ jobs:
       image: centos:8
       cmd: gitlab/build.sh
       artifact-out: build-centos8
+      artifact-path: build
+
+  build-ubuntu18-04:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:18.04
+      cmd: gitlab/build.sh
+      artifact-out: build-ubuntu18-04
       artifact-path: build
 
   build-ubuntu20-04:
@@ -50,6 +48,15 @@ jobs:
       artifact-out: build-ubuntu20-04
       artifact-path: build
 
+  build-ubuntu22-04:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: ubuntu:22.04
+      cmd: gitlab/build.sh
+      artifact-out: build-ubuntu22-04
+      artifact-path: build
+
   build-arch:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
@@ -59,40 +66,53 @@ jobs:
       artifact-out: build-arch
       artifact-path: build
 
-  ## Test Jobs ##
-  test-run-centos7:
-    needs: build-centos7
+  build-rocky8-7:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      force-delete: true    # guarantees .gitattributes are respected in working dir
+      image: rockylinux:8.7
+      cmd: |
+        module load cmake/3.15.2
+        module load intel/2023.0
+        export CC=icx
+        export CXX=icpx
+        export CXXFLAGS="-fhonor-infinities -fhonor-nans"
+        export CFLAGS=$CXXFLAGS
+        export LDFLAGS="-static-intel"
+        gitlab/build.sh
+      artifact-out: build-rocky8-7
+      artifact-path: build
+
+  ## Dev Build Jobs ##
+  ## Linux
+  cache-ospray-centos7:
+    secrets: inherit
+    uses: ./.github/workflows/cache-ospray.yml
+    with:
+      image: centos:7
+      ospray-version: devel
+      rkcommon-version: devel
+
+  build-centos7-dev:
+    needs: cache-ospray-centos7
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
       image: centos:7
       cmd: |
-        build/install/bin/ospStudio --verify_install
-      artifact-in: build-centos7
-  
-  ## Dev Build Jobs ##
-  ## Linux
-  cache-ospray:
-    secrets: inherit
-    uses: ./.github/workflows/cache-ospray.yml
-    with:
-      image: ubuntu:18.04
-      ospray-version: devel
-      rkcommon-version: devel
-  
-  build-ubuntu18-04-dev:
-    needs: cache-ospray
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-    with:
-      image: ubuntu:18.04
-      cmd: |
-        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }}
-        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }}
+        module load cmake/3.15.2
+        module load intel/2022.1
+        export CC=icx
+        export CXX=icpx
+        export CXXFLAGS="-fhonor-infinities -fhonor-nans"
+        export CFLAGS=$CXXFLAGS
+        export CACHE_DIR=${{ needs.cache-ospray-centos7.outputs.cache-dir }}
+        export OSPRAY_VER=${{ needs.cache-ospray-centos7.outputs.ospray-version }}
         export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install
         export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
         cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
-        cmake --build build
+        cmake --build build -- -j`nproc`
       artifact-path: build
-      artifact-out: build-ubuntu18-04-dev
+      artifact-out: build-centos7-dev
 
   ## MacOS
   build-macos-clang-dev:
@@ -102,7 +122,7 @@ jobs:
         gitlab/macos-dev.sh
       artifact-out: build-macos
       artifact-path: build-macos
-  
+
   ## Windows
   build-windows-msvc15-dev:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
@@ -113,26 +133,33 @@ jobs:
       artifact-out: build-windows
       artifact-path: build-win
 
-  build-windows-icl:
+  build-windows-msvc16:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
       runs-on: '[ "Windows", "build", "NAS" ]'
       cmd: |
-        cmake -L -S . -B build-win-icl -G "Visual Studio 16 2019" -T "Intel C++ Compiler 19.2" -DCMAKE_INSTALL_PREFIX="install"
-        cmake --build build-win-icl --config Release --target install
+        cmake -L -S . -B build-win-msvc16 -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="install"
+        cmake --build build-win-msvc16 --parallel $env:NUMBER_OF_PROCESSORS --config Release --target install
 
   ## Dev Test Jobs
-  test-run-ubuntu18-04-dev:
-    needs: build-ubuntu18-04-dev
+  test-run-centos7-dev:
+    needs: build-centos7-dev
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
+      # Run the centos07-dev build on the ubuntu 18.04 image as a test, and because it has vncserver installed
       image: ubuntu:18.04
       cmd: |
+        module load intel/2023.0
+        build/ospStudio --verify_install
         export CACHE_DIR=/NAS/ci-cache
         export OSPRAY_VER=devel
         gitlab/run-dev.sh
-      artifact-in: build-ubuntu18-04-dev
- 
+        gitlab/run-dev-img-cmp.sh
+      artifact-in: build-centos7-dev
+      artifact-path: build/model-results
+      artifact-out: test-run-centos7-dev
+      artifact-on-failure: true
+
   ### KW Jobs ###
 # static-analysis:
 #   secrets: inherit

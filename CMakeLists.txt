@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-project(ospray_studio VERSION 0.12.0 LANGUAGES CXX C)
+project(ospray_studio VERSION 0.12.1 LANGUAGES CXX C)
 
 include(GNUInstallDirs)
 include(ProcessorCount)
@@ -26,6 +26,11 @@ set (CMAKE_CXX_STANDARD 14 CACHE STRING
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 message (STATUS "This build is for C++${CMAKE_CXX_STANDARD}")
+
+# Quiet warning about DOWNLOAD_EXTRACT_TIMESTAMP since CMake 3.24:
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+  cmake_policy(SET CMP0135 NEW)
+endif()
 
 ## CTest testing ##
 include(CTest) # Adds 'BUILD_TESTING' variable

@@ -5,6 +5,7 @@
 
 // ospray_sg
 #include "sg/Node.h"
+#include "sg/Util.h"
 // rkcommon
 #include "rkcommon/os/FileName.h"
 // widgets
@@ -359,15 +360,11 @@ inline bool generateWidget_rgb(const std::string &title, Node &node)
     return false;
   }
 
-  // Adjust color picker to match currently display colorspace
-  static auto gamma = [](vec3f &v, const float pow) {
-    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_IsSRGB)
-      v = vec3f(std::pow(v.x, pow), std::pow(v.y, pow), std::pow(v.z, pow));
-  };
-
-  gamma(v, 1.f / 2.2f);
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_IsSRGB)
+    linear_to_srgb(v);
   if (ImGui::ColorEdit3(title.c_str(), v)) {
-    gamma(v, 2.2f);
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_IsSRGB)
+      srgb_to_linear(v);
     node.setValue(v);
     return true;
   }
@@ -389,16 +386,11 @@ inline bool generateWidget_rgba(const std::string &title, Node &node)
     return false;
   }
 
-  // Adjust color picker to match currently display colorspace
-  static auto gamma = [](vec4f &v, const float pow) {
-    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_IsSRGB)
-      v = vec4f(
-          std::pow(v.x, pow), std::pow(v.y, pow), std::pow(v.z, pow), v.w);
-  };
-
-  gamma(v, 1.f / 2.2f);
+  if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_IsSRGB)
+      linear_to_srgb(v);
   if (ImGui::ColorEdit4(title.c_str(), v)) {
-    gamma(v, 2.2f);
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_IsSRGB)
+      srgb_to_linear(v);
     node.setValue(v);
     return true;
   }

@@ -17,6 +17,10 @@ namespace ospray {
 
   void PanelExample::buildUI(void *ImGuiCtx)
   {
+    // Allows plugin to still do other work if the UI isn't shown.
+    if (!isShown())
+      return;
+
     // Need to set ImGuiContext in *this* address space
     ImGui::SetCurrentContext((ImGuiContext *)ImGuiCtx);
     ImGui::OpenPopup(panelName.c_str());

@@ -9,12 +9,15 @@ namespace sg {
 Geometry::Geometry(const std::string &osp_type)
 {
   setValue(cpp::Geometry(osp_type));
+  createChild("enable",
+      "bool",
+      "enable affects whether the object exists in the world",
+      true);
   createChild("isClipping", "bool", false);
-  createChild("visible", "bool", true);
   createChild("invertNormals", "bool", false);
 
+  child("enable").setSGOnly();
   child("isClipping").setSGOnly();
-  child("visible").setSGOnly();
   child("invertNormals").setSGOnly();
 }
 
@@ -62,7 +65,7 @@ void Geometry::postCommit()
 
   std::string type =
       child("isClipping").valueAs<bool>() ? "clippingGeometry" : "geometry";
-  if (child("visible").valueAs<bool>()) {
+  if (child("enable").valueAs<bool>()) {
     group = std::make_shared<cpp::Group>(cpp::Group());
     group->setParam(type, cpp::CopiedData(*model));
     group->commit();

@@ -132,7 +132,8 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   virtual void refreshScene(bool resetCam) = 0;
   virtual void updateCamera() = 0;
   virtual void updateCameraIndices(uint32_t idx);
-
+  virtual void loadCamJson() = 0;
+  
   std::shared_ptr<sg::Frame> frame;
   std::shared_ptr<sg::MaterialRegistry> baseMaterialRegistry;
   std::shared_ptr<sg::LightsManager> lightsManager;
@@ -177,6 +178,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   int frameAccumLimit{0};
   std::string optImageName{"studio"}; // (each mode sets this default)
   std::string optImageFormat{"png"};
+  std::string optCamJsonName{""};
   bool optSaveAlbedo{false};
   bool optSaveDepth{false};
   bool optSaveNormal{false};

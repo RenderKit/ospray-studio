@@ -39,10 +39,33 @@ namespace ospray {
     {
       return (channels & OSP_FB_DEPTH);
     }
-
+    inline bool hasAccumChannel()
+    {
+      return (channels & OSP_FB_ACCUM);
+    }
+    inline bool hasVarianceChannel()
+    {
+      return (channels & OSP_FB_VARIANCE);
+    }
+    inline bool hasNormalChannel()
+    {
+      return (channels & OSP_FB_NORMAL);
+    }
     inline bool hasAlbedoChannel()
     {
       return (channels & OSP_FB_ALBEDO);
+    }
+    inline bool hasPrimitiveIDChannel()
+    {
+      return (channels & OSP_FB_ID_PRIMITIVE);
+    }
+    inline bool hasObjectIDChannel()
+    {
+      return (channels & OSP_FB_ID_OBJECT);
+    }
+    inline bool hasInstanceIDChannel()
+    {
+      return (channels & OSP_FB_ID_INSTANCE);
     }
 
    private:

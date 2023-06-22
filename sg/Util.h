@@ -120,5 +120,50 @@ inline std::vector<std::vector<float>> perspectiveMatrix(
   return projMat;
 }
 
+// linear_to_srgba8(const T c)
+// srgb_to_linear(const T c)
+// 2.23333f provides a much more accurate approximation than 2.2
+static const float gamma_const = 2.23333f;
+inline float _pow(const float base, const float exp)
+{
+  return std::pow(std::max(base, 0.f), exp);
+};
+inline vec3f _pow(const vec3f base3, const float exp)
+{
+  return vec3f(_pow(base3.x, exp), _pow(base3.y, exp), _pow(base3.z, exp));
+};
+inline vec4f _pow(const vec4f base4, const float exp)
+{
+  // alpha is never corrected
+  vec3f g = _pow(rgb(base4.x, base4.y, base4.z), exp);
+  return vec4f(g.x, g.y, g.z, base4.w);
+};
+
+template <typename T>
+inline void srgb_to_linear(T &c)
+{
+  c = _pow(c, gamma_const);
+}
+template <typename T>
+inline void linear_to_srgb(T &c)
+{
+  c = _pow(c, 1.f / gamma_const);
+}
+
+// Generate a "random" color given a 32-bit integer index
+// Identical function to rkcommon/utility/random.h, however, there are conflicts
+// within rkcommon/utility/detail/pcg_random.hpp.  So, duplicating here.
+inline vec4f makeRandomColor(const int i)
+{
+  const int mx = 13 * 17 * 43;
+  const int my = 11 * 29;
+  const int mz = 7 * 23 * 63;
+  const uint32_t g = (i * (3 * 5 * 127) + 12312314);
+  return vec4f((g % mx) * (1.f / (mx - 1)),
+      (g % my) * (1.f / (my - 1)),
+      (g % mz) * (1.f / (mz - 1)),
+      1.0f);
+}
+
 } // namespace sg
 } // namespace ospray

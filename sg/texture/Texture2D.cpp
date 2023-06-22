@@ -473,6 +473,18 @@ bool Texture2D::load(const FileName &_fileName,
       udim_params = cache->udim_params;
       // Copy shared_ptr ownership
       texelData = cache->texelData;
+
+      // If texture is cached and all parameters match, just add existing child
+      // parameters.
+      if (cache->hasChild("data") && (params.preferLinear == _preferLinear)
+          && (params.nearestFilter == _nearestFilter)
+          && (params.colorChannel == _colorChannel)) {
+        // Add children of cache to _this_
+        for (const auto &param : cache->children())
+          add(param.second);
+
+        success = true;
+      }
     }
   } else {
     if (memory) {
@@ -482,30 +494,25 @@ bool Texture2D::load(const FileName &_fileName,
       // Move shared_ptr ownership
       texelData = data;
 
-      // Add this texture to the cache
-      textureCache[fileName] = this->nodeAs<Texture2D>();
     } else {
-    // Check if fileName indicates a UDIM atlas and load tiles
-    if (!udim_params.loading && checkForUDIM(fileName))
-      loadUDIM_tiles(fileName);
-    else {
+      // Check if fileName indicates a UDIM atlas and load tiles
+      if (!udim_params.loading && checkForUDIM(fileName))
+        loadUDIM_tiles(fileName);
+      else {
 #ifdef USE_OPENIMAGEIO
-      loadTexture_OIIO(fileName);
+        loadTexture_OIIO(fileName);
 #else
-      if (_fileName.ext() == "pfm")
-        loadTexture_PFM(fileName);
-      else
-        loadTexture_STBi(fileName);
+        if (_fileName.ext() == "pfm")
+          loadTexture_PFM(fileName);
+        else
+          loadTexture_STBi(fileName);
 #endif
+      }
     }
-    }
-
-    // Add this texture to the cache
-    if (texelData.get())
-      textureCache[fileName] = this->nodeAs<Texture2D>();
   }
 
-  if (texelData.get()) {
+  // If success = true, then cached texture already filled in the children.
+  if (!success && texelData.get()) {
     params.preferLinear = _preferLinear;
     params.nearestFilter = _nearestFilter;
     params.colorChannel = _colorChannel;
@@ -518,9 +525,9 @@ bool Texture2D::load(const FileName &_fileName,
 
       // If not using all channels, set used components to 1 for texture format
       auto ospTexFormat =
-          osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
+        osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
       auto texFilter = params.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                            : OSP_TEXTURE_FILTER_BILINEAR;
+        : OSP_TEXTURE_FILTER_BILINEAR;
 
       createChild("format", "int", (int)ospTexFormat);
       createChild("filter", "int", (int)texFilter);
@@ -531,6 +538,8 @@ bool Texture2D::load(const FileName &_fileName,
       child("filter").setMinMax(
           (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
 
+      // Add this texture to the cache
+      textureCache[fileName] = this->nodeAs<Texture2D>();
       success = true;
     } else
       std::cerr << "Failed texture " << fileName << std::endl;

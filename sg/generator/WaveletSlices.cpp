@@ -41,7 +41,7 @@ WaveletSlices::WaveletSlices()
   parameters.createChild("sizeRatio", "float", 4.f);
   parameters.createChild("thresholdLow", "float", -6.f);
   parameters.createChild("thresholdHigh", "float", 6.f);
-  parameters.createChild("actualTriangles", "int", 10000);
+  parameters.createChild("actualTriangles", "long", 10000);
   parameters.child("actualTriangles").setReadOnly();
 
   createChild("xfm", "transform");
@@ -85,7 +85,7 @@ void WaveletSlices::generateData()
       tr = tr + r;
   }
   long expectedTriangles = 0;
-  int actualTriangles = 0;
+  long actualTriangles = 0;
   std::vector<vec3f> vertex;
   std::vector<vec4f> color;
   std::vector<vec3ui> index;
@@ -97,7 +97,7 @@ void WaveletSlices::generateData()
   //TODO: not the best for load balancing, but simple.
   if (sgUsingMpi())
   {
-    int mpiChunks = int(ceilf(numSlices / float(sgMpiWorldSize())));
+    int mpiChunks = numSlices / sgMpiWorldSize();
     startSlice = sgMpiRank() * mpiChunks;
     endSlice = std::min<int>(numSlices, startSlice + mpiChunks);
   }

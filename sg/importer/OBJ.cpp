@@ -7,6 +7,7 @@
 // rkcommon
 #include "rkcommon/os/FileName.h"
 #include "sg/scene/geometry/Geometry.h"
+#include "sg/Util.h"
 
 namespace ospray {
   namespace sg {
@@ -41,10 +42,50 @@ namespace ospray {
     getline(typeAndValueStream, paramValueString);
 
     std::vector<float> floats;
-    std::stringstream valueStream(typeAndValueString);
-    float val;
-    while (valueStream >> val)
-      floats.push_back(val);
+
+    // Parse #hexcode colors, (must be #rgb 3 component, html web format)
+    // Understands either s#RGB for sRGB parsing, or #RGB for linear
+    if (paramValueString.front() == '#'
+        || (paramValueString.size() > 1 && paramValueString.at(1) == '#')) {
+      bool isSRGB = (paramValueString.front() == 's');
+      std::string format = std::string(isSRGB ? "s#" : "#") + "%02x%02x%02x";
+      int r, g, b;
+      rgb RGB = vec3f(1.f, 0.f, 1.f); // error color
+
+      bool failedParse = false;
+      // Expect a string of the exact correct length
+      if (paramValueString.size() != 6 + 1 + (isSRGB ? 1 : 0))
+        failedParse = true;
+
+      if (!failedParse) {
+        sscanf(paramValueString.c_str(), format.c_str(), &r, &g, &b);
+
+        if (min(r, min(g, b)) < 0 || max(r, max(g, b)) > 255)
+          failedParse = true;
+      }
+
+      if (!failedParse) {
+        clamp(r, 0x00, 0xff);
+        clamp(g, 0x00, 0xff);
+        clamp(b, 0x00, 0xff);
+        RGB = vec3f(r, g, b) / 255.f;
+        if (isSRGB)
+          srgb_to_linear(RGB);
+      } else {
+        std::cerr << "Error: malformed color string '" << paramValueString
+                  << "'." << std::endl;
+      }
+
+      floats.push_back(RGB.x);
+      floats.push_back(RGB.y);
+      floats.push_back(RGB.z);
+
+    } else {
+      std::stringstream valueStream(typeAndValueString);
+      float val;
+      while (valueStream >> val)
+        floats.push_back(val);
+    }
 
     if (floats.size() == 1) {
       paramType  = "float";

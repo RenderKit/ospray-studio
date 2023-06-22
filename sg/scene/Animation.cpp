@@ -151,7 +151,6 @@ template void AnimationTrack<vec3f>::update(const float, const float);
 template bool AnimationTrack<vec3f>::valid();
 template void AnimationTrack<quaternionf>::update(const float, const float);
 template bool AnimationTrack<quaternionf>::valid();
-template void AnimationTrack<NodePtr>::update(const float, const float);
 template bool AnimationTrack<NodePtr>::valid();
 } // namespace sg
 } // namespace ospray

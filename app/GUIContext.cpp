@@ -29,6 +29,7 @@
 #include <CLI11.hpp>
 
 using namespace ospray;
+using namespace ospray::sg;
 
 MainWindow *GUIContext::mainWindow = nullptr;
 
@@ -40,7 +41,7 @@ GUIContext::GUIContext(StudioCommon &_common)
   pluginManager = std::make_shared<PluginManager>();
   optSPP = 1; // Default SamplesPerPixel in interactive mode is one.
   if (frame->hasChild("framebuffer"))
-    framebuffer = frame->child("framebuffer").nodeAs<sg::FrameBuffer>();
+    framebuffer = frame->child("framebuffer").nodeAs<FrameBuffer>();
   defaultSize = _common.defaultSize;
 }
 
@@ -48,7 +49,7 @@ GUIContext::~GUIContext()
 {
   pluginManager->removeAllPlugins();
   g_sceneCameras.clear();
-  sg::clearAssets();
+  clearAssets();
 }
 
 void GUIContext::start()
@@ -74,14 +75,8 @@ void GUIContext::start()
   frame->child("camera").child("cameraId").setValue(whichCamera);
   cameraIdx = whichCamera;
 
-  std::ifstream cams("cams.json");
-  if (cams) {
-    JSON j;
-    cams >> j;
-    mainWindow->cameraStack->setValues(j.get<std::vector<CameraState>>());
-  }
-
   if (parseCommandLine()) {
+    loadCamJson();
     // If command line options are set, enable denoiser
     if (studioCommon.denoiserAvailable && optDenoiser) {
       frame->denoiseFB = true;
@@ -97,10 +92,23 @@ void GUIContext::start()
   }
 }
 
+void GUIContext::loadCamJson()
+{
+  std::ifstream cams(optCamJsonName);
+  if (cams) {
+    std::cout << "Load cameras for keyframe/snapshots from " << optCamJsonName
+              << std::endl;
+
+    JSON j;
+    cams >> j;
+    mainWindow->cameraStack->setValues(j.get<std::vector<CameraState>>());
+  }
+}
+
 void GUIContext::updateCamera()
 {
   frame->currentAccum = 0;
-  auto camera = frame->child("camera").nodeAs<sg::Camera>();
+  auto camera = frame->child("camera").nodeAs<Camera>();
 
   if (cameraIdx) {
     // switch to index specific scene camera
@@ -109,7 +117,7 @@ void GUIContext::updateCamera()
     frame->remove("camera");
     frame->add(g_selectedSceneCamera);
     // update camera pointer
-    camera = frame->child("camera").nodeAs<sg::Camera>();
+    camera = frame->child("camera").nodeAs<Camera>();
     if (g_selectedSceneCamera->hasChild("aspect"))
       lockAspectRatio =
           g_selectedSceneCamera->child("aspect").valueAs<float>();
@@ -145,8 +153,8 @@ void GUIContext::updateCamera()
 
     auto worldToCamera = rcp(*cameraView);
     LinearSpace3f R, S;
-    ospray::sg::getRSComponent(worldToCamera, R, S);
-    auto rotation = ospray::sg::getRotationQuaternion(R);
+    getRSComponent(worldToCamera, R, S);
+    auto rotation = getRotationQuaternion(R);
 
     mainWindow->arcballCamera->updateCameraToWorld(*cameraView, rotation);
     cameraView = nullptr;
@@ -181,7 +189,7 @@ void GUIContext::changeToDefaultCamera()
     return;
 
   auto defaultCamera = g_sceneCameras["default"];
-  auto sgSceneCamera = frame->child("camera").nodeAs<sg::Camera>();
+  auto sgSceneCamera = frame->child("camera").nodeAs<Camera>();
 
   for (auto &c : sgSceneCamera->children()) {
     if (c.first == "cameraId") {
@@ -206,8 +214,8 @@ void GUIContext::changeToDefaultCamera()
 
   auto worldToCamera = rcp(sgSceneCamera->cameraToWorld);
   LinearSpace3f R, S;
-  ospray::sg::getRSComponent(worldToCamera, R, S);
-  auto rotation = ospray::sg::getRotationQuaternion(R);
+  getRSComponent(worldToCamera, R, S);
+  auto rotation = getRotationQuaternion(R);
 
   mainWindow->arcballCamera->updateCameraToWorld(
       sgSceneCamera->cameraToWorld, rotation);
@@ -218,13 +226,13 @@ void GUIContext::changeToDefaultCamera()
 void GUIContext::refreshRenderer()
 {
   // Change renderer if current type doesn't match requested
-  auto currentType = frame->childAs<sg::Renderer>("renderer")
+  auto currentType = frame->childAs<Renderer>("renderer")
                          .child("type")
                          .valueAs<std::string>();
   if (currentType != optRendererTypeStr)
     frame->createChild("renderer", "renderer_" + optRendererTypeStr);
 
-  auto &r = frame->childAs<sg::Renderer>("renderer");
+  auto &r = frame->childAs<Renderer>("renderer");
   r["pixelFilter"] = (int)optPF;
   r["backgroundColor"] = optBackGroundColor;
   r["pixelSamples"] = optSPP;
@@ -235,7 +243,7 @@ void GUIContext::refreshRenderer()
   // Re-add the backplate on renderer change
   if (backPlateTexture != "") {
     auto backplateTex =
-        sg::createNodeAs<sg::Texture2D>("map_backplate", "texture_2d");
+        createNodeAs<Texture2D>("map_backplate", "texture_2d");
     if (backplateTex->load(backPlateTexture, false, false))
       r.add(backplateTex);
     else {
@@ -253,11 +261,11 @@ void GUIContext::refreshRenderer()
 
 void GUIContext::saveRendererParams()
 {
-  auto &r = frame->childAs<sg::Renderer>("renderer");
+  auto &r = frame->childAs<Renderer>("renderer");
 
   optRendererTypeStr = r["type"].valueAs<std::string>();
   optPF = (OSPPixelFilterTypes)r["pixelFilter"].valueAs<int>();
-  optBackGroundColor = r["backgroundColor"].valueAs<sg::rgba>();
+  optBackGroundColor = r["backgroundColor"].valueAs<rgba>();
   optSPP = r["pixelSamples"].valueAs<int>();
   optVariance = r["varianceThreshold"].valueAs<float>();
   if (r.hasChild("maxContribution"))
@@ -269,8 +277,8 @@ void GUIContext::refreshScene(bool resetCam)
   if (frameAccumLimit)
     frame->accumLimit = frameAccumLimit;
   // Check that the frame contains a world, if not create one
-  auto world = frame->hasChild("world") ? frame->childNodeAs<sg::Node>("world")
-                                        : sg::createNode("world", "world");
+  auto world = frame->hasChild("world") ? frame->childNodeAs<Node>("world")
+                                        : createNode("world", "world");
   if (optSceneConfig == "dynamic")
     world->child("dynamicScene").setValue(true);
   else if (optSceneConfig == "compact")
@@ -284,7 +292,7 @@ void GUIContext::refreshScene(bool resetCam)
   if (!filesToImport.empty())
     importFiles(world);
   else if (scene != "") {
-    auto &gen = world->createChildAs<sg::Generator>(
+    auto &gen = world->createChildAs<Generator>(
         scene + "_generator",
         "generator_" + scene);
     gen.setMaterialRegistry(baseMaterialRegistry);
@@ -309,7 +317,7 @@ void GUIContext::refreshScene(bool resetCam)
   }
   
   updateCamera();
-  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto &fb = frame->childAs<FrameBuffer>("framebuffer");
   fb.resetAccumulation();
 }
 
@@ -348,13 +356,13 @@ bool GUIContext::parseCommandLine()
 }
 
 // Importer for all known file types (geometry and models)
-void GUIContext::importFiles(sg::NodePtr world)
+void GUIContext::importFiles(NodePtr world)
 {
   std::shared_ptr<CameraMap> cameras{nullptr};
   if (!sgFileCameras) {
     cameras = std::make_shared<CameraMap>();
     // populate cameras map with default camera
-    auto mainCamera = frame->child("camera").nodeAs<sg::Camera>();
+    auto mainCamera = frame->child("camera").nodeAs<Camera>();
     cameras->operator[](
         mainCamera->child("uniqueCameraName").valueAs<std::string>()) =
         mainCamera;
@@ -366,12 +374,12 @@ void GUIContext::importFiles(sg::NodePtr world)
 
       // XXX: handling loading a scene here for now
       if (fileName.ext() == "sg") {
-        sg::importScene(shared_from_this(), fileName);
+        importScene(shared_from_this(), fileName);
         sgScene = true;
       } else {
         std::cout << "Importing: " << file << std::endl;
 
-        auto importer = sg::getImporter(world, file);
+        auto importer = getImporter(world, file);
         if (importer) {
           auto vp = importer->getVolumeParams();
           if (volumeParams->children().size() > 0 && vp) {
@@ -385,7 +393,7 @@ void GUIContext::importFiles(sg::NodePtr world)
 
           importer->verboseImport = optVerboseImporter;
           importer->pointSize = pointSize;
-          importer->setFb(frame->childAs<sg::FrameBuffer>("framebuffer"));
+          importer->setFb(frame->childAs<FrameBuffer>("framebuffer"));
           importer->setMaterialRegistry(baseMaterialRegistry);
           if (sgFileCameras) {
             importer->importCameras = false;
@@ -400,13 +408,13 @@ void GUIContext::importFiles(sg::NodePtr world)
           importer->setAnimationList(animationManager->getAnimations());
           if (optInstanceConfig == "dynamic")
             importer->setInstanceConfiguration(
-                sg::InstanceConfiguration::DYNAMIC);
+                InstanceConfiguration::DYNAMIC);
           else if (optInstanceConfig == "compact")
             importer->setInstanceConfiguration(
-                sg::InstanceConfiguration::COMPACT);
+                InstanceConfiguration::COMPACT);
           else if (optInstanceConfig == "robust")
             importer->setInstanceConfiguration(
-                sg::InstanceConfiguration::ROBUST);
+                InstanceConfiguration::ROBUST);
 
           importer->importScene();
         }
@@ -460,7 +468,7 @@ void GUIContext::saveCurrentFrame()
   int screenshotFlags = optSaveLayersSeparately << 3 | optSaveNormal << 2
       | optSaveDepth << 1 | optSaveAlbedo;
 
-  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto &fb = frame->childAs<FrameBuffer>("framebuffer");
   auto fbFloatFormat = fb["floatFormat"].valueAs<bool>();
   if (screenshotFlags > 0 && !fbFloatFormat)
     std::cout
@@ -472,22 +480,22 @@ void GUIContext::saveCurrentFrame()
 void GUIContext::printUtilNode(const std::string &utilNode)
 {
   if (utilNode == "camera")
-    frame->child("camera").traverse<sg::PrintNodes>();
+    frame->child("camera").traverse<PrintNodes>();
   else if (utilNode == "frame")
-    frame->traverse<sg::PrintNodes>();
+    frame->traverse<PrintNodes>();
   else if (utilNode == "baseMaterialRegistry")
-    baseMaterialRegistry->traverse<sg::PrintNodes>();
+    baseMaterialRegistry->traverse<PrintNodes>();
   else if (utilNode == "lightsManager")
-    lightsManager->traverse<sg::PrintNodes>();
+    lightsManager->traverse<PrintNodes>();
 }
 
 bool GUIContext::resHasHit(float &x, float &y, vec3f &worldPosition)
 {
   ospray::cpp::PickResult res;
-  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-  auto &r = frame->childAs<sg::Renderer>("renderer");
-  auto &c = frame->childAs<sg::Camera>("camera");
-  auto &w = frame->childAs<sg::World>("world");
+  auto &fb = frame->childAs<FrameBuffer>("framebuffer");
+  auto &r = frame->childAs<Renderer>("renderer");
+  auto &c = frame->childAs<Camera>("camera");
+  auto &w = frame->childAs<World>("world");
   res = fb.handle().pick(r, c, w, x, y);
   worldPosition = res.worldPosition;
   if (res.hasHit)
@@ -499,8 +507,8 @@ void GUIContext::getWindowTitle(std::stringstream &windowTitle)
 {
   windowTitle << "OSPRay Studio: ";
 
-  auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
-  auto &v = frame->childAs<sg::Renderer>("renderer")["varianceThreshold"];
+  auto &fb = frame->childAs<FrameBuffer>("framebuffer");
+  auto &v = frame->childAs<Renderer>("renderer")["varianceThreshold"];
   auto varianceThreshold = v.valueAs<float>();
 
   if (frame->pauseRendering) {
@@ -535,7 +543,7 @@ void GUIContext::getWindowTitle(std::stringstream &windowTitle)
 
 vec2i &GUIContext::getFBSize()
 {
-  auto &frameBuffer = frame->childAs<sg::FrameBuffer>("framebuffer");
+  auto &frameBuffer = frame->childAs<FrameBuffer>("framebuffer");
   return frameBuffer.child("size").valueAs<vec2i>();
 }
 
@@ -600,39 +608,33 @@ void GUIContext::saveNodesJson(const std::string nodeTypeStr)
   }
 }
 
-void GUIContext::selectBuffer(int whichBuffer)
+void GUIContext::selectBuffer(OSPFrameBufferChannel whichBuffer, bool invert)
 {
-  switch (whichBuffer) {
-  case 0:
-    optShowColor = true;
-    optShowAlbedo = optShowDepth = optShowDepthInvert = false;
-    break;
-  case 1:
-    optShowAlbedo = true;
-    optShowColor = optShowDepth = optShowDepthInvert = false;
-    break;
-  case 2:
-    optShowDepth = true;
-    optShowColor = optShowAlbedo = optShowDepthInvert = false;
-    break;
-  case 3:
-    optShowDepth = true;
-    optShowDepthInvert = true;
-    optShowColor = optShowAlbedo = false;
-    break;
-  }
-}
+  optDisplayBuffer = whichBuffer;
+  optDisplayBufferInvert = invert;
 
-void GUIContext::removeLight(int whichLight)
-{
-  if (whichLight != -1) {
-    // Node removal requires waiting on previous frame completion
-    frame->cancelFrame();
-    frame->waitOnFrame();
-    auto &lights = lightsManager->children();
-    lightsManager->removeLight(lights.at_index(whichLight).first);
-    whichLight = std::max(0, whichLight - 1);
-  }
+  // Only enabled if they exist
+  auto &framebuffer = frame->childAs<FrameBuffer>("framebuffer");
+  if (!framebuffer.hasDepthChannel())
+    optDisplayBuffer &= ~OSP_FB_DEPTH;
+  if (!framebuffer.hasAccumChannel())
+    optDisplayBuffer &= ~OSP_FB_ACCUM;
+  if (!framebuffer.hasVarianceChannel())
+    optDisplayBuffer &= ~OSP_FB_VARIANCE;
+  if (!framebuffer.hasNormalChannel())
+    optDisplayBuffer &= ~OSP_FB_NORMAL;
+  if (!framebuffer.hasAlbedoChannel())
+    optDisplayBuffer &= ~OSP_FB_ALBEDO;
+  if (!framebuffer.hasPrimitiveIDChannel())
+    optDisplayBuffer &= ~OSP_FB_ID_PRIMITIVE;
+  if (!framebuffer.hasObjectIDChannel())
+    optDisplayBuffer &= ~OSP_FB_ID_OBJECT;
+  if (!framebuffer.hasInstanceIDChannel())
+    optDisplayBuffer &= ~OSP_FB_ID_INSTANCE;
+
+  // If nothing else is left enabled, choose color
+  if (!optDisplayBuffer)
+    optDisplayBuffer = OSP_FB_COLOR;
 }
 
 void GUIContext::selectCamera()
@@ -655,17 +657,17 @@ void GUIContext::selectCamera()
 
 void GUIContext::createNewCamera(const std::string newType)
 {
-  frame->createChildAs<sg::Camera>("camera", newType);
+  frame->createChildAs<Camera>("camera", newType);
   mainWindow->reshape(); // resets aspect
   updateCamera();
 }
 
 void GUIContext::createIsoSurface(
-    int currentVolume, std::vector<ospray::sg::NodePtr> &volumes)
+    int currentVolume, std::vector<NodePtr> &volumes)
 {
   auto selected = volumes.at(currentVolume);
 
-  auto &world = frame->childAs<sg::World>("world");
+  auto &world = frame->childAs<World>("world");
 
   auto count = 1;
   auto surfName = selected->name() + "_surf";
@@ -673,11 +675,11 @@ void GUIContext::createIsoSurface(
     count++;
   surfName += std::to_string(count);
 
-  auto isoXfm = sg::createNode(surfName + "_xfm", "transform", affine3f{one});
+  auto isoXfm = createNode(surfName + "_xfm", "transform", affine3f{one});
 
   auto valueRange = selected->child("value").valueAs<range1f>();
 
-  auto isoGeom = sg::createNode(surfName, "geometry_isosurfaces");
+  auto isoGeom = createNode(surfName, "geometry_isosurfaces");
   isoGeom->createChild("value", "range1f", valueRange);
   isoGeom->child("value").setSGOnly();
   isoGeom->createChild("isovalue", "float", valueRange.center());
@@ -685,7 +687,7 @@ void GUIContext::createIsoSurface(
 
   uint32_t materialID = baseMaterialRegistry->baseMaterialOffSet();
   const std::vector<uint32_t> mID = {materialID};
-  auto mat = sg::createNode(surfName, "obj");
+  auto mat = createNode(surfName, "obj");
 
   // Give it some editable parameters
   mat->createChild("kd", "rgb", "diffuse color", vec3f(0.8f));
@@ -720,11 +722,11 @@ void GUIContext::clearScene()
   mainWindow->animationWidget->update();
 
   // TODO: lights caching to avoid complete re-importing after clearing
-  sg::clearAssets();
+  clearAssets();
 
   // Recreate MaterialRegistry, clearing old registry and all materials
   // Then, add the new one to the frame and set the renderer type
-  baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
+  baseMaterialRegistry = createNodeAs<MaterialRegistry>(
       "baseMaterialRegistry", "materialRegistry");
   frame->add(baseMaterialRegistry);
   baseMaterialRegistry->updateRendererType();

@@ -9,9 +9,11 @@ namespace sg {
 Volume::Volume(const std::string &osp_type)
 {
   setValue(cpp::Volume(osp_type));
-  createChild("visible", "bool", true);
+  createChild("enable",
+      "bool",
+      "enable affects whether the object exists in the world",
+      true);
   createChild("filter", "int", "0 = nearest, 100 = trilinear", 0);
-
   createChild("densityScale",
       "float",
       "makes volumes uniformly thinner or thicker\n"
@@ -26,6 +28,7 @@ Volume::Volume(const std::string &osp_type)
       0.f)
       .setMinMax(-1.f, 1.f);
 
+  child("enable").setSGOnly();
   // All volumes track their valueRange
   createChild("value", "range1f", range1f(0.f, 1.f));
   child("value").setSGOnly();

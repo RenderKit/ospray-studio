@@ -56,10 +56,7 @@ else()
         )
     elseif(APPLE)
     else()
-        # target_compile_definitions(rkcommon
-        #     PUBLIC
-        #         _GLIBCXX_USE_CXX11_ABI=1
-        # )
+        # nothing
     endif()
 
 endif()

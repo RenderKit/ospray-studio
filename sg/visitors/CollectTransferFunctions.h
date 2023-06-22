@@ -26,6 +26,8 @@ inline bool CollectTransferFunctions::operator()(Node &node, TraversalContext &c
     transferFunctions[ctx.name] = node.nodeAs<Node>();
     break;
   }
+  default:
+    break;
   }
   return true;
 }
