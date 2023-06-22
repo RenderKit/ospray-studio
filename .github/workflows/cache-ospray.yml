@@ -54,8 +54,23 @@ jobs:
         run: |
           if [[ ! -d "${{ inputs.cache-dir }}/ospray-${{ inputs.ospray-version }}" ]]
           then
-            cmake -L -S ospray-${{ inputs.ospray-version }}/scripts/superbuild -B ospray-${{ inputs.ospray-version }}/build -DBUILD_OIDN=ON -DBUILD_EMBREE_FROM_SOURCE=OFF -DBUILD_RKCOMMON_VERSION=${{ inputs.rkcommon-version }} -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF
+            echo "Building " ${{ inputs.cache-dir }}/ospray-${{ inputs.ospray-version }}
+            if [ "${{ inputs.image }}" = "centos:7" ]
+            then
+              # *** CentOS 7 specific build ***
+              # CentOS 7, due to its extremely old glibc, requires everything built from source
+              echo "... CentOS 7 build"
+              module load intel/2022.1
+              export CC=icx
+              export CXX=icpx
+              export CXXFLAGS="-fhonor-infinities -fhonor-nans"
+              export CFLAGS=$CXXFLAGS
+            fi
+
+            cmake -L -S ospray-${{ inputs.ospray-version }}/scripts/superbuild -B ospray-${{ inputs.ospray-version }}/build -DBUILD_OIDN=ON -DBUILD_EMBREE_FROM_SOURCE=ON -DBUILD_RKCOMMON_VERSION=${{ inputs.rkcommon-version }} -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF
             cmake --build ospray-${{ inputs.ospray-version }}/build
             cp -r ospray-${{ inputs.ospray-version }} ${{ inputs.cache-dir }}
+          else
+            echo ${{ inputs.cache-dir }}/ospray-${{ inputs.ospray-version }} " found, skipping build and using cache."
           fi
 
