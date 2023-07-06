@@ -18,9 +18,10 @@ OSP_REGISTER_SG_NODE_NAME(Luminous, luminous);
 
 Luminous::Luminous() : Material("luminous")
 {
-  createChild("color", "rgb", "color of the emitted light", vec3f(1.f));
+  createChild("color", "rgb", "color of the emitted light", rgb(1.f));
   createChild("intensity", "float", "intensity of the light", 1.f);
-  createChild("transparency", "float", "material transparency", 1.f);
+  createChild("transparency", "float", "material transparency", 1.f)
+      .setMinMax(0.f, 1.f);
 }
 
 } // namespace sg

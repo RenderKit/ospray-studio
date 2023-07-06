@@ -46,8 +46,20 @@ void AdvancedMaterialEditor::buildUI(
   ImGui::Spacing();
   ImGui::Text("Replace material");
   static int currentMatType = 0;
-  const char *matTypes[] = {"principled", "carPaint", "obj", "luminous"};
-  ImGui::Combo("Material types", &currentMatType, matTypes, 4);
+  const char *matTypes[] = {"alloy",
+      "carPaint",
+      "glass",
+      "luminous",
+      "metal",
+      "metallicPaint",
+      // "mix",   Mix needs pointers to two existing materials and a blend factor
+      "obj",
+      "plastic",
+      "principled",
+      "thinGlass",
+      "velvet"};
+  constexpr int numMatTypes = sizeof(matTypes) >> 3;
+  ImGui::Combo("Material types", &currentMatType, matTypes, numMatTypes);
   if (ImGui::Button("Replace##material")) {
     auto newMat = createNode(matName, matTypes[currentMatType]);
     materialRegistry->add(newMat);
