@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Texture2D.h"
+#include <memory>
 #include <sstream>
 #include "rkcommon/memory/malloc.h"
 
@@ -110,7 +111,8 @@ void Texture2D::loadTexture_OIIO_readFile(std::unique_ptr<ImageInput> &in)
   const ImageSpec &spec = in->spec();
   const auto typeDesc = TypeDescFromC<T>::value();
 
-  std::shared_ptr<T[]> data(new T[params.size.product() * params.components]);
+  std::shared_ptr<T> data(new T[params.size.product() * params.components],
+      std::default_delete<T[]>());
   T *start = (T *)data.get()
       + (params.flip ? (params.size.y - 1) * params.size.x * params.components
                      : 0);
@@ -165,7 +167,7 @@ void Texture2D::loadTexture_OIIO(const std::string &fileName)
 void Texture2D::loadTexture_PFM_readFile(FILE *file, float scaleFactor)
 {
   size_t size = params.size.product() * params.components;
-  std::shared_ptr<float[]> data(new float[size]);
+  std::shared_ptr<float> data(new float[size], std::default_delete<float[]>());
   const size_t dataSize = sizeof(size) * sizeof(float);
 
   int rc = fread(data.get(), dataSize, 1, file);
@@ -305,7 +307,8 @@ void Texture2D::loadTexture_STBi(const std::string &fileName)
     // XXX stbi uses malloc/free override these with our alignedMalloc/Free
     // (and implement a realloc?) to prevent this memcpy?
     size_t size = params.size.product() * params.components * params.depth;
-    std::shared_ptr<uint8_t[]> data(new uint8_t[size]);
+    std::shared_ptr<uint8_t> data(
+        new uint8_t[size], std::default_delete<uint8_t[]>());
     std::memcpy(data.get(), texels, size);
     texelData = data;
     stbi_image_free(texels);
@@ -405,8 +408,9 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
   atlas->params = work->params;
   atlas->udim_params = work->udim_params;
   atlas->params.size *= udim_params.dims;
-  std::shared_ptr<uint8_t[]> data(
-      new uint8_t[atlas->params.size.product() * texelSize]);
+  std::shared_ptr<uint8_t> data(
+      new uint8_t[atlas->params.size.product() * texelSize],
+      std::default_delete<uint8_t[]>());
   atlas->texelData = data;
   auto atlasStride = atlas->params.size.x * texelSize;
 
@@ -488,7 +492,8 @@ bool Texture2D::load(const FileName &_fileName,
   } else {
     if (memory) {
       size_t size = params.size.product() * params.components * params.depth;
-      std::shared_ptr<uint8_t[]> data(new uint8_t[size]);
+      std::shared_ptr<uint8_t> data(
+          new uint8_t[size], std::default_delete<uint8_t[]>());
       std::memcpy(data.get(), memory, size);
       // Move shared_ptr ownership
       texelData = data;
