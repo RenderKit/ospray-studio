@@ -94,8 +94,8 @@ OSPTextureFormat Texture2D::osprayTextureFormat(int components)
       return OSP_TEXTURE_RGBA32F;
   }
 
-  std::cerr << "#osp:sg: INVALID format " << params.depth << ":"
-            << components << std::endl;
+  std::cerr << "#osp:sg: INVALID format " << params.depth << ":" << components
+            << std::endl;
   return OSP_TEXTURE_FORMAT_INVALID;
 }
 
@@ -110,7 +110,7 @@ void Texture2D::loadTexture_OIIO_readFile(std::unique_ptr<ImageInput> &in)
   const ImageSpec &spec = in->spec();
   const auto typeDesc = TypeDescFromC<T>::value();
 
-  std::shared_ptr<void> data(new T[params.size.product() * params.components]);
+  std::shared_ptr<T[]> data(new T[params.size.product() * params.components]);
   T *start = (T *)data.get()
       + (params.flip ? (params.size.y - 1) * params.size.x * params.components
                      : 0);
@@ -165,7 +165,7 @@ void Texture2D::loadTexture_OIIO(const std::string &fileName)
 void Texture2D::loadTexture_PFM_readFile(FILE *file, float scaleFactor)
 {
   size_t size = params.size.product() * params.components;
-  std::shared_ptr<void> data(new float[size]);
+  std::shared_ptr<float[]> data(new float[size]);
   const size_t dataSize = sizeof(size) * sizeof(float);
 
   int rc = fread(data.get(), dataSize, 1, file);
@@ -305,7 +305,7 @@ void Texture2D::loadTexture_STBi(const std::string &fileName)
     // XXX stbi uses malloc/free override these with our alignedMalloc/Free
     // (and implement a realloc?) to prevent this memcpy?
     size_t size = params.size.product() * params.components * params.depth;
-    std::shared_ptr<void> data(new uint8_t[size]);
+    std::shared_ptr<uint8_t[]> data(new uint8_t[size]);
     std::memcpy(data.get(), texels, size);
     texelData = data;
     stbi_image_free(texels);
@@ -405,7 +405,7 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
   atlas->params = work->params;
   atlas->udim_params = work->udim_params;
   atlas->params.size *= udim_params.dims;
-  std::shared_ptr<void> data(
+  std::shared_ptr<uint8_t[]> data(
       new uint8_t[atlas->params.size.product() * texelSize]);
   atlas->texelData = data;
   auto atlasStride = atlas->params.size.x * texelSize;
@@ -429,9 +429,8 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
     // of the largest size, then scaling all tiles into the atlas.
     if (work->params.size != tileSize || work->params.depth != tileDepth
         || work->params.components != tileComponents) {
-      std::cerr
-          << "#osp:sg: udim tile size or format doesn't match, skipping: "
-          << tile.first << std::endl;
+      std::cerr << "#osp:sg: udim tile size or format doesn't match, skipping: "
+                << tile.first << std::endl;
       continue;
     }
 
@@ -489,7 +488,7 @@ bool Texture2D::load(const FileName &_fileName,
   } else {
     if (memory) {
       size_t size = params.size.product() * params.components * params.depth;
-      std::shared_ptr<void> data(new uint8_t[size]);
+      std::shared_ptr<uint8_t[]> data(new uint8_t[size]);
       std::memcpy(data.get(), memory, size);
       // Move shared_ptr ownership
       texelData = data;
@@ -525,9 +524,9 @@ bool Texture2D::load(const FileName &_fileName,
 
       // If not using all channels, set used components to 1 for texture format
       auto ospTexFormat =
-        osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
+          osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
       auto texFilter = params.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-        : OSP_TEXTURE_FILTER_BILINEAR;
+                                            : OSP_TEXTURE_FILTER_BILINEAR;
 
       createChild("format", "int", (int)ospTexFormat);
       createChild("filter", "int", (int)texFilter);

@@ -6,45 +6,50 @@
 #include "sg/PluginCore.h"
 
 #include <iterator>
+#include <memory>
+
+PluginManager::PluginManager()
+    : plugins(std::make_shared<std::vector<LoadedPlugin>>())
+{}
 
 void PluginManager::loadPlugin(const std::string &name)
 {
   void *plugin = ospray::sg::loadPluginCore(name);
   if (plugin != nullptr) {
     auto pluginInstance =
-       std::unique_ptr<Plugin>(static_cast<Plugin *>(plugin));
+        std::unique_ptr<Plugin>(static_cast<Plugin *>(plugin));
     addPlugin(std::move(pluginInstance));
   }
 }
 
 void PluginManager::addPlugin(std::unique_ptr<Plugin> plugin)
 {
-  plugins.emplace_back(LoadedPlugin{std::move(plugin), true});
+  plugins->emplace_back(LoadedPlugin{std::move(plugin), true});
 }
 
 void PluginManager::removePlugin(const std::string &name)
 {
-  plugins.erase(std::remove_if(plugins.begin(), plugins.end(), [&](auto &p) {
+  plugins->erase(std::remove_if(plugins->begin(), plugins->end(), [&](auto &p) {
     return p.instance->name() == name;
   }));
 }
 
 void PluginManager::removeAllPlugins()
 {
-  plugins.clear();
+  plugins->clear();
 }
 
 bool PluginManager::hasPlugin(const std::string &pluginName)
 {
-  for (auto &p : plugins)
+  for (auto &p : *plugins)
     if (p.instance->name() == pluginName)
       return true;
   return false;
 }
 
-LoadedPlugin* PluginManager::getPlugin(std::string &pluginName)
+LoadedPlugin *PluginManager::getPlugin(std::string &pluginName)
 {
-  for (auto &l : plugins)
+  for (auto &l : *plugins)
     if (l.instance->name() == pluginName)
       return &l;
 
@@ -54,8 +59,8 @@ LoadedPlugin* PluginManager::getPlugin(std::string &pluginName)
 void PluginManager::main(
     std::shared_ptr<StudioContext> ctx, PanelList *allPanels) const
 {
-  if (!plugins.empty())
-    for (auto &plugin : plugins) {
+  if (!plugins->empty())
+    for (auto &plugin : *plugins) {
       plugin.instance->mainMethod(ctx);
       if (!plugin.instance->panels.empty() && allPanels) {
         auto &pluginPanels = plugin.instance->panels;
@@ -70,8 +75,8 @@ void PluginManager::mainPlugin(std::shared_ptr<StudioContext> ctx,
     std::string &pluginName,
     PanelList *allPanels) const
 {
-  if (!plugins.empty())
-    for (auto &plugin : plugins) {
+  if (!plugins->empty())
+    for (auto &plugin : *plugins) {
       if (plugin.instance->name() == pluginName) {
         plugin.instance->mainMethod(ctx);
         if (!plugin.instance->panels.empty() && allPanels) {
