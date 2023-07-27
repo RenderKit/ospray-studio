@@ -26,6 +26,7 @@ namespace ospray {
 
     bool frameIsReady();
     float frameProgress();
+    float frameDuration();
     void waitOnFrame();
     void cancelFrame();
     bool accumLimitReached();

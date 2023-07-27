@@ -90,6 +90,15 @@ float Frame::frameProgress()
     return 1.f;
 }
 
+float Frame::frameDuration()
+{
+  auto future = value().valid() ? handle() : nullptr;
+  if (future)
+    return future.duration();
+  else
+    return -1.f;
+}
+
 void Frame::waitOnFrame()
 {
   auto future = value().valid() ? handle() : nullptr;

@@ -282,6 +282,7 @@ PYBIND11_MODULE(pysg, sg)
 
   // MPI ////////////////////////////////////////////
   sg.def("assignMPI", &assignMPI);
+  sg.def("mpiBarrier", &sgMpiBarrier);
 
   // Importer functions ////////////////////////////////////////////////////
   sg.def("getImporter", &getImporter);
@@ -469,6 +470,7 @@ PYBIND11_MODULE(pysg, sg)
       .def("saveFrame", &Frame::saveFrame)
       .def("waitOnFrame", &Frame::waitOnFrame)
       .def("startNewFrame", &Frame::startNewFrame)
+      .def("frameDuration", &Frame::frameDuration)
       .def_readwrite("immediatelyWait", &Frame::immediatelyWait)
       .def_readwrite("toneMapFB", &Frame::toneMapFB)
       .def_readwrite("denoiseFB", &Frame::denoiseFB);
