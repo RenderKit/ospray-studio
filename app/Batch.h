@@ -27,6 +27,7 @@ class BatchContext : public StudioContext
   void refreshRenderer();
   void refreshScene(bool resetCam) override;
   void updateCamera() override;
+  void selectCamera() {}; // no override
   void render();
   virtual void renderFrame();
   void renderAnimation();

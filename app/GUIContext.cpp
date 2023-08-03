@@ -211,6 +211,7 @@ void GUIContext::changeToDefaultCamera()
     }
   }
 
+  cameraIdx = 0; // reset global-context cameraIndex
   frame->remove("camera");
   frame->add(defaultCamera);
   frame->commit();
