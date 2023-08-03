@@ -17,6 +17,9 @@
 using namespace ospray;
 using rkcommon::removeArgs;
 
+// Disables the main try/except used to report errors, makes debug easier
+#define EXCEPTION_GUARD
+
 void StudioCommon::splitPluginArguments()
 {
   int original_argc = argc;
@@ -398,7 +401,10 @@ int main(int argc, const char *argv[])
 
   // This scope contains all OSPRay API calls. It enforces cleanly calling all
   // destructors before calling ospShutdown()
-  try {
+#if defined(EXCEPTION_GUARD)
+  try
+#endif
+  {
     std::shared_ptr<StudioContext> context = nullptr;
 
     // XXX Modes should be module loaded, statically linked causes
@@ -427,11 +433,14 @@ int main(int argc, const char *argv[])
     else
       std::cerr << "Could not create a valid context. Stopping." << std::endl;
 
-  } catch (const std::exception &e) {
+  }
+#if defined(EXCEPTION_GUARD)
+ catch (const std::exception &e) {
     std::cerr << "ospStudio internal error: '" << e.what() << "'!" << std::endl;
   } catch (...) {
     std::cerr << "ospStudio unknown internal error!" << std::endl;
   }
+#endif
 
   ospShutdown();
 
