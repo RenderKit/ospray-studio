@@ -19,7 +19,7 @@ model_dirs=(bunny hairball Peonies sponza)
 models=(bunny hairball Peonies sponza)
 cam_cnt=(2 1 1 1)
 
-mse=(0.000001 0.000001 0.1 0.000001)
+uqi=(0.999 0.999 0.999 0.999)
 results="model-results"
 
 mkdir -p ${results}
@@ -42,7 +42,8 @@ for i in "${!models[@]}";do
     for ((j=0; j<${cam_cnt[i]}; j++));
     do
         mv ${results}/c-${models[i]}.0000$j.png ${results}/c-${models[i]}.----$j.png
-        python3 $SCRIPT_DIR/image-comparison.py --reference $CACHE_DIR/datasets/${models[i]}/${models[i]}_$j\_gold.png --candidate ${results}/c-${models[i]}.----$j.png --mse ${mse[i]}
+        md5sum $CACHE_DIR/datasets/${models[i]}/${models[i]}_$j\_gold.png
+        python3 $SCRIPT_DIR/image-comparison.py --reference $CACHE_DIR/datasets/${models[i]}/${models[i]}_$j\_gold.png --candidate ${results}/c-${models[i]}.----$j.png --uqi ${uqi[i]}
     done
 
 done

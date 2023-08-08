@@ -156,7 +156,7 @@ jobs:
         gitlab/run-dev.sh
         gitlab/run-dev-img-cmp.sh
       artifact-in: build-centos7-dev
-      artifact-path: build/model-results
+      artifact-path: build/model-results build/cert-tests/*
       artifact-out: test-run-centos7-dev
       artifact-on-failure: true
 
