@@ -413,8 +413,11 @@ void GLTFData::createLightTemplates()
       lightColor = rgb{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
     newLight->child("color") = lightColor;
 
+    // glTF specifies intensity in lux, OSPRay in Watts
+    // By industry convention, at 100% efficiency 1 watt of electrical power
+    // produces 683 lumens.  Convert to watts for OSPRay parameter.
     if (l.intensity)
-      newLight->child("intensity") = (float)l.intensity;
+      newLight->child("intensity") = (float)l.intensity / 683.f;
     if (l.range)
       WARN << "Range value for light is not supported yet" << std::endl;
 
