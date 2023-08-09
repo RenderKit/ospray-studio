@@ -433,7 +433,7 @@ void MainWindow::pickCenterOfRotation(float x, float y)
   vec3f worldPosition;
   x = clamp(x / windowSize.x, 0.f, 1.f);
   y = 1.f - clamp(y / windowSize.y, 0.f, 1.f);
-  if (ctx->resHasHit(x, y, worldPosition))
+  if (ctx->resHasHit(x, y, worldPosition)) {
     if (!(glfwGetKey(glfwWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)) {
       // Constraining rotation around the up works pretty well.
       arcballCamera->constrainedRotate(vec2f(0.5f, 0.5f), vec2f(x, y), 1);
@@ -441,8 +441,10 @@ void MainWindow::pickCenterOfRotation(float x, float y)
       arcballCamera->setZoomLevel(preFPVZoom + arcballCamera->getZoomLevel());
       preFPVZoom = 0.f;
       arcballCamera->setCenter(vec3f(worldPosition));
-      ctx->updateCamera();
     }
+    // Update camera
+    ctx->updateCamera();
+  }
 }
 
 void MainWindow::keyboardMotion()
