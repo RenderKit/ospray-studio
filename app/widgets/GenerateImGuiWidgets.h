@@ -522,11 +522,14 @@ inline bool generateWidget_filename(const std::string &title, Node &node)
   }
 
   static bool showFileBrowser = false;
+  static std::string active{""};
   // This field won't be typed into.
   ImGui::InputTextWithHint(
       node.name().c_str(), (char *)f.c_str(), (char *)f.c_str(), 0);
-  if (ImGui::IsItemClicked())
+  if (ImGui::IsItemClicked()) {
     showFileBrowser = true;
+    active = title;
+  }
 
   if (f != "") {
     ImGui::SameLine();
@@ -537,10 +540,11 @@ inline bool generateWidget_filename(const std::string &title, Node &node)
   }
 
   // Leave the fileBrowser open until file is selected
-  if (showFileBrowser) {
+  if (showFileBrowser && title == active) {
     ospray_studio::FileList fileList = {};
     if (ospray_studio::fileBrowser(fileList, "Select file")) {
       showFileBrowser = false;
+      active = "";
       if (!fileList.empty()) {
         node.setValue(std::string(fileList[0]));
         return true;
