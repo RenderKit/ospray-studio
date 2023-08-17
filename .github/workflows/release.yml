@@ -132,7 +132,7 @@ jobs:
     with:
       coverity: true
       image: centos:7
-      project: ospray_studio
+      project: OSPRay Studio
       ignore-files: pysg.cpp
       prebuild: >
         module load cmake/3.15.2 &&
