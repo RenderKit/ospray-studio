@@ -130,21 +130,23 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
+      coverity: true
       image: centos:7
       project: ospray_studio
       ignore-files: pysg.cpp
-      prebuild: |
-        module load cmake/3.15.2
-        module load intel/2022.1
-        export CC=icx
-        export CXX=icpx
-        export CXXFLAGS="-fhonor-infinities -fhonor-nans"
-        export CFLAGS=$CXXFLAGS
-        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }}
-        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }}
-        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install
-        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
-        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
+      prebuild: >
+        module load cmake/3.15.2 &&
+        module load intel/2022.1 &&
+        export CC=icx &&
+        export CXX=icpx &&
+        export CXXFLAGS="-fhonor-infinities -fhonor-nans" &&
+        export CFLAGS=$CXXFLAGS &&
+        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }} &&
+        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }} &&
+        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install &&
+        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb &&
+        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF &&
+        echo "Done: Configure OSPRay Studio"
       build: cmake --build build
 
   binary-analysis:
