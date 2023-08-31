@@ -379,8 +379,9 @@ void GLTFData::createLightTemplates()
   // KHR_lights_punctual
   for (auto &l : model.lights) {
     static auto nLight = 0;
+    // Only add light number if name is otherwise empty.
     auto lightName =
-        l.name != "" ? l.name : "light_" + std::to_string(nLight++);
+        l.name != "" ? l.name : ("light_" + std::to_string(nLight++));
     auto lightType = l.type;
     NodePtr newLight;
 
@@ -803,8 +804,9 @@ void GLTFData::visitNode(NodePtr sgNode,
           camera->child(c.first).setSGOnly();
       }
     }
+    // Only add camera number if name is otherwise empty.
     auto uniqueCamName =
-        n.name != "" ? n.name : "camera_" + std::to_string(nCamera);
+        n.name != "" ? n.name : ("camera_" + std::to_string(nCamera));
     camera->child("uniqueCameraName") = uniqueCamName;
     camera->child("cameraId").setValue(++nCamera);
 
@@ -836,11 +838,8 @@ void GLTFData::visitNode(NodePtr sgNode,
 
   for (auto &lightIdx : lightIdxs) {
     auto lightTemplate = lightTemplates[lightIdx];
-    static int lightCounter = 0;
     // instantiate SG light nodes
-    auto uniqueLightName = n.name != ""
-        ? n.name + std::to_string(lightCounter++)
-        : lightTemplate->name() + std::to_string(lightCounter++);
+    auto uniqueLightName = n.name != "" ? n.name : lightTemplate->name();
     auto light = createNode(uniqueLightName, lightTemplate->subType());
     for (auto &c : lightTemplate->children()) {
       if (light->hasChild(c.first))
