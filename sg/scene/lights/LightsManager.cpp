@@ -28,8 +28,12 @@ bool LightsManager::lightExists(std::string name)
 // Add a light node (main entry)
 bool LightsManager::addLight(NodePtr light)
 {
-  if (lightExists(light->name()))
+  if (lightExists(light->name())) {
+    // if light exists, just update its parameters
+    for (auto &param : light->children())
+      light->add(param.second);
     return false;
+  }
 
   // remove default light
   if (hasChild("default-ambient") && rmDefaultLight)
