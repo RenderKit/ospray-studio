@@ -122,9 +122,9 @@ jobs:
       ospray-version: devel
       rkcommon-version: devel
 
-  snyk-scan:
+  composition-analysis:
     secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/snyk.yml@main
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/composition_analysis.yml@main
 
   static-analysis:
     needs: cache-ospray
