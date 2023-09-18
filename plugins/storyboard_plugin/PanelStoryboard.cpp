@@ -31,7 +31,7 @@ PanelStoryboard::PanelStoryboard(std::shared_ptr<StudioContext> _context, std::s
     , panelName(_panelName)
     , configFilePath(_configFilePath)
 {
-  requestManager.reset(new RequestManager("localhost", 8888));
+  requestManager.reset(new RequestManager(configFilePath));
 
   requestManager->start();
 

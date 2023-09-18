@@ -16,7 +16,7 @@ using namespace rkcommon::math;
 class RequestManager
 {
 public:
-    RequestManager(std::string ipAddress, uint portNumber);
+    RequestManager(std::string configFilePath);
     ~RequestManager();
 
     void start();

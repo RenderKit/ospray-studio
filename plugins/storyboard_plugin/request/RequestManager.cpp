@@ -1,16 +1,33 @@
 #include "RequestManager.h"
+#include "sg/JSONDefs.h"
 
 #include <iostream>
 
 namespace ospray {
 namespace storyboard_plugin {
 
-RequestManager::RequestManager(std::string ipAddress, uint portNumber) {
+RequestManager::RequestManager(std::string configFilePath) {
     tcpSocket = nullptr;
-    this->ipAddress = ipAddress;
-    this->portNumber = portNumber;
-
     screenshotContainer.reset(new ScreenShotContainer());
+
+    JSON config = nullptr;
+    try {
+        std::ifstream configFile(configFilePath);
+        if (configFile)
+            configFile >> config;
+        else
+            std::cerr << "The storyboard config file does not exist." << std::endl;
+    } catch (nlohmann::json::exception &e) {
+        std::cerr << "Failed to parse the storyboard config file: " << e.what() << std::endl;
+    }
+
+    if (config == nullptr)
+        return;
+
+    if (config != nullptr && config.contains("ipAddress"))
+        ipAddress = config["ipAddress"];
+    if (config != nullptr && config.contains("portNumber"))
+        portNumber = config["portNumber"];
 }
 
 RequestManager::~RequestManager() {
