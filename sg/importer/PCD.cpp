@@ -570,6 +570,7 @@ int readPCDBodyBinary(const FileName &fileName, PCDData &pcdData)
           "[PCDImporter::readBinary] Size of decompressed lzf data (%u) does not match value stored in PCD header (%u).\n",
           tmpSize,
           uncompSize);
+      delete[] map;
       return (-1);
     }
 /*

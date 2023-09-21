@@ -42,6 +42,7 @@ static std::vector<std::string> init(const std::vector<std::string> &args)
   if (initError != OSP_NO_ERROR) {
     delete[] argv;
     std::cerr << "OSPRay not initialized correctly!" << std::endl;
+    return {};
   }
 
   // Check for module denoiser support after iniaitlizing OSPRay
