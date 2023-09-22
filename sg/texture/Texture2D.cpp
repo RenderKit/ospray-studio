@@ -531,16 +531,16 @@ bool Texture2D::load(const FileName &_fileName,
       auto ospTexFormat =
           osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
       auto texFilter = params.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                            : OSP_TEXTURE_FILTER_BILINEAR;
+                                            : OSP_TEXTURE_FILTER_LINEAR;
 
-      createChild("format", "int", (int)ospTexFormat);
-      createChild("filter", "int", (int)texFilter);
+      createChild("format", "OSPTextureFormat", ospTexFormat);
+      createChild("filter", "OSPTextureFilter", texFilter);
 
       createChild("filename", "filename", fileName).setSGOnly();
 
-      child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
+      child("format").setMinMax(OSP_TEXTURE_RGBA8, OSP_TEXTURE_R16);
       child("filter").setMinMax(
-          (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+          OSP_TEXTURE_FILTER_LINEAR, OSP_TEXTURE_FILTER_NEAREST);
 
       // Add this texture to the cache
       textureCache[fileName] = this->nodeAs<Texture2D>();

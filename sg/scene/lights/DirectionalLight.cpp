@@ -25,8 +25,7 @@ DirectionalLight::DirectionalLight() : Light("distant")
       "apparent size (in degrees) [default 0.53° ~sun]",
       0.53f);
 
-  child("intensityQuantity")
-      .setValue(uint8_t(OSP_INTENSITY_QUANTITY_IRRADIANCE));
+  child("intensityQuantity").setValue(OSP_INTENSITY_QUANTITY_IRRADIANCE);
 
   child("direction").setMinMax(-1.f, 1.f); // per component min/max
   child("angularDiameter").setMinMax(0.f, 10.f);

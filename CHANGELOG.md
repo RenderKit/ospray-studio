@@ -1,6 +1,12 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v0.13.0
+
+-   Compatible with OSPRay release v3.0.0
+
+-  Tightened up all OSPRay enum usage to comply with new OSPRay 3.0 API
+
 ### Changes in OSPRay Studio v0.12.1
 
 -   Compatible with OSPRay release v2.12.0

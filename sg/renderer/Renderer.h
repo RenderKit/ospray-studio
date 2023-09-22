@@ -16,7 +16,7 @@ struct OSPSG_INTERFACE Renderer
 
   NodeType type() const override;
 
-  OSPPixelFilterTypes pixelFilter{OSP_PIXELFILTER_GAUSS};
+  OSPPixelFilterType pixelFilter{OSP_PIXELFILTER_GAUSS};
 };
 
 } // namespace sg

@@ -237,7 +237,7 @@ void GUIContext::refreshRenderer()
     frame->createChild("renderer", "renderer_" + optRendererTypeStr);
 
   auto &r = frame->childAs<Renderer>("renderer");
-  r["pixelFilter"] = (int)optPF;
+  r["pixelFilter"] = optPF;
   r["backgroundColor"] = optBackGroundColor;
   r["pixelSamples"] = optSPP;
   r["varianceThreshold"] = optVariance;
@@ -268,7 +268,7 @@ void GUIContext::saveRendererParams()
   auto &r = frame->childAs<Renderer>("renderer");
 
   optRendererTypeStr = r["type"].valueAs<std::string>();
-  optPF = (OSPPixelFilterTypes)r["pixelFilter"].valueAs<int>();
+  optPF = r["pixelFilter"].valueAs<OSPPixelFilterType>();
   optBackGroundColor = r["backgroundColor"].valueAs<rgba>();
   optSPP = r["pixelSamples"].valueAs<int>();
   optVariance = r["varianceThreshold"].valueAs<float>();

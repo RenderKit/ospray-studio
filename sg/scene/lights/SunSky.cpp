@@ -45,7 +45,7 @@ SunSky::SunSky() : Light("sunSky")
       "fraction of the lower hemisphere to cover [0-1]",
       0.01f);
 
-  child("intensityQuantity") = (uint8_t)OSP_INTENSITY_QUANTITY_SCALE;
+  child("intensityQuantity") = OSP_INTENSITY_QUANTITY_SCALE;
   child("intensityQuantity").setReadOnly();
 
   // Set reasonable limits, this will set slider range

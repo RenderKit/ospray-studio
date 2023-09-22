@@ -578,6 +578,28 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"quaternionf", generateWidget_quaternionf},
     {"string", generateWidget_string},
     {"filename", generateWidget_filename},
+
+    // OSPRay Enum types
+    {"OSPAMRMethod", generateWidget_int<OSPAMRMethod>},
+    {"OSPCurveBasis", generateWidget_int<OSPCurveBasis>},
+    {"OSPCurveType", generateWidget_int<OSPCurveType>},
+    {"OSPDataType", generateWidget_int<OSPDataType>},
+    {"OSPDeviceProperty", generateWidget_int<OSPDeviceProperty>},
+    {"OSPError", generateWidget_int<OSPError>},
+    {"OSPFrameBufferChannel", generateWidget_int<OSPFrameBufferChannel>},
+    {"OSPFrameBufferFormat", generateWidget_int<OSPFrameBufferFormat>},
+    {"OSPIntensityQuantity", generateWidget_int<OSPIntensityQuantity>},
+    {"OSPLogLevel", generateWidget_int<OSPLogLevel>},
+    {"OSPPixelFilterType", generateWidget_int<OSPPixelFilterType>},
+    {"OSPShutterType", generateWidget_int<OSPShutterType>},
+    {"OSPStereoMode", generateWidget_int<OSPStereoMode>},
+    {"OSPSubdivisionMode", generateWidget_int<OSPSubdivisionMode>},
+    {"OSPSyncEvent", generateWidget_int<OSPSyncEvent>},
+    {"OSPTextureFilter", generateWidget_int<OSPTextureFilter>},
+    {"OSPTextureFormat", generateWidget_int<OSPTextureFormat>},
+    {"OSPUnstructuredCellType", generateWidget_int<OSPUnstructuredCellType>},
+    {"OSPVolumeFilter", generateWidget_int<OSPVolumeFilter>},
+    {"OSPVolumeFormat", generateWidget_int<OSPVolumeFormat>}
 };
 
 // Inlined definitions ////////////////////////////////////////////////////

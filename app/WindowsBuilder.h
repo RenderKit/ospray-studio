@@ -1111,8 +1111,8 @@ void WindowsBuilder::viewCameraPath(bool showCameraPath)
     path->createChildData("vertex.position_radius", pathVertices);
     path->createChildData("vertex.color", colors);
     path->createChildData("index", indexes);
-    path->createChild("type", "uchar", (unsigned char)OSP_ROUND);
-    path->createChild("basis", "uchar", (unsigned char)OSP_CATMULL_ROM);
+    path->createChild("type", "OSPCurveType", OSP_ROUND);
+    path->createChild("basis", "OSPCurveBasis", OSP_CATMULL_ROM);
     path->createChildData("material", mID);
     path->child("material").setSGOnly();
 

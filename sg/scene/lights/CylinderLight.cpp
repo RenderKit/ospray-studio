@@ -28,7 +28,7 @@ CylinderLight::CylinderLight() : Light("cylinder")
       vec3f(0.f, 0.f, 1.f));
   createChild("radius", "float", "radius of the cylinder", 1.f);
 
-  child("intensityQuantity").setValue(uint8_t(OSP_INTENSITY_QUANTITY_RADIANCE));
+  child("intensityQuantity").setValue(OSP_INTENSITY_QUANTITY_RADIANCE);
 }
 
 } // namespace sg

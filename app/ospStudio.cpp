@@ -18,7 +18,7 @@ using namespace ospray;
 using rkcommon::removeArgs;
 
 // Disables the main try/except used to report errors, makes debug easier
-#define EXCEPTION_GUARD
+//#define EXCEPTION_GUARD
 
 void StudioCommon::splitPluginArguments()
 {
@@ -202,7 +202,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app)
   app->add_option_function<OSPDataType>(
     "--voxelType",
     [&](const OSPDataType &voxelType) {
-      volumeParams->createChild("voxelType", "int", (int)voxelType);
+      volumeParams->createChild("voxelType", "OSPDataType", voxelType);
     },
     "Set the voxel type for imported volumes"
   )->transform(CLI::CheckedTransformer(sg::volumeVoxelType));

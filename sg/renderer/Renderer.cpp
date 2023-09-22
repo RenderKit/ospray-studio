@@ -24,10 +24,10 @@ Renderer::Renderer(std::string type)
       "transparent background color and alpha (RGBA), if no map_backplate set",
       rgba(vec3f(0.f), 1.f)); // black, with opaque alpha
   createChild("pixelFilter",
-      "int",
+      "OSPPixelFilterType",
       "pixel filter used by the renderer for antialiasing\n"
       "(0=point, 1=box, 2=gauss, 3=mitchell, 4=blackman_harris)",
-      (int)pixelFilter);
+      pixelFilter);
 
   child("type").setSGNoUI();
   child("type").setSGOnly();
@@ -36,7 +36,8 @@ Renderer::Renderer(std::string type)
   child("maxPathLength").setMinMax(0, 1000);
   child("minContribution").setMinMax(0.f, 10.f);
   child("varianceThreshold").setMinMax(0.f, 100.f);
-  child("pixelFilter").setMinMax(0, 4);
+  child("pixelFilter").setMinMax(OSP_PIXELFILTER_POINT,
+      OSP_PIXELFILTER_BLACKMAN_HARRIS);
 
   setHandle(cpp::Renderer(child("type").valueAs<std::string>()));
 }

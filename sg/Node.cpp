@@ -279,7 +279,7 @@ namespace ospray {
     commit();
     traverse<RenderScene>();
   }
-  
+
   box3f Node::bounds()
   {
     GetBounds visitor;
@@ -497,6 +497,27 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(Affine3fNode, affine3f);
   OSP_REGISTER_SG_NODE_NAME(QuaternionfNode, quaternionf);
   OSP_REGISTER_SG_NODE_NAME(Linear2fNode, linear2f);
+
+  OSP_REGISTER_SG_NODE_NAME(OSPAMRMethodNode, OSPAMRMethod);
+  OSP_REGISTER_SG_NODE_NAME(OSPCurveBasisNode, OSPCurveBasis);
+  OSP_REGISTER_SG_NODE_NAME(OSPCurveTypeNode, OSPCurveType);
+  OSP_REGISTER_SG_NODE_NAME(OSPDataTypeNode, OSPDataType);
+  OSP_REGISTER_SG_NODE_NAME(OSPDevicePropertyNode, OSPDeviceProperty);
+  OSP_REGISTER_SG_NODE_NAME(OSPErrorNode, OSPError);
+  OSP_REGISTER_SG_NODE_NAME(OSPFrameBufferChannelNode, OSPFrameBufferChannel);
+  OSP_REGISTER_SG_NODE_NAME(OSPFrameBufferFormatNode, OSPFrameBufferFormat);
+  OSP_REGISTER_SG_NODE_NAME(OSPIntensityQuantityNode, OSPIntensityQuantity);
+  OSP_REGISTER_SG_NODE_NAME(OSPLogLevelNode, OSPLogLevel);
+  OSP_REGISTER_SG_NODE_NAME(OSPPixelFilterTypeNode, OSPPixelFilterType);
+  OSP_REGISTER_SG_NODE_NAME(OSPShutterTypeNode, OSPShutterType);
+  OSP_REGISTER_SG_NODE_NAME(OSPStereoModeNode, OSPStereoMode);
+  OSP_REGISTER_SG_NODE_NAME(OSPSubdivisionModeNode, OSPSubdivisionMode);
+  OSP_REGISTER_SG_NODE_NAME(OSPSyncEventNode, OSPSyncEvent);
+  OSP_REGISTER_SG_NODE_NAME(OSPTextureFilterNode, OSPTextureFilter);
+  OSP_REGISTER_SG_NODE_NAME(OSPTextureFormatNode, OSPTextureFormat);
+  OSP_REGISTER_SG_NODE_NAME(OSPUnstructuredCellTypeNode, OSPUnstructuredCellType);
+  OSP_REGISTER_SG_NODE_NAME(OSPVolumeFilterNode, OSPVolumeFilter);
+  OSP_REGISTER_SG_NODE_NAME(OSPVolumeFormatNode, OSPVolumeFormat);
 
   // "filename" specialization allows differentiating purpose of string node.
   OSP_REGISTER_SG_NODE_NAME(StringNode, filename);

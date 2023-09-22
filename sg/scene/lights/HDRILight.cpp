@@ -38,7 +38,7 @@ HDRILight::HDRILight() : Light("hdri")
       "direction to which the center of the texture will be mapped",
       vec3f(0.f, 0.f, 1.f));
 
-  child("intensityQuantity") = uint8_t(OSP_INTENSITY_QUANTITY_SCALE);
+  child("intensityQuantity") = OSP_INTENSITY_QUANTITY_SCALE;
   child("intensityQuantity").setReadOnly();
 
   child("up").setMinMax(-1.f, 1.f); // per component min/max
