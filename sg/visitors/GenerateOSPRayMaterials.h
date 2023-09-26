@@ -47,7 +47,7 @@ inline bool GenerateOSPRayMaterials::operator()(Node &node, TraversalContext &)
   if (!mat["handles"].hasChild(rendererType)) {
     auto &matHandle = mat["handles"].createChild(rendererType,
         "Node",
-        cpp::Material(rendererType, mat.osprayMaterialType()));
+        cpp::Material(mat.osprayMaterialType()));
     for (auto &c : mat.children())
       if (c.second->subType() == "texture_2d"
           || c.second->subType() == "texture_volume")
