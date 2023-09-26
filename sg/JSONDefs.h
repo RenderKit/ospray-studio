@@ -103,6 +103,16 @@ inline void to_json(JSON &j, const Node &n)
 
 inline void from_json(const JSON &, Node &) {}
 
+// Helper for converting ambiguous json types to stronger "subType"
+#define CONVERT_TYPE(X)                                                        \
+  {                                                                            \
+    if (j["subType"] == #X) {                                                  \
+      n->setValue(X(n->valueAs<int>()));                                       \
+      if (n->hasMinMax())                                                      \
+        n->setMinMax(X(n->minAs<int>()), X(n->maxAs<int>()));                  \
+    }                                                                          \
+  }
+
 inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
   NodePtr n = nullptr;
 
@@ -150,23 +160,38 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
       n->setMinMax(minMax[0], minMax[1]);
     }
 
-    // JSON doesn't distinguish the following types.
-    // Need conversion based on subType.
+    // JSON doesn't distinguish the following types.  They are primitive type
+    // "int" and need conversion based on subType.
+
+    // OSPRay enum types
+    CONVERT_TYPE(OSPAMRMethod);
+    CONVERT_TYPE(OSPCurveBasis);
+    CONVERT_TYPE(OSPCurveType);
+    CONVERT_TYPE(OSPDataType);
+    CONVERT_TYPE(OSPDeviceProperty);
+    CONVERT_TYPE(OSPError);
+    CONVERT_TYPE(OSPFrameBufferChannel);
+    CONVERT_TYPE(OSPFrameBufferFormat);
+    CONVERT_TYPE(OSPIntensityQuantity);
+    CONVERT_TYPE(OSPLogLevel);
+    CONVERT_TYPE(OSPPixelFilterType);
+    CONVERT_TYPE(OSPShutterType);
+    CONVERT_TYPE(OSPStereoMode);
+    CONVERT_TYPE(OSPSubdivisionMode);
+    CONVERT_TYPE(OSPSyncEvent);
+    CONVERT_TYPE(OSPTextureFilter);
+    CONVERT_TYPE(OSPTextureFormat);
+    CONVERT_TYPE(OSPUnstructuredCellType);
+    CONVERT_TYPE(OSPVolumeFilter);
+    CONVERT_TYPE(OSPVolumeFormat);
 
     // integer to uint8_t
-    if (j["subType"] == "uchar") {
-      n->setValue(uint8_t(n->valueAs<int>()));
-      if (n->hasMinMax())
-        n->setMinMax(uint8_t(n->minAs<int>()), uint8_t(n->maxAs<int>()));
-    }
+    using uchar = uint8_t;
+    CONVERT_TYPE(uchar);
 
-    // vec2f to range1f
-    if (j["subType"] == "range1f") {
-      vec2f v(n->valueAs<vec2f>());
-      n->setValue(math::range1f(v[0], v[1]));
-      if (n->hasMinMax())
-        n->setMinMax(range1f(n->minAs<float>()), range1f(n->maxAs<float>()));
-    }
+    // vec2f to range1f - in json, these two are identical
+    CONVERT_TYPE(range1f);
+
   } else {
     n = createNode(j["name"], j["subType"]);
   }
@@ -359,39 +384,55 @@ inline void from_json(const JSON &j, quaternionf &q)
 
 namespace utility {
 
+template <typename T>
+inline void captureType(JSON &j, const Any &a)
+{
+  if (a.is<T>())
+    j = a.get<T>();
+}
+
 inline void to_json(JSON &j, const Any &a)
 {
-  if (a.is<int>())
-    j = a.get<int>();
-  else if (a.is<bool>())
-    j = a.get<bool>();
-  else if (a.is<uint8_t>())
-    j = a.get<uint8_t>();
-  else if (a.is<uint32_t>())
-    j = a.get<uint32_t>();
-  else if (a.is<float>())
-    j = a.get<float>();
-  else if (a.is<std::string>())
-    j = a.get<std::string>();
-  else if (a.is<math::vec2i>())
-    j = a.get<math::vec2i>();
-  else if (a.is<math::vec2f>())
-    j = a.get<math::vec2f>();
-  else if (a.is<math::range1f>())
-    j = a.get<math::range1f>();
-  else if (a.is<math::vec3i>())
-    j = a.get<math::vec3i>();
-  else if (a.is<math::vec3f>())
-    j = a.get<math::vec3f>();
-  else if (a.is<math::vec4f>())
-    j = a.get<math::vec4f>();
-  else if (a.is<math::LinearSpace2f>())
-    j = a.get<math::LinearSpace2f>();
-  else if (a.is<math::AffineSpace3f>())
-    j = a.get<math::AffineSpace3f>();
-  else if (a.is<math::quaternionf>())
-    j = a.get<math::quaternionf>();
-  else {
+  j = {}; // start with empty
+  captureType<int>(j, a);
+  captureType<bool>(j, a);
+  captureType<uint8_t>(j, a);
+  captureType<uint32_t>(j, a);
+  captureType<float>(j, a);
+  captureType<std::string>(j, a);
+  captureType<math::vec2i>(j, a);
+  captureType<math::vec2f>(j, a);
+  captureType<math::range1f>(j, a);
+  captureType<math::vec3i>(j, a);
+  captureType<math::vec3f>(j, a);
+  captureType<math::vec4f>(j, a);
+  captureType<math::LinearSpace2f>(j, a);
+  captureType<math::AffineSpace3f>(j, a);
+  captureType<math::quaternionf>(j, a);
+
+  // OSPRay enum types
+  captureType<OSPAMRMethod>(j, a);
+  captureType<OSPCurveBasis>(j, a);
+  captureType<OSPCurveType>(j, a);
+  captureType<OSPDataType>(j, a);
+  captureType<OSPDeviceProperty>(j, a);
+  captureType<OSPError>(j, a);
+  captureType<OSPFrameBufferChannel>(j, a);
+  captureType<OSPFrameBufferFormat>(j, a);
+  captureType<OSPIntensityQuantity>(j, a);
+  captureType<OSPLogLevel>(j, a);
+  captureType<OSPPixelFilterType>(j, a);
+  captureType<OSPShutterType>(j, a);
+  captureType<OSPStereoMode>(j, a);
+  captureType<OSPSubdivisionMode>(j, a);
+  captureType<OSPSyncEvent>(j, a);
+  captureType<OSPTextureFilter>(j, a);
+  captureType<OSPTextureFormat>(j, a);
+  captureType<OSPUnstructuredCellType>(j, a);
+  captureType<OSPVolumeFilter>(j, a);
+  captureType<OSPVolumeFormat>(j, a);
+
+  if (j.is_null()) {
     std::cerr << "JSONDefs.h: :^) strikes back!!!" << std::endl;
     j = ":^)";
   }
@@ -399,7 +440,8 @@ inline void to_json(JSON &j, const Any &a)
 
 inline void from_json(const JSON &j, Any &a)
 {
-  if (j.is_primitive()) { // string, number , bool, null, or binary
+  if (j.is_primitive()) { // string, number , bool, null, or binary, basic types
+                          // This will also include OSPRay enums, as ints
     if (j.is_null())
       return;
     else if (j.is_boolean())

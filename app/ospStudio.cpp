@@ -18,7 +18,7 @@ using namespace ospray;
 using rkcommon::removeArgs;
 
 // Disables the main try/except used to report errors, makes debug easier
-//#define EXCEPTION_GUARD
+#define EXCEPTION_GUARD
 
 void StudioCommon::splitPluginArguments()
 {
