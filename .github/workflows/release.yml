@@ -68,8 +68,9 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
       # Run the rockylinux 8.7 build on the ubuntu 18.04 image as a test, and because it has vncserver installed
-      image: ubuntu:18.04
-      pre-cmd: apt install libglu1-mesa
+      #image: ubuntu:18.04
+      image: rockylinux:8.7-tgt-rebuild
+      pre-cmd: yum -y install tigervnc-server libglu1-mesa
       cmd: |
         module load intel/2023.0
         tar -xzf build/package/ospray_studio*.gz
@@ -117,7 +118,7 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/cache-ospray.yml
     with:
-      image: centos:7
+      image: rockylinux:8.7
       ospray-version: devel
       rkcommon-version: devel
 
@@ -131,11 +132,11 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
       coverity: true
-      image: centos:7
+      image: rockylinux:8.7
       project: OSPRay Studio
       ignore-files: pysg.cpp
       prebuild: >
-        module load cmake/3.15.2 &&
+        module load cmake/3.25.3 &&
         export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }} &&
         export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }} &&
         export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install &&
