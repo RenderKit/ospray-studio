@@ -161,14 +161,20 @@ jobs:
       artifact-out: test-run-rocky8-7-dev
       artifact-on-failure: true
 
-  ### KW Jobs ###
-# static-analysis:
-#   secrets: inherit
-#   uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/ospray-studio
-#   with:
-#     project: ospray_studio
-#     image: ubuntu:18.04-tgt-klockwork
-#     prebuild: |
-#       cmake -L -S . -B build -DCMAKE_INSTALL_PREFIX=install -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
-#     build: cmake --build build
-
+  ### Devel Coverity Job ###
+  static-analysis:
+    needs: cache-ospray-rocky8-7
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@devel
+    with:
+      coverity: true
+      project: ospray_studio
+      ignore-files: pysg.cpp
+      prebuild: >
+        module load cmake/3.25.3 &&
+        export CACHE_DIR=${{ needs.cache-ospray-rocky8-7.outputs.cache-dir }} &&
+        export OSPRAY_VER=${{ needs.cache-ospray-rocky8-7.outputs.ospray-version }} &&
+        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install &&
+        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb &&
+        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
+      build: cmake --build build
