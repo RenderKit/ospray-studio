@@ -174,7 +174,7 @@ jobs:
         module load cmake/3.25.3 &&
         export CACHE_DIR=${{ needs.cache-ospray-rocky8-7.outputs.cache-dir }} &&
         export OSPRAY_VER=${{ needs.cache-ospray-rocky8-7.outputs.ospray-version }} &&
-        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install &&
+        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/lib64/cmake/ospray-3.0.0 &&
         export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb &&
         cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
       build: cmake --build build
