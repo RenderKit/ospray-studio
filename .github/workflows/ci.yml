@@ -165,11 +165,9 @@ jobs:
   static-analysis:
     needs: cache-ospray-rocky8-7
     secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@devel
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
-      coverity: true
-      project: ospray_studio
-      ignore-files: pysg.cpp
+      project: OSPRay Studio
       prebuild: >
         module load cmake/3.25.3 &&
         export CACHE_DIR=${{ needs.cache-ospray-rocky8-7.outputs.cache-dir }} &&
