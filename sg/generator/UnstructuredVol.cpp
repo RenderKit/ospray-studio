@@ -25,7 +25,7 @@ OSP_REGISTER_SG_NODE_NAME(UnstructuredVol, generator_unstructured_volume);
 UnstructuredVol::UnstructuredVol()
 {
   auto &parameters = child("parameters");
-  parameters.sgOnly();
+  parameters.setSGOnly();
 
   // define hexahedron parameters
   parameters.createChild("hSize", "float", .4f);

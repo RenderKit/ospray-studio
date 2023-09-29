@@ -1147,13 +1147,11 @@ NodePtr GLTFData::createOSPMesh(
       ospGeom->createChildData("sphere.texcoord", ospGeom->vt, true);
   }
 
-  if (ospGeom) {
-    // add one for default, "no material" material
-    auto materialID = prim.material + 1 + baseMaterialOffset;
-    ospGeom->mIDs.resize(ospGeom->skinnedPositions.size(), materialID);
-    ospGeom->createChildData("material", ospGeom->mIDs, true);
-    ospGeom->child("material").setSGOnly();
-  }
+  // add one for default, "no material" material
+  auto materialID = prim.material + 1 + baseMaterialOffset;
+  ospGeom->mIDs.resize(ospGeom->skinnedPositions.size(), materialID);
+  ospGeom->createChildData("material", ospGeom->mIDs, true);
+  ospGeom->child("material").setSGOnly();
 
   return ospGeom;
 }
