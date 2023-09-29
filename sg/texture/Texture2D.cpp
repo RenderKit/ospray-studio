@@ -537,12 +537,13 @@ void Texture2D::flipImage()
   uint32_t height = params.size.y;
   int stride = width * params.depth * params.components;
   tasking::parallel_for(height >> 1, [&](uint32_t row) {
-    uint8_t temp[stride];
+    uint8_t *temp = (uint8_t *)malloc(stride);
     uint8_t *src = (uint8_t *)texelData.get() + stride * row;
     uint8_t *dst = (uint8_t *)texelData.get() + (height - 1 - row) * stride;
     memcpy(temp, dst, stride);
     memcpy(dst, src, stride);
     memcpy(src, temp, stride);
+    free(temp);
   });
   isFlipped ^= true;
 }
