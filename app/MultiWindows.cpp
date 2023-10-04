@@ -104,6 +104,43 @@ static const std::vector<std::string> g_lightTypes = {"ambient",
     "sunSky",
     "quad"};
 
+static
+void offaxisStereoCamera(vec3f LL, vec3f LR, vec3f UR, vec3f eye,
+                         vec3f &dirOUT, vec3f &upOUT,
+                         float &fovyOUT, float &aspectOUT,
+                         vec2f &imageStartOUT, vec2f &imageEndOUT)
+{
+  vec3f X = (LR-LL)/length(LR-LL);
+  vec3f Y = (UR-LR)/length(UR-LR);
+  vec3f Z = cross(X,Y);
+
+  dirOUT = -Z;
+  upOUT = Y;
+
+  // eye position relative to screen/wall
+  vec3f eyeP = eye-LL;
+
+  // distance from eye to screen/wall
+  float dist = dot(eyeP,Z);
+
+  float left   = dot(eyeP,X);
+  float right  = length(LR-LL)-left;
+  float bottom = dot(eyeP,Y);
+  float top    = length(UR-LR)-bottom;
+
+  float newWidth = left<right ? 2*right : 2*left;
+  float newHeight = bottom<top ? 2*top : 2*bottom;
+
+  fovyOUT = 2*atan(newHeight/(2*dist)) * 180 * M_1_PI;
+
+  aspectOUT = newWidth/newHeight;
+
+  imageStartOUT.x = left<right ? (right-left)/newWidth : 0.f;
+  imageStartOUT.y = bottom<top ? (top-bottom)/newHeight: 0.f;
+  imageEndOUT.x = right<left ? (left+right)/newWidth : 1.f;
+  imageEndOUT.y = top<bottom ? (bottom+top)/newHeight : 1.f;
+}
+
 std::vector<CameraState> g_camPath; // interpolated path through cameraStack
 int g_camSelectedStackIndex = 0;
 int g_camCurrentPathIndex = 0;
@@ -283,20 +320,6 @@ MultiWindows::MultiWindows(StudioCommon &_common)
     float mullionBottom = mullion[3];
     botLeftLocal += normalize(tl - bl) * mullionBottom;
     botRightLocal += normalize(tl - bl) * mullionBottom;
-
-    // update the camera
-    auto camera = frame->child("camera").nodeAs<sg::Camera>();
-    
-    camera->child("offAxisMode").setValue(true);
-    camera->child("position").setValue(eyePos);
-    camera->child("topLeft").setValue(topLeftLocal);
-    camera->child("botLeft").setValue(botLeftLocal);
-    camera->child("botRight").setValue(botRightLocal);
-
-    camera->child("aspect").setValue(length(botRightLocal - botLeftLocal) / length(topLeftLocal - botLeftLocal));
-    float angle = acos(dot(topLeftLocal, botLeftLocal) / (length(topLeftLocal) * length(botLeftLocal))) * 180.f / M_PI;
-    camera->child("fovy").setValue(angle);
-    camera->child("direction").setValue(vec3f{0,0,-1});
   }
 
   // further configure GLFW window based on rank
@@ -523,8 +546,7 @@ MultiWindows::MultiWindows(StudioCommon &_common)
 
   // set the initial state
   sharedState.camChanged = true;
-  auto camera = frame->child("camera").nodeAs<sg::Camera>();
-  sharedState.transform = camera->child("transform").valueAs<affine3f>();
+  sharedState.state = arcballCamera->getState();
   showUi = sg::sgMpiRank() == 0;
 
   // trigger window reshape events with current window size
@@ -616,12 +638,8 @@ void MultiWindows::mainLoop()
       }
 
       if (sharedState.camChanged) {
-        auto camera = frame->child("camera").nodeAs<sg::Camera>();
-        camera->child("transform").setValue(sharedState.transform);
-        camera->child("topLeft").setValue(xfmPoint(sharedState.transform, topLeftLocal));
-        camera->child("botLeft").setValue(xfmPoint(sharedState.transform, botLeftLocal));
-        camera->child("botRight").setValue(xfmPoint(sharedState.transform, botRightLocal));
-
+        arcballCamera->setState(sharedState.state);
+        updateCamera();
         sharedState.camChanged = false;
       }
     }
@@ -678,7 +696,7 @@ void MultiWindows::mainLoop()
         p->process("update");
 
       sharedState.camChanged = true;
-      sharedState.transform = arcballCamera->getTransform();
+      sharedState.state = arcballCamera->getState();
       sharedState.quit = glfwWindowShouldClose(glfwWindow) || g_quitNextFrame;
     }
     MPI_Barrier(MPI_COMM_WORLD);
@@ -792,6 +810,30 @@ void MultiWindows::updateCamera()
       }
     }
     camera->child("focusDistance").setValue(focusDistance);
+  }
+
+  {
+    affine3f t = arcballCamera->getTransform();
+    vec3f tl = xfmPoint(t, topLeftLocal);
+    vec3f bl = xfmPoint(t, botLeftLocal);
+    vec3f br = xfmPoint(t, botRightLocal);
+    vec3f tr = (tl - bl) + br;
+
+    vec3f eye = t.p;
+    vec3f dir, up;
+    float fovy, aspect;
+    vec2f imgStart, imgEnd;
+
+    // LL, LR, UR
+    offaxisStereoCamera(bl, br, tr, eye, dir, up, fovy, aspect, imgStart, imgEnd);
+
+    camera->child("fovy").setValue(fovy);
+    camera->child("aspect").setValue(aspect);
+    camera->child("position").setValue(eye);
+    camera->child("direction").setValue(dir);
+    camera->child("up").setValue(up);
+    camera->child("imageStart").setValue(imgStart);
+    camera->child("imageEnd").setValue(imgEnd);
   }
 }
 

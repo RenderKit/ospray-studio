@@ -57,7 +57,7 @@ struct SharedState
   bool quit;
 
   bool camChanged;
-  affine3f transform;
+  CameraState state;
 
   SharedState();
 };

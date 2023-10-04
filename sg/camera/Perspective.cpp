@@ -49,15 +49,6 @@ Perspective::Perspective() : Camera("perspective")
   child("interpupillaryDistance").setMinMax(0.f, 0.1f);
 
   child("aspect").setReadOnly();
-  
-  createChild("offAxisMode",
-      "bool",
-      "toggle off-axis projection mode",
-      false);
-  createChild("transform", "affine3f", affine3f(one));
-  createChild("topLeft", "vec3f", vec3f{-10.0f, 10.0f, -20.0f});
-  createChild("botLeft", "vec3f", vec3f{-10.0f, -10.0f, -20.0f});
-  createChild("botRight", "vec3f", vec3f{10.0f, -10.0f, -20.0f});
 }
 
 OSP_REGISTER_SG_NODE_NAME(Perspective, camera_perspective);
