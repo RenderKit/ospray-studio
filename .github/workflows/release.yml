@@ -70,7 +70,7 @@ jobs:
       # Run the rockylinux 8.7 build on the ubuntu 18.04 image as a test, and because it has vncserver installed
       #image: ubuntu:18.04
       image: rockylinux:8.7-tgt-rebuild
-      pre-cmd: yum -y install tigervnc-server libglu1-mesa
+      pre-cmd: yum -y install tigervnc-server mesa-libGLU
       cmd: |
         module load intel/2023.0
         tar -xzf build/package/ospray_studio*.gz
