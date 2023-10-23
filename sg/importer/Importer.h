@@ -218,5 +218,8 @@ inline void clearAssets()
 OSPSG_INTERFACE void importScene(
     std::shared_ptr<StudioContext> context, rkcommon::FileName &fileName);
 
+// for loading scene
+OSPSG_INTERFACE void importScene(
+    std::shared_ptr<StudioContext> context, std::string sceneDesc, std::string filesToImportDir = "");
 } // namespace sg
 } // namespace ospray

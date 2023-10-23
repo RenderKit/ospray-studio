@@ -57,7 +57,11 @@ struct SharedState
   bool quit;
 
   bool camChanged;
-  CameraState state;
+  CameraState camState;
+
+  bool sceneChanged;
+  int sceneStateSize;
+  std::string sceneState;
 
   SharedState();
 };
@@ -106,6 +110,8 @@ class MultiWindows : public StudioContext
   void updateCamera() override;
   void setCameraState(CameraState &cs) override;
   void refreshScene(bool resetCamera) override;
+  void clearScene();
+  nlohmann::ordered_json getSceneState();
   int whichLightType{-1};
   int whichCamera{0};
   std::string lightTypeStr{"ambient"};

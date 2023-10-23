@@ -157,6 +157,8 @@ double g_camMoveA = 0.0;
 double g_camMoveE = 0.0;
 double g_camMoveR = 0.0;
 
+bool g_syncStates = false;
+
 float lockAspectRatio = 0.0;
 
 sg::NodePtr g_copiedMat = nullptr;
@@ -413,6 +415,9 @@ MultiWindows::MultiWindows(StudioCommon &_common)
               case GLFW_KEY_V:
                 activeWindow->frame->child("camera").traverse<sg::PrintNodes>();
                 break;
+              case GLFW_KEY_R:
+                g_syncStates = true;
+                break;
               case GLFW_KEY_SPACE:
                 if (activeWindow->cameraStack.size() >= 2) {
                   g_animatingPath = !g_animatingPath;
@@ -545,8 +550,11 @@ MultiWindows::MultiWindows(StudioCommon &_common)
   refreshScene(true);
 
   // set the initial state
-  sharedState.camChanged = true;
-  sharedState.state = arcballCamera->getState();
+  sharedState.camChanged = false;
+  sharedState.camState = arcballCamera->getState();
+  sharedState.sceneChanged = false;
+  sharedState.sceneStateSize = 0;
+  sharedState.sceneState = "";
   showUi = sg::sgMpiRank() == 0;
 
   // trigger window reshape events with current window size
@@ -630,15 +638,45 @@ void MultiWindows::mainLoop()
   startNewOSPRayFrame();
 
   while (true) {
-    MPI_Bcast(&sharedState, sizeof(sharedState), MPI_BYTE, 0, MPI_COMM_WORLD);
-
     { // process changes in the shared state
+      MPI_Bcast(&sharedState.quit, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
       if (sharedState.quit) {
         break;
       }
 
+      // sync the scene
+      MPI_Bcast(&sharedState.sceneChanged, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+      if (sharedState.sceneChanged) {
+        MPI_Bcast(&sharedState.sceneStateSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        if (sg::sgMpiRank() != 0) {
+          sharedState.sceneState.resize(sharedState.sceneStateSize);
+        }
+
+        MPI_Bcast(const_cast<char*>(sharedState.sceneState.c_str()), sharedState.sceneStateSize, MPI_CHAR, 0, MPI_COMM_WORLD);
+        if (sg::sgMpiRank() != 0) {
+          try {
+            clearScene();
+            sg::importScene(shared_from_this(), sharedState.sceneState);
+            // arcballCamera->setState(sharedState.camState);
+            // updateCamera();
+          } catch (const std::exception &e) {
+            std::cerr << "Failed to sync the scene: '" << e.what() << "'!\n";
+            std::cerr << "   " << e.what() << std::endl;
+          } catch (...) {
+            std::cerr << "Failed to sync the scene!\n";
+          }
+        }
+
+        sharedState.sceneStateSize = 0;
+        sharedState.sceneState = "";
+        sharedState.sceneChanged = false;
+      }
+
+      // sync the camera
+      MPI_Bcast(&sharedState.camChanged, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
       if (sharedState.camChanged) {
-        arcballCamera->setState(sharedState.state);
+        MPI_Bcast(&sharedState.camState, sizeof(sharedState.camState), MPI_BYTE, 0, MPI_COMM_WORLD);
+        arcballCamera->setState(sharedState.camState);
         updateCamera();
         sharedState.camChanged = false;
       }
@@ -695,9 +733,17 @@ void MultiWindows::mainLoop()
       for (auto &p : pluginPanels)
         p->process("update");
 
-      sharedState.camChanged = true;
-      sharedState.state = arcballCamera->getState();
       sharedState.quit = glfwWindowShouldClose(glfwWindow) || g_quitNextFrame;
+
+      sharedState.camChanged = true;
+      sharedState.camState = arcballCamera->getState();
+      
+      if (g_syncStates) {
+        sharedState.sceneChanged = true;
+        sharedState.sceneState = getSceneState().dump();
+        sharedState.sceneStateSize = sharedState.sceneState.size();
+        g_syncStates = false;
+      }
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
@@ -1429,6 +1475,51 @@ void MultiWindows::refreshScene(bool resetCam)
   fb.resetAccumulation();
 }
 
+void MultiWindows::clearScene() 
+{
+  // Cancel any in-progress frame
+  frame->cancelFrame();
+  frame->waitOnFrame();
+  frame->remove("world");
+  lightsManager->clear();
+  animationManager->getAnimations().clear();
+  animationManager->setTimeRange(range1f(rkcommon::math::empty));
+  animationWidget->update();
+
+  // TODO: lights caching to avoid complete re-importing after clearing
+  sg::clearAssets();
+
+  // Recreate MaterialRegistry, clearing old registry and all materials
+  // Then, add the new one to the frame and set the renderer type
+  baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
+      "baseMaterialRegistry", "materialRegistry");
+  frame->add(baseMaterialRegistry);
+  baseMaterialRegistry->updateRendererType();
+
+  scene = "";
+  refreshScene(true);
+}
+
+nlohmann::ordered_json MultiWindows::getSceneState() {
+  auto &currentCamera = frame->child("camera");
+  JSON camera = {
+      {"cameraIdx", currentCamera.child("cameraId").valueAs<int>()},
+      {"cameraToWorld", arcballCamera->getTransform()}};
+  if (currentCamera.hasChild("cameraSettingsId"))
+    camera["cameraSettingsIdx"] =
+        currentCamera.child("cameraSettingsId").valueAs<int>();
+  JSON animation;
+  animation = {{"time", animationManager->getTime()},
+      {"shutter", animationManager->getShutter()}};
+  JSON j = {{"world", frame->child("world")},
+      {"camera", camera},
+      {"lightsManager", *lightsManager},
+      {"materialRegistry", *baseMaterialRegistry},
+      {"animation", animation}};
+
+  return j;
+}
+
 void MultiWindows::addToCommandLine(std::shared_ptr<CLI::App> app) {
   app->add_option(
     "--displayConfig",
@@ -1669,22 +1760,7 @@ void MultiWindows::buildMainMenuFile()
     if (ImGui::BeginMenu("Save")) {
       if (ImGui::MenuItem("Scene (entire)")) {
         std::ofstream dump("studio_scene.sg");
-        auto &currentCamera = frame->child("camera");
-        JSON camera = {
-            {"cameraIdx", currentCamera.child("cameraId").valueAs<int>()},
-            {"cameraToWorld", arcballCamera->getTransform()}};
-        if (currentCamera.hasChild("cameraSettingsId"))
-          camera["cameraSettingsIdx"] =
-              currentCamera.child("cameraSettingsId").valueAs<int>();
-        JSON animation;
-        animation = {{"time", animationManager->getTime()},
-            {"shutter", animationManager->getShutter()}};
-        JSON j = {{"world", frame->child("world")},
-            {"camera", camera},
-            {"lightsManager", *lightsManager},
-            {"materialRegistry", *baseMaterialRegistry},
-            {"animation", animation}};
-        dump << j.dump();
+        dump << getSceneState().dump();
       }
 
       ImGui::Separator();
@@ -1814,27 +1890,7 @@ void MultiWindows::buildMainMenuEdit()
     ImGui::SameLine(ImGui::GetWindowWidth()-(8*ImGui::GetFontSize()));
 
     if (ImGui::Button("Yes, clear it")) {
-      // Cancel any in-progress frame
-      frame->cancelFrame();
-      frame->waitOnFrame();
-      frame->remove("world");
-      lightsManager->clear();
-      animationManager->getAnimations().clear();
-      animationManager->setTimeRange(range1f(rkcommon::math::empty));
-      animationWidget->update();
-
-      // TODO: lights caching to avoid complete re-importing after clearing
-      sg::clearAssets();
-
-      // Recreate MaterialRegistry, clearing old registry and all materials
-      // Then, add the new one to the frame and set the renderer type
-      baseMaterialRegistry = sg::createNodeAs<sg::MaterialRegistry>(
-          "baseMaterialRegistry", "materialRegistry");
-      frame->add(baseMaterialRegistry);
-      baseMaterialRegistry->updateRendererType();
-
-      scene = "";
-      refreshScene(true);
+      clearScene();
       ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
