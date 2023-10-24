@@ -6,7 +6,7 @@
 ##
 
 if(NOT DEFINED BENCHMARK_VERSION)
-  set(BENCHMARK_VERSION 1.5.5)
+  set(BENCHMARK_VERSION 1.8.3)
 endif()
 
 ##

@@ -55,7 +55,7 @@ jobs:
           if [[ ! -d "${{ inputs.cache-dir }}/ospray-${{ inputs.ospray-version }}" ]]
           then
             echo "Building " ${{ inputs.cache-dir }}/ospray-${{ inputs.ospray-version }}
-            cmake -L -S ospray-${{ inputs.ospray-version }}/scripts/superbuild -B ospray-${{ inputs.ospray-version }}/build -DBUILD_OIDN=ON -DBUILD_EMBREE_FROM_SOURCE=ON -DBUILD_RKCOMMON_VERSION=${{ inputs.rkcommon-version }} -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF -DTBB_VERSION=2021.9.0
+            cmake -L -S ospray-${{ inputs.ospray-version }}/scripts/superbuild -B ospray-${{ inputs.ospray-version }}/build -DBUILD_OIDN=ON -DBUILD_EMBREE_FROM_SOURCE=ON -DBUILD_RKCOMMON_VERSION=${{ inputs.rkcommon-version }} -DINSTALL_IN_SEPARATE_DIRECTORIES=OFF
             cmake --build ospray-${{ inputs.ospray-version }}/build
             cp -r ospray-${{ inputs.ospray-version }} ${{ inputs.cache-dir }}
           else
