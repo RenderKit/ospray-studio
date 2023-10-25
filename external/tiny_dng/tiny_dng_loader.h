@@ -32,6 +32,7 @@ THE SOFTWARE.
 // https://www.adobe.com/content/dam/Adobe/en/products/photoshop/pdfs/dng_spec_1.4.0.0.pdf
 // }
 
+#include <cstdint>
 #include <string>
 #include <vector>
 

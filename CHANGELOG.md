@@ -7,7 +7,7 @@ Version History
 
 - Features and Improvements
   - OSPRay v3 Compatibility:<br>
-    - Intel Xe GPU support: launch Studio with parameters
+    - Intel Xe GPU beta support: launch Studio with parameters
       `--osp:load-modules=gpu --osp:device=gpu`
     - Add OSPRay v3 enum compatibility, tightened type-checking on all enum usage
     - Add OSPRay v3 enum type comprehension to json for .sg files<br>

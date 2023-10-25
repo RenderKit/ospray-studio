@@ -789,7 +789,8 @@ void GLTFData::visitNode(NodePtr sgNode,
   // create child animate camera for all camera nodes added to scene hierarchy,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
-  if (n.camera != -1 && !importCameras && cameras) {
+  if (n.camera != -1 && !importCameras && cameras
+      && cameras->contains(n.name)) {
     // add camera from existing .sg cameras
     auto camera = cameras->at(n.name);
     newXfm->add(camera);

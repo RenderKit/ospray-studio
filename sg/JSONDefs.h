@@ -190,8 +190,12 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
     CONVERT_TYPE(uchar);
 
     // vec2f to range1f - in json, these two are identical
-    CONVERT_TYPE(range1f);
-
+    if (j["subType"] == "range1f") {
+      vec2f v(n->valueAs<vec2f>());
+      n->setValue(math::range1f(v[0], v[1]));
+      if (n->hasMinMax())
+        n->setMinMax(range1f(n->minAs<float>()), range1f(n->maxAs<float>()));
+    }
   } else {
     n = createNode(j["name"], j["subType"]);
   }
