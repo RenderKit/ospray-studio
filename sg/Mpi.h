@@ -83,6 +83,13 @@ inline int sgMpiWorldSize()
     return sgMPI.mpiWorldSize;
 }
 
+inline void sgMpiBarrier()
+{
+#ifdef USE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
+}
+
 inline bool compute_divisor(int x, int &divisor)
 {
     //Find the first half of possible divisors

@@ -20,8 +20,7 @@ AmbientLight::AmbientLight() : Light("ambient")
 {
   // Ambient should be invisible by default, not directly viewable
   child("visible").setValue(false);
-  child("intensityQuantity")
-      .setValue(uint8_t(OSP_INTENSITY_QUANTITY_IRRADIANCE));
+  child("intensityQuantity").setValue(OSP_INTENSITY_QUANTITY_IRRADIANCE);
 }
 
 } // namespace sg

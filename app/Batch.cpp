@@ -250,7 +250,7 @@ void BatchContext::refreshRenderer()
   frame->createChild("renderer", "renderer_" + optRendererTypeStr);
   auto &r = frame->childAs<sg::Renderer>("renderer");
 
-  r["pixelFilter"] = (int)optPF;
+  r["pixelFilter"] = optPF;
   r["backgroundColor"] = optBackGroundColor;
   r["pixelSamples"] = optSPP;
   r["varianceThreshold"] = optVariance;
@@ -566,7 +566,7 @@ void BatchContext::updateCamera()
   }
 
   if (camera->hasChild("stereoMode"))
-      camera->child("stereoMode").setValue((int)optStereoMode);
+      camera->child("stereoMode").setValue((OSPStereoMode)optStereoMode);
 
   if (camera->hasChild("interpupillaryDistance"))
     camera->child("interpupillaryDistance").setValue(optInterpupillaryDistance);

@@ -72,8 +72,11 @@ class SearchWidget
   {
     // Set the new selected result
     selectedResultName = selectedNode.name();
-    selectedResultParent =
-        selectedNode.parents().front()->nodeAs<ospray::sg::Node>();
+    // In case the user has selected upward to the root node
+    selectedResultParent = selectedNode.parents().empty()
+        ? lastRoot->nodeAs<ospray::sg::Node>()
+        : selectedNode.parents().front()->nodeAs<ospray::sg::Node>();
+
     selectedIndex = -1;
     allDisplayItems.clear();
   }
@@ -90,7 +93,7 @@ class SearchWidget
   int numItemsInd{0};
   int numItemsPerPage{10};
   float childHeight{numItemsPerPage * ImGui::GetTextLineHeightWithSpacing()};
-  int numPages{0};
+  int numPages{1};
   int currentPage{1};
   std::string paginateLabel{""};
 
@@ -100,9 +103,12 @@ class SearchWidget
   {
     resultsCount =
         int(searched ? searchResults.size() : allDisplayItems.size());
-    numPages = std::max(resultsCount / numItemsPerPage, 1);
+    numPages =
+        std::max(int(std::ceil(float(resultsCount) / numItemsPerPage)), 1);
     paginateLabel = "of " + std::to_string(numPages) + "##currentPage";
     currentPage = std::min(currentPage, numPages);
+    childHeight = std::min(childHeight, (resultsCount + 1)
+        * ImGui::GetTextLineHeightWithSpacing());
   };
 
   // Number of children under the root matching type in displayTypes

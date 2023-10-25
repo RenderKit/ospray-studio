@@ -14,7 +14,7 @@ option(ENABLE_OPENIMAGEIO "Enable OpenImageIO support" OFF)
 if(ENABLE_OPENIMAGEIO)
   include(oiio)
 else()
-  message(STATUS "Building without OpenImageIO support. Using stb_image instead.")
+  message(STATUS "Building without OpenImageIO support.")
 endif()
 
 ## OpenVDB support ##
@@ -174,6 +174,8 @@ PUBLIC
   json
 PRIVATE
   stb_image
+  tiny_exr
+  tiny_dng
   tiny_obj_loader
   tiny_gltf
 )

@@ -82,7 +82,7 @@ struct CameraStack
   CameraState slerp(
       const CameraState &from, const CameraState &to, float frac) const
   {
-    CameraState cs;
+    CameraState cs{};
 
     cs.centerTranslation = lerp(frac, from.centerTranslation, to.centerTranslation);
     cs.translation = lerp(frac, from.translation, to.translation);

@@ -25,7 +25,7 @@ OSP_REGISTER_SG_NODE_NAME(UnstructuredVol, generator_unstructured_volume);
 UnstructuredVol::UnstructuredVol()
 {
   auto &parameters = child("parameters");
-  parameters.sgOnly();
+  parameters.setSGOnly();
 
   // define hexahedron parameters
   parameters.createChild("hSize", "float", .4f);
@@ -166,7 +166,7 @@ void UnstructuredVol::generateData()
   std::vector<uint32_t> cells = {0, 8, 14, 18};
 
   // define cell types
-  std::vector<uint8_t> cellTypes = {
+  std::vector<OSPUnstructuredCellType> cellTypes = {
       OSP_HEXAHEDRON, OSP_WEDGE, OSP_TETRAHEDRON, OSP_PYRAMID};
 
   auto &volume = tf.createChild("unstructured_volume", "volume_unstructured");

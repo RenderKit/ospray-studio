@@ -23,15 +23,17 @@ def evaluate_metrics(reference, candidate):
         # ssim provides high scores one of the images is blured or the color space is shifted
         # further reading:
         # https://en.wikipedia.org/wiki/Structural_similarity
-        # "ssim": skimage.metrics.structural_similarity(reference, candidate, multichannel=True),
+        # "ssim": skimage.metrics.structural_similarity(reference, candidate, channel_axis=-1),
         
         # Mean Squared Error (MSE) is one of the most commonly used image quality measures, but receives strong criticism as
         # it doesn't reflect the way the human visual systems perceive images very well. An image pair with
         # high MSE might still look very similar to a human.
-        "mse": skimage.metrics.mean_squared_error(reference, candidate),
+        # "mse": skimage.metrics.mean_squared_error(reference, candidate),
+
         # Peak Signal to Noise Ratio (PSNR) is based on MSE and brought to a logarithmic scale in the decibel unit
-        #"psnr": skimage.metrics.peak_signal_noise_ratio(reference, candidate),
+        # "psnr": skimage.metrics.peak_signal_noise_ratio(reference, candidate),
         
+
         # Normalized Root MSE (NRMSE)
         # "nrmse": skimage.metrics.normalized_root_mse(reference, candidate),
         
@@ -45,7 +47,7 @@ def evaluate_metrics(reference, candidate):
         # "vif": vifp(reference, candidate),
         
         # Universal Quality Index (UQI)
-        # "uqi": uqi(reference, candidate),
+        "uqi": uqi(reference, candidate),
     }
     
 def evaluate_passed(metrics, threshold):
@@ -59,7 +61,8 @@ def evaluate_passed(metrics, threshold):
         # PSNR for image compression in 8bit is typically in the range [30, 50]
         # "psnr": metrics["psnr"] > 20.0, 
         # MSE 
-        "mse": metrics["mse"] > threshold
+        #"mse": metrics["mse"] > threshold
+        "uqi": metrics["uqi"] > threshold
     }
 
 def print_report(metrics_report):
@@ -110,10 +113,10 @@ def normalize_images(reference, candidate):
     return reference, candidate
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Compare two images with MSE.')
+    parser = argparse.ArgumentParser(description='Compare two images with UQI.')
     parser.add_argument("--reference", "-g", help="Gold image for comparison", default="")
     parser.add_argument("--candidate", "-c", help="Image to be compared", default="")
-    parser.add_argument("--mse", "-m", help="Use mse to measure difference.")
+    parser.add_argument("--uqi", "-q", help="Use uqi to measure difference.")
     args = parser.parse_args()
 
     reference_path = Path(args.reference)
@@ -126,12 +129,13 @@ if __name__ == "__main__":
     reference_image, candidate_image = normalize_images(reference_image, candidate_image)
 
     # Compute metrics and compare images
-    results = evaluate(reference_image, candidate_image, float(args.mse))
-    if float(results["metrics"]["mse"]) > float(args.mse):
-        print("Failure: MSE " + str(results["metrics"]["mse"]) + " is greater than the threshold " + args.mse)
+    results = evaluate(reference_image, candidate_image, float(args.uqi))
+    print_report(results)
+    if not results["passed"]["uqi"]:
+        print("Failure: UQI " + str(results["metrics"]["uqi"]) + " is lower than the threshold " + args.uqi)
         sys.exit(-1)
     else:
-        print("Success: MSE " + str(results["metrics"]["mse"]) + " is less than the threshold " + args.mse)
+        print("Success: UQI " + str(results["metrics"]["uqi"]) + " is greater than the threshold " + args.uqi)
         sys.exit(0)
     
     # CLI output

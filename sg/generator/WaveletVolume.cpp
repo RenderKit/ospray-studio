@@ -101,7 +101,6 @@ void WaveletVolume::generateData()
       }
     });
 
-    volume.createChild("voxelType") = int(OSP_FLOAT);
     volume.createChild("gridOrigin", "vec3f", brick_ghostBounds.lower);
     volume.createChild("gridSpacing", "vec3f", gridSpacing);
     volume.createChildData("data", brick_ghostDims, 0, voxels.data());
@@ -130,7 +129,6 @@ void WaveletVolume::generateData()
       }
     });
 
-    volume.createChild("voxelType") = int(OSP_FLOAT);
     volume.createChild("gridOrigin", "vec3f", gridOrigin);
     volume.createChild("gridSpacing", "vec3f", gridSpacing);
     volume.createChildData("data", dimensions, 0, voxels.data());

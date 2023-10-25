@@ -131,6 +131,7 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   virtual void importFiles(sg::NodePtr world) = 0;
   virtual void refreshScene(bool resetCam) = 0;
   virtual void updateCamera() = 0;
+  virtual void selectCamera() = 0;
   virtual void updateCameraIndices(uint32_t idx);
   virtual void loadCamJson() = 0;
   
@@ -155,13 +156,15 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
   StudioMode mode;
 
+  bool optReloadAssets{false};
+  bool optResetCameraOnLoad{true};
   std::string optRendererTypeStr{"pathtracer"};
   std::string optCameraTypeStr{"perspective"};
   bool optVerboseImporter{false};
   int optSPP{32};
   float optVariance{0.f}; // varianceThreshold
   sg::rgba optBackGroundColor{vec3f(0.0f), 1.f}; // default to black
-  OSPPixelFilterTypes optPF{OSP_PIXELFILTER_GAUSS};
+  OSPPixelFilterType optPF{OSP_PIXELFILTER_GAUSS};
   bool optDenoiser{false};
   bool optDenoiseFinalFrame{false};
   bool optGridEnable{false};

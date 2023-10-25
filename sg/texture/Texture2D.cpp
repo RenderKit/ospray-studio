@@ -2,10 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Texture2D.h"
+#include <memory>
 #include <sstream>
 #include "rkcommon/memory/malloc.h"
+#include "rkcommon/tasking/parallel_for.h"
 
 #include "stb_image.h"
+#include "tinyexr.h"
+#include "tiny_dng_loader.h"
 
 namespace ospray {
 namespace sg {
@@ -94,8 +98,8 @@ OSPTextureFormat Texture2D::osprayTextureFormat(int components)
       return OSP_TEXTURE_RGBA32F;
   }
 
-  std::cerr << "#osp:sg: INVALID format " << params.depth << ":"
-            << components << std::endl;
+  std::cerr << "#osp:sg: INVALID format " << params.depth << ":" << components
+            << std::endl;
   return OSP_TEXTURE_FORMAT_INVALID;
 }
 
@@ -110,12 +114,10 @@ void Texture2D::loadTexture_OIIO_readFile(std::unique_ptr<ImageInput> &in)
   const ImageSpec &spec = in->spec();
   const auto typeDesc = TypeDescFromC<T>::value();
 
-  std::shared_ptr<void> data(new T[params.size.product() * params.components]);
-  T *start = (T *)data.get()
-      + (params.flip ? (params.size.y - 1) * params.size.x * params.components
-                     : 0);
-  const long int stride =
-      (params.flip ? -1 : 1) * params.size.x * sizeof(T) * params.components;
+  std::shared_ptr<T> data(new T[params.size.product() * params.components],
+      std::default_delete<T[]>());
+  T *start = (T *)data.get();
+  const long int stride = params.size.x * sizeof(T) * params.components;
 
   bool success =
       in->read_image(typeDesc, start, AutoStride, stride, AutoStride);
@@ -165,7 +167,7 @@ void Texture2D::loadTexture_OIIO(const std::string &fileName)
 void Texture2D::loadTexture_PFM_readFile(FILE *file, float scaleFactor)
 {
   size_t size = params.size.product() * params.components;
-  std::shared_ptr<void> data(new float[size]);
+  std::shared_ptr<float> data(new float[size], std::default_delete<float[]>());
   const size_t dataSize = sizeof(size) * sizeof(float);
 
   int rc = fread(data.get(), dataSize, 1, file);
@@ -274,12 +276,85 @@ void Texture2D::loadTexture_PFM(const std::string &fileName)
 }
 
 //
+// EXR (via tinyEXR)
+//
+void Texture2D::loadTexture_EXR(const std::string &fileName)
+{
+  // XXX add support for layered EXR?
+  float *texels; // width * height * RGBA
+  int width;
+  int height;
+  const char *err = nullptr;
+
+  int ret = LoadEXR(&texels, &width, &height, fileName.c_str(), &err);
+  if (ret != TINYEXR_SUCCESS) {
+    if (err) {
+      fprintf(stderr, "ERR : %s\n", err);
+      std::cerr << "#osp:sg: failed to load EXR texture: " << err << std::endl;
+      FreeEXRErrorMessage(err); // release memory of error message.
+    }
+  } else {
+    params.size = vec2ul(width, height);
+    params.components = 4; // always rgba
+    params.depth = 4; // always float
+    size_t size = params.size.product() * params.components * params.depth;
+
+    std::shared_ptr<float> data(new float[size], std::default_delete<float[]>());
+    std::memcpy(data.get(), texels, size);
+
+    // Move shared_ptr ownership
+    texelData = data;
+
+    free(texels); // release memory of image data
+  }
+}
+
+//
+// TIFF (via tinyDNG)
+//
+void Texture2D::loadTexture_TIFF(const std::string &fileName)
+{
+  std::string warn, err;
+  std::vector<tinydng::DNGImage> images;
+
+  // Loads all images(IFD) in the DNG file to `images` array.
+  std::vector<tinydng::FieldInfo> custom_field_lists;
+  bool ret = tinydng::LoadDNG(fileName.c_str(), custom_field_lists, &images, &warn, &err);
+
+  if (!warn.empty()) {
+    std::cout << "Warn: " << warn << std::endl;
+  }
+
+  if (!err.empty()) {
+    std::cerr << "Err: " << err << std::endl;
+  }
+
+  if (ret) {
+    if (images.size() > 1)
+      std::cerr << "TIFF " << fileName
+                << " contains multiple images, only loading first one"
+                << std::endl;
+
+    const tinydng::DNGImage &image = images[0];
+    params.size = vec2ul(image.width, image.height);
+    params.components = image.samples_per_pixel;
+    params.depth = image.bits_per_sample >> 3;
+    size_t size = params.size.product() * params.components * params.depth;
+
+    std::shared_ptr<uint8_t> data(
+        new uint8_t[size], std::default_delete<uint8_t[]>());
+    std::memcpy(data.get(), image.data.data(), size);
+
+    // Move shared_ptr ownership
+    texelData = data;
+  }
+}
+
+//
 // STBi
 //
 void Texture2D::loadTexture_STBi(const std::string &fileName)
 {
-  stbi_set_flip_vertically_on_load(params.flip);
-
   const bool isHDR = stbi_is_hdr(fileName.c_str());
   const bool is16b = stbi_is_16_bit(fileName.c_str());
 
@@ -295,9 +370,6 @@ void Texture2D::loadTexture_STBi(const std::string &fileName)
     texels = (void *)stbi_load(
         fileName.c_str(), &width, &height, &params.components, 0);
 
-  // Set flip on load back to default, STBi maintains a static global.
-  stbi_set_flip_vertically_on_load(0);
-
   params.size = vec2ul(width, height);
   params.depth = isHDR ? 4 : is16b ? 2 : 1;
 
@@ -305,7 +377,8 @@ void Texture2D::loadTexture_STBi(const std::string &fileName)
     // XXX stbi uses malloc/free override these with our alignedMalloc/Free
     // (and implement a realloc?) to prevent this memcpy?
     size_t size = params.size.product() * params.components * params.depth;
-    std::shared_ptr<void> data(new uint8_t[size]);
+    std::shared_ptr<uint8_t> data(
+        new uint8_t[size], std::default_delete<uint8_t[]>());
     std::memcpy(data.get(), texels, size);
     texelData = data;
     stbi_image_free(texels);
@@ -332,14 +405,18 @@ bool Texture2D::checkForUDIM(FileName filename)
   if (hasUDIM())
     return true;
 
-  // Make sure base file even exists
-  std::ifstream f(fullName.c_str());
-  if (!f.good())
-    return false;
-
   // See if base tile "1001" is in the filename. If not, it's not a UDIM.
   auto found = fullName.rfind("1001");
   if (found == std::string::npos)
+    return false;
+
+  if (filename.canonical() == "")
+    std::cerr << "unable to find full path for UDIM file: " << filename
+              << std::endl;
+
+  // Make sure base file even exists
+  std::ifstream f(fullName.c_str());
+  if (!f.good())
     return false;
 
   // Strip off the "1001" and continue searching for other tiles
@@ -405,8 +482,9 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
   atlas->params = work->params;
   atlas->udim_params = work->udim_params;
   atlas->params.size *= udim_params.dims;
-  std::shared_ptr<void> data(
-      new uint8_t[atlas->params.size.product() * texelSize]);
+  std::shared_ptr<uint8_t> data(
+      new uint8_t[atlas->params.size.product() * texelSize],
+      std::default_delete<uint8_t[]>());
   atlas->texelData = data;
   auto atlasStride = atlas->params.size.x * texelSize;
 
@@ -429,9 +507,8 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
     // of the largest size, then scaling all tiles into the atlas.
     if (work->params.size != tileSize || work->params.depth != tileDepth
         || work->params.components != tileComponents) {
-      std::cerr
-          << "#osp:sg: udim tile size or format doesn't match, skipping: "
-          << tile.first << std::endl;
+      std::cerr << "#osp:sg: udim tile size or format doesn't match, skipping: "
+                << tile.first << std::endl;
       continue;
     }
 
@@ -453,6 +530,23 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
 }
 
 // Texture2D public methods /////////////////////////////////////////////////
+
+void Texture2D::flipImage()
+{
+  uint32_t width = params.size.x;
+  uint32_t height = params.size.y;
+  int stride = width * params.depth * params.components;
+  tasking::parallel_for(height >> 1, [&](uint32_t row) {
+    uint8_t *temp = (uint8_t *)malloc(stride);
+    uint8_t *src = (uint8_t *)texelData.get() + stride * row;
+    uint8_t *dst = (uint8_t *)texelData.get() + (height - 1 - row) * stride;
+    memcpy(temp, dst, stride);
+    memcpy(dst, src, stride);
+    memcpy(src, temp, stride);
+    free(temp);
+  });
+  isFlipped ^= true;
+}
 
 bool Texture2D::load(const FileName &_fileName,
     const bool _preferLinear,
@@ -489,7 +583,8 @@ bool Texture2D::load(const FileName &_fileName,
   } else {
     if (memory) {
       size_t size = params.size.product() * params.components * params.depth;
-      std::shared_ptr<void> data(new uint8_t[size]);
+      std::shared_ptr<uint8_t> data(
+          new uint8_t[size], std::default_delete<uint8_t[]>());
       std::memcpy(data.get(), memory, size);
       // Move shared_ptr ownership
       texelData = data;
@@ -502,7 +597,11 @@ bool Texture2D::load(const FileName &_fileName,
 #ifdef USE_OPENIMAGEIO
         loadTexture_OIIO(fileName);
 #else
-        if (_fileName.ext() == "pfm")
+        if (_fileName.ext() == "exr")
+          loadTexture_EXR(fileName);
+        else if (_fileName.ext() == "tif" || _fileName.ext() == "tiff")
+          loadTexture_TIFF(fileName);
+        else if (_fileName.ext() == "pfm")
           loadTexture_PFM(fileName);
         else
           loadTexture_STBi(fileName);
@@ -517,6 +616,10 @@ bool Texture2D::load(const FileName &_fileName,
     params.nearestFilter = _nearestFilter;
     params.colorChannel = _colorChannel;
 
+    // If needed, flip the image before creating the data object
+    if (params.flip && !isFlipped)
+      flipImage();
+
     createDataNode();
 
     // If the load was successful, populate children
@@ -525,18 +628,28 @@ bool Texture2D::load(const FileName &_fileName,
 
       // If not using all channels, set used components to 1 for texture format
       auto ospTexFormat =
-        osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
+          osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
       auto texFilter = params.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-        : OSP_TEXTURE_FILTER_BILINEAR;
+                                            : OSP_TEXTURE_FILTER_LINEAR;
 
-      createChild("format", "int", (int)ospTexFormat);
-      createChild("filter", "int", (int)texFilter);
+      createChild("format", "OSPTextureFormat", ospTexFormat);
+      createChild("filter", "OSPTextureFilter", texFilter);
 
       createChild("filename", "filename", fileName).setSGOnly();
+      createChild("isFlipped", "bool", params.flip).setSGOnly();
+      // Since UDIM is a compiled atlas, user can't just flip image
+      if (hasUDIM())
+        child("isFlipped").setReadOnly();
 
-      child("format").setMinMax((int)OSP_TEXTURE_RGBA8, (int)OSP_TEXTURE_R16);
+      // XXX Running MPI, simply changing the texture data is not enough to
+      // trigger the flip, therefore do not expose an option for the user
+      // to change it.  Find a lightweight means to signal MPI to update
+      // texture data to all ranks.  (note: The below in preCommit doesn't work)
+      child("isFlipped").setReadOnly();
+
+      child("format").setMinMax(OSP_TEXTURE_RGBA8, OSP_TEXTURE_R16);
       child("filter").setMinMax(
-          (int)OSP_TEXTURE_FILTER_BILINEAR, (int)OSP_TEXTURE_FILTER_NEAREST);
+          OSP_TEXTURE_FILTER_LINEAR, OSP_TEXTURE_FILTER_NEAREST);
 
       // Add this texture to the cache
       textureCache[fileName] = this->nodeAs<Texture2D>();
@@ -558,6 +671,28 @@ Texture2D::~Texture2D()
 
 void Texture2D::preCommit()
 {
+#if 0 // XXX this does not work for MPI
+  // If needed, flip the image
+  if (isFlipped != child("isFlipped").valueAs<bool>()) {
+    flipImage();
+    // Simply changing memory contents will not trigger OSPRay to update texture
+    // data, especially running MPI offload.  Remove and re-add the OSPData node
+    auto &texture = valueAs<cpp::Texture>();
+    texture.commit();
+  }
+#endif
+
+  std::string guiFilename = child("filename").valueAs<std::string>();
+  if (fileName != guiFilename) {
+    isFlipped = false;
+    udim_params = {};
+    textureCache.erase(fileName);
+    load(guiFilename,
+        params.preferLinear,
+        params.nearestFilter,
+        params.colorChannel);
+  }
+
   // make sure to call base-class precommit
   Texture::preCommit();
 }

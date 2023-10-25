@@ -26,9 +26,10 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
       force-delete: true    # guarantees .gitattributes are respected in working dir
-      image: rockylinux:8.7
+#      image: rockylinux:8.7
+      image: ubuntu:22.04 # temp, to use OSPRay v3.0.0 SYCL build
       cmd: |
-        module load cmake/3.15.2
+        module load cmake/3.25.3
         module load intel/2023.0
         export CC=icx
         export CXX=icpx
@@ -68,8 +69,10 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
       # Run the rockylinux 8.7 build on the ubuntu 18.04 image as a test, and because it has vncserver installed
-      image: ubuntu:18.04
-      pre-cmd: apt install libglu1-mesa
+      #image: ubuntu:18.04
+      #image: rockylinux:8.7-tgt-rebuild
+      image: ubuntu:22.04 # temp, to use OSPRay v3.0.0 SYCL build
+      #pre-cmd: yum -y install tigervnc-server mesa-libGLU
       cmd: |
         module load intel/2023.0
         tar -xzf build/package/ospray_studio*.gz
@@ -79,6 +82,21 @@ jobs:
         #echo ${LD_LIBRARY_PATH}
         #locate libGLU
         gitlab/run.sh
+      artifact-in: release-linux
+
+  test-run-linux-gpu:
+    needs: release-linux
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@main
+    with:
+      image: ubuntu:22.04
+      runs-on: '"dg2"'
+      options: --device=/dev/dri:/dev/dri
+      gfx-driver-version: linux-latest
+      cmd: |
+        module load intel/2023.0
+        tar -xzf build/package/ospray_studio*.gz
+        export PATH=$GITHUB_WORKSPACE/$(ls -d1 ./ospray_studio-*/bin):$PATH
+        gitlab/run.sh --osp:load-modules=gpu --osp:device=gpu
       artifact-in: release-linux
 
   ## Windows ##
@@ -117,30 +135,31 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/cache-ospray.yml
     with:
-      image: centos:7
+      image: rockylinux:8.7
       ospray-version: devel
       rkcommon-version: devel
+
+  composition-analysis:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/composition_analysis.yml@main
 
   static-analysis:
     needs: cache-ospray
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
-      image: centos:7
-      project: ospray_studio
+      coverity: true
+      image: rockylinux:8.7
+      project: OSPRay Studio
       ignore-files: pysg.cpp
-      prebuild: |
-        module load cmake/3.15.2
-        module load intel/2022.1
-        export CC=icx
-        export CXX=icpx
-        export CXXFLAGS="-fhonor-infinities -fhonor-nans"
-        export CFLAGS=$CXXFLAGS
-        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }}
-        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }}
-        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install
-        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
-        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
+      prebuild: >
+        module load cmake/3.25.3 &&
+        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }} &&
+        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }} &&
+        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install &&
+        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb &&
+        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF &&
+        echo "Done: Configure OSPRay Studio"
       build: cmake --build build
 
   binary-analysis:

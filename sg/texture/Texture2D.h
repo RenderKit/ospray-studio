@@ -37,6 +37,9 @@ struct OSPSG_INTERFACE Texture2D : public Texture
       const int colorChannel = 4, // default to sampling all channels
       const void *memory = nullptr);
 
+  void flipImage();
+  bool isFlipped{false};
+
   std::string fileName;
 
   // UDIM public interface
@@ -89,6 +92,8 @@ struct OSPSG_INTERFACE Texture2D : public Texture
   template <typename T>
   void loadTexture_OIIO_readFile(std::unique_ptr<OIIO::ImageInput> &in);
 #else
+  void loadTexture_EXR(const std::string &fileName);
+  void loadTexture_TIFF(const std::string &fileName);
   void loadTexture_PFM(const std::string &fileName);
   void loadTexture_STBi(const std::string &fileName);
   void loadTexture_PFM_readFile(FILE *file, float scaleFactor);

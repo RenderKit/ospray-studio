@@ -43,6 +43,9 @@ GUIContext::GUIContext(StudioCommon &_common)
   if (frame->hasChild("framebuffer"))
     framebuffer = frame->child("framebuffer").nodeAs<FrameBuffer>();
   defaultSize = _common.defaultSize;
+
+  // Define "default" camera in cameras list
+  g_sceneCameras["default"] = frame->child("camera").nodeAs<Camera>();
 }
 
 GUIContext::~GUIContext()
@@ -208,6 +211,7 @@ void GUIContext::changeToDefaultCamera()
     }
   }
 
+  cameraIdx = 0; // reset global-context cameraIndex
   frame->remove("camera");
   frame->add(defaultCamera);
   frame->commit();
@@ -233,7 +237,7 @@ void GUIContext::refreshRenderer()
     frame->createChild("renderer", "renderer_" + optRendererTypeStr);
 
   auto &r = frame->childAs<Renderer>("renderer");
-  r["pixelFilter"] = (int)optPF;
+  r["pixelFilter"] = optPF;
   r["backgroundColor"] = optBackGroundColor;
   r["pixelSamples"] = optSPP;
   r["varianceThreshold"] = optVariance;
@@ -264,7 +268,7 @@ void GUIContext::saveRendererParams()
   auto &r = frame->childAs<Renderer>("renderer");
 
   optRendererTypeStr = r["type"].valueAs<std::string>();
-  optPF = (OSPPixelFilterTypes)r["pixelFilter"].valueAs<int>();
+  optPF = r["pixelFilter"].valueAs<OSPPixelFilterType>();
   optBackGroundColor = r["backgroundColor"].valueAs<rgba>();
   optSPP = r["pixelSamples"].valueAs<int>();
   optVariance = r["varianceThreshold"].valueAs<float>();
@@ -372,14 +376,15 @@ void GUIContext::importFiles(NodePtr world)
     try {
       rkcommon::FileName fileName(file);
 
-      // XXX: handling loading a scene here for now
+      // XXX: handling loading a scene here for now, it requires the entire
+      // context.
       if (fileName.ext() == "sg") {
         importScene(shared_from_this(), fileName);
         sgScene = true;
       } else {
         std::cout << "Importing: " << file << std::endl;
 
-        auto importer = getImporter(world, file);
+        auto importer = getImporter(world, file, optReloadAssets);
         if (importer) {
           auto vp = importer->getVolumeParams();
           if (volumeParams->children().size() > 0 && vp) {
@@ -445,11 +450,12 @@ void GUIContext::importFiles(NodePtr world)
   // Initializes time range for newly imported models
   mainWindow->animationWidget->init();
 
-  // XXX this shouldn't completely replace g_sceneCameras, but add to it.
-  if (sgFileCameras)
-    g_sceneCameras = *sgFileCameras;
-  else if (cameras)
-    g_sceneCameras = *cameras;
+  const auto &newCameras = sgFileCameras ? *sgFileCameras : *cameras;
+  if (!newCameras.empty()) {
+    for (const auto &camera : newCameras)
+      if (camera.second)
+        g_sceneCameras[camera.first] = camera.second;
+  }
 }
 
 void GUIContext::saveCurrentFrame()
@@ -642,6 +648,7 @@ void GUIContext::selectCamera()
   if (whichCamera < (int)g_sceneCameras.size()) {
     auto &newCamera = g_sceneCameras.at_index(whichCamera);
     g_selectedSceneCamera = newCamera.second;
+    g_selectedSceneCamera->child("cameraId").setValue(whichCamera);
     auto hasParents = g_selectedSceneCamera->parents().size();
     frame->remove("camera");
     frame->add(g_selectedSceneCamera);

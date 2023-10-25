@@ -33,9 +33,9 @@ Perspective::Perspective() : Camera("perspective")
       "vertical edges are projected to be parallel",
       false);
   createChild("stereoMode",
-      "int",
+      "OSPStereoMode",
       "[0=none, 1=left, 2=right, 3=side-by-side, 4=top-bottom]",
-      0);
+      OSP_STEREO_NONE);
   createChild("interpupillaryDistance",
       "float",
       "Distance between left and right eye for stereo mode [default 0.0635]",
@@ -45,7 +45,7 @@ Perspective::Perspective() : Camera("perspective")
   child("apertureRadius").setMinMax(0.f, 5.f);  // XXX set these based on
   child("focusDistance").setMinMax(1.f, 1e6f);  // world size
   child("stereoMode")
-      .setMinMax((int)OSP_STEREO_NONE, (int)OSP_STEREO_TOP_BOTTOM);
+      .setMinMax(OSP_STEREO_NONE, OSP_STEREO_TOP_BOTTOM);
   child("interpupillaryDistance").setMinMax(0.f, 0.1f);
 
   child("aspect").setReadOnly();

@@ -13,7 +13,7 @@ from pysg import Any, vec3f, Data, FileName, Importer, MaterialRegistry, Arcball
 
 args = sg.init(sys.argv)
 
-sg.loadPlugin("vtk")
+#sg.loadPlugin("vtk")
 
 #optional command line arguments
 scalarRange = None
@@ -22,7 +22,7 @@ opacities = None
 W = 1024
 H = 768
 numFrames = 100
-  
+
 for idx in range(0, len(args)):
   a = args[idx]
   if a == "-range":
@@ -53,23 +53,31 @@ volumename = filename.split("/")[-1]
 extps = volumename.rfind(".")
 filetype = volumename[extps:]
 volumename = volumename[0:extps]
-  
+
 window_size = vec2i(W, H)
 aspect = Any(float(W) / H)
-  
+
 frame = sg.Frame()
 frame.immediatelyWait = True
 frame.createChild("windowSize", "vec2i", Any(window_size))
-  
+
 renderer = sg.Renderer("scivis")
-frame.createChildAs("renderer", "renderer_scivis")
-  
+#frame.createChildAs("renderer", "renderer_scivis")
+frame.createChildAs("renderer", "renderer_pathtracer")
+
+# Ensure framebuffer is float format and enable the denoiser
+frame.child("framebuffer").child("floatFormat").setValue(True, True)
+frame.denoiseFB = True
+# Denoiser only enabled on pathtracer, by default.  Set False to enable on another renderer
+frame.denoiseOnlyPathTracer = False
+
+
 world = frame.child("world")
-  
+
 lightsMan = frame.child("lights")
 baseMaterialRegistry = frame.child("baseMaterialRegistry")
-  
-importer = sg.getImporter(world, FileName(filename))
+
+importer = sg.getImporter(world, FileName(filename), True)
 importer.setLightsManager(lightsMan)
 importer.setMaterialRegistry(baseMaterialRegistry)
 importer.importScene()
@@ -94,15 +102,14 @@ if filetype == ".vti" or filetype == ".vtu":
 
 world.render()
 bounds = world.bounds()
-  
+
 arcballCamera = ArcballCamera(bounds, window_size)
 cam = frame.child("camera")
 cam.createChild("aspect", "float", aspect)
 sg.updateCamera(cam, arcballCamera)
-  
-# First frame will be "navigation" resolution.
-# Render again for full sized frame.
-frame.startNewFrame()
+
+# Commit frame
+frame.commit()
 frame.startNewFrame()
 frame.waitOnFrame()
 frame.saveFrame("benchmark_initial.png", 0)
@@ -113,8 +120,6 @@ for frameNum in range(0,numFrames):
   ts = time.time()
   arcballCamera.rotate(vec2f(-2.0/numFrames, 0.0),vec2f(2.0/numFrames, 0.0))
   sg.updateCamera(cam, arcballCamera)
-  frame.startNewFrame()
-  frame.waitOnFrame()
   frame.startNewFrame()
   frame.waitOnFrame()
   te = time.time()-ts

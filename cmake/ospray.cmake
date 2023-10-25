@@ -10,7 +10,7 @@ message(STATUS "Looking for OSPRay...")
 find_package(ospray QUIET)
 
 if(NOT DEFINED OSPRAY_VERSION)
-  set(OSPRAY_VERSION 2.12.0)
+  set(OSPRAY_VERSION 3.0.0)
 endif()
 
 if(ospray_FOUND)
@@ -19,6 +19,7 @@ else()
     ## Download and build if not found
     if(WIN32)
         set(_ARCHIVE_EXT "windows.zip")
+        set(OSPRAY_TAG ".sycl")
     elseif(APPLE)
         set(_ARCHIVE_EXT "macosx.zip")
     else()
@@ -26,7 +27,7 @@ else()
     endif()
 
     if(NOT DEFINED OSPRAY_URL)
-    set(OSPRAY_URL "https://github.com/ospray/ospray/releases/download/v${OSPRAY_VERSION}/ospray-${OSPRAY_VERSION}.x86_64.${_ARCHIVE_EXT}")
+    set(OSPRAY_URL "https://github.com/ospray/ospray/releases/download/v${OSPRAY_VERSION}/ospray-${OSPRAY_VERSION}${OSPRAY_TAG}.x86_64.${_ARCHIVE_EXT}")
     endif()
 
     include(FetchContent)

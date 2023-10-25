@@ -82,8 +82,15 @@ void MainMenuBuilder::buildMainMenuFile()
 
   if (ImGui::BeginMenu("File")) {
     if (ImGui::MenuItem("Import ...", nullptr))
-
       showImportFileBrowser = true;
+
+    ImGui::Checkbox("ReloadAssets", &ctx->optReloadAssets);
+    sg::showTooltip("ReloadAssets will reload asset file contents, rather than creating an instance.");
+    ImGui::Checkbox("ResetCamera", &ctx->optResetCameraOnLoad);
+    sg::showTooltip(
+        "Resets camera position to new world size when loading assets,\n"
+        "otherwise camera parameters remain untouched.");
+
     if (ImGui::BeginMenu("Demo Scene")) {
       for (size_t i = 0; i < g_scenes.size(); ++i) {
         if (ImGui::MenuItem(g_scenes[i].c_str(), nullptr)) {
@@ -169,10 +176,11 @@ void MainMenuBuilder::buildMainMenuFile()
     if (fileBrowser(ctx->filesToImport, "Select Import File(s) - ", true)) {
       showImportFileBrowser = false;
       // do not reset camera when loading a scene file
-      bool resetCam = true;
+      bool resetCam = ctx->optResetCameraOnLoad;
       for (auto &fn : ctx->filesToImport)
         if (rkcommon::FileName(fn).ext() == "sg")
           resetCam = false;
+      ctx->changeToDefaultCamera();
       ctx->refreshScene(resetCam);
     }
   }

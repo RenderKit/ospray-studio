@@ -84,7 +84,7 @@ class GUIContext : public StudioContext
   // windows and main menu builder related functions
   void selectBuffer(OSPFrameBufferChannel whichBuffer, bool invert = false);
 
-  void selectCamera();
+  void selectCamera() override;
   void createNewCamera(const std::string newType);
   void createIsoSurface(
       int currentVolume, std::vector<ospray::sg::NodePtr> &volumes);

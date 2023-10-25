@@ -70,7 +70,6 @@ void Torus::generateData()
   });
 
   auto volume = createNode("torus", "structuredRegular");
-  volume->createChild("voxelType", "int", int(OSP_FLOAT));
   volume->createChild("gridOrigin", "vec3f", vec3f(-0.5f));
   volume->createChild("gridSpacing", "vec3f", vec3f(1.f / size));
   // The "true" flag shares data with OSPRay rather than copying.

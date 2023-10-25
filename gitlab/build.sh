@@ -23,6 +23,7 @@ then
         -D ENABLE_OPENIMAGEIO=OFF \
         -D ENABLE_OPENVDB=OFF \
         -D ENABLE_EXR=OFF \
+        -D OSPRAY_TAG=".sycl" \
         -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_LINUX \
         ..
     cmake --build . --parallel $THREADS --config Release

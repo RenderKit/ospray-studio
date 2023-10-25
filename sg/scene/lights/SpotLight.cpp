@@ -39,8 +39,7 @@ SpotLight::SpotLight() : Light("spot")
   createChild("radius", "float", 0.f);
   createChild("innerRadius", "float", 0.f);
 
-  child("intensityQuantity")
-      .setValue(uint8_t(OSP_INTENSITY_QUANTITY_INTENSITY));
+  child("intensityQuantity").setValue(OSP_INTENSITY_QUANTITY_INTENSITY);
 
   child("direction").setMinMax(-1.f, 1.f); // per component min/max
   child("openingAngle").setMinMax(0.f, 180.f);

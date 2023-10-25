@@ -460,7 +460,7 @@ namespace ospray {
       std::cout << "number of geometries : " << geomChildren.size() << std::endl;
 #endif
 
-      for (auto geom : geomChildren) {
+      for (auto &geom : geomChildren) {
         auto geomHandle = geom->valueAs<cpp::Geometry>().handle();
         if (groups.find(geomHandle) != groups.end()) {
           auto &group = groups[geomHandle];
@@ -471,7 +471,7 @@ namespace ospray {
 
     if (node.hasChildOfType(NodeType::VOLUME)) {
       auto &volChildren = node.childrenOfType(NodeType::VOLUME);
-      for (auto vol : volChildren) {
+      for (auto &vol : volChildren) {
         auto volHandle = vol->valueAs<cpp::Volume>().handle();
         if (groups.find(volHandle) != groups.end()) {
           auto &group = groups[volHandle];
@@ -482,9 +482,9 @@ namespace ospray {
 
     if (node.hasChildOfType(NodeType::TRANSFER_FUNCTION)) {
       auto &tfnChildren = node.childrenOfType(NodeType::TRANSFER_FUNCTION);
-      for (auto tfn : tfnChildren) {
+      for (auto &tfn : tfnChildren) {
         auto volChildren = tfn->childrenOfType(NodeType::VOLUME);
-        for (auto vol : volChildren) {
+        for (auto &vol : volChildren) {
           auto volHandle = vol->valueAs<cpp::Volume>().handle();
           if (groups.find(volHandle) != groups.end()) {
             auto &group = groups[volHandle];

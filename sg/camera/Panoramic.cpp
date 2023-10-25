@@ -19,9 +19,9 @@ namespace ospray {
                 0.0635f);
     child("interpupillaryDistance").setMinMax(0.f, 0.1f);
     createChild("stereoMode",
-                "int",
+                "OSPStereoMode",
                 "0=none, 1=left, 2=right, 3=side-by-side, 4=top-bottom",
-                0);
+                OSP_STEREO_NONE);
   }
 
   OSP_REGISTER_SG_NODE_NAME(Panoramic, camera_panoramic);

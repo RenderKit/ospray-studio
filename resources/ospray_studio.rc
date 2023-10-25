@@ -24,7 +24,7 @@ BEGIN
             VALUE "FileDescription", "OSPRay Studio"
             VALUE "FileVersion", OSPRAY_STUDIO_VERSION
             VALUE "ProductVersion", OSPRAY_STUDIO_VERSION
-            VALUE "LegalCopyright", "© 2019-2021 Intel Corporation"
+            VALUE "LegalCopyright", "© 2019 Intel Corporation"
             VALUE "InternalName", "OSPRay Studio"
             VALUE "ProductName", "Intel® OSPRay Studio"
         END

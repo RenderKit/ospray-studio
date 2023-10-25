@@ -1,6 +1,61 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v0.13.0
+
+-   Compatible with OSPRay release v3.0.0
+
+- Features and Improvements
+  - OSPRay v3 Compatibility:<br>
+    - Intel Xe GPU beta support: launch Studio with parameters
+      `--osp:load-modules=gpu --osp:device=gpu`
+    - Add OSPRay v3 enum compatibility, tightened type-checking on all enum usage
+    - Add OSPRay v3 enum type comprehension to json for .sg files<br>
+      **(Note: This change will break existing .sg files.  The most
+      common parameter is "intensityQuantity", which previously had
+      a subType of "uchar" and needs to change to
+      "OSPIntensityQuantity".)**
+  - Texture Formats:  Support for .exr and .tiff image formats by
+    default though inclusion of tinyexr and tinydng 3rd party header-only
+    libraries.  OpenImageIO is still available as a build option.
+  - Convert glTF light intensity from lux to watts.  glTF specifies intensity
+    in lux, OSPRay in watts.  Convert to watts for compatibility with glTF
+    exporters.
+  - Add default HDRI map, used when no other map is present.  OSPRay used to
+    crash when removing HDRI map from light or when texture would fail to load.
+    Automatically switches to this default map now.
+  - Fix UI "pick focus distance"
+    - Left-Shift+left-mouse sets pick-point to center-of-screen,
+      center-of-arcball
+    - Left-Crl-Shift+left-mouse sets pick-point to focus distance without
+      moving center of arcball
+  - More intuitive behavior around Search All actions vs selected actions
+  - Transform editor now enables traversing selected node's parents
+  - Minor cleanup/refactor of GenerateImGuiWidgets
+  - Prevent filename widget collisions:
+    If there were multiple filename widgets visible, they would all
+      receive the file list returned by fileBrowser.
+  - Enable OpenImageDenoise in python bindings and python tutorial scripts
+  - Add ability to reload Assets rather than just instance
+  - Cameras loaded by assets now add to scene cameras rather than replacing
+  - Expose selectCamera to StudioContext, callable by plugins
+  - Enable parsing of general texture.transform in mtl files, was limited to
+    individual rotation, scale and translation
+<br><br>
+
+- Cleanup and bug fixes:
+  - Prevent nullptr dereference on deleted importer assets
+  - Fix sporadic crash SearchWidget when search term had no match
+  - Use custom deleter for pre-C++17 compatability
+  - Resolve incorrect delete usage in Texture2D
+  - Fix addLight to update existing light parameters.
+    If addLight is called with an existing light, it was returning immediately.
+    It should update the light parameters with that of the new light.
+  - Be more careful about adding unique names in glTF importer.
+    When a node, light, or camera name is unclear a unique number is added to
+    the name.  Importer was accidentally doing this twice or adding unique
+    number to already unique names.
+
 ### Changes in OSPRay Studio v0.12.1
 
 -   Compatible with OSPRay release v2.12.0

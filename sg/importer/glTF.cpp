@@ -21,7 +21,7 @@
 
 #define DEBUG if (verboseImport) std::cout << prefix << "(D): "
 #define INFO if (verboseImport) std::cout << prefix << "(I): "
-#define WARN std::cout << prefix << "(W): "
+#define WARN if (verboseImport) std::cout << prefix << "(W): "
 #define ERR std::cerr << prefix << "(E): "
 
 namespace ospray {
@@ -89,6 +89,10 @@ struct GLTFData
     volumeParams = _volumeParams;
   }
 
+  void setBaseMaterialOffset(uint32_t offset) {
+    baseMaterialOffset = offset;
+  }
+
  private:
   bool verboseImport{false}; // Enable/disable import logging
   InstanceConfiguration ic;
@@ -108,7 +112,7 @@ struct GLTFData
 
   std::vector<NodePtr> ospMaterials;
 
-  size_t baseMaterialOffset = 0; // set in createMaterials()
+  uint32_t baseMaterialOffset = 0;
   int numIntelLights{0};
 
   void loadKeyframeInput(int accessorID, std::vector<float> &kfInput);
@@ -207,7 +211,6 @@ bool GLTFData::parseAsset()
   if (!asset.extensions.empty())
     INFO << "   Extensions Listed:\n";
 
-  // XXX Warn on any extensions used
   if (!model.extensionsUsed.empty()) {
     WARN << "   ExtensionsUsed:\n";
     for (const auto &ext : model.extensionsUsed)
@@ -219,7 +222,6 @@ bool GLTFData::parseAsset()
       WARN << "      " << ext << "\n";
   }
 
-  // XXX
   INFO << "... " << model.accessors.size() << " accessors\n";
   INFO << "... " << model.animations.size() << " animations\n";
   INFO << "... " << model.buffers.size() << " buffers\n";
@@ -285,12 +287,14 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
     isVolume = refLink.Get("type").Get<std::string>() == "volume";
   }
 
-  auto node = n.extensions.find("BIT_node_info")->second;
-  if (node.Has("id")) {
-    auto &nodeId = node.Get("id").Get<std::string>();
-    if (!isValidUUIDv4(nodeId))
-      std::cerr << nodeId << " is not a valid version 4 UUID\n";
-    sgNode->createChild("instanceId", "string", nodeId);
+  if (n.extensions.find("BIT_node_info") != n.extensions.end()) {
+    auto node = n.extensions.find("BIT_node_info")->second;
+    if (node.Has("id")) {
+      auto &nodeId = node.Get("id").Get<std::string>();
+      if (!isValidUUIDv4(nodeId))
+        std::cerr << nodeId << " is not a valid version 4 UUID\n";
+      sgNode->createChild("instanceId", "string", nodeId);
+    }
   }
 
   // nothing to import
@@ -377,8 +381,9 @@ void GLTFData::createLightTemplates()
   // KHR_lights_punctual
   for (auto &l : model.lights) {
     static auto nLight = 0;
+    // Only add light number if name is otherwise empty.
     auto lightName =
-        l.name != "" ? l.name : "light_" + std::to_string(nLight++);
+        l.name != "" ? l.name : ("light_" + std::to_string(nLight++));
     auto lightType = l.type;
     NodePtr newLight;
 
@@ -411,8 +416,11 @@ void GLTFData::createLightTemplates()
       lightColor = rgb{(float)l.color[0], (float)l.color[1], (float)l.color[2]};
     newLight->child("color") = lightColor;
 
+    // glTF specifies intensity in lux, OSPRay in Watts
+    // By industry convention, at 100% efficiency 1 watt of electrical power
+    // produces 683 lumens.  Convert to watts for OSPRay parameter.
     if (l.intensity)
-      newLight->child("intensity") = (float)l.intensity;
+      newLight->child("intensity") = (float)l.intensity / 683.f;
     if (l.range)
       WARN << "Range value for light is not supported yet" << std::endl;
 
@@ -440,7 +448,6 @@ void GLTFData::createMaterials()
     ospMaterials.push_back(createOSPMaterial(material));
   }
 
-  baseMaterialOffset = materialRegistry->baseMaterialOffSet();
   for (auto m : ospMaterials)
     materialRegistry->add(m);
 }
@@ -782,7 +789,8 @@ void GLTFData::visitNode(NodePtr sgNode,
   // create child animate camera for all camera nodes added to scene hierarchy,
   // bool value is set during createAnimation when appropriate target xfm is
   // found
-  if (n.camera != -1 && !importCameras && cameras) {
+  if (n.camera != -1 && !importCameras && cameras
+      && cameras->contains(n.name)) {
     // add camera from existing .sg cameras
     auto camera = cameras->at(n.name);
     newXfm->add(camera);
@@ -799,8 +807,9 @@ void GLTFData::visitNode(NodePtr sgNode,
           camera->child(c.first).setSGOnly();
       }
     }
+    // Only add camera number if name is otherwise empty.
     auto uniqueCamName =
-        n.name != "" ? n.name : "camera_" + std::to_string(nCamera);
+        n.name != "" ? n.name : ("camera_" + std::to_string(nCamera));
     camera->child("uniqueCameraName") = uniqueCamName;
     camera->child("cameraId").setValue(++nCamera);
 
@@ -832,11 +841,8 @@ void GLTFData::visitNode(NodePtr sgNode,
 
   for (auto &lightIdx : lightIdxs) {
     auto lightTemplate = lightTemplates[lightIdx];
-    static int lightCounter = 0;
     // instantiate SG light nodes
-    auto uniqueLightName = n.name != ""
-        ? n.name + std::to_string(lightCounter++)
-        : lightTemplate->name() + std::to_string(lightCounter++);
+    auto uniqueLightName = n.name != "" ? n.name : lightTemplate->name();
     auto light = createNode(uniqueLightName, lightTemplate->subType());
     for (auto &c : lightTemplate->children()) {
       if (light->hasChild(c.first))
@@ -1144,13 +1150,11 @@ NodePtr GLTFData::createOSPMesh(
       ospGeom->createChildData("sphere.texcoord", ospGeom->vt, true);
   }
 
-  if (ospGeom) {
-    // add one for default, "no material" material
-    auto materialID = prim.material + 1 + baseMaterialOffset;
-    ospGeom->mIDs.resize(ospGeom->skinnedPositions.size(), materialID);
-    ospGeom->createChildData("material", ospGeom->mIDs, true);
-    ospGeom->child("material").setSGOnly();
-  }
+  // add one for default, "no material" material
+  auto materialID = prim.material + 1 + baseMaterialOffset;
+  ospGeom->mIDs.resize(ospGeom->skinnedPositions.size(), materialID);
+  ospGeom->createChildData("material", ospGeom->mIDs, true);
+  ospGeom->child("material").setSGOnly();
 
   return ospGeom;
 }
@@ -1736,6 +1740,8 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
   if (ospTex.checkForUDIM(img.name))
     img.image.clear();
 
+  ospTex.params.flip = false; // glTF textures are not vertically flipped
+
   // Pre-loaded texture image (loaded by tinygltf)
   if (!img.image.empty()) {
     ospTex.params.size = vec2ul(img.width, img.height);
@@ -1751,8 +1757,6 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
 
   } else {
     // Load texture from file (external uri or udim tiles)
-    ospTex.params.flip = false; // glTF textures are not vertically flipped
-
     // use same path as gltf scene file
     // If load fails, remove the texture node
     if (!ospTex.load(img.name,
@@ -1860,7 +1864,8 @@ void glTFImporter::importScene()
   // Create a root Transform/Instance off the Importer, under which to build
   // the import hierarchy
   std::string baseName = fileName.name() + "_rootXfm";
-  auto rootNode = createNode(baseName, "transform");
+  NodePtr rootNode = hasChild(baseName) ? child(baseName).nodeAs<Node>()
+                                        : createNode(baseName, "transform");
 
   GLTFData gltf(rootNode,
       fileName,
@@ -1875,7 +1880,22 @@ void glTFImporter::importScene()
     return;
   gltf.setScheduler(scheduler);
   gltf.setVolumeParams(volumeParams);
-  gltf.createMaterials();
+  if (materialRegistry) {
+    // Create a child under the importer to hold the baseMaterialOffset
+    // used when the asset is reloaded, to keep the same material indices
+    uint32_t offset = materialRegistry->baseMaterialOffSet();
+    static std::string bmo = "baseMaterialOffset";
+    if (hasChild(bmo)) {
+      offset = child(bmo).valueAs<uint32_t>();
+    } else {
+      createChild(bmo, "uint32_t", offset);
+      child(bmo).setReadOnly();
+      child(bmo).setSGOnly();
+      child(bmo).setSGNoUI();
+    }
+    gltf.setBaseMaterialOffset(offset);
+    gltf.createMaterials();
+  }
   gltf.createLightTemplates();
 
   if (importCameras) {

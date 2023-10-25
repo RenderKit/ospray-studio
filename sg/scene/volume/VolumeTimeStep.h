@@ -26,7 +26,7 @@ namespace ospray {
   struct VolumeTimestep
   {
     VolumeTimestep(const std::string &filename,
-                   const int &voxelType,
+                   const OSPDataType &voxelType,
                    const vec3i &dimensions,
                    const vec3f &gridOrigin,
                    const vec3f &gridSpacing)
@@ -98,7 +98,7 @@ namespace ospray {
         sgVolume->createChild("dimensions", "vec3i", dimensions);
         sgVolume->createChild("gridOrigin", "vec3f", gridOrigin);
         sgVolume->createChild("gridSpacing", "vec3f", gridSpacing);
-        sgVolume->createChild("voxelType", "int", voxelType);
+        sgVolume->createChild("voxelType", "OSPDataType", voxelType);
 
         fileLoaded = true;
       }
@@ -107,7 +107,7 @@ namespace ospray {
     }
 
     std::string filename;
-    int voxelType;
+    OSPDataType voxelType;
     vec3i dimensions;
     vec3f gridOrigin;
     vec3f gridSpacing;

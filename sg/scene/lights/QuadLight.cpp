@@ -22,7 +22,7 @@ QuadLight::QuadLight() : Light("quad")
   createChild("edge1", "vec3f", vec3f(1.f, 0.f, 0.f));
   createChild("edge2", "vec3f", vec3f(0.f, 1.f, 0.f));
 
-  child("intensityQuantity").setValue(uint8_t(OSP_INTENSITY_QUANTITY_RADIANCE));
+  child("intensityQuantity").setValue(OSP_INTENSITY_QUANTITY_RADIANCE);
 
   // QuadLight supports a photometric measuredSource
   addMeasuredSource();

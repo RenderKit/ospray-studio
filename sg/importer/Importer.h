@@ -132,7 +132,6 @@ struct OSPSG_INTERFACE Importer : public Node
  protected:
   rkcommon::FileName fileName;
   std::shared_ptr<sg::MaterialRegistry> materialRegistry = nullptr;
-  // std::vector<NodePtr> *cameras = nullptr;
   std::shared_ptr<CameraMap> cameras{nullptr};
   std::vector<sg::Animation> *animations = nullptr;
   NodePtr volumeParams;
@@ -151,7 +150,7 @@ extern OSPSG_INTERFACE std::map<std::string, std::string> importerMap;
 // Providing a unique transform instance as root to add existing imported model to, 
 // should probably be the responsibility of the calling routine
 inline std::shared_ptr<Importer> getImporter(
-    NodePtr root, rkcommon::FileName fileName)
+    NodePtr root, rkcommon::FileName fileName, bool reloadAsset = false)
 {
   // Get the absolute path to the file for use in AssetsCatalogue 
   rkcommon::FileName fullName = fileName.canonical();
@@ -165,10 +164,23 @@ inline std::shared_ptr<Importer> getImporter(
   std::string importer = fnd->second;
   std::string nodeName;
 
-  if (cat.find(fullName) != cat.end()) {
+  if (cat.find(fullName) != cat.end() && cat[fullName].lock()) {
     // Importer node and its rootXfm
     auto origNode = cat[fullName].lock();
     std::string rootXfmName = baseName + "_rootXfm";
+
+    // Only instance assets that have a rootXfm, otherwise just reload them.
+    // Interested in instancing mesh data, not pure lights files
+    // Or, if origNode is gone, the asset was deleted and needs to be reloaded.
+    if (!origNode->hasChild(rootXfmName))
+      reloadAsset = true;
+
+    // If reloading asset, simply return the original importer node
+    if (reloadAsset) {
+      std::cout << "Reloading: " << fullName << " as " << origNode->name()
+                << std::endl;
+      return origNode->nodeAs<Importer>();
+    }
 
     // Existing import, instance it!
     std::cout << "Instancing: " << fullName << " as " << origNode->name() << std::endl;

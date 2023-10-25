@@ -99,7 +99,7 @@ inline LinearSpace3f getRotationMatrix(const LinearSpace3f &xfmM) {
   LinearSpace3f rot = xfmM;
   do {
     // compute next matrix rotNext in series
-    LinearSpace3f rotNext;
+    LinearSpace3f rotNext{one};
     auto rotInvTranspose = rot.transposed().inverse();
 
     for (int i = 0; i < 3; ++i) {

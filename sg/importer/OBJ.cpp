@@ -96,6 +96,9 @@ namespace ospray {
     } else if (floats.size() == 3) {
       paramType  = "vec3f";
       paramValue = vec3f(floats[0], floats[1], floats[2]);
+    } else if (floats.size() == 4) {
+      paramType  = "linear2f";
+      paramValue = linear2f(floats[0], floats[1], floats[2], floats[3]);
     } else {
       // Unknown type.
       paramValue = typeAndValueString;
@@ -369,7 +372,8 @@ namespace ospray {
     // Create a root Transform/Instance off the Importer, under which to build
     // the import hierarchy
     std::string baseName = fileName.name() + "_rootXfm";
-    auto rootNode = createNode(baseName, "transform");
+    NodePtr rootNode = hasChild(baseName) ? child(baseName).nodeAs<Node>()
+                                          : createNode(baseName, "transform");
 
     auto objData = loadFromFile(fileName);
 
@@ -378,7 +382,18 @@ namespace ospray {
     if (materialNodes.empty())
       materialNodes.emplace_back(createNode("default", "obj"));
 
-    size_t baseMaterialOffset = materialRegistry->baseMaterialOffSet();
+    // Create a child under the importer to hold the baseMaterialOffset
+    // used when the asset is reloaded, to keep the same material indices
+    uint32_t baseMaterialOffset = materialRegistry->baseMaterialOffSet();
+    static std::string bmo = "baseMaterialOffset";
+    if (hasChild(bmo)) {
+      baseMaterialOffset = child(bmo).valueAs<uint32_t>();
+    } else {
+      createChild(bmo, "uint32_t", baseMaterialOffset);
+      child(bmo).setReadOnly();
+      child(bmo).setSGOnly();
+      child(bmo).setSGNoUI();
+    }
 
     for (auto m : materialNodes)
       materialRegistry->add(m);

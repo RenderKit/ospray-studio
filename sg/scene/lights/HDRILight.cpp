@@ -13,9 +13,14 @@ struct OSPSG_INTERFACE HDRILight : public Light
   virtual ~HDRILight() override = default;
   void preCommit() override;
   void postCommit() override;
+
+ private:
+  std::shared_ptr<Texture2D> defaultMapPtr;
 };
 
 OSP_REGISTER_SG_NODE_NAME(HDRILight, hdri);
+
+static std::weak_ptr<ospray::sg::Texture2D> staticDefaultMap;
 
 // HDRILight definitions /////////////////////////////////////////////
 
@@ -33,11 +38,39 @@ HDRILight::HDRILight() : Light("hdri")
       "direction to which the center of the texture will be mapped",
       vec3f(0.f, 0.f, 1.f));
 
-  child("intensityQuantity") = uint8_t(OSP_INTENSITY_QUANTITY_SCALE);
+  child("intensityQuantity") = OSP_INTENSITY_QUANTITY_SCALE;
   child("intensityQuantity").setReadOnly();
 
   child("up").setMinMax(-1.f, 1.f); // per component min/max
   child("direction").setMinMax(-1.f, 1.f); // per component min/max
+
+  // Create the default map, only once
+  if (staticDefaultMap.lock()) {
+    defaultMapPtr = staticDefaultMap.lock();
+  } else {
+    // clang-format off
+    static uint32_t checker[] = {
+      0x7f007f00, 0x7f007f00, 0x7f007f00, 0x7f007f00, 
+      0x007f007f, 0x007f007f, 0x007f007f, 0x007f007f,
+      0x7f007f00, 0x7f007f00, 0x7f007f00, 0x7f007f00, 
+      0x007f007f, 0x007f007f, 0x007f007f, 0x007f007f,
+      0x7f007f00, 0x7f007f00, 0x7f007f00, 0x7f007f00, 
+      0x007f007f, 0x007f007f, 0x007f007f, 0x007f007f,
+      0x7f007f00, 0x7f007f00, 0x7f007f00, 0x7f007f00, 
+      0x007f007f, 0x007f007f, 0x007f007f, 0x007f007f};
+    // clang-format on
+    defaultMapPtr = createNodeAs<Texture2D>("map", "texture_2d");
+    staticDefaultMap = defaultMapPtr;
+    Texture2D &defaultMap = *defaultMapPtr;
+    defaultMap.params.size = vec2ul(16, 8);
+    defaultMap.params.components = 1;
+    defaultMap.params.depth = 1;
+    // preferLinear = false creates an L8 texture, rather than R8
+    if (!defaultMap.load("_defaultHDRI", false, true, 4, checker))
+      std::cerr << "!!!! Default HDRI texture failed!" << std::endl;
+    // Set filename to read-only to prevent user removing it via UI
+    defaultMap["filename"].setReadOnly();
+  }
 }
 
 void HDRILight::preCommit()
@@ -46,23 +79,30 @@ void HDRILight::preCommit()
 
   auto filename = child("filename").valueAs<std::string>();
 
+  // defaultMap is a fallback if there is no other map loaded
+  defaultMapPtr = staticDefaultMap.lock();
+  Texture2D &defaultMap = *defaultMapPtr;
+
   // Load HDRI file and create texture
   if (filename == "") {
-    remove("map");
+    add(defaultMap);
   } else {
     auto mapFilename =
         hasChild("map") ? child("map")["filename"].valueAs<std::string>() : "";
     // reload or remove if HDRI filename changes
     if (filename != mapFilename) {
-      // Remove texture if had a map, but mapFilename has been removed
-      if (hasChild("map") && mapFilename == "") {
-        remove("map");
-        child("filename") = std::string("");
+      // If map has changed, update HDRI filename
+      if (hasChild("map") && child("map").isModified()) {
+        child("filename") = mapFilename;
+        // Remove texture if had a map, but mapFilename has been removed
+        if (mapFilename == "")
+          add(defaultMap);
       } else {
+        // Otherwise, create/replace map and load HDRI filename
         auto &hdriTex = createChild("map", "texture_2d");
         auto texture = hdriTex.nodeAs<sg::Texture2D>();
         if (!texture->load(filename, false, false)) {
-          remove("map");
+          add(defaultMap);
           child("filename") = std::string("");
         }
       }
@@ -78,8 +118,7 @@ void HDRILight::postCommit()
     auto &map = child("map").valueAs<cpp::Texture>();
     asLight.setParam("map", (cpp::Texture)map);
     map.commit();
-  } else
-    asLight.removeParam("map");
+  }
 
   Light::postCommit();
 }

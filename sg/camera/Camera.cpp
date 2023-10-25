@@ -31,16 +31,16 @@ Camera::Camera(const std::string &type)
   child("motion blur").setMinMax(0.f, 1.f);
 
   createChild("shutterType",
-      "uchar",
+      "OSPShutterType",
       "type of shutter, for motion blur\n"
       "  0 = global\n"
       "  1 = rolling right\n"
       "  2 = rolling left\n"
       "  3 = rolling down\n"
       "  4 = rolling up",
-      uint8_t(OSP_SHUTTER_GLOBAL));
+      OSP_SHUTTER_GLOBAL);
   child("shutterType")
-      .setMinMax(uint8_t(OSP_SHUTTER_GLOBAL), uint8_t(OSP_SHUTTER_ROLLING_UP));
+      .setMinMax(OSP_SHUTTER_GLOBAL, OSP_SHUTTER_ROLLING_UP);
 
   createChild("rollingShutterDuration",
       "float",

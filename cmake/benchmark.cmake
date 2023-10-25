@@ -6,7 +6,7 @@
 ##
 
 if(NOT DEFINED BENCHMARK_VERSION)
-  set(BENCHMARK_VERSION 1.5.5)
+  set(BENCHMARK_VERSION 1.8.3)
 endif()
 
 ##
@@ -27,6 +27,8 @@ if(NOT "${benchmark_FOUND}")
 
   set(BENCHMARK_ENABLE_TESTING OFF)
   set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
+  set(BENCHMARK_ENABLE_INSTALL OFF)
+  set(BENCHMARK_INSTALL_DOCS OFF)
   FetchContent_Declare(
     benchmark
     URL "https://github.com/google/benchmark/archive/refs/tags/v${BENCHMARK_VERSION}.${_BENCHMARK_ARCHIVE_EXT}"

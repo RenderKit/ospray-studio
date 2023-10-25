@@ -350,6 +350,28 @@ namespace sg {
   using QuaternionfNode = Node_T<quaternionf>;
   using Linear2fNode = Node_T<linear2f>;
 
+  // OSPRay enum types //
+
+  using OSPAMRMethodNode = Node_T<OSPAMRMethod>;
+  using OSPCurveBasisNode = Node_T<OSPCurveBasis>;
+  using OSPCurveTypeNode = Node_T<OSPCurveType>;
+  using OSPDataTypeNode = Node_T<OSPDataType>;
+  using OSPDevicePropertyNode = Node_T<OSPDeviceProperty>;
+  using OSPErrorNode = Node_T<OSPError>;
+  using OSPFrameBufferChannelNode = Node_T<OSPFrameBufferChannel>;
+  using OSPFrameBufferFormatNode = Node_T<OSPFrameBufferFormat>;
+  using OSPIntensityQuantityNode = Node_T<OSPIntensityQuantity>;
+  using OSPLogLevelNode = Node_T<OSPLogLevel>;
+  using OSPPixelFilterTypeNode = Node_T<OSPPixelFilterType>;
+  using OSPShutterTypeNode = Node_T<OSPShutterType>;
+  using OSPStereoModeNode = Node_T<OSPStereoMode>;
+  using OSPSubdivisionModeNode = Node_T<OSPSubdivisionMode>;
+  using OSPSyncEventNode = Node_T<OSPSyncEvent>;
+  using OSPTextureFilterNode = Node_T<OSPTextureFilter>;
+  using OSPTextureFormatNode = Node_T<OSPTextureFormat>;
+  using OSPUnstructuredCellTypeNode = Node_T<OSPUnstructuredCellType>;
+  using OSPVolumeFilterNode = Node_T<OSPVolumeFilter>;
+  using OSPVolumeFormatNode = Node_T<OSPVolumeFormat>;
 
   // Extra aliases //
 

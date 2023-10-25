@@ -13,7 +13,12 @@ Volume::Volume(const std::string &osp_type)
       "bool",
       "enable affects whether the object exists in the world",
       true);
-  createChild("filter", "int", "0 = nearest, 100 = trilinear", 0);
+  createChild("filter",
+      "OSPVolumeFilter",
+      "0 = nearest,\n"
+      "100 = linear\n"
+      "200 = cubic",
+      OSP_VOLUME_FILTER_NEAREST);
   createChild("densityScale",
       "float",
       "makes volumes uniformly thinner or thicker\n"
@@ -65,7 +70,7 @@ void Volume::load(const FileName &fileNameAbs)
   }
 
   if (!fileLoaded) {
-    auto &voxelType = child("voxelType").valueAs<int>();
+    auto &voxelDataType = child("voxelType").valueAs<OSPDataType>();
     FileName realFileName = fileNameAbs;
     FILE *file = fopen(realFileName.c_str(), "rb");
 
@@ -73,7 +78,6 @@ void Volume::load(const FileName &fileNameAbs)
       throw std::runtime_error(
           "Volume::load : could not open file '" + realFileName.str());
     }
-    OSPDataType voxelDataType = (OSPDataType)voxelType;
 
     switch (voxelDataType) {
     case OSP_UCHAR:

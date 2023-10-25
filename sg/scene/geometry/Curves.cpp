@@ -21,8 +21,8 @@ Curves::Curves() : Geometry("curve")
   createChildData("vertex.position_radius",
       std::vector<vec4f>(
           {vec4f(-1.f, -1.f, -1.f, 1.f), vec4f(1.f, 1.f, 1.f, 1.f)}));
-  createChild("type", "uchar", (uint8_t)OSP_ROUND);
-  createChild("basis", "uchar", (uint8_t)OSP_LINEAR);
+  createChild("type", "OSPCurveType", OSP_ROUND);
+  createChild("basis", "OSPCurveBasis", OSP_LINEAR);
 }
 } // namespace sg
 } // namespace ospray

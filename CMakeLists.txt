@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-project(ospray_studio VERSION 0.12.1 LANGUAGES CXX C)
+project(ospray_studio VERSION 0.13.0 LANGUAGES CXX C)
 
 include(GNUInstallDirs)
 include(ProcessorCount)
@@ -123,6 +123,14 @@ install(FILES
   ${PROJECT_SOURCE_DIR}/LICENSE.txt
   ${PROJECT_SOURCE_DIR}/third-party-programs.txt
   ${PROJECT_SOURCE_DIR}/third-party-programs-OSPRay.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-DPCPP.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-Embree.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-ISPC.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-OIDN.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-oneAPI-DPCPP.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-oneDNN.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-oneTBB.txt
+  ${PROJECT_SOURCE_DIR}/third-party-programs-OpenVKL.txt
   ${PROJECT_SOURCE_DIR}/CHANGELOG.md
   ${PROJECT_SOURCE_DIR}/README.md
   DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT apps
