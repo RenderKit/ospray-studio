@@ -287,12 +287,14 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
     isVolume = refLink.Get("type").Get<std::string>() == "volume";
   }
 
-  auto node = n.extensions.find("BIT_node_info")->second;
-  if (node.Has("id")) {
-    auto &nodeId = node.Get("id").Get<std::string>();
-    if (!isValidUUIDv4(nodeId))
-      std::cerr << nodeId << " is not a valid version 4 UUID\n";
-    sgNode->createChild("instanceId", "string", nodeId);
+  if (n.extensions.find("BIT_node_info") != n.extensions.end()) {
+    auto node = n.extensions.find("BIT_node_info")->second;
+    if (node.Has("id")) {
+      auto &nodeId = node.Get("id").Get<std::string>();
+      if (!isValidUUIDv4(nodeId))
+        std::cerr << nodeId << " is not a valid version 4 UUID\n";
+      sgNode->createChild("instanceId", "string", nodeId);
+    }
   }
 
   // nothing to import
