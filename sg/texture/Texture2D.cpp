@@ -464,6 +464,8 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
   // Use the same params as parent texture
   // but, mark as "loading" textures to skip re-checking udim tiles
   work->params = params;
+  // Don't flip the work tiles, the atlas will be flipped if necessary.
+  work->params.flip = false;
   work->udim_params.loading = true;
 
   // Load the first tile to establish tile parameters
@@ -480,6 +482,8 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
   // Allocate space large enough to hold all tiles (all tiles guaranteed to be
   // of equal size and format)
   atlas->params = work->params;
+  // If requested, flip the entire atlas after tiles have been assembled.
+  atlas->params.flip = params.flip;
   atlas->udim_params = work->udim_params;
   atlas->params.size *= udim_params.dims;
   std::shared_ptr<uint8_t> data(
@@ -559,7 +563,8 @@ bool Texture2D::load(const FileName &_fileName,
   // already in memory), but a unique name for the texture cache.
   fileName = _fileName;
 
-  // Check the cache before creating a new texture
+  // Check the cache before creating a new texture might be able to share the
+  // cached texelData.
   if (textureCache.find(fileName) != textureCache.end()) {
     std::shared_ptr<Texture2D> cache = textureCache[fileName].lock();
     if (cache) {
@@ -567,6 +572,8 @@ bool Texture2D::load(const FileName &_fileName,
       udim_params = cache->udim_params;
       // Copy shared_ptr ownership
       texelData = cache->texelData;
+      // the same texelData is being reused, so use the existing isFlipped state
+      isFlipped = cache->isFlipped;
 
       // If texture is cached and all parameters match, just add existing child
       // parameters.
@@ -637,15 +644,13 @@ bool Texture2D::load(const FileName &_fileName,
 
       createChild("filename", "filename", fileName).setSGOnly();
       createChild("isFlipped", "bool", params.flip).setSGOnly();
-      // Since UDIM is a compiled atlas, user can't just flip image
-      if (hasUDIM())
-        child("isFlipped").setReadOnly();
 
-      // XXX Running MPI, simply changing the texture data is not enough to
+#if 1 // XXX Running MPI, simply changing the texture data is not enough to
       // trigger the flip, therefore do not expose an option for the user
       // to change it.  Find a lightweight means to signal MPI to update
       // texture data to all ranks.  (note: The below in preCommit doesn't work)
       child("isFlipped").setReadOnly();
+#endif
 
       child("format").setMinMax(OSP_TEXTURE_RGBA8, OSP_TEXTURE_R16);
       child("filter").setMinMax(
