@@ -299,13 +299,19 @@ void Texture2D::loadTexture_EXR(const std::string &fileName)
     params.depth = 4; // always float
     size_t size = params.size.product() * params.components * params.depth;
 
-    std::shared_ptr<float> data(new float[size], std::default_delete<float[]>());
+    std::shared_ptr<float> data(
+        new float[size], std::default_delete<float[]>());
     std::memcpy(data.get(), texels, size);
 
     // Move shared_ptr ownership
     texelData = data;
 
     free(texels); // release memory of image data
+  }
+
+  if (!texelData.get()) {
+    std::cerr << "#osp:sg: EXR failed to load texture '" << fileName << "'"
+              << std::endl;
   }
 }
 
@@ -319,7 +325,8 @@ void Texture2D::loadTexture_TIFF(const std::string &fileName)
 
   // Loads all images(IFD) in the DNG file to `images` array.
   std::vector<tinydng::FieldInfo> custom_field_lists;
-  bool ret = tinydng::LoadDNG(fileName.c_str(), custom_field_lists, &images, &warn, &err);
+  bool ret = tinydng::LoadDNG(
+      fileName.c_str(), custom_field_lists, &images, &warn, &err);
 
   if (!warn.empty()) {
     std::cout << "Warn: " << warn << std::endl;
@@ -347,6 +354,11 @@ void Texture2D::loadTexture_TIFF(const std::string &fileName)
 
     // Move shared_ptr ownership
     texelData = data;
+  }
+
+  if (!texelData.get()) {
+    std::cerr << "#osp:sg: TIFF failed to load texture '" << fileName << "'"
+              << std::endl;
   }
 }
 
