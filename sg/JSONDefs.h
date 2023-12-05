@@ -106,11 +106,18 @@ inline void from_json(const JSON &, Node &) {}
 // Helper for converting ambiguous json types to stronger "subType"
 #define CONVERT_TYPE(X)                                                        \
   {                                                                            \
-    if (j["subType"] == #X) {                                                  \
+    if (subType == #X) {                                                       \
       n->setValue(X(n->valueAs<int>()));                                       \
       if (n->hasMinMax())                                                      \
         n->setMinMax(X(n->minAs<int>()), X(n->maxAs<int>()));                  \
     }                                                                          \
+  }
+
+// Helper for correcting OSP* enum types when not supplied by json
+#define FIX_SUBTYPE(X, OSPSUBTYPE)                                             \
+  {                                                                            \
+    if (j["name"] == #X)                                                       \
+      subType = #OSPSUBTYPE;                                                   \
   }
 
 inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
@@ -130,6 +137,17 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
           && j["value"].get<std::string>() == ":^)"))
     return nullptr;
 
+  // Original json subType, may need to be corrected
+  std::string subType = j["subType"];
+
+  // Handle pre-OSPRay3 Studio sg files without strict OSP* enum types
+  // These are the common troublemakers in older sg files.
+  FIX_SUBTYPE(intensityQuantity, OSPIntensityQuantity);
+  FIX_SUBTYPE(shutterType, OSPShutterType);
+  FIX_SUBTYPE(stereoMode, OSPStereoMode);
+  FIX_SUBTYPE(filter, OSPTextureFilter);
+  FIX_SUBTYPE(format, OSPTextureFormat);
+
   if (j.contains("value")) {
     Any value;
 
@@ -148,9 +166,9 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
 
     // Create node with optional description
     if (j.contains("description"))
-      n = createNode(j["name"], j["subType"], j["description"], value);
+      n = createNode(j["name"], subType, j["description"], value);
     else
-      n = createNode(j["name"], j["subType"], value);
+      n = createNode(j["name"], subType, value);
 
     if (j.contains("sgOnly") && j["sgOnly"].get<bool>())
       n->setSGOnly();
@@ -197,7 +215,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
         n->setMinMax(range1f(n->minAs<float>()), range1f(n->maxAs<float>()));
     }
   } else {
-    n = createNode(j["name"], j["subType"]);
+    n = createNode(j["name"], subType);
   }
 
   if (n != nullptr) {
