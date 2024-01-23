@@ -706,7 +706,9 @@ void MainWindow::display()
         std::transform(depthCopy.begin(),
             depthCopy.end(),
             depthCopy.begin(),
-            [&](float value) { return (value - minValue) * rcpRange; });
+            [&](float value) {
+              return isinf(value) ? 1.f : (value - minValue) * rcpRange;
+            });
 
         bufferCopy = std::move(depthCopy);
       }
