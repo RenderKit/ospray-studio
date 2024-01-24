@@ -63,6 +63,14 @@ void BatchContext::start()
   cameraIdx = whichCamera;
 
   if (parseCommandLine()) {
+    // If using MPI distributed, ensure mpiRaycast renderer is chosen.
+    if (sgUsingMpi()) {
+      if (optRendererTypeStr != "mpiRaycast") {
+        std::cerr << "Distributed rendering requires mpiRaycast renderer." << std::endl;
+        optRendererTypeStr = "mpiRaycast";
+      }
+    }
+
     std::cout << "...importing files!" << std::endl;
 
     loadCamJson();

@@ -5,7 +5,6 @@
 
 #include "Batch.h"
 #include "GUIContext.h"
-#include "sg/Mpi.h"
 
 // CLI
 #include <CLI11.hpp>
@@ -300,11 +299,28 @@ int main(int argc, const char *argv[])
 {
   std::cout << "OSPRay Studio" << std::endl;
 
-  // Just look for either version or verify_install arguments, initializeOSPRay
-  // will remove OSPRay specific args, parse fully down further
+  // Parse first argument as StudioMode
+  // (GUI is the default if no mode is given)
+  // XXX Switch to using ospcommon/rkcommon ArgumentList
+  auto mode = StudioMode::GUI;
+  if (argc > 1) {
+    auto modeArg = std::string(argv[1]);
+    if (modeArg.front() != '-') {
+      auto s = StudioModeMap.find(modeArg);
+      if (s != StudioModeMap.end()) {
+        mode = s->second;
+        // Remove mode argument
+        removeArgs(argc, argv, 1, 1);
+      }
+    }
+  }
+
+  // Look for either special arguments: version, verify_install, use_mpi and plugins, initializeOSPRay
+  // will remove OSPRay specific args.  Other options will be parsed later
   bool version = false;
   bool verify_install = false;
   bool use_mpi = false;
+  std::vector<std::string> pluginsToLoad;
   for (int i = 1; i < argc; i++) {
     const auto arg = std::string(argv[i]);
     if (arg == "--version") {
@@ -316,6 +332,11 @@ int main(int argc, const char *argv[])
     } else if (arg == "--mpi") {
       use_mpi = true;
       removeArgs(argc, argv, i, 1);
+    } else if (arg == "--plugin" || arg == "-p") {
+      // Parse argument list for any plugins.
+      pluginsToLoad.emplace_back(argv[i + 1]);
+      removeArgs(argc, argv, i, 2);
+      --i;
     }
   }
 
@@ -327,22 +348,18 @@ int main(int argc, const char *argv[])
 
   if (use_mpi) {
 #ifdef USE_MPI
-    use_mpi = ospLoadModule("mpi") == OSP_NO_ERROR;
-    if (!use_mpi) {
+    if (mode != StudioMode::BATCH) {
       std::cout
-          << "Fatal: ospStudio launched with --mpi, but could not load the OSPRay MPI module."
-          << std::endl;
-      return 1;
-    } else {
-      sgInitializeMPI(argc, argv);
-      std::cout << "ospStudio --mpi, rank " << sgMpiRank() << "/"
-                << sgMpiWorldSize() << "\n";
-    }
-
-#else // USE_MPI
-    std::cout
-        << "Fatal: ospStudio launched with --mpi, but has not been compiled with MPI support."
+        << "Error: ospStudio distributed rendering currently only enabled for "
+        << "batch mode."
         << std::endl;
+      return 1;
+    }
+#else
+    std::cout
+      << "Error: ospStudio launched with --mpi, but has not been compiled "
+      << "with MPI support."
+      << std::endl;
     return 1;
 #endif
   }
@@ -368,33 +385,6 @@ int main(int argc, const char *argv[])
   std::cout << "OpenImageDenoise is " << (denoiser ? "" : "not ") << "available"
             << std::endl;
 
-  // Parse first argument as StudioMode
-  // (GUI is the default if no mode is given)
-  // XXX Switch to using ospcommon/rkcommon ArgumentList
-  auto mode = StudioMode::GUI;
-  std::vector<std::string> pluginsToLoad;
-  if (argc > 1) {
-    auto modeArg = std::string(argv[1]);
-    if (modeArg.front() != '-') {
-      auto s = StudioModeMap.find(modeArg);
-      if (s != StudioModeMap.end()) {
-        mode = s->second;
-        // Remove mode argument
-        removeArgs(argc, argv, 1, 1);
-      }
-    }
-
-    // Parse argument list for any plugins.
-    for (int i = 1; i < argc; i++) {
-      const auto arg = std::string(argv[i]);
-      if (arg == "--plugin" || arg == "-p") {
-        pluginsToLoad.emplace_back(argv[i + 1]);
-        removeArgs(argc, argv, i, 2);
-        --i;
-      }
-    }
-  }
-
   // Set parameters common to all modes
   StudioCommon studioCommon(pluginsToLoad, denoiser, argc, argv);
   studioCommon.splitPluginArguments();
@@ -419,11 +409,13 @@ int main(int argc, const char *argv[])
     case StudioMode::HEADLESS:
       std::cerr << "Headless mode\n";
       break;
-#ifdef USE_BENCHMARK
     case StudioMode::BENCHMARK:
+#ifdef USE_BENCHMARK
       context = std::make_shared<BenchmarkContext>(studioCommon);
-      break;
+#else
+      std::cerr << "Benchmark mode not enabled.  Recompile with -DUSE_BENCHMARK=ON\n";
 #endif
+      break;
     default:
       std::cerr << "unknown mode!  How did I get here?!\n";
     }
