@@ -345,7 +345,8 @@ bool GUIContext::parseCommandLine()
   try {
     app->parse(ac, av);
   } catch (const CLI::ParseError &e) {
-    exit(app->exit(e));
+    app->exit(e);
+    return false;
   }
 
   // XXX: changing windowSize here messes causes some display scaling issues

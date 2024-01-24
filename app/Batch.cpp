@@ -235,14 +235,15 @@ bool BatchContext::parseCommandLine()
   try {
     app->parse(ac, av);
   } catch (const CLI::ParseError &e) {
-    exit(app->exit(e));
+    app->exit(e);
+    return false;
   }
 
   if (filesToImport.size() == 0) {
     std::cout << "No files to import " << std::endl;
-    return 0;
+    return false;
   } else
-    return 1;
+    return true;
 }
 
 void BatchContext::refreshRenderer()

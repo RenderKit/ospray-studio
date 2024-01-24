@@ -64,12 +64,12 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app)
     "files",
     filesToImport,
     "The list of files to import"
-  );
+  )->check(CLI::detail::ExistingFileValidator());
   app->add_option(
     "--reload",
     optReloadAssets,
     "reload asset file contents, rather than creating an instance"
-  );
+  )->check(CLI::IsMember({true, false}));
   app->add_option(
     "--renderer",
     optRendererTypeStr,
@@ -95,7 +95,7 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app)
       return true;
     },
     "Set the renderer background color"
-    )->expected(4)->check(CLI::NonNegativeNumber);
+  )->expected(4)->check(CLI::NonNegativeNumber);
   app->add_option(
     "--pixelfilter",
     optPF,
@@ -120,27 +120,27 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app)
     "--saveAlbedo",
     optSaveAlbedo,
     "Save albedo values"
-  );
+  )->check(CLI::IsMember({true, false}));
   app->add_flag(
     "--saveDepth",
     optSaveDepth,
     "Save depth values"
-  );
+  )->check(CLI::IsMember({true, false}));
   app->add_flag(
     "--saveNormal",
     optSaveNormal,
     "Save normal values" 
-  );
+  )->check(CLI::IsMember({true, false}));
   app->add_flag(
     "--saveLayers",
     optSaveLayersSeparately,
     "Save layers in separate files"
-  );
+  )->check(CLI::IsMember({true, false}));
   app->add_flag(
     "--verboseImporter",
     optVerboseImporter,
     "Additional console info messages when importing files"
-  );
+  )->check(CLI::IsMember({true, false}));
   app->add_option(
     "--resolution",
     [&](const std::vector<std::string> val) {
@@ -240,12 +240,12 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app)
     "--denoiser",
     optDenoiser,
     "Enable frame denoising"
-  );
+  )->check(CLI::IsMember({true, false}));
   app->add_flag(
     "--denoiseFinalFrame",
     optDenoiseFinalFrame,
     "Denoise only when accum limit is reached"
-  );
+  )->check(CLI::IsMember({true, false}));
   app->add_option(
     "--camera",
     optCameraRange,
