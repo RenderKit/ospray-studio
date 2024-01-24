@@ -63,6 +63,7 @@ void GUIContext::start()
   if (!mainWindow) {
     mainWindow = new MainWindow(defaultSize, currentUtil);
     mainWindow->initGLFW();
+    StudioContext::setMainWindow((void *)mainWindow);
   }
 
   // load plugins //

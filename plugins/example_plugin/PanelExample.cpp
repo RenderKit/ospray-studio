@@ -3,6 +3,7 @@
 
 #include "PanelExample.h"
 
+#include "app/MainWindow.h"
 #include "app/widgets/GenerateImGuiWidgets.h"
 
 #include "imgui.h"
@@ -32,7 +33,9 @@ namespace ospray {
 
       ImGui::Text("%s", "Current application state");
       ImGui::Text("Frame: %p", (void *) context->frame.get());
-      // ImGui::Text("Arcball Camera: %p", (void *) context->arcballCamera.get());
+      auto pMW = (MainWindow*)context->getMainWindow();
+      if (pMW)
+        ImGui::Text("Arcball Camera: %p", (void *) pMW->arcballCamera.get());
       ImGui::Text("Current scenegraph:");
       context->frame->traverse<sg::GenerateImGuiWidgets>(
           sg::TreeState::ROOTOPEN);

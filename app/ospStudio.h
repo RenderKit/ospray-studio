@@ -153,6 +153,13 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::string outputFilename{""};
 
   StudioMode mode;
+  void *ctxMainWindow{nullptr}; // Will be populated if in GUI mode
+  void setMainWindow(void *mainWindow) {
+    ctxMainWindow = mainWindow;
+  };
+  void *getMainWindow() {
+    return ctxMainWindow;
+  };
 
   bool optReloadAssets{false};
   bool optResetCameraOnLoad{true};
