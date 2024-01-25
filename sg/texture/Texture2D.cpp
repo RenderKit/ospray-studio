@@ -575,9 +575,8 @@ bool Texture2D::load(const FileName &_fileName,
   // already in memory), but a unique name for the texture cache.
   fileName = _fileName;
 
-  // Check the cache before creating a new texture might be able to share the
-  // cached texelData.
-  if (textureCache.find(fileName) != textureCache.end()) {
+  // Check the cache before creating a new texture
+  if (!params.reload && textureCache.find(fileName) != textureCache.end()) {
     std::shared_ptr<Texture2D> cache = textureCache[fileName].lock();
     if (cache) {
       params = cache->params;

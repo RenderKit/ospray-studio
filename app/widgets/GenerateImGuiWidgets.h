@@ -578,6 +578,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"quaternionf", generateWidget_quaternionf},
     {"string", generateWidget_string},
     {"filename", generateWidget_filename},
+    {"fileWatcher", generateWidget_bool},
 
     // OSPRay Enum types
     {"OSPAMRMethod", generateWidget_int<OSPAMRMethod>},

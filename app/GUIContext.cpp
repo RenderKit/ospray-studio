@@ -246,22 +246,7 @@ void GUIContext::refreshRenderer()
     r["maxContribution"] = maxContribution;
 
   // Re-add the backplate on renderer change
-  if (backPlateTexture != "") {
-    auto backplateTex =
-        createNodeAs<Texture2D>("map_backplate", "texture_2d");
-    if (backplateTex->load(backPlateTexture, false, false))
-      r.add(backplateTex);
-    else {
-      backplateTex = nullptr;
-      backPlateTexture = "";
-    }
-  } else {
-    // Node removal requires waiting on previous frame completion
-    frame->cancelFrame();
-    frame->waitOnFrame();
-    r.remove("map_backplate");
-    r.handle().removeParam("map_backplate");
-  }
+  r["backplate_filename"] = backPlateTexture.str();
 }
 
 void GUIContext::saveRendererParams()

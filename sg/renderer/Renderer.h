@@ -13,6 +13,8 @@ struct OSPSG_INTERFACE Renderer
 {
   Renderer(std::string type);
   virtual ~Renderer() override = default;
+  void preCommit() override;
+  void postCommit() override;
 
   NodeType type() const override;
 

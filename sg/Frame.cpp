@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Frame.h"
+#include "FileWatcher.h"
 
 namespace ospray {
 namespace sg {
@@ -45,6 +46,9 @@ void Frame::startNewFrame()
   // App navMode set via setNavMode() vs current frame-state navMode
   if (navMode != child("navMode").valueAs<bool>())
     child("navMode") = navMode && (!navMode || isModified());
+
+  // This will update all nodes that are watching for file changes
+  checkFileWatcherModifications();
 
   // If working on a frame, cancel it, something has changed
   if (isModified()) {

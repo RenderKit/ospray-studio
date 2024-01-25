@@ -234,6 +234,9 @@ namespace sg {
     bool sgNoUI() const;
     void setSGNoUI();
 
+    // Allow nodes to be marked as modified with no other modifications
+    void markAsModified();
+
    protected:
     virtual void preCommit();
     virtual void postCommit();
@@ -243,7 +246,6 @@ namespace sg {
     TimeStamp lastCommitted() const;
     TimeStamp childrenLastModified() const;
 
-    void markAsModified();
     void updateChildrenModifiedTime();
 
     bool subtreeModifiedButNotCommitted() const;

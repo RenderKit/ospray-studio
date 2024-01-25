@@ -81,6 +81,7 @@ struct OSPSG_INTERFACE Texture2D : public Texture
     bool nearestFilter{false};
     int colorChannel{4}; // sampled channel R(0), G(1), B(2), A(3), all(4)
     bool flip{true}; // flip texture data vertically when loading from file
+    bool reload{false}; // force reload vs using texture cache
   } params;
 
  private:
