@@ -55,6 +55,20 @@ else()
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CONFIGURATION_TYPES})
 endif()
 
+## Add dependent load for Windows dll injection load security
+if (WIN32)
+  get_filename_component(COMPILER_NAME ${CMAKE_CXX_COMPILER} NAME_WE)
+  if (COMPILER_NAME STREQUAL "icx" OR COMPILER_NAME STREQUAL "icpx")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /Qoption,link,/DEPENDENTLOADFLAG:0x2000")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /Qoption,link,/DEPENDENTLOADFLAG:0x2000")
+  elseif (MSVC)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x2000")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x2000")
+  else()
+    message(WARNING "Urecognized compiler, DEPENDENTLOADFLAG can't be set")
+  endif()
+endif()
+
 ## global options and variables
 option(OSPRAY_INSTALL "Install OSPRay libraries in addition to OSPRay Studio libraries / binaries" ON)
 set(OSPRAY_STUDIO_RESOURCE_FILE "${PROJECT_SOURCE_DIR}/resources/ospray_studio.rc")
