@@ -208,7 +208,7 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
     auto exporter = getExporter(FileName(f));
 
     if (exporter == "") {
-      std::cout << "No exporter found for type " << FileName(filename).ext()
+      std::cout << "No exporter found for type " << FileName(f).ext()
                 << std::endl;
       return;
     }

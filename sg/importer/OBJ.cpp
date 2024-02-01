@@ -448,13 +448,26 @@ namespace ospray {
         if (!attrib.texcoords.empty() && idx.texcoord_index != -1)
           vt.emplace_back(&attrib.texcoords[idx.texcoord_index * 2]);
       }
+
       auto &mIDs = mesh->mIDs;
-      mIDs.resize(shape.mesh.material_ids.size());
-      std::transform(shape.mesh.material_ids.begin(),
+      bool sameValue = std::all_of(shape.mesh.material_ids.begin(),
           shape.mesh.material_ids.end(),
-          mIDs.begin(),
-          [&](int i) { return i + baseMaterialOffset; });
-      mesh->createChildData("material", mIDs, true);
+          [&](const auto &x) { return x == shape.mesh.material_ids.front(); });
+      // If all materials IDs in the mesh are the same, set a single value
+      // rather than entire vector of same IDs
+      if (sameValue) {
+        auto materialID = shape.mesh.material_ids.front() + baseMaterialOffset;
+        mIDs.emplace_back(materialID);
+        mesh->createChild("material", "uint32_t", mIDs.back());
+        mesh->child("material").setReadOnly();
+      } else {
+        mIDs.resize(shape.mesh.material_ids.size());
+        std::transform(shape.mesh.material_ids.begin(),
+            shape.mesh.material_ids.end(),
+            mIDs.begin(),
+            [&](int i) { return i + baseMaterialOffset; });
+        mesh->createChildData("material", mIDs, true);
+      }
       mesh->child("material").setSGOnly();
 
       mesh->createChildData("vertex.position", v, true);

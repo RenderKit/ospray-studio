@@ -1161,8 +1161,9 @@ NodePtr GLTFData::createOSPMesh(
 
   // add one for default, "no material" material
   auto materialID = prim.material + 1 + baseMaterialOffset;
-  ospGeom->mIDs.resize(ospGeom->skinnedPositions.size(), materialID);
-  ospGeom->createChildData("material", ospGeom->mIDs, true);
+  ospGeom->mIDs.emplace_back(materialID);
+  ospGeom->createChild("material", "uint32_t", ospGeom->mIDs.back());
+  ospGeom->child("material").setReadOnly();
   ospGeom->child("material").setSGOnly();
 
   return ospGeom;
