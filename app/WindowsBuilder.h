@@ -486,7 +486,7 @@ void WindowsBuilder::buildWindowKeyframes()
     }
   }
 
-  if (ImGui::ListBoxHeader("##")) {
+  if (ImGui::BeginListBox("##")) {
     for (int i = 0; i < cameraStack->size(); i++) {
       if (ImGui::Selectable(
               (std::to_string(i) + ": " + to_string(cameraStack->at(i))).c_str(),
@@ -496,7 +496,7 @@ void WindowsBuilder::buildWindowKeyframes()
                 ctx->updateCamera();
               }
     }
-    ImGui::ListBoxFooter();
+    ImGui::EndListBox();
   }
 
   ImGui::End();
@@ -805,7 +805,10 @@ void WindowsBuilder::buildWindowTransferFunctionEditor()
         range1f(0.f, 1.f),
         "TransferFunctionEditor");
 
-    if (ImGui::ListBoxHeader("##transferFunction", transferFunctions.size())) {
+    if (ImGui::BeginListBox("##transferFunction",
+            ImVec2(-FLT_MIN,
+                ImGui::GetTextLineHeightWithSpacing()
+                    * transferFunctions.size()))) {
       int i = 0;
       for (auto t : transferFunctions) {
         if (ImGui::Selectable(t.first.c_str(), (whichTFn == i))) {
@@ -834,7 +837,7 @@ void WindowsBuilder::buildWindowTransferFunctionEditor()
         }
         i++;
       }
-      ImGui::ListBoxFooter();
+      ImGui::EndListBox();
 
       ImGui::Separator();
       if (whichTFn != -1) {

@@ -2,8 +2,12 @@
 
 // uncomment and modify defines under for customize ImGuiFileDialog
 
-//this options need c++17
-//#define USE_STD_FILESYSTEM
+// uncomment if you need to use your FileSystem Interface
+// if commented, you have two defualt interface, std::filesystem or dirent
+// #define USE_CUSTOM_FILESYSTEM
+
+// this options need c++17
+// #define USE_STD_FILESYSTEM
 
 //#define MAX_FILE_DIALOG_NAME_BUFFER 1024
 //#define MAX_PATH_BUFFER_SIZE 1024
@@ -51,13 +55,17 @@
 
 // widget
 // begin combo widget
-// #define IMGUI_BEGIN_COMBO ImGui::BeginCombo
+//#define IMGUI_BEGIN_COMBO ImGui::BeginCombo
+// when auto resized, FILTER_COMBO_MIN_WIDTH will be considered has minimum width
+// FILTER_COMBO_AUTO_SIZE is enabled by default now to 1
+// uncomment if you want disable
+//#define FILTER_COMBO_AUTO_SIZE 0
 // filter combobox width
-// #define FILTER_COMBO_WIDTH 120.0f
+//#define FILTER_COMBO_MIN_WIDTH 120.0f
 // button widget use for compose path
-// #define IMGUI_PATH_BUTTON ImGui::Button
+//#define IMGUI_PATH_BUTTON ImGui::Button
 // standard button
-// #define IMGUI_BUTTON ImGui::Button
+//#define IMGUI_BUTTON ImGui::Button
 
 // locales string
 //#define createDirButtonString "+"

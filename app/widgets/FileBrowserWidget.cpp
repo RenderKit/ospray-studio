@@ -29,17 +29,15 @@ bool fileBrowser(FileList &fileList,
   ImVec2 maxSize = ImGui::GetIO().DisplaySize;
   ImVec2 minSize(maxSize.x * 0.5, maxSize.y * 0.5);
 
-  auto fd = ImGuiFileDialog::Instance();
+  // Allow multiple selections if requested (pass 0 as the countSelectionMax)
+  IGFD::FileDialogConfig fdConfig{};
+  fdConfig.path = defaultPath;
+  fdConfig.fileName = "";
+  fdConfig.countSelectionMax = allowMultipleSelection ? 0 : 1;
+  fdConfig.flags = ImGuiFileDialogFlags_Modal;
 
-  // Allow multiple selections if requested (pass 0 as the vCountSelectionMax)
-  fd->OpenDialog(prompt.c_str(),
-      prompt.c_str(),
-      filters.c_str(),
-      defaultPath,
-      "",
-      allowMultipleSelection ? 0 : 1,
-      nullptr,
-      ImGuiFileDialogFlags_Modal);
+  auto fd = ImGuiFileDialog::Instance();
+  fd->OpenDialog(prompt.c_str(), prompt.c_str(), filters.c_str(), fdConfig);
 
   if (fd->Display(
           prompt.c_str(), ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {

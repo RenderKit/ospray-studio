@@ -99,9 +99,12 @@
 #	define S_IFBLK 0
 #endif
 
-/* Link */
+/*
+ * Symbolic link.  Be ware that S_IFLNK value and S_ISLNK() macro are only
+ * usable with dirent - they do not work with stat() function call!
+ */
 #if !defined(S_IFLNK)
-#	define S_IFLNK 0
+#	define S_IFLNK (_S_IFDIR | _S_IFREG)
 #endif
 
 /* Socket */
@@ -124,6 +127,11 @@
 #	define S_IXUSR 0
 #endif
 
+/* User full permissions */
+#if !defined(S_IRWXU)
+#	define S_IRWXU (S_IRUSR | S_IWUSR | S_IXUSR)
+#endif
+
 /* Read group permission */
 #if !defined(S_IRGRP)
 #	define S_IRGRP 0
@@ -139,6 +147,11 @@
 #	define S_IXGRP 0
 #endif
 
+/* Group full permissions */
+#if !defined(S_IRWXG)
+#	define S_IRWXG (S_IRGRP | S_IWGRP | S_IXGRP)
+#endif
+
 /* Read others permission */
 #if !defined(S_IROTH)
 #	define S_IROTH 0
@@ -152,6 +165,11 @@
 /* Execute others permission */
 #if !defined(S_IXOTH)
 #	define S_IXOTH 0
+#endif
+
+/* Other full permissions */
+#if !defined(S_IRWXO)
+#	define S_IRWXO (S_IROTH | S_IWOTH | S_IXOTH)
 #endif
 
 /* Maximum length of file name */
@@ -180,10 +198,10 @@
 #define DTTOIF(type) (type)
 
 /*
- * File type macros.  Note that block devices, sockets and links cannot be
- * distinguished on Windows and the macros S_ISBLK, S_ISSOCK and S_ISLNK are
- * only defined for compatibility.  These macros should always return false
- * on Windows.
+ * File type macros.  Note that block devices and sockets cannot be
+ * distinguished on Windows, and the macros S_ISBLK and S_ISSOCK are only
+ * defined for compatibility.  These macros should always return false on
+ * Windows.
  */
 #if !defined(S_ISFIFO)
 #	define S_ISFIFO(mode) (((mode) & S_IFMT) == S_IFIFO)
@@ -527,6 +545,8 @@ _wreaddir_r(
 	DWORD attr = datap->dwFileAttributes;
 	if ((attr & FILE_ATTRIBUTE_DEVICE) != 0)
 		entry->d_type = DT_CHR;
+	else if ((attr & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+		entry->d_type = DT_LNK;
 	else if ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0)
 		entry->d_type = DT_DIR;
 	else
@@ -787,6 +807,8 @@ readdir_r(
 		DWORD attr = datap->dwFileAttributes;
 		if ((attr & FILE_ATTRIBUTE_DEVICE) != 0)
 			entry->d_type = DT_CHR;
+		else if ((attr & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+			entry->d_type = DT_LNK;
 		else if ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0)
 			entry->d_type = DT_DIR;
 		else
@@ -902,8 +924,11 @@ telldir(DIR *dirp)
 static void
 _wseekdir(_WDIR *dirp, long loc)
 {
+	if (!dirp)
+		return;
+	
 	/* Directory must be open */
-	if (!dirp || dirp->handle == INVALID_HANDLE_VALUE)
+	if (dirp->handle == INVALID_HANDLE_VALUE)
 		goto exit_failure;
 
 	/* Ensure that seek position is valid */
@@ -1043,8 +1068,10 @@ exit_failure:
 
 exit_success:
 	/* Sort directory entries */
-	qsort(files, size, sizeof(void*),
-		(int (*) (const void*, const void*)) compare);
+	if (size > 1 && compare) {
+		qsort(files, size, sizeof(void*),
+			(int (*) (const void*, const void*)) compare);
+	}
 
 	/* Pass pointer table to caller */
 	if (namelist)

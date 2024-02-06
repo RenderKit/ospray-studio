@@ -218,8 +218,17 @@ bool GLTFData::parseAsset()
   }
   if (!model.extensionsRequired.empty()) {
     WARN << "   ExtensionsRequired:\n";
-    for (const auto &ext : model.extensionsRequired)
-      WARN << "      " << ext << "\n";
+		for (const auto &ext : model.extensionsRequired) {
+			WARN << "      " << ext << "\n";
+#ifndef TINYGLTF_ENABLE_DRACO
+      if (ext == "KHR_draco_mesh_compression") {
+        ERR << "FATAL error parsing gltf file:"
+            << " model requires draco mesh compression.\n"
+						<<  "Rebuild Studio with draco compression enabled!" << std::endl;
+        return false;
+      }
+#endif
+		}
   }
 
   INFO << "... " << model.accessors.size() << " accessors\n";

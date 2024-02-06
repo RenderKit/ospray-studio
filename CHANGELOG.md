@@ -1,6 +1,25 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v1.0.0
+
+- Update 3rd party dependencies
+  - Implicitly included in this repo:
+    - CLI11 v2.4.0 (github.com/CLIUtils/CLI11)
+    - dear imgui v1.90.2 WIP (docking branch) (github.com/ocornut/imgui)
+    - dirent v1.24 (github.com/tronkko/dirent)
+    - ImGuiFileDialog v0.6.6.1 (github.com/aiekick/ImGuiFileDialog)
+    - imGuIZMO.quat v3.0 (github.com/BrutPitt/imGuIZMO.quat)
+    - JSON for Modern C++ 3.11.3 (github.com/nlohmann/json)
+    - stb_image v2.29 (github.com/nothings/stb)
+    - tinydng v0.1.0 (github.com/syoyo/tinydng)
+    - tinyexr v1.0.7 (github.com/syoyo/tinyexr)
+    - tinygltf v2.8.20 (github.com/syoyo/tinygltf)
+    - tinyobjloader v2.0.0rc13 (github.com/tinyobjloader/tinyobjloader)
+  - via FetchContent:
+    - pybind11 v2.11.1 (https://github.com/pybind/pybind11)
+    - draco v1.5.7 (https://github.com/google/draco)
+
 ### Changes in OSPRay Studio v0.13.0
 
 -   Compatible with OSPRay release v3.0.0

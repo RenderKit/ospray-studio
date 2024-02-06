@@ -6,7 +6,7 @@
 ##
 
 if(NOT DEFINED DRACO_VERSION)
-  set(DRACO_VERSION 1.5.6)
+  set(DRACO_VERSION 1.5.7)
 endif()
 
 ##
@@ -27,7 +27,7 @@ if(NOT "${draco_FOUND}")
 
   # Hide advanced options from main CMake list
   mark_as_advanced(DRACO_FAST)
-  mark_as_advanced(DRACO_GLTF)
+  mark_as_advanced(DRACO_GLTF_BITSTREAM)
   mark_as_advanced(DRACO_ANIMATION_ENCODING)
   mark_as_advanced(DRACO_BACKWARDS_COMPATIBILITY)
   mark_as_advanced(DRACO_DECODER_ATTRIBUTE_DEDUPLICATION)
@@ -45,10 +45,10 @@ if(NOT "${draco_FOUND}")
   mark_as_advanced(DRACO_DEBUG_GLTF_BITSTREAM)
   mark_as_advanced(DRACO_TRANSCODER_SUPPORTED)
 
-  # draco needs to be build position independent to link with ospray_sg
+  # draco needs to be built position independent to link with ospray_sg
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   set(DRACO_FAST ON)
-  set(DRACO_GLTF ON)
+  set(DRACO_GLTF_BITSTREAM ON)
   set(DRACO_ANIMATION_ENCODING ON)
   set(DRACO_JS_GLUE OFF)
 
