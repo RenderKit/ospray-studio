@@ -115,7 +115,7 @@ jobs:
     with:
       cmd: |
         msiexec.exe /a (Get-ChildItem $env:GITHUB_WORKSPACE\build-win\package\*.msi | Select-Object -Expand FullName) /qn TARGETDIR=$env:GITHUB_WORKSPACE | Out-Null
-        & $env:SIGN_FILE_WINDOWS -t $env:GITHUB_WORKSPACE\build-win\package\*.msi (Get-ChildItem "$env:GITHUB_WORKSPACE\Intel\OSPRay Studio v0\bin\*" | Select-Object -Expand FullName)
+        & $env:SIGN_FILE_WINDOWS -t $env:GITHUB_WORKSPACE\build-win\package\*.msi (Get-ChildItem "$env:GITHUB_WORKSPACE\Intel\OSPRay Studio*\bin\*" | Select-Object -Expand FullName)
       artifact-in: release-windows
 
   ## macOS ##
@@ -131,22 +131,14 @@ jobs:
 
 ### Scan Jobs ###
 
-  cache-ospray:
-    secrets: inherit
-    uses: ./.github/workflows/cache-ospray.yml
-    with:
-      image: rockylinux:8.7
-      ospray-version: devel
-      rkcommon-version: devel
-
   composition-analysis:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/composition_analysis.yml@main
 
   static-analysis:
-    needs: cache-ospray
     secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    #uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/coverity_env
     with:
       coverity: true
       image: rockylinux:8.7
@@ -154,10 +146,6 @@ jobs:
       ignore-files: pysg.cpp
       prebuild: >
         module load cmake/3.25.3 &&
-        export CACHE_DIR=${{ needs.cache-ospray.outputs.cache-dir }} &&
-        export OSPRAY_VER=${{ needs.cache-ospray.outputs.ospray-version }} &&
-        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install &&
-        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb &&
         cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF &&
         echo "Done: Configure OSPRay Studio"
       build: cmake --build build
