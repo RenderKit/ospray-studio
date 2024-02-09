@@ -19,6 +19,8 @@ struct RandomSpheres : public Generator
 
  private:
   std::vector<vec3f> centers;
+  std::vector<vec3f> normals;
+  std::vector<vec2f> texCoords;
   std::vector<vec4f> colors;
 };
 
@@ -31,8 +33,10 @@ RandomSpheres::RandomSpheres()
   auto &parameters = child("parameters");
   parameters.createChild("numSpheres", "int", (int)1e6);
   parameters.createChild("radius", "float", .002f);
+  parameters.createChild("type", "OSPSphereType", OSP_SPHERE);
   parameters.child("numSpheres").setMinMax(1, (int)10e6);
   parameters.child("radius").setMinMax(.001f, .1f);
+	parameters.child("type").setMinMax(OSP_SPHERE, OSP_ORIENTED_DISC);
   parameters.createChild("generateColors", "bool", true);
 
   auto &xfm = createChild("xfm", "transform");
@@ -41,9 +45,10 @@ RandomSpheres::RandomSpheres()
 void RandomSpheres::generateData()
 {
   auto &parameters = child("parameters");
-  auto numSpheres = parameters["numSpheres"].valueAs<int>();
-  auto radius = parameters["radius"].valueAs<float>();
-  auto generateColors = parameters["generateColors"].valueAs<bool>();
+  auto &type = parameters["type"].valueAs<OSPSphereType>();
+  auto &numSpheres = parameters["numSpheres"].valueAs<int>();
+  auto &radius = parameters["radius"].valueAs<float>();
+  auto &generateColors = parameters["generateColors"].valueAs<bool>();
 
   auto &xfm = child("xfm");
   auto &spheres = xfm.createChild("spheres", "geometry_spheres");
@@ -53,6 +58,8 @@ void RandomSpheres::generateData()
   std::uniform_real_distribution<float> rgb(0.f, 1.f);
 
   centers.resize(numSpheres);
+  normals.resize(numSpheres);
+  texCoords.resize(numSpheres);
   colors.resize(numSpheres);
 
   std::uniform_real_distribution<float> dist_x, dist_y, dist_z;
@@ -76,6 +83,8 @@ void RandomSpheres::generateData()
 
     for (int i = 0; i < numSpheres; ++i) {
       centers[i] = vec3f(dist_x(rng), dist_y(rng), dist_z(rng));
+      normals[i] = normalize(vec3f(0.f) - centers[i]);
+      texCoords[i] = vec2f((centers[i].x + 1) * 0.5f , (centers[i].y + 1) * 0.5f);
       colors[i] = vec4f(float(sgMpiRank() % sgMpiWorldSize()), 1.f, float((sgMpiRank() + 1) % sgMpiWorldSize()), 1.f);
     }
   }
@@ -87,12 +96,18 @@ void RandomSpheres::generateData()
 
     for (int i = 0; i < numSpheres; ++i) {
       centers[i] = vec3f(dist_x(rng), dist_y(rng), dist_z(rng));
+      normals[i] = normalize(vec3f(0.f) - centers[i]);
+      texCoords[i] = vec2f((centers[i].x + 1) * 0.5f , (centers[i].y + 1) * 0.5f);
       colors[i] = vec4f(rgb(rng), rgb(rng), rgb(rng), 1.f);
     }
   }
 
+  spheres.child("type") = type;
   spheres.createChildData("sphere.position", centers, true);
   spheres.child("radius") = radius;
+
+	if (type == OSP_ORIENTED_DISC)
+    spheres.createChildData("sphere.normal", normals, true);
 
   if (generateColors) {
     spheres.createChildData("color", colors, true);
@@ -101,8 +116,11 @@ void RandomSpheres::generateData()
     spheres.child("color").setSGOnly();
   }
 
-  const std::vector<uint32_t> mID = {0};
-  spheres.createChildData("material", mID); // This is a scenegraph parameter
+	// One texCoord per sphere (constant per sphere)
+	spheres.createChildData("sphere.texcoord", texCoords, true);
+
+  spheres.createChild("material", "uint32_t", uint32_t(0)); // This is a scenegraph parameter
+	spheres.child("material").setReadOnly();
   spheres.child("material").setSGOnly();
 }
 

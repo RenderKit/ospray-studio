@@ -510,6 +510,7 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(OSPLogLevelNode, OSPLogLevel);
   OSP_REGISTER_SG_NODE_NAME(OSPPixelFilterTypeNode, OSPPixelFilterType);
   OSP_REGISTER_SG_NODE_NAME(OSPShutterTypeNode, OSPShutterType);
+  OSP_REGISTER_SG_NODE_NAME(OSPSphereTypeNode, OSPSphereType);
   OSP_REGISTER_SG_NODE_NAME(OSPStereoModeNode, OSPStereoMode);
   OSP_REGISTER_SG_NODE_NAME(OSPSubdivisionModeNode, OSPSubdivisionMode);
   OSP_REGISTER_SG_NODE_NAME(OSPSyncEventNode, OSPSyncEvent);

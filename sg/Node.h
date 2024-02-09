@@ -366,6 +366,7 @@ namespace sg {
   using OSPLogLevelNode = Node_T<OSPLogLevel>;
   using OSPPixelFilterTypeNode = Node_T<OSPPixelFilterType>;
   using OSPShutterTypeNode = Node_T<OSPShutterType>;
+  using OSPSphereTypeNode = Node_T<OSPSphereType>;
   using OSPStereoModeNode = Node_T<OSPStereoMode>;
   using OSPSubdivisionModeNode = Node_T<OSPSubdivisionMode>;
   using OSPSyncEventNode = Node_T<OSPSyncEvent>;

@@ -593,6 +593,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"OSPLogLevel", generateWidget_int<OSPLogLevel>},
     {"OSPPixelFilterType", generateWidget_int<OSPPixelFilterType>},
     {"OSPShutterType", generateWidget_int<OSPShutterType>},
+    {"OSPSphereType", generateWidget_int<OSPSphereType>},
     {"OSPStereoMode", generateWidget_int<OSPStereoMode>},
     {"OSPSubdivisionMode", generateWidget_int<OSPSubdivisionMode>},
     {"OSPSyncEvent", generateWidget_int<OSPSyncEvent>},
