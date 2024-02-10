@@ -603,11 +603,12 @@ void GUIContext::saveNodesJson(const std::string nodeTypeStr)
 
 void GUIContext::selectBuffer(OSPFrameBufferChannel whichBuffer, bool invert)
 {
+  auto &framebuffer = frame->childAs<FrameBuffer>("framebuffer");
+
   optDisplayBuffer = whichBuffer;
-  optDisplayBufferInvert = invert;
+  optDisplayBufferInvert = invert && framebuffer.isFloatFormat();
 
   // Only enabled if they exist
-  auto &framebuffer = frame->childAs<FrameBuffer>("framebuffer");
   if (!framebuffer.hasDepthChannel())
     optDisplayBuffer &= ~OSP_FB_DEPTH;
   if (!framebuffer.hasAccumChannel())

@@ -296,8 +296,8 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
           whichBuffer == OSP_FB_DEPTH))
       whichBuffer = OSP_FB_DEPTH;
 
-    ImGui::NewLine();
     ImGui::SameLine();
+    ImGui::NewLine();
     if (fb.hasPrimitiveIDChannel()
         && ImGui::RadioButton(
           "PrimID##displayPrimID", whichBuffer == OSP_FB_ID_PRIMITIVE))
@@ -315,42 +315,42 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
           "InstanceID##displayInstID", whichBuffer == OSP_FB_ID_INSTANCE))
       whichBuffer = OSP_FB_ID_INSTANCE;
 
+    ImGui::SameLine();
     ImGui::NewLine();
-    ImGui::Checkbox("Invert values##displayInverted", &invertBuffer);
-
     if (!fb.isFloatFormat())
       ImGui::TextColored(
           ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for more buffers");
   }
 
-  ctx->selectBuffer(whichBuffer, invertBuffer);
+	// Only float buffers will be inverted
+	ImGui::SameLine();
+	ImGui::NewLine();
+	if (fb.isFloatFormat())
+		ImGui::Checkbox("Invert values##displayInverted", &invertBuffer);
+
+	ctx->selectBuffer(whichBuffer, invertBuffer);
 
   ImGui::Separator();
 
   ImGui::Text("Post-processing");
-  if (fb.isFloatFormat()) {
-    ImGui::Checkbox("Tonemap", &ctx->frame->toneMapFB);
-    ImGui::SameLine();
-    ImGui::Checkbox("Tonemap nav", &ctx->frame->toneMapNavFB);
+	ImGui::Checkbox("Tonemap", &ctx->frame->toneMapFB);
+	ImGui::SameLine();
+	ImGui::Checkbox("Tonemap nav", &ctx->frame->toneMapNavFB);
 
-    if (ctx->studioCommon.denoiserAvailable) {
-      ImGui::Checkbox("Denoise", &ctx->frame->denoiseFB);
-      ImGui::SameLine();
-      ImGui::Checkbox("Denoise nav", &ctx->frame->denoiseNavFB);
-    }
-    if (ctx->frame->denoiseFB || ctx->frame->denoiseNavFB) {
-      ImGui::Checkbox("Denoise only PathTracer", &ctx->frame->denoiseOnlyPathTracer);
-      ImGui::Checkbox("Denoise on final frame", &ctx->frame->denoiseFBFinalFrame);
-      ImGui::SameLine();
-      // Add accum here for convenience with final-frame denoising
-      ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-      ImGui::DragInt(
-          "Limit accumulation", &ctx->frame->accumLimit, 1, 0, INT_MAX, "%d frames");
-    }
-  } else {
-    ImGui::TextColored(
-        ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for post-processing");
-  }
+	if (ctx->studioCommon.denoiserAvailable) {
+		ImGui::Checkbox("Denoise", &ctx->frame->denoiseFB);
+		ImGui::SameLine();
+		ImGui::Checkbox("Denoise nav", &ctx->frame->denoiseNavFB);
+	}
+	if (ctx->frame->denoiseFB || ctx->frame->denoiseNavFB) {
+		ImGui::Checkbox("Denoise only PathTracer", &ctx->frame->denoiseOnlyPathTracer);
+		ImGui::Checkbox("Denoise on final frame", &ctx->frame->denoiseFBFinalFrame);
+		ImGui::SameLine();
+		// Add accum here for convenience with final-frame denoising
+		ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+		ImGui::DragInt(
+				"Limit accumulation", &ctx->frame->accumLimit, 1, 0, INT_MAX, "%d frames");
+	}
 
   ImGui::Separator();
 
