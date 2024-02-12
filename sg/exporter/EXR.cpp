@@ -8,6 +8,8 @@
 #include "rkcommon/os/FileName.h"
 // openexr
 #include "OpenEXR/ImfChannelList.h"
+#include "OpenEXR/ImfFrameBuffer.h"
+#include "OpenEXR/ImfHeader.h"
 #include "OpenEXR/ImfOutputFile.h"
 
 namespace ospray {
@@ -61,8 +63,6 @@ namespace ospray {
 
     // use general EXR file API for 32-bit float support
     namespace IMF   = OPENEXR_IMF_NAMESPACE;
-    namespace IMATH = IMATH_NAMESPACE;
-
     Imf::Header exrHeader(size.x, size.y);
     exrHeader.channels().insert("R", Imf::Channel(IMF::FLOAT));
     exrHeader.channels().insert("G", Imf::Channel(IMF::FLOAT));
@@ -176,7 +176,6 @@ namespace ospray {
 
     // use general EXR file API for 32-bit float support
     namespace IMF   = OPENEXR_IMF_NAMESPACE;
-    namespace IMATH = IMATH_NAMESPACE;
     auto makeSlice = [&](const void *fb, int offset, int ncomp = 4) {
       // flip the data
       return Imf::Slice(IMF::FLOAT,
