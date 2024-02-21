@@ -5,4 +5,6 @@
 #define TINY_DNG_LOADER_USE_THREAD
 //#define TINY_DNG_LOADER_NO_STB_IMAGE_INCLUDE
 #define TINY_DNG_LOADER_IMPLEMENTATION
+
+#include <cstdint> // Add uint32_t
 #include "tiny_dng_loader.h"
