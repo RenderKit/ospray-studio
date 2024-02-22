@@ -6,7 +6,7 @@ if(glfw3_FOUND)
 endif()
 
 if(NOT DEFINED GLFW_VERSION)
-    set(GLFW_VERSION 3.3.8)
+    set(GLFW_VERSION 3.3.9)
 endif()
 
 ## Look for any available version

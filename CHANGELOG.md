@@ -17,8 +17,9 @@ Version History
     - tinygltf v2.8.20 (github.com/syoyo/tinygltf)
     - tinyobjloader v2.0.0rc13 (github.com/tinyobjloader/tinyobjloader)
   - via FetchContent:
-    - pybind11 v2.11.1 (https://github.com/pybind/pybind11)
-    - draco v1.5.7 (https://github.com/google/draco)
+    - glfw v3.3.9 (github.com/glfw/glfw)
+    - pybind11 v2.11.1 (github.com/pybind/pybind11)
+    - draco v1.5.7 (github.com/google/draco)
 
 ### Changes in OSPRay Studio v0.13.0
 
