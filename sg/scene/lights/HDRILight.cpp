@@ -63,11 +63,14 @@ HDRILight::HDRILight() : Light("hdri")
     defaultMapPtr = createNodeAs<Texture2D>("map", "texture_2d");
     staticDefaultMap = defaultMapPtr;
     Texture2D &defaultMap = *defaultMapPtr;
-    defaultMap.params.size = vec2ul(16, 8);
-    defaultMap.params.components = 1;
-    defaultMap.params.depth = 1;
-    // preferLinear = false creates an L8 texture, rather than R8
-    if (!defaultMap.load("_defaultHDRI", false, true, 4, checker))
+    defaultMap.imageParams.size = vec2ul(16, 8);
+    defaultMap.imageParams.components = 1; // defaultMap is just grayscale
+    defaultMap.imageParams.depth = 1;
+    // preferLinear creates an L8 texture, rather than R8
+    // and nearestFilter keeps edges sharper
+    defaultMap.samplerParams.preferLinear = false;
+    defaultMap.samplerParams.nearestFilter = true;
+    if (!defaultMap.load("_defaultHDRI", checker))
       std::cerr << "!!!! Default HDRI texture failed!" << std::endl;
     // Set filename to read-only to prevent user removing it via UI
     defaultMap["filename"].setReadOnly();
@@ -111,8 +114,8 @@ void HDRILight::preCommit()
         auto &hdriTex = createChild("map", "texture_2d");
         auto texture = hdriTex.nodeAs<sg::Texture2D>();
         // Force reload rather than using texture cache
-        texture->params.reload = (filename == mapFilename);
-        if (!texture->load(filename, false, false)) {
+        texture->reload = (filename == mapFilename);
+        if (!texture->load(filename)) {
           add(defaultMap);
           child("filename") = std::string("");
         }

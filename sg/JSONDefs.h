@@ -120,7 +120,8 @@ inline void from_json(const JSON &, Node &) {}
       subType = #OSPSUBTYPE;                                                   \
   }
 
-inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
+inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j)
+{
   NodePtr n = nullptr;
 
   // This is a generated value and can't be imported
@@ -146,6 +147,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
   FIX_SUBTYPE(shutterType, OSPShutterType);
   FIX_SUBTYPE(stereoMode, OSPStereoMode);
   FIX_SUBTYPE(filter, OSPTextureFilter);
+  FIX_SUBTYPE(filter, OSPTextureWrapMode);
   FIX_SUBTYPE(format, OSPTextureFormat);
 
   if (j.contains("value")) {
@@ -198,6 +200,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
     CONVERT_TYPE(OSPSubdivisionMode);
     CONVERT_TYPE(OSPSyncEvent);
     CONVERT_TYPE(OSPTextureFilter);
+    CONVERT_TYPE(OSPTextureWrapMode);
     CONVERT_TYPE(OSPTextureFormat);
     CONVERT_TYPE(OSPUnstructuredCellType);
     CONVERT_TYPE(OSPVolumeFilter);
@@ -269,6 +272,17 @@ inline void from_json(
 } // namespace containers
 
 namespace math {
+
+inline void to_json(JSON &j, const vec2ui &v)
+{
+  j = {v.x, v.y};
+}
+
+inline void from_json(const JSON &j, vec2ui &v)
+{
+  j.at(0).get_to(v.x);
+  j.at(1).get_to(v.y);
+}
 
 inline void to_json(JSON &j, const vec2i &v)
 {
@@ -422,6 +436,7 @@ inline void to_json(JSON &j, const Any &a)
   captureType<uint32_t>(j, a);
   captureType<float>(j, a);
   captureType<std::string>(j, a);
+  captureType<math::vec2ui>(j, a);
   captureType<math::vec2i>(j, a);
   captureType<math::vec2f>(j, a);
   captureType<math::range1f>(j, a);
@@ -449,6 +464,7 @@ inline void to_json(JSON &j, const Any &a)
   captureType<OSPSubdivisionMode>(j, a);
   captureType<OSPSyncEvent>(j, a);
   captureType<OSPTextureFilter>(j, a);
+  captureType<OSPTextureWrapMode>(j, a);
   captureType<OSPTextureFormat>(j, a);
   captureType<OSPUnstructuredCellType>(j, a);
   captureType<OSPVolumeFilter>(j, a);

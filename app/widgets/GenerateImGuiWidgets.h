@@ -138,9 +138,11 @@ inline bool generateWidget_float(const std::string &title, Node &node)
   return false;
 }
 
+template <typename T>
 inline bool generateWidget_vec2i(const std::string &title, Node &node)
 {
-  vec2i v = node.valueAs<vec2i>();
+  using v2T = vec_t<T, 2>;
+  vec2i v = node.valueAs<v2T>();
 
   if (node.readOnly()) {
     ImGui::Text("%s",
@@ -151,10 +153,10 @@ inline bool generateWidget_vec2i(const std::string &title, Node &node)
   }
 
   if (node.hasMinMax()) {
-    const int min = node.minAs<int>();
-    const int max = node.maxAs<int>();
+    const int min = node.minAs<T>();
+    const int max = node.maxAs<T>();
     if (ImGui::SliderInt2(title.c_str(), v, min, max)) {
-      node.setValue(v);
+      node.setValue(v2T(v));
       return true;
     }
   } else {
@@ -564,7 +566,8 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"uint32_t", generateWidget_int<uint32_t>},
     {"long", generateWidget_int<long>},
     {"float", generateWidget_float},
-    {"vec2i", generateWidget_vec2i},
+    {"vec2i", generateWidget_vec2i<int>},
+    {"vec2ui", generateWidget_vec2i<uint32_t>},
     {"vec2f", generateWidget_vec2f},
     {"vec3i", generateWidget_vec3i},
     {"vec3f", generateWidget_vec3f},
@@ -598,6 +601,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"OSPSubdivisionMode", generateWidget_int<OSPSubdivisionMode>},
     {"OSPSyncEvent", generateWidget_int<OSPSyncEvent>},
     {"OSPTextureFilter", generateWidget_int<OSPTextureFilter>},
+    {"OSPTextureWrapMode", generateWidget_int<OSPTextureWrapMode>},
     {"OSPTextureFormat", generateWidget_int<OSPTextureFormat>},
     {"OSPUnstructuredCellType", generateWidget_int<OSPUnstructuredCellType>},
     {"OSPVolumeFilter", generateWidget_int<OSPVolumeFilter>},

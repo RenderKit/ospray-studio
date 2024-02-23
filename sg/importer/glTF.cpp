@@ -134,7 +134,7 @@ struct GLTFData
 
   NodePtr createOSPTexture(const std::string &texParam,
       const tinygltf::Texture &texture,
-      const int colorChannel,
+      const int channel,
       const bool preferLinear);
 
   void setOSPTexture(NodePtr ospMaterial,
@@ -154,7 +154,7 @@ struct GLTFData
       const std::string &texParam,
       int texIndex,
       const tinygltf::ExtensionMap &extensions,
-      int colorChannel, // sampled channel R(0), G(1), B(2), A(3)
+      int channel, // sampled channel R(0), G(1), B(2), A(3)
       bool preferLinear = true);
 };
 
@@ -218,17 +218,17 @@ bool GLTFData::parseAsset()
   }
   if (!model.extensionsRequired.empty()) {
     WARN << "   ExtensionsRequired:\n";
-		for (const auto &ext : model.extensionsRequired) {
-			WARN << "      " << ext << "\n";
+    for (const auto &ext : model.extensionsRequired) {
+      WARN << "      " << ext << "\n";
 #ifndef TINYGLTF_ENABLE_DRACO
       if (ext == "KHR_draco_mesh_compression") {
         ERR << "FATAL error parsing gltf file:"
-            << " model requires draco mesh compression.\n"
-						<<  "Rebuild Studio with draco compression enabled!" << std::endl;
+          << " model requires draco mesh compression.\n"
+          <<  "Rebuild Studio with draco compression enabled!" << std::endl;
         return false;
       }
 #endif
-		}
+    }
   }
 
   INFO << "... " << model.accessors.size() << " accessors\n";
@@ -1271,11 +1271,12 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
   }
 
   if (mat.emissiveTexture.index != -1 && mat.emissiveTexture.texCoord == 0) {
+    // As per spec "encoded with the sRGB transfer function"
     setOSPTexture(ospMat,
         "emissiveColor",
         mat.emissiveTexture.index,
         mat.emissiveTexture.extensions,
-        true);
+        false);
   }
 
   // KHR_materials_specular
@@ -1625,7 +1626,7 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
 
 NodePtr GLTFData::createOSPTexture(const std::string &texParam,
     const tinygltf::Texture &tex,
-    const int colorChannel,
+    const int channel,
     const bool preferLinear)
 {
   if (tex.source == -1)
@@ -1660,48 +1661,69 @@ NodePtr GLTFData::createOSPTexture(const std::string &texParam,
     DEBUG << pad("", '.', 9) << "image bufferView: " << img.bufferView << "\n";
     DEBUG << pad("", '.', 9) << "image data: " << img.image.size() << "\n";
     DEBUG << pad("", '.', 9) << "texParam: " << texParam << "\n";
-    DEBUG << pad("", '.', 9) << "colorChannel: " << colorChannel << "\n";
+    DEBUG << pad("", '.', 9) << "channel: " << channel << "\n";
     DEBUG << pad("", '.', 9) << "\n";
 #endif
 
   NodePtr ospTexNode = createNode(texParam, "texture_2d");
   auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
 
-  // XXX Check sampler wrap/clamp modes!!!
+  // OSPRay supports LINEAR and NEAREST, so a boolean is sufficient
   bool nearestFilter = (tex.sampler != -1
       && model.samplers[tex.sampler].magFilter
           == TINYGLTF_TEXTURE_FILTER_NEAREST);
+
+  // Set sampler wrapS/wrapT modes
+  std::function<uint32_t(int)> convertWrapMode =
+      [](int tgltfWrapMode) {
+        switch (tgltfWrapMode) {
+        case TINYGLTF_TEXTURE_WRAP_REPEAT:
+          return OSP_TEXTURE_WRAP_REPEAT;
+        case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
+          return OSP_TEXTURE_WRAP_CLAMP_TO_EDGE;
+        case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+          return OSP_TEXTURE_WRAP_MIRRORED_REPEAT;
+        default: // TINYGLTF_TEXTURE_WRAP_REPEAT
+          return OSP_TEXTURE_WRAP_REPEAT;
+        }
+      };
+
+  int wrapS = TINYGLTF_TEXTURE_WRAP_REPEAT;
+  int wrapT = TINYGLTF_TEXTURE_WRAP_REPEAT;
+  if (tex.sampler != -1) {
+    wrapS = model.samplers[tex.sampler].wrapS;
+    wrapT = model.samplers[tex.sampler].wrapT;
+  }
+
+  // Convert glTF values to OSPRay enum types
+  vec2ui sgTexWrapMode = {convertWrapMode(wrapS), convertWrapMode(wrapT)};
 
   // If texture name (uri) is a UDIM set, ignore tiny_gltf loaded image and
   // reload from file as udim tiles
   if (ospTex.checkForUDIM(img.name))
     img.image.clear();
 
-  ospTex.params.flip = false; // glTF textures are not vertically flipped
-
-  // Pre-loaded texture image (loaded by tinygltf)
+  // Set parameters affecting texture load and usage
+  ospTex.flip = false; // glTF textures are not vertically flipped
+  // These only affect pre-loaded texture memory, otherwise determined from file
   if (!img.image.empty()) {
-    ospTex.params.size = vec2ul(img.width, img.height);
-    ospTex.params.components = img.component;
-    ospTex.params.depth =
-        img.bits == 8 ? 1 : img.bits == 16 ? 2 : img.bits == 32 ? 4 : 0;
-    if (!ospTex.load(img.name,
-            preferLinear,
-            nearestFilter,
-            colorChannel,
-            img.image.data()))
-      ospTexNode = nullptr;
-
-  } else {
-    // Load texture from file (external uri or udim tiles)
-    // use same path as gltf scene file
-    // If load fails, remove the texture node
-    if (!ospTex.load(img.name,
-            preferLinear,
-            nearestFilter,
-            colorChannel))
-      ospTexNode = nullptr;
+    ospTex.imageParams.size = vec2ul(img.width, img.height);
+    ospTex.imageParams.components = img.component;
+    ospTex.imageParams.depth = img.bits == 8 ? 1
+        : img.bits == 16                ? 2
+        : img.bits == 32                ? 4
+                                        : 0;
   }
+  ospTex.samplerParams.preferLinear = preferLinear;
+  ospTex.samplerParams.nearestFilter = nearestFilter;
+  ospTex.samplerParams.texWrapMode = sgTexWrapMode;
+  ospTex.samplerParams.channel = channel;
+
+  // Load texture from file (external uri or udim tiles) using same path as gltf
+  // scene file. img.image may point to pre-loaded texture memory (loaded by
+  // tinygltf). If load fails, remove the texture node
+  if (!ospTex.load(img.name, img.image.empty() ? nullptr : img.image.data()))
+    ospTexNode = nullptr;
 
   return ospTexNode;
 }
@@ -1710,7 +1732,7 @@ void GLTFData::setOSPTexture(NodePtr ospMat,
     const std::string &texParamBase,
     int texIndex,
     const tinygltf::ExtensionMap &exts,
-    int colorChannel,
+    int channel,
     bool preferLinear)
 {
   // A disabled texture will have index = -1
@@ -1719,7 +1741,7 @@ void GLTFData::setOSPTexture(NodePtr ospMat,
 
   auto texParam = "map_" + texParamBase;
   auto ospTexNode = createOSPTexture(
-      texParam, model.textures[texIndex], colorChannel, preferLinear);
+      texParam, model.textures[texIndex], channel, preferLinear);
   if (ospTexNode) {
     auto &ospTex = *ospTexNode->nodeAs<Texture2D>();
     // DEBUG << pad("", '.', 3) << "        .setChild: " << texParam << "= "

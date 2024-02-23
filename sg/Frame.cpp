@@ -166,8 +166,8 @@ void Frame::refreshFrameOperations()
 {
   auto &fb = childAs<FrameBuffer>("framebuffer");
   auto &vt = childAs<Renderer>("renderer")["varianceThreshold"];
-  auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
-  auto toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
+  uint8_t denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
+  uint8_t toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
 
   denoiserEnabled &=
       (!denoiseFBFinalFrame || (denoiseFBFinalFrame && (accumAtFinal()

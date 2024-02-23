@@ -486,6 +486,7 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(IntNode, int);
   OSP_REGISTER_SG_NODE_NAME(UIntNode, uint32_t);
   OSP_REGISTER_SG_NODE_NAME(LongNode, long);
+  OSP_REGISTER_SG_NODE_NAME(Vec2uiNode, vec2ui);
   OSP_REGISTER_SG_NODE_NAME(Vec2iNode, vec2i);
   OSP_REGISTER_SG_NODE_NAME(Vec3iNode, vec3i);
   OSP_REGISTER_SG_NODE_NAME(Vec4iNode, vec4i);
@@ -515,6 +516,7 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(OSPSubdivisionModeNode, OSPSubdivisionMode);
   OSP_REGISTER_SG_NODE_NAME(OSPSyncEventNode, OSPSyncEvent);
   OSP_REGISTER_SG_NODE_NAME(OSPTextureFilterNode, OSPTextureFilter);
+  OSP_REGISTER_SG_NODE_NAME(OSPTextureWrapModeNode, OSPTextureWrapMode);
   OSP_REGISTER_SG_NODE_NAME(OSPTextureFormatNode, OSPTextureFormat);
   OSP_REGISTER_SG_NODE_NAME(OSPUnstructuredCellTypeNode, OSPUnstructuredCellType);
   OSP_REGISTER_SG_NODE_NAME(OSPVolumeFilterNode, OSPVolumeFilter);

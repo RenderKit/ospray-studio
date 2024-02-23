@@ -85,8 +85,8 @@ void Renderer::preCommit()
         auto &backplateTex = createChild("map_backplate", "texture_2d");
         auto texture = backplateTex.nodeAs<sg::Texture2D>();
         // Force reload rather than using texture cache
-        texture->params.reload = (filename == mapFilename);
-        if (!texture->load(filename, false, false)) {
+        texture->reload = (filename == mapFilename);
+        if (!texture->load(filename)) {
           if (hasChild("map_backplate"))
             remove("map_backplate");
           child("backplate_filename") = std::string("");
