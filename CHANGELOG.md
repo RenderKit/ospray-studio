@@ -3,6 +3,39 @@ Version History
 
 ### Changes in OSPRay Studio v1.0.0
 
+- Compatible with OSPRay release v3.1.0
+
+- Features and Improvements
+  - Add support for new OSPRay functionality:<br>
+    -   Principled and Luminous materials support emissive textures
+    -   Add native support for disc and oriented disc geometry
+    -   Add support for mirror repeat and clamp to edge texture wrap modes
+        - `OSPTextureWrapMode` supported on all textures
+        - glTF texture wrapping now fully supported
+    - Support frame buffer denoise and tonemapper on non-float buffer format
+
+  - Add more OSPRay material types to UI, supporting the rest of
+    the OSPRay material types and their default values.
+  - Support for both OpenEXR v2.x and v3.x APIs
+  - Detection of asynchronous file modifications for automatic
+    update HDRI and backplate textures.
+  - Enable plugins to access MainWindow class, re-enabling plugins to access
+    the ArcballCamera
+  - Enable MPI distributed rendering in Batch mode allowing ospStudio to utilize
+    OSPRay's MPI Distributed renderer in Batch mode
+<br><br>
+
+- Cleanup and bug fixes:
+  - For Windows builds, add dependent load for dll injection security
+  - Graceful exit if command line parsing fails
+  - Fix support for 2D measured light intensity distribution
+  - Correctly set OBJ texture parameters in SciVis/AO and show OBJ colors in widget
+  - Fixed a long-standing bug in OBJ material loader. kd and ks textures were
+    loaded as linear format and not sRGB gamma encoded.
+  - Fix value scaling when displaying depth buffer
+  - Add helper code to enable loading of pre-OSPRayStudio v0.13 sg files
+  - Fix incorrect texture flip on load in UDIM and reuse
+
 - Update 3rd party dependencies
   - Implicitly included in this repo:
     - CLI11 v2.4.0 (github.com/CLIUtils/CLI11)
