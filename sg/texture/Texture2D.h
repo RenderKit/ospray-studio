@@ -31,14 +31,7 @@ struct OSPSG_INTERFACE Texture2D : public Texture
   /*! \detailed if file does not exist, or cannot be loaded for
       some reason, return NULL. Multiple loads from the same file
       will return the *same* texture object */
-  bool load(const FileName &fileName,
-      const bool preferLinear = false,
-      const bool nearestFilter = false,
-      const int colorChannel = 4, // default to sampling all channels
-      const void *memory = nullptr);
-
-  void flipImage();
-  bool isFlipped{false};
+  bool load(const FileName &fileName, const void *memory = nullptr);
 
   std::string fileName;
 
@@ -72,19 +65,31 @@ struct OSPSG_INTERFACE Texture2D : public Texture
     return translation;
   };
 
-  struct
+  typedef struct _ImageParams
   {
-    vec2ul size{-1}; //! texture size, in pixels
+    vec2ul size{-1}; // texture size, in pixels
     int components{0};
     int depth{0}; // bytes per texel
+  } ImageParams;
+  typedef struct _SamplerParams
+  {
     bool preferLinear{false};
     bool nearestFilter{false};
-    int colorChannel{4}; // sampled channel R(0), G(1), B(2), A(3), all(4)
-    bool flip{true}; // flip texture data vertically when loading from file
-  } params;
+    int channel{4}; // sampled channel R(0), G(1), B(2), A(3), all(4)
+    vec2ui texWrapMode{OSP_TEXTURE_WRAP_REPEAT};
+  } SamplerParams;
+
+  bool flip{true}; // flip texture data vertically when loading from file
+  bool reload{false}; // force reload vs using texture cache
+
+  ImageParams imageParams;
+  SamplerParams samplerParams;
 
  private:
-  std::shared_ptr<void> texelData;
+  void flipImage();
+  bool isFlipped{false};
+
+  std::shared_ptr<void> texelData{nullptr};
   static std::map<std::string, std::weak_ptr<Texture2D>> textureCache;
 
 #ifdef USE_OPENIMAGEIO
@@ -98,6 +103,25 @@ struct OSPSG_INTERFACE Texture2D : public Texture
   void loadTexture_STBi(const std::string &fileName);
   void loadTexture_PFM_readFile(FILE *file, float scaleFactor);
 #endif
+
+  bool imageParamsMatch(const ImageParams &test)
+  {
+    return (test.size == imageParams.size)
+        && (test.components == imageParams.components)
+        && (test.depth == imageParams.depth);
+  }
+  bool samplerParamsMatch(const SamplerParams &test)
+  {
+    return (test.texWrapMode == samplerParams.texWrapMode)
+        && (test.preferLinear == samplerParams.preferLinear)
+        && (test.nearestFilter == samplerParams.nearestFilter)
+        && (test.channel == samplerParams.channel);
+  }
+
+  size_t totalImageSize()
+  {
+    return imageParams.size.product() * imageParams.components;
+  }
 
   // Internal helpers
   void createDataNode();

@@ -4,22 +4,29 @@
 #include "../Material.h"
 
 namespace ospray {
-  namespace sg {
+namespace sg {
 
-  struct OSPSG_INTERFACE Glass : public Material
-  {
-    Glass();
-    ~Glass() override = default;
-  };
+struct OSPSG_INTERFACE Glass : public Material
+{
+  Glass();
+  ~Glass() override = default;
+};
 
-  OSP_REGISTER_SG_NODE_NAME(Glass, glass);
+OSP_REGISTER_SG_NODE_NAME(Glass, glass);
 
-  // Glass definitions //////////////////////////////////////////////////
+// Glass definitions //////////////////////////////////////////////////
 
-  Glass::Glass() : Material("glass")
-  {
+Glass::Glass() : Material("glass")
+{
+  createChild("eta", "float", "index of refraction (practical range)", 1.5f)
+      .setMinMax(1.f, 4.f);
+  createChild("attenuationColor",
+      "rgb",
+      "resulting color due to attenuation (linear RGB)",
+      rgb(1.f));
+  createChild(
+      "attenuationDistance", "float", "distance affecting attenuation", 1.f);
+}
 
-  }
-
-  }  // namespace sg
+} // namespace sg
 } // namespace ospray

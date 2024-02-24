@@ -1,6 +1,59 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v1.0.0
+
+- Compatible with OSPRay release v3.1.0
+
+- Features and Improvements
+  - Add support for new OSPRay functionality:<br>
+    -   Principled and Luminous materials support emissive textures
+    -   Add native support for disc and oriented disc geometry
+    -   Add support for mirror repeat and clamp to edge texture wrap modes
+        - `OSPTextureWrapMode` supported on all textures
+        - glTF texture wrapping now fully supported
+    - Support frame buffer denoise and tonemapper on non-float buffer format
+
+  - Add more OSPRay material types to UI, supporting the rest of
+    the OSPRay material types and their default values.
+  - Support for both OpenEXR v2.x and v3.x APIs
+  - Detection of asynchronous file modifications for automatic
+    update HDRI and backplate textures.
+  - Enable plugins to access MainWindow class, re-enabling plugins to access
+    the ArcballCamera
+  - Enable MPI distributed rendering in Batch mode allowing ospStudio to utilize
+    OSPRay's MPI Distributed renderer in Batch mode
+<br><br>
+
+- Cleanup and bug fixes:
+  - For Windows builds, add dependent load for dll injection security
+  - Graceful exit if command line parsing fails
+  - Fix support for 2D measured light intensity distribution
+  - Correctly set OBJ texture parameters in SciVis/AO and show OBJ colors in widget
+  - Fixed a long-standing bug in OBJ material loader. kd and ks textures were
+    loaded as linear format and not sRGB gamma encoded.
+  - Fix value scaling when displaying depth buffer
+  - Add helper code to enable loading of pre-OSPRayStudio v0.13 sg files
+  - Fix incorrect texture flip on load in UDIM and reuse
+
+- Update 3rd party dependencies
+  - Implicitly included in this repo:
+    - CLI11 v2.4.0 (github.com/CLIUtils/CLI11)
+    - dear imgui v1.90.2 WIP (docking branch) (github.com/ocornut/imgui)
+    - dirent v1.24 (github.com/tronkko/dirent)
+    - ImGuiFileDialog v0.6.6.1 (github.com/aiekick/ImGuiFileDialog)
+    - imGuIZMO.quat v3.0 (github.com/BrutPitt/imGuIZMO.quat)
+    - JSON for Modern C++ 3.11.3 (github.com/nlohmann/json)
+    - stb_image v2.29 (github.com/nothings/stb)
+    - tinydng v0.1.0 (github.com/syoyo/tinydng)
+    - tinyexr v1.0.7 (github.com/syoyo/tinyexr)
+    - tinygltf v2.8.20 (github.com/syoyo/tinygltf)
+    - tinyobjloader v2.0.0rc13 (github.com/tinyobjloader/tinyobjloader)
+  - via FetchContent:
+    - glfw v3.3.9 (github.com/glfw/glfw)
+    - pybind11 v2.11.1 (github.com/pybind/pybind11)
+    - draco v1.5.7 (github.com/google/draco)
+
 ### Changes in OSPRay Studio v0.13.0
 
 -   Compatible with OSPRay release v3.0.0

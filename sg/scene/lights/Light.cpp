@@ -72,7 +72,7 @@ void Light::preCommit()
         // When using intensityDistribution, SCALE is the only supported
         // quantity
         child("intensityQuantity") = OSP_INTENSITY_QUANTITY_SCALE;
-        createChildData("intensityDistribution", lamp.lid);
+        createChildData("intensityDistribution", vec2ul(lamp.Ng, lamp.totalMc), lamp.lid.data());
         // Set c0 if iSym = 0 (asymmetric)
 #if 0 // XXX Set it to what exactly?  Default is already perpendicular
       // to direction

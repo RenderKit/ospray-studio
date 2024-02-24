@@ -106,14 +106,22 @@ inline void from_json(const JSON &, Node &) {}
 // Helper for converting ambiguous json types to stronger "subType"
 #define CONVERT_TYPE(X)                                                        \
   {                                                                            \
-    if (j["subType"] == #X) {                                                  \
+    if (subType == #X) {                                                       \
       n->setValue(X(n->valueAs<int>()));                                       \
       if (n->hasMinMax())                                                      \
         n->setMinMax(X(n->minAs<int>()), X(n->maxAs<int>()));                  \
     }                                                                          \
   }
 
-inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
+// Helper for correcting OSP* enum types when not supplied by json
+#define FIX_SUBTYPE(X, OSPSUBTYPE)                                             \
+  {                                                                            \
+    if (j["name"] == #X)                                                       \
+      subType = #OSPSUBTYPE;                                                   \
+  }
+
+inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j)
+{
   NodePtr n = nullptr;
 
   // This is a generated value and can't be imported
@@ -129,6 +137,18 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
   if ((j.contains("value") && j["value"].is_string()
           && j["value"].get<std::string>() == ":^)"))
     return nullptr;
+
+  // Original json subType, may need to be corrected
+  std::string subType = j["subType"];
+
+  // Handle pre-OSPRay3 Studio sg files without strict OSP* enum types
+  // These are the common troublemakers in older sg files.
+  FIX_SUBTYPE(intensityQuantity, OSPIntensityQuantity);
+  FIX_SUBTYPE(shutterType, OSPShutterType);
+  FIX_SUBTYPE(stereoMode, OSPStereoMode);
+  FIX_SUBTYPE(filter, OSPTextureFilter);
+  FIX_SUBTYPE(filter, OSPTextureWrapMode);
+  FIX_SUBTYPE(format, OSPTextureFormat);
 
   if (j.contains("value")) {
     Any value;
@@ -148,9 +168,9 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
 
     // Create node with optional description
     if (j.contains("description"))
-      n = createNode(j["name"], j["subType"], j["description"], value);
+      n = createNode(j["name"], subType, j["description"], value);
     else
-      n = createNode(j["name"], j["subType"], value);
+      n = createNode(j["name"], subType, value);
 
     if (j.contains("sgOnly") && j["sgOnly"].get<bool>())
       n->setSGOnly();
@@ -180,6 +200,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
     CONVERT_TYPE(OSPSubdivisionMode);
     CONVERT_TYPE(OSPSyncEvent);
     CONVERT_TYPE(OSPTextureFilter);
+    CONVERT_TYPE(OSPTextureWrapMode);
     CONVERT_TYPE(OSPTextureFormat);
     CONVERT_TYPE(OSPUnstructuredCellType);
     CONVERT_TYPE(OSPVolumeFilter);
@@ -197,7 +218,7 @@ inline OSPSG_INTERFACE NodePtr createNodeFromJSON(const JSON &j) {
         n->setMinMax(range1f(n->minAs<float>()), range1f(n->maxAs<float>()));
     }
   } else {
-    n = createNode(j["name"], j["subType"]);
+    n = createNode(j["name"], subType);
   }
 
   if (n != nullptr) {
@@ -251,6 +272,17 @@ inline void from_json(
 } // namespace containers
 
 namespace math {
+
+inline void to_json(JSON &j, const vec2ui &v)
+{
+  j = {v.x, v.y};
+}
+
+inline void from_json(const JSON &j, vec2ui &v)
+{
+  j.at(0).get_to(v.x);
+  j.at(1).get_to(v.y);
+}
 
 inline void to_json(JSON &j, const vec2i &v)
 {
@@ -404,6 +436,7 @@ inline void to_json(JSON &j, const Any &a)
   captureType<uint32_t>(j, a);
   captureType<float>(j, a);
   captureType<std::string>(j, a);
+  captureType<math::vec2ui>(j, a);
   captureType<math::vec2i>(j, a);
   captureType<math::vec2f>(j, a);
   captureType<math::range1f>(j, a);
@@ -431,6 +464,7 @@ inline void to_json(JSON &j, const Any &a)
   captureType<OSPSubdivisionMode>(j, a);
   captureType<OSPSyncEvent>(j, a);
   captureType<OSPTextureFilter>(j, a);
+  captureType<OSPTextureWrapMode>(j, a);
   captureType<OSPTextureFormat>(j, a);
   captureType<OSPUnstructuredCellType>(j, a);
   captureType<OSPVolumeFilter>(j, a);

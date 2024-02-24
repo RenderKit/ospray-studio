@@ -105,18 +105,20 @@ namespace ospray {
     }
   }
 
-  std::shared_ptr<sg::Texture2D> createSGTex(const std::string &map_name,
+  std::shared_ptr<Texture2D> createSGTex(const std::string &map_name,
                                              const FileName &texName,
                                              const FileName &containingPath,
                                              const bool preferLinear  = false,
                                              const bool nearestFilter = false)
   {
-    std::shared_ptr<sg::Texture2D> sgTex =
-        std::static_pointer_cast<sg::Texture2D>(
-            sg::createNode(map_name, "texture_2d"));
+    auto sgTex = createNodeAs<Texture2D>(map_name, "texture_2d");
+
+    // Set parameters affecting texture load and usage
+    sgTex->samplerParams.preferLinear = preferLinear;
+    sgTex->samplerParams.nearestFilter = nearestFilter;
 
     // If load fails, remove the texture node
-    if (!sgTex->load(containingPath + texName, preferLinear, nearestFilter))
+    if (!sgTex->load(containingPath + texName))
       sgTex = nullptr;
 
     return sgTex;
@@ -244,7 +246,13 @@ namespace ospray {
           // map_<name> with no [.<transform>]
           if (paramName.find("map_") != std::string::npos &&
               paramName.find(".") == std::string::npos) {
-            bool preferLinear = false;
+
+            // color textures are typically sRGB gamma encoded, others prefer
+            // linear, texture format may override this preference
+            bool preferLinear = paramName.find("Color") == paramName.npos
+                && paramName.find("kd") == paramName.npos
+                && paramName.find("ks") == paramName.npos;
+
             bool nearestFilter =
                 (paramName.find("rotation") != std::string::npos) ||
                 (paramName.find("Rotation") != std::string::npos);
@@ -278,9 +286,7 @@ namespace ospray {
             if (paramName == "thin") {
               paramType = "bool";
               paramValue = (paramValue.get<float>() == 0.f) ? false : true;
-            } else if ((paramName.find("Color") != std::string::npos
-                           || paramName.find("color") != std::string::npos)
-                && paramType == "vec3f") {
+            } else if (paramType == "vec3f") {
               // rgb type allows for ImGui color editor
               paramType = "rgb";
             }
@@ -289,8 +295,6 @@ namespace ospray {
               auto newParam = createNode(paramName, paramType, paramValue);
               paramNodes.push_back(newParam);
             } catch (const std::runtime_error &) {
-              // NOTE(jda) - silently move on if parsed node type doesn't
-              // exist maybe it's a texture, try it
               std::cout << "attempting to load param as texture: " << paramName
                         << " " << paramValueStr << std::endl;
               auto map_misc =
@@ -316,15 +320,15 @@ namespace ospray {
         // keeping texture names consistent with ospray's; lowercase snakecase
         // ospray documentation inconsistent
         if (!m.diffuse_texname.empty()) {
-          auto tex =
-              createSGTex("map_kd", m.diffuse_texname, containingPath, true);
+          // sRGB gamma encoded, texture format may override this preference
+          auto tex = createSGTex("map_kd", m.diffuse_texname, containingPath);
           if (tex)
             mat.add(tex);
         }
 
         if (!m.specular_texname.empty()) {
-          auto tex =
-              createSGTex("map_ks", m.specular_texname, containingPath, true);
+          // sRGB gamma encoded, texture format may override this preference
+          auto tex = createSGTex("map_ks", m.specular_texname, containingPath);
           if (tex)
             mat.add(tex);
         }
@@ -448,13 +452,26 @@ namespace ospray {
         if (!attrib.texcoords.empty() && idx.texcoord_index != -1)
           vt.emplace_back(&attrib.texcoords[idx.texcoord_index * 2]);
       }
+
       auto &mIDs = mesh->mIDs;
-      mIDs.resize(shape.mesh.material_ids.size());
-      std::transform(shape.mesh.material_ids.begin(),
+      bool sameValue = std::all_of(shape.mesh.material_ids.begin(),
           shape.mesh.material_ids.end(),
-          mIDs.begin(),
-          [&](int i) { return i + baseMaterialOffset; });
-      mesh->createChildData("material", mIDs, true);
+          [&](const auto &x) { return x == shape.mesh.material_ids.front(); });
+      // If all materials IDs in the mesh are the same, set a single value
+      // rather than entire vector of same IDs
+      if (sameValue) {
+        auto materialID = shape.mesh.material_ids.front() + baseMaterialOffset;
+        mIDs.emplace_back(materialID);
+        mesh->createChild("material", "uint32_t", mIDs.back());
+        mesh->child("material").setReadOnly();
+      } else {
+        mIDs.resize(shape.mesh.material_ids.size());
+        std::transform(shape.mesh.material_ids.begin(),
+            shape.mesh.material_ids.end(),
+            mIDs.begin(),
+            [&](int i) { return i + baseMaterialOffset; });
+        mesh->createChildData("material", mIDs, true);
+      }
       mesh->child("material").setSGOnly();
 
       mesh->createChildData("vertex.position", v, true);

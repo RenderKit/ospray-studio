@@ -19,68 +19,69 @@ namespace sg {
 //
 // Generic
 //
-// Create the childData node given all other texture params
+// Create the childData node given all other texture imageParams
 void Texture2D::createDataNode()
 {
-  if (params.depth == 1)
+  if (imageParams.depth == 1)
     createDataNodeType_internal<uint8_t>();
-  else if (params.depth == 2)
+  else if (imageParams.depth == 2)
     createDataNodeType_internal<uint16_t>();
-  else if (params.depth == 4)
+  else if (imageParams.depth == 4)
     createDataNodeType_internal<float>();
   else
-    std::cerr << "#osp:sg: INVALID Texture depth " << params.depth << std::endl;
+    std::cerr << "#osp:sg: INVALID Texture depth " << imageParams.depth
+              << std::endl;
 }
 
 template <typename T>
 void Texture2D::createDataNodeType_internal()
 {
-  if (params.components == 1)
+  if (imageParams.components == 1)
     createDataNodeVec_internal<T>();
-  else if (params.components == 2)
+  else if (imageParams.components == 2)
     createDataNodeVec_internal<T, 2>();
-  else if (params.components == 3)
+  else if (imageParams.components == 3)
     createDataNodeVec_internal<T, 3>();
-  else if (params.components == 4)
+  else if (imageParams.components == 4)
     createDataNodeVec_internal<T, 4>();
   else
     std::cerr << "#osp:sg: INVALID number of texture components "
-              << params.components << std::endl;
+              << imageParams.components << std::endl;
 }
 template <typename T, int N>
 void Texture2D::createDataNodeVec_internal()
 {
   using vecT = vec_t<T, N>;
   // If texture doesn't use all channels(4), setup a strided-data access
-  if (params.colorChannel < 4) {
+  if (samplerParams.channel < 4) {
     createChildData("data",
-        params.size, // numItems
-        sizeof(vecT) * vec2ul(1, params.size.x), // byteStride
-        (T *)texelData.get() + params.colorChannel,
+        imageParams.size, // numItems
+        sizeof(vecT) * vec2ul(1, imageParams.size.x), // byteStride
+        (T *)texelData.get() + samplerParams.channel, // start address
         true);
   } else // RGBA
     createChildData(
-        "data", params.size, vec2ul(0, 0), (vecT *)texelData.get(), true);
+        "data", imageParams.size, vec2ul(0, 0), (vecT *)texelData.get(), true);
 }
 template <typename T>
 void Texture2D::createDataNodeVec_internal()
 {
   createChildData(
-      "data", params.size, vec2ul(0, 0), (T *)texelData.get(), true);
+      "data", imageParams.size, vec2ul(0, 0), (T *)texelData.get(), true);
 }
 
 OSPTextureFormat Texture2D::osprayTextureFormat(int components)
 {
-  if (params.depth == 1) {
+  if (imageParams.depth == 1) {
     if (components == 1)
-      return params.preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
+      return samplerParams.preferLinear ? OSP_TEXTURE_R8 : OSP_TEXTURE_L8;
     if (components == 2)
-      return params.preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
+      return samplerParams.preferLinear ? OSP_TEXTURE_RA8 : OSP_TEXTURE_LA8;
     if (components == 3)
-      return params.preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
+      return samplerParams.preferLinear ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_SRGB;
     if (components == 4)
-      return params.preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
-  } else if (params.depth == 2) {
+      return samplerParams.preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
+  } else if (imageParams.depth == 2) {
     if (components == 1)
       return OSP_TEXTURE_R16;
     if (components == 2)
@@ -89,7 +90,7 @@ OSPTextureFormat Texture2D::osprayTextureFormat(int components)
       return OSP_TEXTURE_RGB16;
     if (components == 4)
       return OSP_TEXTURE_RGBA16;
-  } else if (params.depth == 4) {
+  } else if (imageParams.depth == 4) {
     if (components == 1)
       return OSP_TEXTURE_R32F;
     if (components == 3)
@@ -98,8 +99,8 @@ OSPTextureFormat Texture2D::osprayTextureFormat(int components)
       return OSP_TEXTURE_RGBA32F;
   }
 
-  std::cerr << "#osp:sg: INVALID format " << params.depth << ":" << components
-            << std::endl;
+  std::cerr << "#osp:sg: INVALID format " << imageParams.depth << ":"
+            << components << std::endl;
   return OSP_TEXTURE_FORMAT_INVALID;
 }
 
@@ -114,10 +115,11 @@ void Texture2D::loadTexture_OIIO_readFile(std::unique_ptr<ImageInput> &in)
   const ImageSpec &spec = in->spec();
   const auto typeDesc = TypeDescFromC<T>::value();
 
-  std::shared_ptr<T> data(new T[params.size.product() * params.components],
+  std::shared_ptr<T> data(new T[totalImageSize()],
       std::default_delete<T[]>());
+  const long int stride =
+      imageParams.size.x * sizeof(T) * imageParams.components;
   T *start = (T *)data.get();
-  const long int stride = params.size.x * sizeof(T) * params.components;
 
   bool success =
       in->read_image(typeDesc, start, AutoStride, stride, AutoStride);
@@ -134,18 +136,18 @@ void Texture2D::loadTexture_OIIO(const std::string &fileName)
     const ImageSpec &spec = in->spec();
     const auto typeDesc = spec.format.elementtype();
 
-    params.size = vec2ul(spec.width, spec.height);
-    params.components = spec.nchannels;
-    params.depth = spec.format.size();
+    imageParams.size = vec2ul(spec.width, spec.height);
+    imageParams.components = spec.nchannels;
+    imageParams.depth = spec.format.size();
 
-    if (params.depth == 1)
+    if (imageParams.depth == 1)
       loadTexture_OIIO_readFile<uint8_t>(in);
-    else if (params.depth == 2 && (typeDesc != TypeDesc::FLOAT))
+    else if (imageParams.depth == 2 && (typeDesc != TypeDesc::FLOAT))
       loadTexture_OIIO_readFile<uint16_t>(in);
-    else if (params.depth == 4)
+    else if (imageParams.depth == 4)
       loadTexture_OIIO_readFile<float>(in);
     else
-      std::cerr << "#osp:sg: INVALID Texture depth " << params.depth
+      std::cerr << "#osp:sg: INVALID Texture depth " << imageParams.depth
                 << std::endl;
 
     in->close();
@@ -166,15 +168,15 @@ void Texture2D::loadTexture_OIIO(const std::string &fileName)
 //
 void Texture2D::loadTexture_PFM_readFile(FILE *file, float scaleFactor)
 {
-  size_t size = params.size.product() * params.components;
-  std::shared_ptr<float> data(new float[size], std::default_delete<float[]>());
+  size_t size = totalImageSize();
   const size_t dataSize = sizeof(size) * sizeof(float);
+  std::shared_ptr<float> data(new float[size], std::default_delete<float[]>());
 
   int rc = fread(data.get(), dataSize, 1, file);
   if (rc) {
     // Scale texels by scale factor
     float *texels = (float *)data.get();
-    for (size_t i = 0; i < params.size.product(); i++)
+    for (size_t i = 0; i < imageParams.size.product(); i++)
       texels[i] *= scaleFactor;
 
     // Move shared_ptr ownership
@@ -207,9 +209,9 @@ void Texture2D::loadTexture_PFM(const std::string &fileName)
           "Pf");
     }
 
-    params.components = 3;
+    imageParams.components = 3;
     if (format[1] == 'f') {
-      params.components = 1;
+      imageParams.components = 1;
     }
 
     // read width and height
@@ -252,13 +254,13 @@ void Texture2D::loadTexture_PFM(const std::string &fileName)
     }
 
     float scaleFactor = std::abs(scaleEndian);
-    params.size = vec2ul(width, height);
-    params.depth = 4; // pfm is always float
+    imageParams.size = vec2ul(width, height);
+    imageParams.depth = 4; // pfm is always float
 
     loadTexture_PFM_readFile(file, scaleFactor);
 
     if (!texelData.get())
-      std::cerr << "#osp:sg: INVALID FORMAT PFM " << params.components
+      std::cerr << "#osp:sg: INVALID FORMAT PFM " << imageParams.components
                 << std::endl;
 
   } catch (const std::runtime_error &e) {
@@ -294,18 +296,24 @@ void Texture2D::loadTexture_EXR(const std::string &fileName)
       FreeEXRErrorMessage(err); // release memory of error message.
     }
   } else {
-    params.size = vec2ul(width, height);
-    params.components = 4; // always rgba
-    params.depth = 4; // always float
-    size_t size = params.size.product() * params.components * params.depth;
+    imageParams.size = vec2ul(width, height);
+    imageParams.components = 4; // always rgba
+    imageParams.depth = 4; // always float
+    size_t size = totalImageSize() * imageParams.depth;
 
-    std::shared_ptr<float> data(new float[size], std::default_delete<float[]>());
+    std::shared_ptr<float> data(
+        new float[size], std::default_delete<float[]>());
     std::memcpy(data.get(), texels, size);
 
     // Move shared_ptr ownership
     texelData = data;
 
     free(texels); // release memory of image data
+  }
+
+  if (!texelData.get()) {
+    std::cerr << "#osp:sg: EXR failed to load texture '" << fileName << "'"
+              << std::endl;
   }
 }
 
@@ -319,7 +327,8 @@ void Texture2D::loadTexture_TIFF(const std::string &fileName)
 
   // Loads all images(IFD) in the DNG file to `images` array.
   std::vector<tinydng::FieldInfo> custom_field_lists;
-  bool ret = tinydng::LoadDNG(fileName.c_str(), custom_field_lists, &images, &warn, &err);
+  bool ret = tinydng::LoadDNG(
+      fileName.c_str(), custom_field_lists, &images, &warn, &err);
 
   if (!warn.empty()) {
     std::cout << "Warn: " << warn << std::endl;
@@ -336,10 +345,10 @@ void Texture2D::loadTexture_TIFF(const std::string &fileName)
                 << std::endl;
 
     const tinydng::DNGImage &image = images[0];
-    params.size = vec2ul(image.width, image.height);
-    params.components = image.samples_per_pixel;
-    params.depth = image.bits_per_sample >> 3;
-    size_t size = params.size.product() * params.components * params.depth;
+    imageParams.size = vec2ul(image.width, image.height);
+    imageParams.components = image.samples_per_pixel;
+    imageParams.depth = image.bits_per_sample >> 3;
+    size_t size = totalImageSize() * imageParams.depth;
 
     std::shared_ptr<uint8_t> data(
         new uint8_t[size], std::default_delete<uint8_t[]>());
@@ -347,6 +356,11 @@ void Texture2D::loadTexture_TIFF(const std::string &fileName)
 
     // Move shared_ptr ownership
     texelData = data;
+  }
+
+  if (!texelData.get()) {
+    std::cerr << "#osp:sg: TIFF failed to load texture '" << fileName << "'"
+              << std::endl;
   }
 }
 
@@ -362,21 +376,21 @@ void Texture2D::loadTexture_STBi(const std::string &fileName)
   int width, height;
   if (isHDR)
     texels = (void *)stbi_loadf(
-        fileName.c_str(), &width, &height, &params.components, 0);
+        fileName.c_str(), &width, &height, &imageParams.components, 0);
   else if (is16b)
     texels = (void *)stbi_load_16(
-        fileName.c_str(), &width, &height, &params.components, 0);
+        fileName.c_str(), &width, &height, &imageParams.components, 0);
   else
     texels = (void *)stbi_load(
-        fileName.c_str(), &width, &height, &params.components, 0);
+        fileName.c_str(), &width, &height, &imageParams.components, 0);
 
-  params.size = vec2ul(width, height);
-  params.depth = isHDR ? 4 : is16b ? 2 : 1;
+  imageParams.size = vec2ul(width, height);
+  imageParams.depth = isHDR ? 4 : is16b ? 2 : 1;
 
   if (texels) {
     // XXX stbi uses malloc/free override these with our alignedMalloc/Free
     // (and implement a realloc?) to prevent this memcpy?
-    size_t size = params.size.product() * params.components * params.depth;
+    size_t size = totalImageSize() * imageParams.depth;
     std::shared_ptr<uint8_t> data(
         new uint8_t[size], std::default_delete<uint8_t[]>());
     std::memcpy(data.get(), texels, size);
@@ -463,30 +477,37 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
 
   // Use the same params as parent texture
   // but, mark as "loading" textures to skip re-checking udim tiles
-  work->params = params;
+  work->imageParams = imageParams;
+  work->samplerParams = samplerParams;
+  // Don't flip the work tiles, the atlas will be flipped if necessary.
+  work->flip = false;
   work->udim_params.loading = true;
 
   // Load the first tile to establish tile parameters
   auto tile = udim_params.tiles.front();
+  work->texelData = nullptr;
   work->load(tile.first);
   udim_params.tiles.pop_front();
 
-  auto tileSize = work->params.size;
-  auto tileDepth = work->params.depth;
-  auto tileComponents = work->params.components;
+  auto tileSize = work->imageParams.size;
+  auto tileDepth = work->imageParams.depth;
+  auto tileComponents = work->imageParams.components;
   auto texelSize = tileDepth * tileComponents;
   auto tileStride = tileSize.x * texelSize;
 
   // Allocate space large enough to hold all tiles (all tiles guaranteed to be
   // of equal size and format)
-  atlas->params = work->params;
+  atlas->imageParams = work->imageParams;
+  atlas->samplerParams = work->samplerParams;
+  // If requested, flip the entire atlas after tiles have been assembled.
+  atlas->flip = flip;
   atlas->udim_params = work->udim_params;
-  atlas->params.size *= udim_params.dims;
+  atlas->imageParams.size *= udim_params.dims;
   std::shared_ptr<uint8_t> data(
-      new uint8_t[atlas->params.size.product() * texelSize],
+      new uint8_t[atlas->imageParams.size.product() * texelSize],
       std::default_delete<uint8_t[]>());
   atlas->texelData = data;
-  auto atlasStride = atlas->params.size.x * texelSize;
+  auto atlasStride = atlas->imageParams.size.x * texelSize;
 
   // Lambda to copy work tile into atlas
   auto CopyTile = [&](vec2i origin) {
@@ -501,12 +522,14 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
 
   // Load the remaining tiles into the atlas
   for (const auto &tile : udim_params.tiles) {
+    work->texelData = nullptr;
     work->load(tile.first);
     // XXX TODO, allow different size/format tiles?
     // This would require pre-loading all tiles and setting atlas to multiple
     // of the largest size, then scaling all tiles into the atlas.
-    if (work->params.size != tileSize || work->params.depth != tileDepth
-        || work->params.components != tileComponents) {
+    if (work->imageParams.size != tileSize
+        || work->imageParams.depth != tileDepth
+        || work->imageParams.components != tileComponents) {
       std::cerr << "#osp:sg: udim tile size or format doesn't match, skipping: "
                 << tile.first << std::endl;
       continue;
@@ -519,7 +542,8 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
   }
 
   // Copy atlas back to parent
-  params = atlas->params;
+  imageParams = atlas->imageParams;
+  samplerParams = atlas->samplerParams;
   texelData = atlas->texelData;
   for (auto &c : atlas->children())
     add(c.second);
@@ -533,9 +557,9 @@ void Texture2D::loadUDIM_tiles(const FileName &fileName)
 
 void Texture2D::flipImage()
 {
-  uint32_t width = params.size.x;
-  uint32_t height = params.size.y;
-  int stride = width * params.depth * params.components;
+  uint32_t width = imageParams.size.x;
+  uint32_t height = imageParams.size.y;
+  int stride = width * imageParams.depth * imageParams.components;
   tasking::parallel_for(height >> 1, [&](uint32_t row) {
     uint8_t *temp = (uint8_t *)malloc(stride);
     uint8_t *src = (uint8_t *)texelData.get() + stride * row;
@@ -548,11 +572,7 @@ void Texture2D::flipImage()
   isFlipped ^= true;
 }
 
-bool Texture2D::load(const FileName &_fileName,
-    const bool _preferLinear,
-    const bool _nearestFilter,
-    const int _colorChannel,
-    const void *memory)
+bool Texture2D::load(const FileName &_fileName, const void *memory)
 {
   bool success = false;
   // Not a true filename in the case memory != nullptr (since texture is
@@ -560,29 +580,34 @@ bool Texture2D::load(const FileName &_fileName,
   fileName = _fileName;
 
   // Check the cache before creating a new texture
-  if (textureCache.find(fileName) != textureCache.end()) {
+  if (!reload && textureCache.find(fileName) != textureCache.end()) {
     std::shared_ptr<Texture2D> cache = textureCache[fileName].lock();
     if (cache) {
-      params = cache->params;
+      // Adopt cache image parameters, including udim (if applicable)
+      imageParams = cache->imageParams;
       udim_params = cache->udim_params;
       // Copy shared_ptr ownership
       texelData = cache->texelData;
+      // the same texelData is being reused, so use the existing isFlipped state
+      isFlipped = cache->isFlipped;
 
-      // If texture is cached and all parameters match, just add existing child
-      // parameters.
-      if (cache->hasChild("data") && (params.preferLinear == _preferLinear)
-          && (params.nearestFilter == _nearestFilter)
-          && (params.colorChannel == _colorChannel)) {
-        // Add children of cache to _this_
-        for (const auto &param : cache->children())
-          add(param.second);
-
-        success = true;
+      // If sampler parameters match, just add existing children
+      if (cache->hasChild("data")) {
+        if (samplerParamsMatch(cache->samplerParams)) {
+          // Add all children of cache, and copy sampler paraameters
+          samplerParams = cache->samplerParams;
+          for (const auto &param : cache->children())
+            add(param.second);
+          success = true;
+        }
       }
     }
-  } else {
+  } 
+
+  // If texelData = nullptr then a cached image was not found, proceed with load
+  if (texelData == nullptr) {
     if (memory) {
-      size_t size = params.size.product() * params.components * params.depth;
+      size_t size = totalImageSize() * imageParams.depth;
       std::shared_ptr<uint8_t> data(
           new uint8_t[size], std::default_delete<uint8_t[]>());
       std::memcpy(data.get(), memory, size);
@@ -612,14 +637,11 @@ bool Texture2D::load(const FileName &_fileName,
 
   // If success = true, then cached texture already filled in the children.
   if (!success && texelData.get()) {
-    params.preferLinear = _preferLinear;
-    params.nearestFilter = _nearestFilter;
-    params.colorChannel = _colorChannel;
-
     // If needed, flip the image before creating the data object
-    if (params.flip && !isFlipped)
+    if (flip && !isFlipped)
       flipImage();
 
+    // Create the OSPRay "data" node that holds the image data
     createDataNode();
 
     // If the load was successful, populate children
@@ -627,29 +649,62 @@ bool Texture2D::load(const FileName &_fileName,
       child("data").setSGNoUI();
 
       // If not using all channels, set used components to 1 for texture format
-      auto ospTexFormat =
-          osprayTextureFormat(params.colorChannel < 4 ? 1 : params.components);
-      auto texFilter = params.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
-                                            : OSP_TEXTURE_FILTER_LINEAR;
+      auto ospTexFormat = osprayTextureFormat(
+          samplerParams.channel < 4 ? 1 : imageParams.components);
+      auto texFilter = samplerParams.nearestFilter ? OSP_TEXTURE_FILTER_NEAREST
+                                                   : OSP_TEXTURE_FILTER_LINEAR;
 
-      createChild("format", "OSPTextureFormat", ospTexFormat);
-      createChild("filter", "OSPTextureFilter", texFilter);
+      createChild("format",
+          "OSPTextureFormat",
+          "0 = OSP_TEXTURE_RGBA8\n"
+          "1 = OSP_TEXTURE_SRGBA\n"
+          "2 = OSP_TEXTURE_RGBA32F\n"
+          "3 = OSP_TEXTURE_RGB8\n"
+          "4 = OSP_TEXTURE_SRGB\n"
+          "5 = OSP_TEXTURE_RGB32F\n"
+          "6 = OSP_TEXTURE_R8\n"
+          "7 = OSP_TEXTURE_R32F\n"
+          "8 = OSP_TEXTURE_L8\n"
+          "9 = OSP_TEXTURE_RA8\n"
+          "10 = OSP_TEXTURE_LA8\n"
+          "11 = OSP_TEXTURE_RGBA16\n"
+          "12 = OSP_TEXTURE_RGB16\n"
+          "13 = OSP_TEXTURE_RA16\n"
+          "14 = OSP_TEXTURE_R16\n",
+          ospTexFormat);
+
+      createChild("filter",
+          "OSPTextureFilter",
+          " 0 = OSP_TEXTURE_FILTER_LINEAR\n"
+          " 1 = OSP_TEXTURE_FILTER_NEAREST\n",
+          texFilter);
+
+      // Note: Not possible to create node of type vec_t<OSPTextureWrapMode, 2>
+      // OSPRay treats the param as vec2ui
+      createChild("wrapMode",
+          "vec2ui",
+          " S/T Texture Wrap modes\n"
+          " 0 = OSP_TEXTURE_WRAP_REPEAT (default)\n"
+          " 1 = OSP_TEXTURE_WRAP_MIRRORED_REPEAT\n"
+          " 2 = OSP_TEXTURE_WRAP_CLAMP_TO_EDGE\n",
+          vec2ui(samplerParams.texWrapMode));
 
       createChild("filename", "filename", fileName).setSGOnly();
-      createChild("isFlipped", "bool", params.flip).setSGOnly();
-      // Since UDIM is a compiled atlas, user can't just flip image
-      if (hasUDIM())
-        child("isFlipped").setReadOnly();
+      createChild("isFlipped", "bool", flip).setSGOnly();
 
-      // XXX Running MPI, simply changing the texture data is not enough to
+#if 1 // XXX Running MPI, simply changing the texture data is not enough to
       // trigger the flip, therefore do not expose an option for the user
       // to change it.  Find a lightweight means to signal MPI to update
       // texture data to all ranks.  (note: The below in preCommit doesn't work)
       child("isFlipped").setReadOnly();
+#endif
 
       child("format").setMinMax(OSP_TEXTURE_RGBA8, OSP_TEXTURE_R16);
       child("filter").setMinMax(
           OSP_TEXTURE_FILTER_LINEAR, OSP_TEXTURE_FILTER_NEAREST);
+      child("wrapMode")
+          .setMinMax(uint32_t(OSP_TEXTURE_WRAP_REPEAT),
+              uint32_t(OSP_TEXTURE_WRAP_CLAMP_TO_EDGE));
 
       // Add this texture to the cache
       textureCache[fileName] = this->nodeAs<Texture2D>();
@@ -687,10 +742,7 @@ void Texture2D::preCommit()
     isFlipped = false;
     udim_params = {};
     textureCache.erase(fileName);
-    load(guiFilename,
-        params.preferLinear,
-        params.nearestFilter,
-        params.colorChannel);
+    load(guiFilename);
   }
 
   // make sure to call base-class precommit

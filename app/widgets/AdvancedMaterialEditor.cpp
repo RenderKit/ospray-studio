@@ -17,6 +17,7 @@
 
 #include <imgui.h>
 
+using namespace ospray::sg;
 using namespace rkcommon::math;
 
 void AdvancedMaterialEditor::buildUI(
@@ -45,10 +46,22 @@ void AdvancedMaterialEditor::buildUI(
   ImGui::Spacing();
   ImGui::Text("Replace material");
   static int currentMatType = 0;
-  const char *matTypes[] = {"principled", "carPaint", "obj", "luminous"};
-  ImGui::Combo("Material types", &currentMatType, matTypes, 4);
+  const char *matTypes[] = {"alloy",
+      "carPaint",
+      "glass",
+      "luminous",
+      "metal",
+      "metallicPaint",
+      // "mix",   Mix needs pointers to two existing materials and a blend factor
+      "obj",
+      "plastic",
+      "principled",
+      "thinGlass",
+      "velvet"};
+  constexpr int numMatTypes = sizeof(matTypes) >> 3;
+  ImGui::Combo("Material types", &currentMatType, matTypes, numMatTypes);
   if (ImGui::Button("Replace##material")) {
-    auto newMat = ospray::sg::createNode(matName, matTypes[currentMatType]);
+    auto newMat = createNode(matName, matTypes[currentMatType]);
     materialRegistry->add(newMat);
   }
 
@@ -80,11 +93,17 @@ void AdvancedMaterialEditor::buildUI(
   if (ImGui::Button("Add##materialtexture")) {
     std::string paramStr(matTexParamName);
     if (!paramStr.empty()) {
-      std::shared_ptr<ospray::sg::Texture2D> sgTex =
-          std::static_pointer_cast<ospray::sg::Texture2D>(
-              ospray::sg::createNode(paramStr, "texture_2d"));
+      // color textures are typically sRGB gamma encoded, others prefer linear
+      // texture format may override this preference
+      bool preferLinear = paramStr.find("Color") == paramStr.npos
+          && paramStr.find("kd") == paramStr.npos
+          && paramStr.find("ks") == paramStr.npos;
+
+      auto sgTex = createNodeAs<Texture2D>(paramStr, "texture_2d");
+      // Set parameters affecting texture load and usage
+      sgTex->samplerParams.preferLinear = preferLinear;
       // If load fails, remove the texture node
-      if (!sgTex->load(matTexFileName, true, false))
+      if (!sgTex->load(matTexFileName))
         sgTex = nullptr;
       else {
         auto newMat = copyMaterial(selectedMat, "", paramStr);

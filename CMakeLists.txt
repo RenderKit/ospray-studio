@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-project(ospray_studio VERSION 0.13.0 LANGUAGES CXX C)
+project(ospray_studio VERSION 1.0.0 LANGUAGES CXX C)
 
 include(GNUInstallDirs)
 include(ProcessorCount)
@@ -53,6 +53,20 @@ else()
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the build type." FORCE)
   endif()
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CONFIGURATION_TYPES})
+endif()
+
+## Add dependent load for Windows dll injection load security
+if (WIN32)
+  get_filename_component(COMPILER_NAME ${CMAKE_CXX_COMPILER} NAME_WE)
+  if (COMPILER_NAME STREQUAL "icx" OR COMPILER_NAME STREQUAL "icpx")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /Qoption,link,/DEPENDENTLOADFLAG:0x2000")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /Qoption,link,/DEPENDENTLOADFLAG:0x2000")
+  elseif (MSVC)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x2000")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x2000")
+  else()
+    message(WARNING "Urecognized compiler, DEPENDENTLOADFLAG can't be set")
+  endif()
 endif()
 
 ## global options and variables

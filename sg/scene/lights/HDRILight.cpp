@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Light.h"
+#include "sg/FileWatcher.h"
 #include "sg/texture/Texture2D.h"
 
 namespace ospray {
@@ -62,11 +63,14 @@ HDRILight::HDRILight() : Light("hdri")
     defaultMapPtr = createNodeAs<Texture2D>("map", "texture_2d");
     staticDefaultMap = defaultMapPtr;
     Texture2D &defaultMap = *defaultMapPtr;
-    defaultMap.params.size = vec2ul(16, 8);
-    defaultMap.params.components = 1;
-    defaultMap.params.depth = 1;
-    // preferLinear = false creates an L8 texture, rather than R8
-    if (!defaultMap.load("_defaultHDRI", false, true, 4, checker))
+    defaultMap.imageParams.size = vec2ul(16, 8);
+    defaultMap.imageParams.components = 1; // defaultMap is just grayscale
+    defaultMap.imageParams.depth = 1;
+    // preferLinear creates an L8 texture, rather than R8
+    // and nearestFilter keeps edges sharper
+    defaultMap.samplerParams.preferLinear = false;
+    defaultMap.samplerParams.nearestFilter = true;
+    if (!defaultMap.load("_defaultHDRI", checker))
       std::cerr << "!!!! Default HDRI texture failed!" << std::endl;
     // Set filename to read-only to prevent user removing it via UI
     defaultMap["filename"].setReadOnly();
@@ -75,9 +79,16 @@ HDRILight::HDRILight() : Light("hdri")
 
 void HDRILight::preCommit()
 {
+  // Finish generic Light precommit
   Light::preCommit();
 
+  // Mark this filename to be watched for asynchronous modification
+  // (added here, because the filename node can be added or removed elsewhere)
+  addFileWatcher(child("filename"), "HDRI", true);
+
   auto filename = child("filename").valueAs<std::string>();
+
+  // std::cout << "HDRILight::preCommit(): " << filename << std::endl;
 
   // defaultMap is a fallback if there is no other map loaded
   defaultMapPtr = staticDefaultMap.lock();
@@ -89,8 +100,9 @@ void HDRILight::preCommit()
   } else {
     auto mapFilename =
         hasChild("map") ? child("map")["filename"].valueAs<std::string>() : "";
-    // reload or remove if HDRI filename changes
-    if (filename != mapFilename) {
+
+    // reload or remove if HDRI filename changes or file has been modified
+    if (child("filename").isModified() || (filename != mapFilename)) {
       // If map has changed, update HDRI filename
       if (hasChild("map") && child("map").isModified()) {
         child("filename") = mapFilename;
@@ -101,7 +113,9 @@ void HDRILight::preCommit()
         // Otherwise, create/replace map and load HDRI filename
         auto &hdriTex = createChild("map", "texture_2d");
         auto texture = hdriTex.nodeAs<sg::Texture2D>();
-        if (!texture->load(filename, false, false)) {
+        // Force reload rather than using texture cache
+        texture->reload = (filename == mapFilename);
+        if (!texture->load(filename)) {
           add(defaultMap);
           child("filename") = std::string("");
         }

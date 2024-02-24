@@ -2,11 +2,6 @@
 ## Copyright 2015 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
-# XXX This script is transitional
-# !!! This script only builds ospray and rkcommon devel branches !!!
-# Override versions set by CI
-OSPRAY_VER="devel"
-
 set -e
 
 export DISPLAY=:1
@@ -15,7 +10,10 @@ mkdir -p $HOME/.vnc; echo testtest | vncpasswd -f > $HOME/.vnc/passwd; chmod 060
 vncserver $DISPLAY -geometry 1920x1080
 #glxinfo # informational only
 
-export LD_LIBRARY_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/lib:$LD_LIBRARY_PATH
+export PATH=.:${PATH}
+LD_LIBRARY_PATH=${PWD:?}/build/install/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH:?}}
+export LD_LIBRARY_PATH
+
 cd ./build
 ctest -N -VV  # list tests
 ctest
@@ -24,6 +22,5 @@ timeout --preserve-status 10s ./ospStudio
 
 set -e
 # glTF 3D Commerce Certification Tests
-export PATH=$(pwd):${PATH}
-${CACHE_DIR}/glTF-Certification/run_cert.sh cert-tests
+${STORAGE_PATH}/ci-cache/glTF-Certification/run_cert.sh cert-tests
 exit $?

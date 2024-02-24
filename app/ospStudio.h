@@ -15,10 +15,12 @@
 #include "sg/Scheduler.h"
 #include "sg/renderer/MaterialRegistry.h"
 #include "sg/scene/lights/LightsManager.h"
+#include "sg/Mpi.h"
 // studio app
 #include "AnimationManager.h"
 // ospcommon
 #include "rkcommon/common.h"
+#include "rkcommon/utility/getEnvVar.h"
 
 #include "version.h"
 
@@ -29,7 +31,7 @@ class App;
 }
 
 using namespace ospray;
-using namespace rkcommon::math;
+using namespace rkcommon;
 
 class PluginManager;
 enum class StudioMode
@@ -37,9 +39,7 @@ enum class StudioMode
   GUI,
   BATCH,
   HEADLESS,
-#ifdef USE_BENCHMARK
   BENCHMARK,
-#endif
 };
 
 enum class OSPRayRendererType
@@ -58,9 +58,7 @@ const static std::map<std::string, StudioMode> StudioModeMap = {
     {"gui", StudioMode::GUI},
     {"batch", StudioMode::BATCH},
     {"server", StudioMode::HEADLESS},
-#ifdef USE_BENCHMARK
     {"benchmark", StudioMode::BENCHMARK},
-#endif
 };
 
 const static std::map<std::string, vec2i> standardResolutionSizeMap = {
@@ -103,7 +101,7 @@ class StudioCommon
   const char **plugin_argv{nullptr};
 };
 
-using CameraMap = rkcommon::containers::FlatMap<std::string, sg::NodePtr>;
+using CameraMap = containers::FlatMap<std::string, sg::NodePtr>;
 
 // abstract base class for all Studio modes
 // XXX: should be merged with StudioCommon above
@@ -155,6 +153,13 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   std::string outputFilename{""};
 
   StudioMode mode;
+  void *ctxMainWindow{nullptr}; // Will be populated if in GUI mode
+  void setMainWindow(void *mainWindow) {
+    ctxMainWindow = mainWindow;
+  };
+  void *getMainWindow() {
+    return ctxMainWindow;
+  };
 
   bool optReloadAssets{false};
   bool optResetCameraOnLoad{true};
@@ -207,11 +212,9 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
 
 inline OSPError initializeOSPRay(int &argc, const char **argv, bool use_mpi)
 {
-  OSPDevice device;
-
-  if (use_mpi) {
-    // TODO: calling ospInit seems to be required,
-    // even though the OSPRay MPI warns us not to do this...
+  if (!use_mpi) {
+    // initialize OSPRay; OSPRay parses (and removes) its commandline
+    // parameters, e.g. "--osp:debug"
     OSPError initError = ospInit(&argc, argv);
 
     if (initError != OSP_NO_ERROR) {
@@ -219,32 +222,13 @@ inline OSPError initializeOSPRay(int &argc, const char **argv, bool use_mpi)
       return initError;
     }
 
-    device = ospGetCurrentDevice();
+    OSPDevice device(ospGetCurrentDevice());
     if (!device) {
       std::cerr << "OSPRay device could not be fetched!" << std::endl;
       return OSP_UNKNOWN_ERROR;
     }
 
     // TODO: setErrorCallback and ospDeviceSetParam calls seem to break mpi.
-    // Why?
-  } else {
-    // initialize OSPRay; OSPRay parses (and removes) its commandline
-    // parameters, e.g. "--osp:debug"
-
-    OSPError initError = ospInit(&argc, argv);
-
-    if (initError != OSP_NO_ERROR) {
-      std::cerr << "OSPRay not initialized correctly!" << std::endl;
-      return initError;
-    }
-
-    device = ospGetCurrentDevice();
-
-    if (!device) {
-      std::cerr << "OSPRay device could not be fetched!" << std::endl;
-      return OSP_UNKNOWN_ERROR;
-    }
-
     // set an error callback to catch any OSPRay errors
     ospDeviceSetErrorCallback(
         device,
@@ -261,10 +245,51 @@ inline OSPError initializeOSPRay(int &argc, const char **argv, bool use_mpi)
 
     ospDeviceSetParam(device, "warnAsError", OSP_BOOL, &warnAsErrors);
     ospDeviceSetParam(device, "logLevel", OSP_INT, &logLevel);
-  }
 
-  ospDeviceCommit(device);
-  ospDeviceRelease(device);
+    ospDeviceCommit(device);
+    ospDeviceRelease(device);
+
+  } else {
+    //
+    // MPI Distributed
+    //
+
+    // Initialize MPI and set rank and world size in sg
+    sg::sgInitializeMPI(argc, argv);
+    std::cout << "ospStudio --mpi, rank " << sg::sgMpiRank() << "/"
+              << sg::sgMpiWorldSize() << "\n";
+
+    // load the MPI module, and select the MPI distributed device. Here we
+    // do not call ospInit, as we want to explicitly pick the distributed
+    // device
+    auto OSPRAY_MPI_DISTRIBUTED_GPU =
+        utility::getEnvVar<int>("OSPRAY_MPI_DISTRIBUTED_GPU").value_or(0);
+
+    auto mpiModuleName = OSPRAY_MPI_DISTRIBUTED_GPU ? "mpi_distributed_gpu"
+                                                    : "mpi_distributed_cpu";
+    std::cout << "Loading OSPRay Module: " << mpiModuleName;
+
+    use_mpi = ospLoadModule(mpiModuleName) == OSP_NO_ERROR;
+    if (!use_mpi) {
+      std::cout
+          << "Fatal: ospStudio launched with --mpi, but could not load the OSPRay MPI module."
+          << std::endl;
+      return OSP_UNKNOWN_ERROR;
+    }
+
+    cpp::Device mpiDevice("mpiDistributed");
+    mpiDevice.commit();
+    mpiDevice.setCurrent();
+
+    // set an error callback to catch any OSPRay errors and exit the application
+    ospDeviceSetErrorCallback(
+        mpiDevice.handle(),
+        [](void *, OSPError error, const char *errorDetails) {
+          std::cerr << "OSPRay error: " << errorDetails << std::endl;
+          exit(error);
+        },
+        nullptr);
+  }
 
   return OSP_NO_ERROR;
 }

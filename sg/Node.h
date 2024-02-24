@@ -234,6 +234,9 @@ namespace sg {
     bool sgNoUI() const;
     void setSGNoUI();
 
+    // Allow nodes to be marked as modified with no other modifications
+    void markAsModified();
+
    protected:
     virtual void preCommit();
     virtual void postCommit();
@@ -243,7 +246,6 @@ namespace sg {
     TimeStamp lastCommitted() const;
     TimeStamp childrenLastModified() const;
 
-    void markAsModified();
     void updateChildrenModifiedTime();
 
     bool subtreeModifiedButNotCommitted() const;
@@ -338,6 +340,7 @@ namespace sg {
   using IntNode     = Node_T<int>;
   using UIntNode    = Node_T<uint32_t>;
   using LongNode    = Node_T<long>;
+  using Vec2uiNode   = Node_T<vec2ui>;
   using Vec2iNode   = Node_T<vec2i>;
   using Vec3iNode   = Node_T<vec3i>;
   using Vec4iNode   = Node_T<vec4i>;
@@ -364,10 +367,12 @@ namespace sg {
   using OSPLogLevelNode = Node_T<OSPLogLevel>;
   using OSPPixelFilterTypeNode = Node_T<OSPPixelFilterType>;
   using OSPShutterTypeNode = Node_T<OSPShutterType>;
+  using OSPSphereTypeNode = Node_T<OSPSphereType>;
   using OSPStereoModeNode = Node_T<OSPStereoMode>;
   using OSPSubdivisionModeNode = Node_T<OSPSubdivisionMode>;
   using OSPSyncEventNode = Node_T<OSPSyncEvent>;
   using OSPTextureFilterNode = Node_T<OSPTextureFilter>;
+  using OSPTextureWrapModeNode = Node_T<OSPTextureWrapMode>;
   using OSPTextureFormatNode = Node_T<OSPTextureFormat>;
   using OSPUnstructuredCellTypeNode = Node_T<OSPUnstructuredCellType>;
   using OSPVolumeFilterNode = Node_T<OSPVolumeFilter>;

@@ -18,7 +18,7 @@ namespace ospray {
 
   Mix::Mix() : Material("mix")
   {
-
+    // XXX Mix needs pointers to two existing materials and a blend factor
   }
 
   }  // namespace sg

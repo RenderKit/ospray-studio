@@ -63,6 +63,7 @@ add_library(ospray_sg SHARED
   PluginCore.cpp
   Scheduler.cpp
   ArcballCamera.cpp
+  FileWatcher.cpp
 
   camera/Camera.cpp
   camera/Perspective.cpp

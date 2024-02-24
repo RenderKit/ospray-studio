@@ -1,6 +1,6 @@
 # OSPRay Studio
 
-This is release v0.13.0 of Intel® OSPRay Studio. It is released under the
+This is release v1.0.0 of Intel® OSPRay Studio. It is released under the
 Apache 2.0 license.
 
 Visit [**OSPRay Studio**](http://www.ospray.org/ospray_studio)
@@ -72,28 +72,28 @@ listed in OS-specific building process below.
 ### Required dependencies
 
 -   [CMake](https://www.cmake.org) (v3.15+) and any C++14 compiler
--   Intel [OSPRay](https://www.github.com/ospray/ospray) (v3.0.0) and its
+-   Intel [OSPRay](https://www.github.com/ospray/ospray) (v3.1.0) and its
     dependencies - OSPRay Studio builds on top of OSPRay. Instructions on
     building OSPRay are provided
     [here](http://www.ospray.org/downloads.html#building-and-finding-ospray).
     OSPRay and OSPRay Studio have the following common dependencies which Studio
     can hence leverage from an OSPRay build.
     -   Intel oneAPI Rendering Toolkit common library
-        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.12.0)
+        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.13.0)
     -   Intel [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
--   OpenGL and [GLFW](https://www.glfw.org) (v3.3.8) - for the windowing environment
+-   OpenGL and [GLFW](https://www.glfw.org) (v3.3.9) - for the windowing environment
 
 
 ### Optional Dependencies
 
--   Intel [Open Image Denoise](https://openimagedenoise.github.io) - (v2.0.0 or
+-   Intel [Open Image Denoise](https://openimagedenoise.github.io) - (v2.2.0 or
     newer) for denoising frames. To use with OSPRay Studio, OSPRay must be built
     with `-DBUILD_OIDN=ON` in CMake.
 -   [OpenVDB](https://www.openvdb.org/) to support loading VDB formatted volume files.
 -   [OpenImageIO](http://openimageio.org/) and [OpenEXR](https://www.openexr.com/)
-    (pre-3.x versions) to support images in a variety of file formats.  Set `OPENIMAGEIO_ROOT`
+    (either v2.x or v3.x) to support images in a variety of file formats.  Set `OPENIMAGEIO_ROOT`
     and `OPENEXR_ROOT` to the respective install directories to use these libraries.
-    (tested with OpenImageIO v2.3.16 and OpenEXR v2.5.8)
+    (tested with OpenImageIO v2.3.16 and OpenEXR v2.5.8 and v3.3.0)
 -   [Python] (3.9.7) (https://python.org) for python bindings
 
 ### Building on Linux and macOS

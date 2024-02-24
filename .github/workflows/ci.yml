@@ -20,6 +20,7 @@ concurrency:
 jobs:
 
   ## Build Jobs ##
+
   ## Linux
   build-centos8:
     secrets: inherit
@@ -83,53 +84,22 @@ jobs:
       artifact-out: build-rocky8-7
       artifact-path: build
 
-  ## Dev Build Jobs ##
-  ## Linux
-  cache-ospray-rocky8-7:
-    secrets: inherit
-    uses: ./.github/workflows/cache-ospray.yml
-    with:
-      image: rockylinux:8.7
-      ospray-version: devel
-      rkcommon-version: devel
-
-  build-rocky8-7-dev:
-    needs: cache-ospray-rocky8-7
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-    with:
-      image: rockylinux:8.7
-      cmd: |
-        module load cmake/3.25.3
-        module load intel/2022.1
-        export CC=icx
-        export CXX=icpx
-        export CXXFLAGS="-fhonor-infinities -fhonor-nans"
-        export CFLAGS=$CXXFLAGS
-        export CACHE_DIR=${{ needs.cache-ospray-rocky8-7.outputs.cache-dir }}
-        export OSPRAY_VER=${{ needs.cache-ospray-rocky8-7.outputs.ospray-version }}
-        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install
-        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb
-        cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
-        cmake --build build -- -j`nproc`
-      artifact-path: build
-      artifact-out: build-rocky8-7-dev
-
   ## MacOS
-  build-macos-clang-dev:
+  build-macos-clang:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
     with:
       cmd: |
-        gitlab/macos-dev.sh
+        gitlab/macos.sh
       artifact-out: build-macos
       artifact-path: build-macos
 
   ## Windows
-  build-windows-msvc15-dev:
+  build-windows-msvc15:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
       cmd: |
         $env:Python3_ROOT = "N:/packages/apps/python/3.9.7/windows"
-        gitlab\win-dev.ps1
+        gitlab\win.ps1
       artifact-out: build-windows
       artifact-path: build-win
 
@@ -142,37 +112,31 @@ jobs:
         cmake --build build-win-msvc16 --parallel $env:NUMBER_OF_PROCESSORS --config Release --target install
 
   ## Dev Test Jobs
-  test-run-rocky8-7-dev:
-    needs: build-rocky8-7-dev
+  test-run-rocky8-7:
+    needs: build-rocky8-7
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      # Run the rocky8-7-dev build on the ubuntu 18.04 image as a test, and because it has vncserver installed
+      # Run the rocky8-7 build on the ubuntu 18.04 image as a test, and because it has vncserver installed
       image: rockylinux:8.7-tgt-rebuild
       pre-cmd: yum -y install tigervnc-server mesa-libGLU
       cmd: |
         module load intel/2023.0
         build/ospStudio --verify_install
-        export CACHE_DIR=/NAS/ci-cache
-        export OSPRAY_VER=devel
         gitlab/run-dev.sh
         gitlab/run-dev-img-cmp.sh
-      artifact-in: build-rocky8-7-dev
+      artifact-in: build-rocky8-7
       artifact-path: build/model-results build/cert-tests/*
-      artifact-out: test-run-rocky8-7-dev
+      artifact-out: test-run-rocky8-7
       artifact-on-failure: true
 
   ### Devel Coverity Job ###
   static-analysis:
-    needs: cache-ospray-rocky8-7
     secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    #uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/coverity_env
     with:
       project: OSPRay Studio
       prebuild: >
         module load cmake/3.25.3 &&
-        export CACHE_DIR=${{ needs.cache-ospray-rocky8-7.outputs.cache-dir }} &&
-        export OSPRAY_VER=${{ needs.cache-ospray-rocky8-7.outputs.ospray-version }} &&
-        export CMAKE_PREFIX_PATH=$CACHE_DIR/ospray-$OSPRAY_VER/build/install/lib64/cmake/ospray-3.0.0 &&
-        export TBB_ROOT=$CACHE_DIR/ospray-$OSPRAY_VER/build/tbb/src/tbb &&
         cmake -L -S . -B build -DENABLE_OPENIMAGEIO=OFF -DENABLE_OPENVDB=OFF -DENABLE_EXR=OFF
       build: cmake --build build

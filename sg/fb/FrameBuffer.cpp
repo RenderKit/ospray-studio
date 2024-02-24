@@ -132,7 +132,7 @@ void FrameBuffer::updateHandle()
 void FrameBuffer::updateDenoiser(bool enabled)
 {
   // Denoiser requires float color buffer.
-  if (!isFloatFormat() || (enabled == hasDenoiser))
+  if (enabled == hasDenoiser)
     return;
 
   hasDenoiser = enabled;
@@ -142,7 +142,7 @@ void FrameBuffer::updateDenoiser(bool enabled)
 void FrameBuffer::updateToneMapper(bool enabled)
 {
   // ToneMapper requires float color buffer.
-  if (!isFloatFormat() || (enabled == hasToneMapper))
+  if (enabled == hasToneMapper)
     return;
 
   hasToneMapper = enabled;
@@ -183,7 +183,7 @@ void FrameBuffer::updateImageOperations()
   if (hasDenoiser)
     ops.push_back(cpp::ImageOperation("denoiser"));
 
-  if (isFloatFormat() && (hasDenoiser || hasToneMapper))
+  if (hasDenoiser || hasToneMapper)
     handle().setParam("imageOperation", cpp::CopiedData(ops));
   else
     handle().removeParam("imageOperation");
@@ -208,7 +208,7 @@ void FrameBuffer::saveFrame(std::string filename, int flags)
     auto exporter = getExporter(FileName(f));
 
     if (exporter == "") {
-      std::cout << "No exporter found for type " << FileName(filename).ext()
+      std::cout << "No exporter found for type " << FileName(f).ext()
                 << std::endl;
       return;
     }

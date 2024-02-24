@@ -63,6 +63,7 @@ void GUIContext::start()
   if (!mainWindow) {
     mainWindow = new MainWindow(defaultSize, currentUtil);
     mainWindow->initGLFW();
+    StudioContext::setMainWindow((void *)mainWindow);
   }
 
   // load plugins //
@@ -245,22 +246,7 @@ void GUIContext::refreshRenderer()
     r["maxContribution"] = maxContribution;
 
   // Re-add the backplate on renderer change
-  if (backPlateTexture != "") {
-    auto backplateTex =
-        createNodeAs<Texture2D>("map_backplate", "texture_2d");
-    if (backplateTex->load(backPlateTexture, false, false))
-      r.add(backplateTex);
-    else {
-      backplateTex = nullptr;
-      backPlateTexture = "";
-    }
-  } else {
-    // Node removal requires waiting on previous frame completion
-    frame->cancelFrame();
-    frame->waitOnFrame();
-    r.remove("map_backplate");
-    r.handle().removeParam("map_backplate");
-  }
+  r["backplate_filename"] = backPlateTexture.str();
 }
 
 void GUIContext::saveRendererParams()
@@ -345,7 +331,8 @@ bool GUIContext::parseCommandLine()
   try {
     app->parse(ac, av);
   } catch (const CLI::ParseError &e) {
-    exit(app->exit(e));
+    app->exit(e);
+    return false;
   }
 
   // XXX: changing windowSize here messes causes some display scaling issues
@@ -616,11 +603,12 @@ void GUIContext::saveNodesJson(const std::string nodeTypeStr)
 
 void GUIContext::selectBuffer(OSPFrameBufferChannel whichBuffer, bool invert)
 {
+  auto &framebuffer = frame->childAs<FrameBuffer>("framebuffer");
+
   optDisplayBuffer = whichBuffer;
-  optDisplayBufferInvert = invert;
+  optDisplayBufferInvert = invert && framebuffer.isFloatFormat();
 
   // Only enabled if they exist
-  auto &framebuffer = frame->childAs<FrameBuffer>("framebuffer");
   if (!framebuffer.hasDepthChannel())
     optDisplayBuffer &= ~OSP_FB_DEPTH;
   if (!framebuffer.hasAccumChannel())

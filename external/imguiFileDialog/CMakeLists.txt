@@ -8,7 +8,8 @@ add_library(imguiFileDialog STATIC
 target_link_libraries(imguiFileDialog PUBLIC imgui)
 
 if (WIN32)
-  include_directories(${CMAKE_CURRENT_LIST_DIR}/../dirent)
+  # Required for imguiFileDialog to find dirent
+  include_directories(${CMAKE_CURRENT_LIST_DIR}/../)
 endif()
 
 target_include_directories(imguiFileDialog
