@@ -493,7 +493,7 @@ bool GUIContext::parseCommandLine()
     botLeftLocal += normalize(tl - bl) * mullionBottom;
     botRightLocal += normalize(tl - bl) * mullionBottom;
 
-    mainWindow->reshape();
+    mainWindow->reshape(true);
 
     // sync camera state
     mainWindow->displayCallback = [&](MainWindow* mainWindow) {
