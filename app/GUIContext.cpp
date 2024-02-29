@@ -131,6 +131,9 @@ void GUIContext::start()
     mainWindow->mainLoop();
     if (optSaveImageOnGUIExit)
       saveCurrentFrame();
+
+    if (!optDisplayJsonName.empty())
+      MPI_Abort(MPI_COMM_WORLD, MPI_SUCCESS);
   }
 }
 
