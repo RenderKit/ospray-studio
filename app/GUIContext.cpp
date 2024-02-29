@@ -439,8 +439,8 @@ bool GUIContext::parseCommandLine()
     }
 
     // show/hide the frame and UIs
-    glfwSetWindowAttrib(mainWindow->glfwWindow, GLFW_DECORATED, sg::sgMpiRank() == 0 ? GLFW_TRUE : GLFW_FALSE);    
-    mainWindow->showUi = sg::sgMpiRank() == 0;
+    glfwSetWindowAttrib(mainWindow->glfwWindow, GLFW_DECORATED, config[sg::sgMpiRank()]["decorated"].get<bool>() ? GLFW_TRUE : GLFW_FALSE);    
+    mainWindow->showUi = config[sg::sgMpiRank()]["showUI"].get<bool>();
 
     // set window position
     int numOfMonitors;
@@ -463,7 +463,12 @@ bool GUIContext::parseCommandLine()
     optResolution.y = mainWindow->windowSize.y;
 
     // keep the aspect ratio
-    glfwSetWindowAspectRatio(mainWindow->glfwWindow, mainWindow->windowSize.x, mainWindow->windowSize.y);  
+    lockAspectRatio = config[sg::sgMpiRank()]["lockAspectRatio"].get<bool>() ? 
+      static_cast<float>(mainWindow->windowSize.x) / static_cast<float>(mainWindow->windowSize.y) : 0.f;
+
+    // set the resolution scale
+    frame->child("scale") = config[sg::sgMpiRank()]["scaleRes"].get<float>();
+    frame->child("scaleNav") = config[sg::sgMpiRank()]["scaleResNav"].get<float>();
     
     // update three corners of the image plane
     topLeftLocal = config[sg::sgMpiRank()]["topLeft"].get<vec3f>();
