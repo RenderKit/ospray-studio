@@ -535,6 +535,10 @@ bool GUIContext::parseCommandLine()
 
         syncScene = false;
       }
+      
+      // so nodes swap buffers at about the same time
+      mainWindow->waitOnOSPRayFrame();
+      MPI_Barrier(MPI_COMM_WORLD);
     };
 
     // press 'r' to sync the scene
