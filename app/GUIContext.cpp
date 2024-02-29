@@ -317,6 +317,11 @@ void GUIContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     optSaveImageOnGUIExit,
     "Save final image when exiting GUI mode"
   );
+  app->add_option(
+    "--scene",
+    scene,
+    "Sets the opening scene name"
+  );
 }
 
 bool GUIContext::parseCommandLine()
