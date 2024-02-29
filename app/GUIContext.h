@@ -81,7 +81,9 @@ class GUIContext : public StudioContext
   vec3f botLeftLocal;
   vec3f botRightLocal;
   bool cameraUpdated; // the state to be sent out over MPI to the other rendering processes
-
+  bool syncScene;
+  std::string getSceneState();
+  
   static MainWindow *mainWindow;
   
   std::shared_ptr<sg::FrameBuffer> framebuffer = nullptr;

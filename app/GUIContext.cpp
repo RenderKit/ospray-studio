@@ -502,8 +502,46 @@ bool GUIContext::parseCommandLine()
         updateCamera();
         cameraUpdated = false;
       }
+
+      // sync scene state
+      MPI_Bcast(&syncScene, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+      if (syncScene) {
+        std::string sceneState = getSceneState();
+        int sceneStateSize = sceneState.size();
+
+        // sync scene state size
+        MPI_Bcast(&sceneStateSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        if (sg::sgMpiRank() != 0)
+          sceneState.resize(sceneStateSize);
+        
+        // sync scene state
+        MPI_Bcast(const_cast<char*>(sceneState.c_str()), sceneStateSize, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+        // load scene state
+        if (sg::sgMpiRank() != 0) {
+          try {
+            clearScene();
+            sg::importScene(shared_from_this(), sceneState, "");
+          } catch (const std::exception &e) {
+            std::cerr << "Failed to sync the scene: '" << e.what() << "'!\n";
+            std::cerr << "   " << e.what() << std::endl;
+          } catch (...) {
+            std::cerr << "Failed to sync the scene!\n";
+          }
+        }
+
+        syncScene = false;
+      }
+    };
+
+    // press 'r' to sync the scene
+    mainWindow->keyCallback = [](MainWindow* mainWindow, int key, int scancode, int action, int mod) {
+      if (action == GLFW_PRESS && key == GLFW_KEY_R) {
+        mainWindow->ctx->syncScene = true;
+      }
     };
   }
+
   return true;
 }
 
@@ -723,9 +761,7 @@ void GUIContext::useSceneCamera()
   }
 }
 
-void GUIContext::saveSGScene()
-{
-  std::ofstream dump("studio_scene.sg");
+std::string GUIContext::getSceneState() {
   auto &currentCamera = frame->child("camera");
   JSON camera = {{"cameraIdx", currentCamera.child("cameraId").valueAs<int>()},
       {"cameraToWorld", mainWindow->arcballCamera->getTransform()}};
@@ -740,7 +776,13 @@ void GUIContext::saveSGScene()
       {"lightsManager", *lightsManager},
       {"materialRegistry", *baseMaterialRegistry},
       {"animation", animation}};
-  dump << j.dump();
+  return j.dump();
+}
+
+void GUIContext::saveSGScene()
+{
+  std::ofstream dump("studio_scene.sg");
+  dump << getSceneState();
 }
 
 void GUIContext::saveNodesJson(const std::string nodeTypeStr)
