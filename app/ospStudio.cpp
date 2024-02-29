@@ -347,15 +347,7 @@ int main(int argc, const char *argv[])
   }
 
   if (use_mpi) {
-#ifdef USE_MPI
-    if (mode != StudioMode::BATCH) {
-      std::cout
-        << "Error: ospStudio distributed rendering currently only enabled for "
-        << "batch mode."
-        << std::endl;
-      return 1;
-    }
-#else
+#ifndef USE_MPI
     std::cout
       << "Error: ospStudio launched with --mpi, but has not been compiled "
       << "with MPI support."
