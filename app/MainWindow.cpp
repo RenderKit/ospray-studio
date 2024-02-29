@@ -92,7 +92,7 @@ void MainWindow::initGLFW()
   }
 
   glfwSetKeyCallback(
-      glfwWindow, [](GLFWwindow *glfwWindow, int key, int, int action, int mod) {
+      glfwWindow, [](GLFWwindow *glfwWindow, int key, int scancode, int action, int mod) {
         auto pw = (MainWindow*)glfwGetWindowUserPointer(glfwWindow);
         auto &io = ImGui::GetIO();
         if (!io.WantCaptureKeyboard)
@@ -241,6 +241,8 @@ void MainWindow::initGLFW()
             break;
           }
         }
+        if (pw->keyCallback)
+          pw->keyCallback(pw, key, scancode, action, mod);
       });
 
   // set GLFW callbacks
