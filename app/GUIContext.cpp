@@ -246,6 +246,9 @@ void GUIContext::updateCamera()
     camera->child("imageStart").setValue(imgStart);
     camera->child("imageEnd").setValue(imgEnd);
   }
+
+  // indicate other processes to update camera
+  cameraUpdated = true;
 }
 
 void GUIContext::changeToDefaultCamera()
@@ -488,6 +491,18 @@ bool GUIContext::parseCommandLine()
     botRightLocal += normalize(tl - bl) * mullionBottom;
 
     mainWindow->reshape();
+
+    // sync camera state
+    mainWindow->displayCallback = [&](MainWindow* mainWindow) {
+      MPI_Bcast(&cameraUpdated, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+      if (cameraUpdated) {
+        CameraState stateCamera = mainWindow->arcballCamera->getState();
+        MPI_Bcast(&stateCamera, sizeof(stateCamera), MPI_BYTE, 0, MPI_COMM_WORLD);
+        mainWindow->arcballCamera->setState(stateCamera);
+        updateCamera();
+        cameraUpdated = false;
+      }
+    };
   }
   return true;
 }

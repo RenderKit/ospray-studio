@@ -80,6 +80,7 @@ class GUIContext : public StudioContext
   vec3f topLeftLocal;
   vec3f botLeftLocal;
   vec3f botRightLocal;
+  bool cameraUpdated; // the state to be sent out over MPI to the other rendering processes
 
   static MainWindow *mainWindow;
   
