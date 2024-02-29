@@ -32,6 +32,43 @@
 using namespace ospray;
 using namespace ospray::sg;
 
+static
+void offaxisStereoCamera(vec3f LL, vec3f LR, vec3f UR, vec3f eye,
+                         vec3f &dirOUT, vec3f &upOUT,
+                         float &fovyOUT, float &aspectOUT,
+                         vec2f &imageStartOUT, vec2f &imageEndOUT)
+{
+  vec3f X = (LR-LL)/length(LR-LL);
+  vec3f Y = (UR-LR)/length(UR-LR);
+  vec3f Z = cross(X,Y);
+
+  dirOUT = -Z;
+  upOUT = Y;
+
+  // eye position relative to screen/wall
+  vec3f eyeP = eye-LL;
+
+  // distance from eye to screen/wall
+  float dist = dot(eyeP,Z);
+
+  float left   = dot(eyeP,X);
+  float right  = length(LR-LL)-left;
+  float bottom = dot(eyeP,Y);
+  float top    = length(UR-LR)-bottom;
+
+  float newWidth = left<right ? 2*right : 2*left;
+  float newHeight = bottom<top ? 2*top : 2*bottom;
+
+  fovyOUT = 2*atan(newHeight/(2*dist)) * 180 * M_1_PI;
+
+  aspectOUT = newWidth/newHeight;
+
+  imageStartOUT.x = left<right ? (right-left)/newWidth : 0.f;
+  imageStartOUT.y = bottom<top ? (top-bottom)/newHeight: 0.f;
+  imageEndOUT.x = right<left ? (left+right)/newWidth : 1.f;
+  imageEndOUT.y = top<bottom ? (bottom+top)/newHeight : 1.f;
+}
+
 MainWindow *GUIContext::mainWindow = nullptr;
 
 // GUIContext definitions ///////////////////////////////////////////////
@@ -184,6 +221,30 @@ void GUIContext::updateCamera()
       }
     }
     camera->child("focusDistance").setValue(focusDistance);
+  }
+
+  { // off-axis projection
+    affine3f t = mainWindow->arcballCamera->getTransform();
+    vec3f tl = xfmPoint(t, topLeftLocal);
+    vec3f bl = xfmPoint(t, botLeftLocal);
+    vec3f br = xfmPoint(t, botRightLocal);
+    vec3f tr = (tl - bl) + br;
+
+    vec3f eye = t.p;
+    vec3f dir, up;
+    float fovy, aspect;
+    vec2f imgStart, imgEnd;
+
+    // LL, LR, UR
+    offaxisStereoCamera(bl, br, tr, eye, dir, up, fovy, aspect, imgStart, imgEnd);
+
+    camera->child("fovy").setValue(fovy);
+    camera->child("aspect").setValue(aspect);
+    camera->child("position").setValue(eye);
+    camera->child("direction").setValue(dir);
+    camera->child("up").setValue(up);
+    camera->child("imageStart").setValue(imgStart);
+    camera->child("imageEnd").setValue(imgEnd);
   }
 }
 
@@ -397,6 +458,36 @@ bool GUIContext::parseCommandLine()
 
     // keep the aspect ratio
     glfwSetWindowAspectRatio(mainWindow->glfwWindow, mainWindow->windowSize.x, mainWindow->windowSize.y);  
+    
+    // update three corners of the image plane
+    topLeftLocal = config[sg::sgMpiRank()]["topLeft"].get<vec3f>();
+    botLeftLocal = config[sg::sgMpiRank()]["botLeft"].get<vec3f>();
+    botRightLocal = config[sg::sgMpiRank()]["botRight"].get<vec3f>();
+    vec3f eyePos = config[sg::sgMpiRank()]["eye"].get<vec3f>();
+    vec4f mullion {
+      config[sg::sgMpiRank()]["mullionLeft"], 
+      config[sg::sgMpiRank()]["mullionRight"], 
+      config[sg::sgMpiRank()]["mullionTop"], 
+      config[sg::sgMpiRank()]["mullionBottom"]};
+
+    // use mullion values to update the three corners
+    vec3f tl = topLeftLocal, bl = botLeftLocal, br = botRightLocal;
+
+    float mullionLeft = mullion[0];
+    botLeftLocal += normalize(br - bl) * mullionLeft;
+    topLeftLocal +=  normalize(br - bl) * mullionLeft;
+
+    float mullionRight = mullion[1];
+    botRightLocal += normalize(bl - br) * mullionRight;
+
+    float mullionTop = mullion[2];
+    topLeftLocal += normalize(bl - tl) * mullionTop;
+
+    float mullionBottom = mullion[3];
+    botLeftLocal += normalize(tl - bl) * mullionBottom;
+    botRightLocal += normalize(tl - bl) * mullionBottom;
+
+    mainWindow->reshape();
   }
   return true;
 }

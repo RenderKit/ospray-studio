@@ -74,7 +74,12 @@ class GUIContext : public StudioContext
   bool optDisplayBufferInvert{false};
   bool optAutorotate{false};
   bool optAnimate{false};
-  std::string optDisplayJsonName{""};
+  
+  // multiple windows and off-axis projection
+  std::string optDisplayJsonName{""}; // CLI
+  vec3f topLeftLocal;
+  vec3f botLeftLocal;
+  vec3f botRightLocal;
 
   static MainWindow *mainWindow;
   
