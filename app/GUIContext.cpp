@@ -226,7 +226,7 @@ void GUIContext::updateCamera()
     camera->child("focusDistance").setValue(focusDistance);
   }
 
-  { // off-axis projection
+  if (!optDisplayJsonName.empty()) { // off-axis projection
     affine3f t = mainWindow->arcballCamera->getTransform();
     vec3f tl = xfmPoint(t, topLeftLocal);
     vec3f bl = xfmPoint(t, botLeftLocal);
