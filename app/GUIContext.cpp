@@ -21,6 +21,7 @@
 #include "sg/visitors/Commit.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/Search.h"
+#include "sg/Mpi.h"
 
 #include <fstream>
 #include <queue>
@@ -322,6 +323,11 @@ void GUIContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     scene,
     "Sets the opening scene name"
   );
+  app->add_option(
+    "--displayConfig",
+    optDisplayJsonName,
+    "JSON file name for display configurations"
+  );
 }
 
 bool GUIContext::parseCommandLine()
@@ -340,13 +346,57 @@ bool GUIContext::parseCommandLine()
     return false;
   }
 
-  // XXX: changing windowSize here messes causes some display scaling issues
-  // because it desyncs window and framebuffer size with any scaling
-  if (optResolution.x != 0) {
-    defaultSize = optResolution;
-    // since parseCommandLine happens after MainWindow object creation update the windowSize of that class
-    mainWindow->windowSize = defaultSize;
-    mainWindow->reshape(true);
+  if (optDisplayJsonName.empty()) {
+    // XXX: changing windowSize here messes causes some display scaling issues
+    // because it desyncs window and framebuffer size with any scaling
+    if (optResolution.x != 0) {
+      defaultSize = optResolution;
+      // since parseCommandLine happens after MainWindow object creation update the windowSize of that class
+      mainWindow->windowSize = defaultSize;
+      mainWindow->reshape(true);
+    }
+  }
+  else {
+    // load the JSON configuration file
+    JSON config;
+    try {
+      std::ifstream configFile(optDisplayJsonName);
+      if (!configFile) {
+        std::cerr << "The display config file does not exist." << std::endl;
+        return false;
+      }
+      configFile >> config;
+    } catch (nlohmann::json::exception &e) {
+      std::cerr << "Failed to parse the display config file: " << e.what() << std::endl;
+      return false;
+    }
+
+    // show/hide the frame and UIs
+    glfwSetWindowAttrib(mainWindow->glfwWindow, GLFW_DECORATED, sg::sgMpiRank() == 0 ? GLFW_TRUE : GLFW_FALSE);    
+    mainWindow->showUi = sg::sgMpiRank() == 0;
+
+    // set window position
+    int numOfMonitors;
+    GLFWmonitor** monitors = glfwGetMonitors(&numOfMonitors);
+    int displayIndex = config[sg::sgMpiRank()]["display"];
+    if (numOfMonitors <= displayIndex) {
+      std::cerr << "The display index should be less than numOfMonitors: " << std::to_string(numOfMonitors) << std::endl;
+      return false;
+    }
+    int xVirtual, yVirtual;
+    glfwGetMonitorPos(monitors[displayIndex], &xVirtual, &yVirtual);
+    int x = (int) config[sg::sgMpiRank()]["screenX"] + xVirtual;
+    int y = (int) config[sg::sgMpiRank()]["screenY"] + yVirtual;
+    glfwSetWindowPos(mainWindow->glfwWindow, x, y);
+
+    // set the window size
+    mainWindow->windowSize.x = config[sg::sgMpiRank()]["screenWidth"];
+    mainWindow->windowSize.y = config[sg::sgMpiRank()]["screenHeight"];
+    optResolution.x = mainWindow->windowSize.x;
+    optResolution.y = mainWindow->windowSize.y;
+
+    // keep the aspect ratio
+    glfwSetWindowAspectRatio(mainWindow->glfwWindow, mainWindow->windowSize.x, mainWindow->windowSize.y);  
   }
   return true;
 }

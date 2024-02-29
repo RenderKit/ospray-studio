@@ -74,6 +74,7 @@ class GUIContext : public StudioContext
   bool optDisplayBufferInvert{false};
   bool optAutorotate{false};
   bool optAnimate{false};
+  std::string optDisplayJsonName{""};
 
   static MainWindow *mainWindow;
   
