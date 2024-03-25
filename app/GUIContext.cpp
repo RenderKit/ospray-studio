@@ -233,7 +233,7 @@ void GUIContext::updateCamera()
     vec3f br = xfmPoint(t, botRightLocal);
     vec3f tr = (tl - bl) + br;
 
-    vec3f eye = t.p;
+    vec3f eye = xfmPoint(t, eyeLocal);
     vec3f dir, up;
     float fovy, aspect;
     vec2f imgStart, imgEnd;
@@ -474,7 +474,7 @@ bool GUIContext::parseCommandLine()
     topLeftLocal = config[sg::sgMpiRank()]["topLeft"].get<vec3f>();
     botLeftLocal = config[sg::sgMpiRank()]["botLeft"].get<vec3f>();
     botRightLocal = config[sg::sgMpiRank()]["botRight"].get<vec3f>();
-    vec3f eyePos = config[sg::sgMpiRank()]["eye"].get<vec3f>();
+    eyeLocal = config[sg::sgMpiRank()]["eye"].get<vec3f>();
     vec4f mullion {
       config[sg::sgMpiRank()]["mullionLeft"], 
       config[sg::sgMpiRank()]["mullionRight"], 

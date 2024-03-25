@@ -80,6 +80,7 @@ class GUIContext : public StudioContext
   vec3f topLeftLocal;
   vec3f botLeftLocal;
   vec3f botRightLocal;
+  vec3f eyeLocal;
   bool cameraUpdated; // the state to be sent out over MPI to the other rendering processes
   bool syncScene;
   std::string getSceneState();
