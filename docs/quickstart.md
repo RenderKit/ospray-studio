@@ -10,8 +10,7 @@
 OSPRay Studio is available for Linux, macOS, and Windows.
 
 Binary packages of the latest release of OSPRay Studio can be downloaded
-as a part of [Intel oneAPI Rendering
-Toolkit](https://software.intel.com/content/www/us/en/develop/tools/oneapi/download.html#renderkit).
+from [GitHub Releases](https://github.com/RenderKit/ospray-studio/releases).
 
 OSPRay Studio sources can be downloaded from the default `master` branch
 of [OSPRay Studio Github
@@ -31,7 +30,7 @@ OSPRay Studio has the following required and optional dependencies.
     -   Intel [Open VKL](https://www.github.com/openvkl/openvkl)
         (v0.12.0)
     -   Intel [Embree](https://www.github.com/embree/embree) (v3.12.0)
-    -   Intel oneAPI Rendering Toolkit common library
+    -   Intel Rendering Toolkit common library
         [rkcommon](https://www.github.com/ospray/rkcommon) (v1.6.0)
     -   Intel [Threading Building
         Blocks](https://www.threadingbuildingblocks.org/)

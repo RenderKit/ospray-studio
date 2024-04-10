@@ -78,7 +78,7 @@ listed in OS-specific building process below.
     [here](http://www.ospray.org/downloads.html#building-and-finding-ospray).
     OSPRay and OSPRay Studio have the following common dependencies which Studio
     can hence leverage from an OSPRay build.
-    -   Intel oneAPI Rendering Toolkit common library
+    -   Intel Rendering Toolkit common library
         [rkcommon](https://www.github.com/ospray/rkcommon) (v1.13.0)
     -   Intel [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
 -   OpenGL and [GLFW](https://www.glfw.org) (v3.3.9) - for the windowing environment
