@@ -753,8 +753,101 @@ void GLTFData::buildScene()
           geom->skeletonRoot = targetNode;
         }
       }
-      for (auto &m : ospMesh)
-        targetNode->add(m);
+
+      // EXT_mesh_gpu_instancing
+      // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Vendor/EXT_mesh_gpu_instancing
+      const auto &ext = n.extensions.find("EXT_mesh_gpu_instancing");
+      if (ext == n.extensions.end()) {
+        // Without the extension, simply add all node's meshes to target node
+        for (auto &m : ospMesh)
+          targetNode->add(m);
+
+      } else {
+        // With the extension, add instances of mesh per attribute accessors
+        //
+        // Implementation Note: When instancing is used on the node, the
+        // non-instanced version of the mesh should not be rendered.
+        const auto &attributes = ext->second.Get("attributes");
+        std::vector<vec3f> translation;
+        std::vector<quatf> rotation;
+        std::vector<vec3f> scale;
+        // TRANSLATION: vec3f
+        if (attributes.Has("TRANSLATION")) {
+          Accessor<vec3f> translate_accessor(
+              model.accessors[attributes.Get("TRANSLATION").Get<int>()], model);
+          for (size_t i = 0; i < translate_accessor.size(); ++i)
+            translation.emplace_back(translate_accessor[i]);
+        }
+        // ROTATION: vec4f (xyzw quaternion)
+        if (attributes.Has("ROTATION")) {
+          auto compType = model.accessors[attributes.Get("ROTATION").Get<int>()]
+                              .componentType;
+          if (compType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+            Accessor<vec4f> rotate_accessor(
+                model.accessors[attributes.Get("ROTATION").Get<int>()], model);
+            for (size_t i = 0; i < rotate_accessor.size(); ++i) {
+              vec4f vRot = rotate_accessor[i];
+              rotation.emplace_back(quatf(vRot.w, vRot.x, vRot.y, vRot.z));
+            }
+          } else if (compType == TINYGLTF_COMPONENT_TYPE_BYTE) {
+            Accessor<vec4c> rotate_accessor(
+                model.accessors[attributes.Get("ROTATION").Get<int>()], model);
+            for (size_t i = 0; i < rotate_accessor.size(); ++i) {
+              vec4f vRot = rotate_accessor[i] / 127.f;
+              rotation.emplace_back(quatf(vRot.w, vRot.x, vRot.y, vRot.z));
+            }
+          } else if (compType == TINYGLTF_COMPONENT_TYPE_SHORT) {
+            Accessor<vec4s> rotate_accessor(
+                model.accessors[attributes.Get("ROTATION").Get<int>()], model);
+            for (size_t i = 0; i < rotate_accessor.size(); ++i) {
+              vec4f vRot = rotate_accessor[i] / 16383.f;
+              rotation.emplace_back(quatf(vRot.w, vRot.x, vRot.y, vRot.z));
+            }
+          }
+        }
+        // SCALE: vec3f
+        if (attributes.Has("SCALE")) {
+          Accessor<vec3f> scale_accessor(
+              model.accessors[attributes.Get("SCALE").Get<int>()], model);
+          for (size_t i = 0; i < scale_accessor.size(); ++i)
+            scale.emplace_back(scale_accessor[i]);
+        }
+
+        // specs states that all can be optional, yet that all must have the
+        // same count if specified.
+        if (translation.size() != rotation.size()
+            || rotation.size() != scale.size())
+          ERR << "!!! EXT_mesh_gpu_instancing mismatching accessors"
+              << std::endl;
+
+        std::string instanceName = targetNode->name();
+        for (size_t i = 0; i < translation.size(); ++i) {
+          // Just create xform and add ospMesh nodes to it:
+          auto instanceXfm = createNode(
+              instanceName + "_instance_" + std::to_string(i), "transform");
+
+          if (ic == 1)
+            instanceXfm->child("dynamicScene").setValue(true);
+          else if (ic == 2)
+            instanceXfm->child("compactMode").setValue(true);
+          else if (ic == 3)
+            instanceXfm->child("robustMode").setValue(true);
+
+          if (!scale.empty())
+            instanceXfm->child("scale") = scale[i];
+          if (!rotation.empty())
+            instanceXfm->child("rotation") = normalize(rotation[i]);
+          if (!translation.empty())
+            instanceXfm->child("translation") = translation[i];
+
+          // Add all ospMeshes to new instance transform
+          for (auto &m : ospMesh)
+            instanceXfm->add(m);
+
+          // Finally, add the new instance transform to the correct targetNode
+          targetNode->add(instanceXfm);
+        }
+      }
     }
     nIdx++;
   }
