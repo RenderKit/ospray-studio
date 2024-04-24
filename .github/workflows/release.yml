@@ -58,7 +58,7 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
     with:
-      runs-on: '[ "macOS", "sign", "x86_64" ]'
+      runs-on: '[ "sign", "x86_64" ]'
       cmd: |
         gitlab/macos.sh package
       artifact-out: release-macos
@@ -125,10 +125,10 @@ jobs:
     needs: release-macos
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/macos.yml@main
     with:
-      runs-on: '[ "macOS", "sign", "x86_64" ]'
+      runs-on: '[ "sign", "x86_64" ]'
       cmd: |
         unzip $GITHUB_WORKSPACE/build-macos/package/*.zip
-        $SIGN_FILE_MAC -t $GITHUB_WORKSPACE/ospray_studio-*/bin/* $GITHUB_WORKSPACE/ospray_studio-*/lib/*.dylib $GITHUB_WORKSPACE/build-macos/package/*.pkg
+      sign-path-verify: ospray_studio-*/bin/* ospray_studio-*/lib/*.dylib build-macos/package/*.pkg
       artifact-in: release-macos
 
 ### Scan Jobs ###

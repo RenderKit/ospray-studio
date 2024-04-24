@@ -33,15 +33,6 @@ jobs:
       artifact-out: build-centos8
       artifact-path: build
 
-  build-ubuntu18-04:
-    secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-    with:
-      image: ubuntu:18.04
-      cmd: gitlab/build.sh
-      artifact-out: build-ubuntu18-04
-      artifact-path: build
-
   build-ubuntu20-04:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
@@ -118,12 +109,12 @@ jobs:
     needs: build-rocky8-7
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      # Run the rocky8-7 build on the ubuntu 18.04 image as a test, and because it has vncserver installed
       image: rockylinux:8.7-tgt-rebuild
       pre-cmd: yum -y install tigervnc-server mesa-libGLU
       cmd: |
         module load intel/2023.0
         build/ospStudio --verify_install
+        mkdir build/model-results # in case run-dev tests fail artifacts will still upload
         gitlab/run-dev.sh
         gitlab/run-dev-img-cmp.sh
       artifact-in: build-rocky8-7
