@@ -1,0 +1,71 @@
+[
+	{
+		"hostName": "localhost",
+	
+		"topLeft": [-0.178950, 0.122950, 1.000000],
+		"botLeft": [-0.178950, -0.122950, 1.000000],
+		"botRight": [0.178950, -0.122950, 1.000000],
+		"eye": [0.000000, 0.000000, 2.000000],
+		"mullionLeft": 0.006320,
+		"mullionRight": 0.006320,
+		"mullionTop": 0.015056,
+		"mullionBottom": 0.015056,
+	
+		"display": 0,
+		"screenX": 0,
+		"screenY": 0,
+		"screenWidth": 1024,
+		"screenHeight": 640,
+		"decorated": true,
+		"showUI": true,
+		"scaleRes": 0.250000,
+		"scaleResNav": 0.10000,
+		"lockAspectRatio": true
+	},
+	{
+		"hostName": "localhost",
+	
+		"topLeft": [-0.178950, 0.122950, -1.000000],
+		"botLeft": [-0.178950, -0.122950, -1.000000],
+		"botRight": [0.000000, -0.122950, -1.000000],
+		"eye": [0.000000, 0.000000, 0.000000],
+		"mullionLeft": 0.006320,
+		"mullionRight": 0.000000,
+		"mullionTop": 0.015056,
+		"mullionBottom": 0.015056,
+	
+		"display": 0,
+		"screenX": 0,
+		"screenY": 0,
+		"screenWidth": 896,
+		"screenHeight": 1120,
+		"decorated": false,
+		"showUI": false,
+		"scaleRes": 0.250000,
+		"scaleResNav": 0.10000,
+		"lockAspectRatio": true
+	},
+	{
+		"hostName": "localhost",
+	
+		"topLeft": [0.000000, 0.122950, -1.000000],
+		"botLeft": [0.000000, -0.122950, -1.000000],
+		"botRight": [0.178950, -0.122950, -1.000000],
+		"eye": [0.000000, 0.000000, 0.000000],
+		"mullionLeft": 0.000000,
+		"mullionRight": 0.006320,
+		"mullionTop": 0.015056,
+		"mullionBottom": 0.015056,
+	
+		"display": 0,
+		"screenX": 896,
+		"screenY": 0,
+		"screenWidth": 896,
+		"screenHeight": 1120,
+		"decorated": false,
+		"showUI": false,
+		"scaleRes": 0.250000,
+		"scaleResNav": 0.10000,
+		"lockAspectRatio": true
+	}
+	]

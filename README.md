@@ -1,168 +1,72 @@
-# OSPRay Studio
+# Immersive OSPRay Studio
+> This project is part of a larger project called [Immersive OSPray](https://github.com/jungwhonam/ImmersiveOSPRay).
 
-This is release v1.0.0 of Intel® OSPRay Studio. It is released under the
-Apache 2.0 license.
+ ## Overview
+![TACC Rattler](docs/sample/rattler.png)
 
-Visit [**OSPRay Studio**](http://www.ospray.org/ospray_studio)
-(http://www.ospray.org/ospray_studio) for more information.
+We extend [OSPRay v3.1.0](https://github.com/RenderKit/ospray/releases/tag/v3.1.0) to support these additional features:
+* Support off-axis projection enabling us to display a single, coherent 3D virtual environemnt on non-planar, tiled-display walls
+* Open multiple windows and arrange them based on specifications provided in a JSON file
+* Synchronize application states across MPI processes
 
-See [what's
-new](https://github.com/ospray/ospray_studio/blob/master/CHANGELOG.md)
-in this release.
 
-## Overview
+## Prerequisites
+Make the CMake option `BUILD_OSPRAY_MODULE_MPI` is set to `ON` when building OSPRay, as this feature relies on [OSPRay’s MPI module](https://github.com/RenderKit/ospray?tab=readme-ov-file#mpi-distributed-rendering).
 
-Intel OSPRay Studio is an open source and interactive visualization and
-ray tracing application that leverages [Intel OSPRay](https://www.ospray.org)
-as its core rendering engine. It can be used to load complex scenes requiring
-high fidelity rendering or very large scenes requiring supercomputing resources.
+## Setup
+```shell
+# clone this branch
+git clone -b jungwho.nam-feature-immersive-latest https://github.com/JungWhoNam/ospray_studio.git
+cd ospray_studio
 
-The main control structure is a *scene graph* which allows users to
-create an abstract scene in a *directed acyclical graph* manner. Scenes
-can either be imported or created using scene graph nodes and structure
-support. The scenes can then be rendered either with OSPRay's pathtracer
-or scivis renderer.
-
-More information can be found in the [**high-level feature
-description**](https://github.com/ospray/ospray_studio/blob/master/FEATURES.md).
-
-Building OSPRay Studio
-========================
-
-CMake Superbuild
-----------------
-
-### Required dependencies for superbuild
-
--   [CMake](https://www.cmake.org) (v3.15+) and any C++14 compiler
-
-For convenience, OSPRay Studio provides a CMake Superbuild script which will
-pull down its dependencies i.e. GLFW, OSPRay, rkcommon and TBB. It builds OSPRay
-Studio without OpemImageIO and OpenEXR support.  `stb_image` is used for all
-image operations by default instead. 
-
-To use the superbuild run with:
-
-``` sh
 mkdir build
 cd build
-cmake ..
-cmake --build .
+mkdir release
 ```
 
-For other full set of options, run:
+## CMake configuration and build
+OSPRay Studio needs to be built with `-DUSE_MPI=ON` in CMake.
 
-``` sh
-ccmake ..
+Additionally, make sure to use the OSPRay version you have built. After building OSPRay with `BUILD_OSPRAY_MODULE_MPI`, set `ospray_DIR` so CMake can locate OSPRay, e.g., `/Users/jnam/Documents/dev/ospray/build/release/install/ospray/lib/cmake/ospray-3.1.0`.
+
+```shell
+cmake -S .. \
+-B release \
+-DCMAKE_BUILD_TYPE=Release \
+-DUSE_MPI=ON \
+-Dospray_DIR="/Users/jnam/Documents/dev/ospray/build/release/install/ospray/lib/cmake/ospray-3.1.0"
+
+cmake --build release
+
+cmake --install release
 ```
 
-or
+## Run `ospStudio` with an example display setting
+![example](./docs/sample/example.png)
 
-``` sh
-cmake-gui ..
+Run `ospStudio` with 3 ranks. Rank 0 will open a window and handle user inputs, as well as broadcast changes to other processes. Rank 1 and 2 will open windows without decorations such as a border, a close widget, etc. These two windows are placed right next to each other and utilize off-axis projection capabilities to appear as a single window. These specifications are written in the display setting file.
+
+> Download [the example display setting file](./docs/sample//display_settings.json).
+
+> Press 'r' to synchrnoize application states. 
+
+> Press 'q' to quit the application.
+
+```shell
+mpirun -n 3 \
+./release/ospStudio \
+--mpi \
+--scene multilevel_hierarchy \
+--displayConfig display_settings.json
 ```
 
-Standard CMake build
---------------------
+```--mpi```: This option enables the OSPRay Studio's built-in MPI support.
 
-For standard cmake process turn off cmake option `OSPRAY_INSTALL` and provide
-following required dependencies with their respective cmake options as will be
-listed in OS-specific building process below. 
+```--scene multilevel_hierarchy```: *(Optional)* this option starts the application with the scene opened.
 
-### Required dependencies
+````--displayConfig display_settings.json````: The JSON configuration file contains information about off-axis projection cameras and windows.
 
--   [CMake](https://www.cmake.org) (v3.15+) and any C++14 compiler
--   Intel [OSPRay](https://www.github.com/ospray/ospray) (v3.1.0) and its
-    dependencies - OSPRay Studio builds on top of OSPRay. Instructions on
-    building OSPRay are provided
-    [here](http://www.ospray.org/downloads.html#building-and-finding-ospray).
-    OSPRay and OSPRay Studio have the following common dependencies which Studio
-    can hence leverage from an OSPRay build.
-    -   Intel oneAPI Rendering Toolkit common library
-        [rkcommon](https://www.github.com/ospray/rkcommon) (v1.13.0)
-    -   Intel [Threading Building Blocks](https://www.threadingbuildingblocks.org/)
--   OpenGL and [GLFW](https://www.glfw.org) (v3.3.9) - for the windowing environment
+## Support other display settings
+Modify the JSON file specificed in the `--displayConfig` flag. Additionally, adjust the number for `mpirun -n` accordingly.
 
-
-### Optional Dependencies
-
--   Intel [Open Image Denoise](https://openimagedenoise.github.io) - (v2.2.0 or
-    newer) for denoising frames. To use with OSPRay Studio, OSPRay must be built
-    with `-DBUILD_OIDN=ON` in CMake.
--   [OpenVDB](https://www.openvdb.org/) to support loading VDB formatted volume files.
--   [OpenImageIO](http://openimageio.org/) and [OpenEXR](https://www.openexr.com/)
-    (either v2.x or v3.x) to support images in a variety of file formats.  Set `OPENIMAGEIO_ROOT`
-    and `OPENEXR_ROOT` to the respective install directories to use these libraries.
-    (tested with OpenImageIO v2.3.16 and OpenEXR v2.5.8 and v3.3.0)
--   [Python] (3.9.7) (https://python.org) for python bindings
-
-### Building on Linux and macOS
-
--   Follow OSPRay's build instructions to install it, which will also
-    fulfill most other required dependencies. Set the following
-    environment variables to easily locate OSPRay and
-    rkcommon during CMake.
-
-    
-
-    ``` bash
-    export ospray_DIR = ${OSPRAY_INSTALL_LOCATION}
-    export rkcommon_DIR = ${RKCOMMON_INSTALL_LOCATION}
-    export TBB_DIR = ${TBB_INSTALL_LOCATION}
-    ```
-
-    Alternatively, [CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html)
-    can be set to find the OSPRay install and other dependencies.
-
--   Clone OSPRay Studio
-
-    ``` bash
-    git clone https://github.com/ospray/ospray_studio/
-    ```
-
--   Create build directory and change directory to it (we recommend
-    keeping a separate build directory)
-
-    ``` bash
-    cd ospray_studio
-    mkdir build
-    cd build
-    ```
-
--   Then run the typical CMake routine
-
-    ``` bash
-    cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ... # or use ccmake
-    make -j `nproc` # or cmake --build .
-    ```
-
--   To run OSPRay Studio, make sure `LD_LIBRARY_PATH` (on Linux) or
-    `DYLD_LIBRARY_PATH` (on macOS) contains all dependencies. For
-    example,
-
-    ``` bash
-    export LD_LIBRARY_PATH=${OSPRAY_INSTALL}/lib64:...:$LD_LIBRARY_PATH
-    # then run!
-    ./ospStudio
-    ```
-
-### Building on Windows
-
-Use CMake (cmake-gui) to configure and generate a Microsoft Visual
-Studio solution file for OSPRay Studio.
-
--   Specify the source folder and the build directory in CMake
--   Specify `ospray_DIR`, `rkcommon_DIR` CMake
-    variables for the respective install locations
--   Click 'Configure' and select the appropriate generator (we recommend
-    using at least Visual Studio 15 2017)
--   Select x64 as an optional parameter for the generator (32-bit builds
-    are not supported)
--   Click 'Generate' to create `ospray_studio.sln`. Open this in Visual
-    Studio and compile
-
-You can optionally use the CMake command line:
-
-``` pwsh
-cmake --build . --config Release --target install
-```
+> See [another example display setting file](./docs/sample/rattler.json) for the walls shown in the teaser image.
