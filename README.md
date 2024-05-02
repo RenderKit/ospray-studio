@@ -4,7 +4,7 @@
  ## Overview
 ![TACC Rattler](docs/sample/rattler.png)
 
-We extend [OSPRay v3.1.0](https://github.com/RenderKit/ospray/releases/tag/v3.1.0) to support these additional features:
+We extend [OSPRay Studio v1.0.0](https://github.com/RenderKit/ospray-studio/releases/tag/v1.0.0) to support these additional features:
 * Support off-axis projection enabling us to display a single, coherent 3D virtual environemnt on non-planar, tiled-display walls
 * Open multiple windows and arrange them based on specifications provided in a JSON file
 * Synchronize application states across MPI processes
