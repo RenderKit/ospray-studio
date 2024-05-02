@@ -8,4 +8,5 @@
 !/plugins
 /plugins/*
 !/plugins/example_plugin
+!/plugins/storyboard_plugin
 doc/*.html
