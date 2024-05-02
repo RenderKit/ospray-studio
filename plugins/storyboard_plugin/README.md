@@ -19,7 +19,7 @@ Before running `ospStudio` with the plugin, you need to start both [the server](
 ## Setup
 ```shell
 # clone this branch
-git clone -b jungwho.nam-feature-immersive-latest https://github.com/JungWhoNam/ospray_studio.git
+git clone -b jungwho.nam-feature-plugin-storyboard https://github.com/JungWhoNam/ospray_studio.git
 cd ospray_studio
 
 mkdir build
