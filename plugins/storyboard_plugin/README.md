@@ -66,7 +66,7 @@ When running `ospStudio`, you must specify the location of this JSON file using 
 ```json
 {
     "ipAddress": "127.0.0.1",
-    "portNumber": 8888
+    "portNumber": 8052
 }
 ```
 
