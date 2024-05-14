@@ -1264,10 +1264,10 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
   if (mat.normalTexture.index != -1 && mat.normalTexture.texCoord == 0) {
     // NormalTextureInfo() : index(-1), texCoord(0), scale(1.0) {}
     setOSPTexture(ospMat,
-        "normal",
+        "baseNormal",
         mat.normalTexture.index,
         mat.normalTexture.extensions);
-    ospMat->createChild("normal", "float", (float)mat.normalTexture.scale);
+    ospMat->createChild("baseNormal", "float", (float)mat.normalTexture.scale);
   }
 
   if (mat.emissiveTexture.index != -1 && mat.emissiveTexture.texCoord == 0) {
