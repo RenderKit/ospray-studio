@@ -1,5 +1,5 @@
-# Immersive OSPRay Studio
-> This project is part of a larger project called [Immersive OSPray](https://github.com/jungwhonam/ImmersiveOSPRay).
+# OSPRay Studio on non-planar displays
+> This project is part of a larger project called [Immersive OSPray Studio](https://github.com/jungwhonam/ImmersiveOSPRay).
 
  ## Overview
 ![TACC Rattler](docs/sample/rattler.png)
@@ -125,5 +125,5 @@ The JSON configuration file comprises an array of JSON objects. Each object - su
 * [the example display setting file](./docs/sample//display_settings.json) for a single display setting shown in the `Run ospStudio with an example display setting` section.
 * [another example display setting file](./docs/sample/rattler.json) for the walls shown in the teaser image.
 
-> [!TIP]
+> [!NOTE]
 > We provide [this Unity project](https://github.com/JungWhoNam/ConfigurationGenerator) to assist users in creating this JSON file.
