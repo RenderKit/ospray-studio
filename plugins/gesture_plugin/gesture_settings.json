@@ -1,0 +1,21 @@
+{
+    "ipAddress": "127.0.0.1",
+    "portNumber": 8888,
+    "scaleOffset": [
+        -0.0010000000474974513,
+        -0.0010000000474974513,
+        0.0010000000474974513
+    ],
+    "translationOffset": [
+        0.0,
+        0.0,
+        1.190000057220459
+    ],
+    "confidenceLevelThreshold": 1,
+    "leaningAngleThreshold": 1.0,
+    "leaningDirScaleFactor": [
+        1.0,
+        1.0,
+        1.0
+    ]
+}
