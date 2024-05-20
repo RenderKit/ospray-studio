@@ -16,7 +16,7 @@ Make the CMake option `BUILD_OSPRAY_MODULE_MPI` is set to `ON` when building OSP
 ## Setup
 ```shell
 # clone this branch
-git clone -b jungwho.nam-feature-immersive-latest https://github.com/JungWhoNam/ospray_studio.git
+git clone -b jungwho.nam-feature-multidisplays https://github.com/JungWhoNam/ospray_studio.git
 cd ospray_studio
 
 mkdir build
