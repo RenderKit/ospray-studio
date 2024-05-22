@@ -74,7 +74,17 @@ class GUIContext : public StudioContext
   bool optDisplayBufferInvert{false};
   bool optAutorotate{false};
   bool optAnimate{false};
-
+  
+  // multiple windows and off-axis projection
+  std::string optDisplayJsonName{""}; // CLI
+  vec3f topLeftLocal;
+  vec3f botLeftLocal;
+  vec3f botRightLocal;
+  vec3f eyeLocal;
+  bool cameraUpdated; // the state to be sent out over MPI to the other rendering processes
+  bool syncScene;
+  std::string getSceneState();
+  
   static MainWindow *mainWindow;
   
   std::shared_ptr<sg::FrameBuffer> framebuffer = nullptr;

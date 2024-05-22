@@ -250,34 +250,19 @@ inline OSPError initializeOSPRay(int &argc, const char **argv, bool use_mpi)
     ospDeviceRelease(device);
 
   } else {
-    //
-    // MPI Distributed
-    //
-
     // Initialize MPI and set rank and world size in sg
     sg::sgInitializeMPI(argc, argv);
     std::cout << "ospStudio --mpi, rank " << sg::sgMpiRank() << "/"
               << sg::sgMpiWorldSize() << "\n";
 
-    // load the MPI module, and select the MPI distributed device. Here we
-    // do not call ospInit, as we want to explicitly pick the distributed
-    // device
-    auto OSPRAY_MPI_DISTRIBUTED_GPU =
-        utility::getEnvVar<int>("OSPRAY_MPI_DISTRIBUTED_GPU").value_or(0);
+    OSPError initError = ospInit(&argc, argv);
 
-    auto mpiModuleName = OSPRAY_MPI_DISTRIBUTED_GPU ? "mpi_distributed_gpu"
-                                                    : "mpi_distributed_cpu";
-    std::cout << "Loading OSPRay Module: " << mpiModuleName;
-
-    use_mpi = ospLoadModule(mpiModuleName) == OSP_NO_ERROR;
-    if (!use_mpi) {
-      std::cout
-          << "Fatal: ospStudio launched with --mpi, but could not load the OSPRay MPI module."
-          << std::endl;
-      return OSP_UNKNOWN_ERROR;
+    if (initError != OSP_NO_ERROR) {
+      std::cerr << "OSPRay not initialized correctly!" << std::endl;
+      return initError;
     }
 
-    cpp::Device mpiDevice("mpiDistributed");
+    cpp::Device mpiDevice = cpp::Device::current();
     mpiDevice.commit();
     mpiDevice.setCurrent();
 

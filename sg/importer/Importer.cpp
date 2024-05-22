@@ -52,21 +52,9 @@ inline bool FindCameraNode::operator()(Node &node, TraversalContext &)
   return traverseChildren;
 }
 
-OSPSG_INTERFACE void importScene(
-    std::shared_ptr<StudioContext> context, rkcommon::FileName &sceneFileName)
+void importScene(
+    std::shared_ptr<StudioContext> context, const JSON &j, const std::string &filesToImportDir)
 {
-  std::cout << "Importing a scene" << std::endl;
-  context->filesToImport.clear();
-  std::ifstream sgFile(sceneFileName.str());
-  if (!sgFile) {
-    std::cerr << "Could not open " << sceneFileName << " for reading"
-              << std::endl;
-    return;
-  }
-
-  JSON j;
-  sgFile >> j;
-
   std::map<std::string, JSON> jImporters;
   std::map<std::string, JSON> jGenerators;
   sg::NodePtr lights;
@@ -106,7 +94,7 @@ OSPSG_INTERFACE void importScene(
 
         // Try a couple different paths to find the file before giving up
         std::vector<std::string> possibleFileNames = {fileName, // as imported
-            sceneFileName.path() + fileName.base(), // in scenefile directory
+            filesToImportDir + fileName.base(), // in scenefile directory
             fileName.base(), // in local directory
             ""};
 
@@ -312,6 +300,33 @@ OSPSG_INTERFACE void importScene(
       }
     }
   }
+}
+
+OSPSG_INTERFACE void importScene(
+    std::shared_ptr<StudioContext> context, rkcommon::FileName &sceneFileName)
+{
+  std::cout << "Importing a scene" << std::endl;
+  context->filesToImport.clear();
+  std::ifstream sgFile(sceneFileName.str());
+  if (!sgFile) {
+    std::cerr << "Could not open " << sceneFileName << " for reading"
+              << std::endl;
+    return;
+  }
+
+  JSON j;
+  sgFile >> j;
+
+  importScene(context, j, sceneFileName.path());
+}
+
+OSPSG_INTERFACE void importScene(
+    std::shared_ptr<StudioContext> context, const std::string &sceneDesc, const std::string &filesToImportDir)
+{
+  JSON j;
+  j = JSON::parse(sceneDesc);
+
+  importScene(context, j, filesToImportDir);
 }
 
 // global assets catalogue

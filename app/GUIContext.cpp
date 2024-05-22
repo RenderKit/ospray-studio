@@ -21,6 +21,7 @@
 #include "sg/visitors/Commit.h"
 #include "sg/visitors/PrintNodes.h"
 #include "sg/visitors/Search.h"
+#include "sg/Mpi.h"
 
 #include <fstream>
 #include <queue>
@@ -30,6 +31,43 @@
 
 using namespace ospray;
 using namespace ospray::sg;
+
+static
+void offaxisStereoCamera(vec3f LL, vec3f LR, vec3f UR, vec3f eye,
+                         vec3f &dirOUT, vec3f &upOUT,
+                         float &fovyOUT, float &aspectOUT,
+                         vec2f &imageStartOUT, vec2f &imageEndOUT)
+{
+  vec3f X = (LR-LL)/length(LR-LL);
+  vec3f Y = (UR-LR)/length(UR-LR);
+  vec3f Z = cross(X,Y);
+
+  dirOUT = -Z;
+  upOUT = Y;
+
+  // eye position relative to screen/wall
+  vec3f eyeP = eye-LL;
+
+  // distance from eye to screen/wall
+  float dist = dot(eyeP,Z);
+
+  float left   = dot(eyeP,X);
+  float right  = length(LR-LL)-left;
+  float bottom = dot(eyeP,Y);
+  float top    = length(UR-LR)-bottom;
+
+  float newWidth = left<right ? 2*right : 2*left;
+  float newHeight = bottom<top ? 2*top : 2*bottom;
+
+  fovyOUT = 2*atan(newHeight/(2*dist)) * 180 * M_1_PI;
+
+  aspectOUT = newWidth/newHeight;
+
+  imageStartOUT.x = left<right ? (right-left)/newWidth : 0.f;
+  imageStartOUT.y = bottom<top ? (top-bottom)/newHeight: 0.f;
+  imageEndOUT.x = right<left ? (left+right)/newWidth : 1.f;
+  imageEndOUT.y = top<bottom ? (bottom+top)/newHeight : 1.f;
+}
 
 MainWindow *GUIContext::mainWindow = nullptr;
 
@@ -93,6 +131,9 @@ void GUIContext::start()
     mainWindow->mainLoop();
     if (optSaveImageOnGUIExit)
       saveCurrentFrame();
+
+    if (!optDisplayJsonName.empty())
+      MPI_Abort(MPI_COMM_WORLD, MPI_SUCCESS);
   }
 }
 
@@ -184,6 +225,33 @@ void GUIContext::updateCamera()
     }
     camera->child("focusDistance").setValue(focusDistance);
   }
+
+  if (!optDisplayJsonName.empty()) { // off-axis projection
+    affine3f t = mainWindow->arcballCamera->getTransform();
+    vec3f tl = xfmPoint(t, topLeftLocal);
+    vec3f bl = xfmPoint(t, botLeftLocal);
+    vec3f br = xfmPoint(t, botRightLocal);
+    vec3f tr = (tl - bl) + br;
+
+    vec3f eye = xfmPoint(t, eyeLocal);
+    vec3f dir, up;
+    float fovy, aspect;
+    vec2f imgStart, imgEnd;
+
+    // LL, LR, UR
+    offaxisStereoCamera(bl, br, tr, eye, dir, up, fovy, aspect, imgStart, imgEnd);
+
+    camera->child("fovy").setValue(fovy);
+    camera->child("aspect").setValue(aspect);
+    camera->child("position").setValue(eye);
+    camera->child("direction").setValue(dir);
+    camera->child("up").setValue(up);
+    camera->child("imageStart").setValue(imgStart);
+    camera->child("imageEnd").setValue(imgEnd);
+  }
+
+  // indicate other processes to update camera
+  cameraUpdated = true;
 }
 
 void GUIContext::changeToDefaultCamera()
@@ -317,6 +385,16 @@ void GUIContext::addToCommandLine(std::shared_ptr<CLI::App> app) {
     optSaveImageOnGUIExit,
     "Save final image when exiting GUI mode"
   );
+  app->add_option(
+    "--scene",
+    scene,
+    "Sets the opening scene name"
+  );
+  app->add_option(
+    "--displayConfig",
+    optDisplayJsonName,
+    "JSON file name for display configurations"
+  );
 }
 
 bool GUIContext::parseCommandLine()
@@ -335,14 +413,147 @@ bool GUIContext::parseCommandLine()
     return false;
   }
 
-  // XXX: changing windowSize here messes causes some display scaling issues
-  // because it desyncs window and framebuffer size with any scaling
-  if (optResolution.x != 0) {
-    defaultSize = optResolution;
-    // since parseCommandLine happens after MainWindow object creation update the windowSize of that class
-    mainWindow->windowSize = defaultSize;
-    mainWindow->reshape(true);
+  if (optDisplayJsonName.empty()) {
+    // XXX: changing windowSize here messes causes some display scaling issues
+    // because it desyncs window and framebuffer size with any scaling
+    if (optResolution.x != 0) {
+      defaultSize = optResolution;
+      // since parseCommandLine happens after MainWindow object creation update the windowSize of that class
+      mainWindow->windowSize = defaultSize;
+      mainWindow->reshape(true);
+    }
   }
+  else {
+    // load the JSON configuration file
+    JSON config;
+    try {
+      std::ifstream configFile(optDisplayJsonName);
+      if (!configFile) {
+        std::cerr << "The display config file does not exist." << std::endl;
+        return false;
+      }
+      configFile >> config;
+    } catch (nlohmann::json::exception &e) {
+      std::cerr << "Failed to parse the display config file: " << e.what() << std::endl;
+      return false;
+    }
+
+    // show/hide the frame and UIs
+    glfwSetWindowAttrib(mainWindow->glfwWindow, GLFW_DECORATED, config[sg::sgMpiRank()]["decorated"].get<bool>() ? GLFW_TRUE : GLFW_FALSE);    
+    mainWindow->showUi = config[sg::sgMpiRank()]["showUI"].get<bool>();
+
+    // set window position
+    int numOfMonitors;
+    GLFWmonitor** monitors = glfwGetMonitors(&numOfMonitors);
+    int displayIndex = config[sg::sgMpiRank()]["display"];
+    if (numOfMonitors <= displayIndex) {
+      std::cerr << "The display index should be less than numOfMonitors: " << std::to_string(numOfMonitors) << std::endl;
+      return false;
+    }
+    int xVirtual, yVirtual;
+    glfwGetMonitorPos(monitors[displayIndex], &xVirtual, &yVirtual);
+    int x = (int) config[sg::sgMpiRank()]["screenX"] + xVirtual;
+    int y = (int) config[sg::sgMpiRank()]["screenY"] + yVirtual;
+    glfwSetWindowPos(mainWindow->glfwWindow, x, y);
+
+    // set the window size
+    mainWindow->windowSize.x = config[sg::sgMpiRank()]["screenWidth"];
+    mainWindow->windowSize.y = config[sg::sgMpiRank()]["screenHeight"];
+    optResolution.x = mainWindow->windowSize.x;
+    optResolution.y = mainWindow->windowSize.y;
+
+    // keep the aspect ratio
+    lockAspectRatio = config[sg::sgMpiRank()]["lockAspectRatio"].get<bool>() ? 
+      static_cast<float>(mainWindow->windowSize.x) / static_cast<float>(mainWindow->windowSize.y) : 0.f;
+
+    // set the resolution scale
+    frame->child("scale") = config[sg::sgMpiRank()]["scaleRes"].get<float>();
+    frame->child("scaleNav") = config[sg::sgMpiRank()]["scaleResNav"].get<float>();
+    
+    // update three corners of the image plane
+    topLeftLocal = config[sg::sgMpiRank()]["topLeft"].get<vec3f>();
+    botLeftLocal = config[sg::sgMpiRank()]["botLeft"].get<vec3f>();
+    botRightLocal = config[sg::sgMpiRank()]["botRight"].get<vec3f>();
+    eyeLocal = config[sg::sgMpiRank()]["eye"].get<vec3f>();
+    vec4f mullion {
+      config[sg::sgMpiRank()]["mullionLeft"], 
+      config[sg::sgMpiRank()]["mullionRight"], 
+      config[sg::sgMpiRank()]["mullionTop"], 
+      config[sg::sgMpiRank()]["mullionBottom"]};
+
+    // use mullion values to update the three corners
+    vec3f tl = topLeftLocal, bl = botLeftLocal, br = botRightLocal;
+
+    float mullionLeft = mullion[0];
+    botLeftLocal += normalize(br - bl) * mullionLeft;
+    topLeftLocal +=  normalize(br - bl) * mullionLeft;
+
+    float mullionRight = mullion[1];
+    botRightLocal += normalize(bl - br) * mullionRight;
+
+    float mullionTop = mullion[2];
+    topLeftLocal += normalize(bl - tl) * mullionTop;
+
+    float mullionBottom = mullion[3];
+    botLeftLocal += normalize(tl - bl) * mullionBottom;
+    botRightLocal += normalize(tl - bl) * mullionBottom;
+
+    mainWindow->reshape(true);
+
+    // sync camera state
+    mainWindow->displayCallback = [&](MainWindow* mainWindow) {
+      MPI_Bcast(&cameraUpdated, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+      if (cameraUpdated) {
+        CameraState stateCamera = mainWindow->arcballCamera->getState();
+        MPI_Bcast(&stateCamera, sizeof(stateCamera), MPI_BYTE, 0, MPI_COMM_WORLD);
+        mainWindow->arcballCamera->setState(stateCamera);
+        updateCamera();
+        cameraUpdated = false;
+      }
+
+      // sync scene state
+      MPI_Bcast(&syncScene, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+      if (syncScene) {
+        std::string sceneState = getSceneState();
+        int sceneStateSize = sceneState.size();
+
+        // sync scene state size
+        MPI_Bcast(&sceneStateSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        if (sg::sgMpiRank() != 0)
+          sceneState.resize(sceneStateSize);
+        
+        // sync scene state
+        MPI_Bcast(const_cast<char*>(sceneState.c_str()), sceneStateSize, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+        // load scene state
+        if (sg::sgMpiRank() != 0) {
+          try {
+            clearScene();
+            sg::importScene(shared_from_this(), sceneState, "");
+          } catch (const std::exception &e) {
+            std::cerr << "Failed to sync the scene: '" << e.what() << "'!\n";
+            std::cerr << "   " << e.what() << std::endl;
+          } catch (...) {
+            std::cerr << "Failed to sync the scene!\n";
+          }
+        }
+
+        syncScene = false;
+      }
+      
+      // so nodes swap buffers at about the same time
+      mainWindow->waitOnOSPRayFrame();
+      MPI_Barrier(MPI_COMM_WORLD);
+    };
+
+    // press 'r' to sync the scene
+    mainWindow->keyCallback = [](MainWindow* mainWindow, int key, int scancode, int action, int mod) {
+      if (action == GLFW_PRESS && key == GLFW_KEY_R) {
+        mainWindow->ctx->syncScene = true;
+      }
+    };
+  }
+
   return true;
 }
 
@@ -562,9 +773,7 @@ void GUIContext::useSceneCamera()
   }
 }
 
-void GUIContext::saveSGScene()
-{
-  std::ofstream dump("studio_scene.sg");
+std::string GUIContext::getSceneState() {
   auto &currentCamera = frame->child("camera");
   JSON camera = {{"cameraIdx", currentCamera.child("cameraId").valueAs<int>()},
       {"cameraToWorld", mainWindow->arcballCamera->getTransform()}};
@@ -579,7 +788,13 @@ void GUIContext::saveSGScene()
       {"lightsManager", *lightsManager},
       {"materialRegistry", *baseMaterialRegistry},
       {"animation", animation}};
-  dump << j.dump();
+  return j.dump();
+}
+
+void GUIContext::saveSGScene()
+{
+  std::ofstream dump("studio_scene.sg");
+  dump << getSceneState();
 }
 
 void GUIContext::saveNodesJson(const std::string nodeTypeStr)
