@@ -83,16 +83,18 @@ OSPTextureFormat Texture2D::osprayTextureFormat(int components)
       return samplerParams.preferLinear ? OSP_TEXTURE_RGBA8 : OSP_TEXTURE_SRGBA;
   } else if (imageParams.depth == 2) {
     if (components == 1)
-      return OSP_TEXTURE_R16;
+      return imageParams.isHalf ? OSP_TEXTURE_R16F : OSP_TEXTURE_R16;
     if (components == 2)
-      return OSP_TEXTURE_RA16;
+      return imageParams.isHalf ? OSP_TEXTURE_RA16F : OSP_TEXTURE_RA16;
     if (components == 3)
-      return OSP_TEXTURE_RGB16;
+      return imageParams.isHalf ? OSP_TEXTURE_RGB16F : OSP_TEXTURE_RGB16;
     if (components == 4)
-      return OSP_TEXTURE_RGBA16;
+      return imageParams.isHalf ? OSP_TEXTURE_RGBA16F : OSP_TEXTURE_RGBA16;
   } else if (imageParams.depth == 4) {
     if (components == 1)
       return OSP_TEXTURE_R32F;
+    if (components == 2)
+      return OSP_TEXTURE_RA32F;
     if (components == 3)
       return OSP_TEXTURE_RGB32F;
     if (components == 4)
@@ -113,7 +115,7 @@ template <typename T>
 void Texture2D::loadTexture_OIIO_readFile(std::unique_ptr<ImageInput> &in)
 {
   const ImageSpec &spec = in->spec();
-  const auto typeDesc = TypeDescFromC<T>::value();
+  const auto typeDesc = spec.format.elementtype();
 
   std::shared_ptr<T> data(new T[totalImageSize()],
       std::default_delete<T[]>());
@@ -136,13 +138,16 @@ void Texture2D::loadTexture_OIIO(const std::string &fileName)
     const ImageSpec &spec = in->spec();
     const auto typeDesc = spec.format.elementtype();
 
+    imageParams.isHalf = (typeDesc == TypeDesc::HALF);
     imageParams.size = vec2ul(spec.width, spec.height);
     imageParams.components = spec.nchannels;
     imageParams.depth = spec.format.size();
 
     if (imageParams.depth == 1)
       loadTexture_OIIO_readFile<uint8_t>(in);
-    else if (imageParams.depth == 2 && (typeDesc != TypeDesc::FLOAT))
+    else if (imageParams.depth == 2 && imageParams.isHalf)
+      loadTexture_OIIO_readFile<short>(in);
+    else if (imageParams.depth == 2)
       loadTexture_OIIO_readFile<uint16_t>(in);
     else if (imageParams.depth == 4)
       loadTexture_OIIO_readFile<float>(in);
@@ -280,36 +285,117 @@ void Texture2D::loadTexture_PFM(const std::string &fileName)
 //
 // EXR (via tinyEXR)
 //
+template <typename T>
+void Texture2D::loadTexture_EXR_interleaveImage(
+    int numChannels, unsigned char **images, std::vector<int> &channelMap)
+{
+  std::shared_ptr<T> data(new T[totalImageSize()], std::default_delete<T[]>());
+  T *texels = data.get();
+  T **slices = (T **)images;
+  size_t numRows = imageParams.size.y;
+
+  // Fill texels with image[channels][pixels], interleaving channels into a
+  // single image
+  tasking::parallel_for(numRows, [&](size_t row) {
+    T *rowTexels = texels + row * imageParams.size.x * imageParams.components;
+    for (size_t x = 0; x < imageParams.size.x; x++) {
+      for (size_t c = 0; c < numChannels; c++) {
+        if (channelMap[c] >= 0)
+          *rowTexels++ = slices[channelMap[c]][row * imageParams.size.x + x];
+      }
+    }
+  });
+
+  // Move shared_ptr ownership
+  texelData = data;
+}
+
 void Texture2D::loadTexture_EXR(const std::string &fileName)
 {
-  // XXX add support for layered EXR?
-  float *texels; // width * height * RGBA
   int width;
   int height;
   const char *err = nullptr;
+  const char *cFN = fileName.c_str();
 
-  int ret = LoadEXR(&texels, &width, &height, fileName.c_str(), &err);
-  if (ret != TINYEXR_SUCCESS) {
+  auto errTinyEXR = [](const char *err) {
     if (err) {
       fprintf(stderr, "ERR : %s\n", err);
       std::cerr << "#osp:sg: failed to load EXR texture: " << err << std::endl;
       FreeEXRErrorMessage(err); // release memory of error message.
     }
-  } else {
-    imageParams.size = vec2ul(width, height);
-    imageParams.components = 4; // always rgba
-    imageParams.depth = 4; // always float
-    size_t size = totalImageSize() * imageParams.depth;
+  };
 
-    std::shared_ptr<float> data(
-        new float[size], std::default_delete<float[]>());
-    std::memcpy(data.get(), texels, size);
-
-    // Move shared_ptr ownership
-    texelData = data;
-
-    free(texels); // release memory of image data
+  EXRVersion version;
+  EXRHeader header;
+  EXRImage image;
+  InitEXRHeader(&header);
+  InitEXRImage(&image);
+  if (ParseEXRVersionFromFile(&version, cFN) != TINYEXR_SUCCESS) {
+    errTinyEXR(err);
+    return;
   }
+  if (ParseEXRHeaderFromFile(&header, &version, cFN, &err) != TINYEXR_SUCCESS) {
+    errTinyEXR(err);
+    FreeEXRHeader(&header);
+    return;
+  }
+  if (LoadEXRImageFromFile(&image, &header, cFN, &err) != TINYEXR_SUCCESS) {
+    errTinyEXR(err);
+    FreeEXRHeader(&header);
+    FreeEXRImage(&image);
+    return;
+  }
+
+  // Only handle scanline format files, don't handle tiled formats
+  if (header.tiled) {
+    std::cerr << "#osp:sg:EXR Unsupported tiled format: " << cFN << std::endl;
+    FreeEXRHeader(&header);
+    FreeEXRImage(&image);
+    return;
+  }
+
+  const int MaxChannels = 4;
+  imageParams.size = vec2ul(image.width, image.height);
+  imageParams.components = std::min(header.num_channels, MaxChannels);
+  imageParams.isHalf = (header.pixel_types[0] == TINYEXR_PIXELTYPE_HALF);
+  imageParams.depth = imageParams.isHalf ? 2 : 4; // only support half or float
+
+  // Map RGB(A) or XYZ buffers to correct channel order, also support R and RA
+  auto channelMap = std::vector<int>(header.num_channels, -1);
+  std::vector<char> channelNames = {'R','G','B','A','X','Y','Z'};
+  const EXRChannelInfo *channels = header.channels;
+  int ch = 0;
+  for (const char name : channelNames) {
+    for (size_t c = 0; c < header.num_channels; c++) {
+      // Only set up to 4 channels, file may contain more of the named above
+      if (ch < MaxChannels && channels[c].name[0] == name) {
+        channelMap[c] = ch++;
+        break;
+      }
+    }
+  }
+
+  // Ensure all mapped channel pixel types match
+  int type = header.pixel_types[channelMap[0]];
+  for (int i = 1; i < imageParams.components; i++) {
+    if (type != header.pixel_types[channelMap[i]]) {
+      std::cerr << "#osp:sg:EXR channel pixel types are inconsistent : " << cFN
+                << std::endl;
+      FreeEXRHeader(&header);
+      FreeEXRImage(&image);
+      return;
+    }
+  }
+
+  if (imageParams.isHalf)
+    loadTexture_EXR_interleaveImage<short>(
+        header.num_channels, image.images, channelMap);
+  else
+    loadTexture_EXR_interleaveImage<float>(
+        header.num_channels, image.images, channelMap);
+
+  FreeEXRHeader(&header);
+  FreeEXRImage(&image);
 
   if (!texelData.get()) {
     std::cerr << "#osp:sg: EXR failed to load texture '" << fileName << "'"
@@ -401,8 +487,6 @@ void Texture2D::loadTexture_STBi(const std::string &fileName)
   if (!texelData.get()) {
     std::cerr << "#osp:sg: STB_image failed to load texture '" + fileName + "'"
               << std::endl;
-    std::cerr << "#osp:sg: Rebuilding OSPRay Studio with OpenImageIO "
-              << "support may fix this error." << std::endl;
   }
 }
 #endif
@@ -619,18 +703,25 @@ bool Texture2D::load(const FileName &_fileName, const void *memory)
       if (!udim_params.loading && checkForUDIM(fileName))
         loadUDIM_tiles(fileName);
       else {
+        // Check that fileName exist 
+        std::ifstream f(fileName);
+        if (!f.good()) {
+          std::cerr << "#osp:sg: Texture file error, check '" + fileName + "'"
+                    << std::endl;
+        } else {
 #ifdef USE_OPENIMAGEIO
-        loadTexture_OIIO(fileName);
+          loadTexture_OIIO(fileName);
 #else
-        if (_fileName.ext() == "exr")
-          loadTexture_EXR(fileName);
-        else if (_fileName.ext() == "tif" || _fileName.ext() == "tiff")
-          loadTexture_TIFF(fileName);
-        else if (_fileName.ext() == "pfm")
-          loadTexture_PFM(fileName);
-        else
-          loadTexture_STBi(fileName);
+          if (_fileName.ext() == "exr")
+            loadTexture_EXR(fileName);
+          else if (_fileName.ext() == "tif" || _fileName.ext() == "tiff")
+            loadTexture_TIFF(fileName);
+          else if (_fileName.ext() == "pfm")
+            loadTexture_PFM(fileName);
+          else
+            loadTexture_STBi(fileName);
 #endif
+        }
       }
     }
   }
@@ -670,7 +761,12 @@ bool Texture2D::load(const FileName &_fileName, const void *memory)
           "11 = OSP_TEXTURE_RGBA16\n"
           "12 = OSP_TEXTURE_RGB16\n"
           "13 = OSP_TEXTURE_RA16\n"
-          "14 = OSP_TEXTURE_R16\n",
+          "14 = OSP_TEXTURE_R16\n"
+          "15 = OSP_TEXTURE_RA32F\n"
+          "16 = OSP_TEXTURE_RGBA16F\n"
+          "17 = OSP_TEXTURE_RGB16F\n"
+          "18 = OSP_TEXTURE_RA16F\n"
+          "19 = OSP_TEXTURE_R16F\n",
           ospTexFormat);
 
       createChild("filter",
@@ -699,7 +795,7 @@ bool Texture2D::load(const FileName &_fileName, const void *memory)
       child("isFlipped").setReadOnly();
 #endif
 
-      child("format").setMinMax(OSP_TEXTURE_RGBA8, OSP_TEXTURE_R16);
+      child("format").setMinMax(OSP_TEXTURE_RGBA8, OSP_TEXTURE_R16F);
       child("filter").setMinMax(
           OSP_TEXTURE_FILTER_LINEAR, OSP_TEXTURE_FILTER_NEAREST);
       child("wrapMode")
@@ -739,6 +835,9 @@ void Texture2D::preCommit()
 
   std::string guiFilename = child("filename").valueAs<std::string>();
   if (fileName != guiFilename) {
+    // Reset to defaults and load new texture
+    texelData = nullptr;
+    flip = true;
     isFlipped = false;
     udim_params = {};
     textureCache.erase(fileName);

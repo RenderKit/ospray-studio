@@ -67,7 +67,8 @@ struct OSPSG_INTERFACE Texture2D : public Texture
 
   typedef struct _ImageParams
   {
-    vec2ul size{-1}; // texture size, in pixels
+    vec2i size{-1}; // texture size, in pixels
+    bool isHalf{false}; // to differentiate depth=2 uint16_t from half-float
     int components{0};
     int depth{0}; // bytes per texel
   } ImageParams;
@@ -102,11 +103,15 @@ struct OSPSG_INTERFACE Texture2D : public Texture
   void loadTexture_PFM(const std::string &fileName);
   void loadTexture_STBi(const std::string &fileName);
   void loadTexture_PFM_readFile(FILE *file, float scaleFactor);
+  template <typename T>
+  void loadTexture_EXR_interleaveImage(
+      int numChannels, unsigned char **images, std::vector<int> &channelMap);
 #endif
 
   bool imageParamsMatch(const ImageParams &test)
   {
     return (test.size == imageParams.size)
+        && (test.isHalf == imageParams.isHalf)
         && (test.components == imageParams.components)
         && (test.depth == imageParams.depth);
   }
