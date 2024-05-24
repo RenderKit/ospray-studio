@@ -1620,7 +1620,7 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
     // sheenColorTexture: The sheen color (sRGB).
     if (params.Has("sheenColorTexture")) {
       setOSPTexture(ospMat,
-          "sheen",
+          "sheenColor",
           params.Get("sheenColorTexture").Get("index").Get<int>(),
           params.Get("sheenColorTexture")
               .Get("extensions")
