@@ -1671,20 +1671,6 @@ NodePtr GLTFData::createOSPMaterial(const tinygltf::Material &mat)
       thickness = (float)params.Get("thicknessFactor").Get<double>();
     }
     ospMat->createChild("thin", "bool") = thickness > 0 ? false : true;
-    ospMat->createChild("thickness", "float") = thickness;
-
-    // thicknessTexture <textureInfo> A texture that defines the thickness,
-    // stored in the G channel. This will be multiplied by thicknessFactor.
-    // Default: No
-    if (params.Has("thicknessTexture")) {
-      setOSPTexture(ospMat,
-          "thickness",
-          params.Get("thicknessTexture").Get("index").Get<int>(),
-          params.Get("thicknessTexture")
-              .Get("extensions")
-              .Get<tinygltf::ExtensionMap>(),
-          1);
-    }
 
     // attenuationDistance <float> Density of the medium given as the
     // average distance that light travels in the medium before interacting
