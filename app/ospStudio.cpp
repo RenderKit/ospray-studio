@@ -366,10 +366,6 @@ int main(int argc, const char *argv[])
 
   // Initialize OSPRay
   OSPError error = initializeOSPRay(argc, argv, use_mpi);
-  if (error != OSP_NO_ERROR) {
-    std::cerr << " OSPRay Initialization Error: " << error << std::endl;
-    return error;
-  }
 
   // Verify install then exit
   if (verify_install) {
@@ -378,6 +374,9 @@ int main(int argc, const char *argv[])
     std::cout << " OSPRay Studio install " << (fail ? "failed" : "verified")
               << std::endl;
     return fail;
+  } else if (error != OSP_NO_ERROR) {
+    std::cerr << " OSPRay Initialization Error: " << error << std::endl;
+    return error;
   }
 
   // Check for module denoiser support after iniaitlizing OSPRay
