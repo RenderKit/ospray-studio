@@ -43,6 +43,9 @@ void Frame::startNewFrame()
   auto &renderer = childAs<Renderer>("renderer");
   auto &world = childAs<World>("world");
 
+  if (fb["targetFrames"].valueAs<int>() != accumLimit)
+    fb["targetFrames"] = accumLimit;
+
   // App navMode set via setNavMode() vs current frame-state navMode
   if (navMode != child("navMode").valueAs<bool>())
     child("navMode") = navMode && (!navMode || isModified());
@@ -183,8 +186,8 @@ void Frame::refreshFrameOperations()
   uint8_t newFrameOpsState = denoiserEnabled << 1 | toneMapperEnabled;
   static uint8_t lastFrameOpsState{0};
 
-  // If there's a change and accumLimit is already reach, force another frame so
-  // operations will occur
+  // If there's a change and accumLimit is already reached, force another frame
+  // so operations will occur
   if ((newFrameOpsState != lastFrameOpsState) && accumLimitReached())
     currentAccum--;
 

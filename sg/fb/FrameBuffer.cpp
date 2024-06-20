@@ -30,31 +30,42 @@ FrameBuffer::FrameBuffer()
       "framebuffer format: RBGA8, sRGBA, or float",
       std::string("RGBA8"));
 
-  createChild("exposure", "float", "amount of light per unit area", 1.0f);
-  createChild("contrast",
+  createChild("targetFrames",
+      "int",
+      "anticipated number of frames that will be accumulated for progressive refinement,\n"
+      "used renderers to generate a blue noise sampling pattern;\n"
+      "should be a power of 2, is always 1 without `OSP_FB_ACCUM`; default disabled",
+      0);
+  child("targetFrames").setMinMax(0, 64);
+  // Do not expose targetFrames to the UI, app accumLimit sets this value.
+  child("targetFrames").setSGNoUI();
+
+  auto &tm = createChild("Tonemapper Parameters");
+  tm.createChild("exposure", "float", "amount of light per unit area", 1.0f);
+  tm.createChild("contrast",
       "float",
       "contrast (toe of the curve); typically is in [1-2]",
       1.1759f);
-  createChild("shoulder",
+  tm.createChild("shoulder",
       "float",
       "highlight compression (shoulder of the curve); typically is in [0.9-1]",
       0.9746f);
-  createChild(
+  tm.createChild(
       "midIn", "float", "mid-level anchor input; default is 18%% gray", 0.18f);
-  createChild("midOut",
+  tm.createChild("midOut",
       "float",
       "mid-level anchor output; default is 18%% gray",
       0.18f);
-  createChild(
+  tm.createChild(
       "hdrMax", "float", "maximum HDR input that is not clipped", 6.3704f);
-  createChild("acesColor", "bool", "apply the ACES color transforms", true);
+  tm.createChild("acesColor", "bool", "apply the ACES color transforms", true);
 
-  child("exposure").setMinMax(0.f, 5.f);
-  child("contrast").setMinMax(0.f, 3.f);
-  child("shoulder").setMinMax(0.f, 2.f);
-  child("midIn").setMinMax(0.f, 1.f);
-  child("midOut").setMinMax(0.f, 1.f);
-  child("hdrMax").setMinMax(0.f, 100.f);
+  tm.child("exposure").setMinMax(0.f, 5.f);
+  tm.child("contrast").setMinMax(0.f, 3.f);
+  tm.child("shoulder").setMinMax(0.f, 2.f);
+  tm.child("midIn").setMinMax(0.f, 1.f);
+  tm.child("midOut").setMinMax(0.f, 1.f);
+  tm.child("hdrMax").setMinMax(0.f, 100.f);
 
   updateHandle();
 }
@@ -123,7 +134,8 @@ void FrameBuffer::updateHandle()
   setHandle(fb);
 
   // Recreating the framebuffer will change the imageOps.  Refresh them.
-  if (hasDenoiser || hasToneMapper) {
+  int targetFrames = child("targetFrames").valueAs<int>();
+  if (hasDenoiser || hasToneMapper || targetFrames) {
     updateImageOps = true;
     updateImageOperations();
   }
@@ -160,22 +172,26 @@ void FrameBuffer::updateImageOperations()
 
   updateImageOps = false;
 
+  int targetFrames = child("targetFrames").valueAs<int>();
+  handle().setParam("targetFrames", targetFrames);
+
   std::vector<cpp::ImageOperation> ops = {};
   if (hasToneMapper) {
     auto iop = cpp::ImageOperation("tonemapper");
-    float exposure = child("exposure").valueAs<float>();
+    auto &tm = child("Tonemapper Parameters");
+    float exposure = tm.child("exposure").valueAs<float>();
     iop.setParam("exposure", OSP_FLOAT, &exposure);
-    float contrast = child("contrast").valueAs<float>();
+    float contrast = tm.child("contrast").valueAs<float>();
     iop.setParam("contrast", OSP_FLOAT, &contrast);
-    float shoulder = child("shoulder").valueAs<float>();
+    float shoulder = tm.child("shoulder").valueAs<float>();
     iop.setParam("shoulder", OSP_FLOAT, &shoulder);
-    float midIn = child("midIn").valueAs<float>();
+    float midIn = tm.child("midIn").valueAs<float>();
     iop.setParam("midIn", OSP_FLOAT, &midIn);
-    float midOut = child("midOut").valueAs<float>();
+    float midOut = tm.child("midOut").valueAs<float>();
     iop.setParam("midOut", OSP_FLOAT, &midOut);
-    float hdrMax = child("hdrMax").valueAs<float>();
+    float hdrMax = tm.child("hdrMax").valueAs<float>();
     iop.setParam("hdrMax", OSP_FLOAT, &hdrMax);
-    bool acesColor = child("acesColor").valueAs<bool>();
+    bool acesColor = tm.child("acesColor").valueAs<bool>();
     iop.setParam("acesColor", OSP_BOOL, &acesColor);
     iop.commit();
     ops.push_back(iop);
