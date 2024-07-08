@@ -9,6 +9,9 @@
 #include "sg/scene/geometry/Geometry.h"
 #include "sg/Util.h"
 
+using namespace rkcommon::utility;
+using namespace rkcommon::containers;
+
 namespace ospray {
   namespace sg {
 
@@ -35,7 +38,7 @@ namespace ospray {
 
   static inline void parseParameterString(std::string typeAndValueString,
                                           std::string &paramType,
-                                          rkcommon::utility::Any &paramValue)
+                                          Any &paramValue)
   {
     std::stringstream typeAndValueStream(typeAndValueString);
     std::string paramValueString;
@@ -192,6 +195,56 @@ namespace ospray {
     return {};
   }
 
+  void addTextureWrapModes(std::shared_ptr<Texture2D> ospTex,
+      std::string mapName,
+      std::map<std::string, std::string> unknown_parameter)
+  {
+    // Parse texture wrapMode
+    // Check whether this map has a wrapMode parameter add it to the
+    // texture node if it does.
+    // Need to find based on "param.first" and not paramName,
+    // paramName may have been modified to convert naming style
+    auto it = unknown_parameter.find(mapName + ".wrapMode");
+    if (it != unknown_parameter.end()) {
+      auto wrapModeStr = it->second;
+
+      bool error = false;
+
+      // Convert from wrapMode string to OSPTextureWrapMode enum
+      std::function<OSPTextureWrapMode(std::string)> convertWrapMode =
+          [&](std::string wrapMode) {
+            static std::map<std::string, OSPTextureWrapMode> WrapModesMap = {
+                {"repeat", OSP_TEXTURE_WRAP_REPEAT}, // default
+                {"mirror", OSP_TEXTURE_WRAP_MIRRORED_REPEAT},
+                {"clamp", OSP_TEXTURE_WRAP_CLAMP_TO_EDGE}};
+            auto ospMode = OSP_TEXTURE_WRAP_REPEAT;
+            if (WrapModesMap.count(wrapMode))
+              ospMode = WrapModesMap[wrapMode];
+            else
+              error |= true;
+            return ospMode;
+          };
+
+      auto modes = split(wrapModeStr, ' ');
+      if (modes.size() >= 1 && modes.size() <= 2) {
+        auto s = convertWrapMode(modes[0]);
+        if (modes.size() == 1) {
+          // If only one param, set s and it affects both s and t
+          ospTex->createChild("wrapMode", "uint32_t", uint32_t(s));
+        } else {
+          // else set both s and t params
+          auto t = convertWrapMode(modes[1]);
+          ospTex->createChild("wrapMode", "vec2ui", vec2ui(s, t));
+        }
+      } else
+        error = true;
+
+      if (error)
+        std::cerr << "#ospsg: obj parsing errors(s)... Uknown wrapMode "
+                  << it->first << " " << wrapModeStr << std::endl;
+    }
+  }
+
   static std::vector<NodePtr> createMaterials(const OBJData &objData,
                                               FileName fileName)
   {
@@ -263,8 +316,8 @@ namespace ospray {
                                         preferLinear,
                                         nearestFilter);
 
-            // If texture is UDIM, set appropriate scale/translation
             if (map_misc) {
+              // If texture is UDIM, set appropriate scale/translation
               auto &ospTex = *map_misc->nodeAs<Texture2D>();
               if (ospTex.hasUDIM()) {
                 auto scale = ospTex.getUDIM_scale();
@@ -275,11 +328,16 @@ namespace ospray {
                 paramNodes.push_back(createNode(
                     paramName + ".translation", "vec2f", translation));
               }
+
+              // Need to find based on "param.first" and not paramName,
+              // paramName may have been modified to convert naming style
+              addTextureWrapModes(map_misc, param.first, m.unknown_parameter);
+
               paramNodes.push_back(map_misc);
             }
 
           } else {
-            rkcommon::utility::Any paramValue;
+            Any paramValue;
             parseParameterString(paramValueStr, paramType, paramValue);
             // Principled::thin is the only non-float material parameter and
             // needs to be converted to a "bool" paramType, imported as a float
@@ -290,6 +348,11 @@ namespace ospray {
               // rgb type allows for ImGui color editor
               paramType = "rgb";
             }
+
+            // texture wrapMode is handled entirely above, with the texture
+            // creation.
+            if (paramName.find(".wrapMode") != std::string::npos)
+              continue;
 
             try {
               auto newParam = createNode(paramName, paramType, paramValue);
@@ -322,36 +385,46 @@ namespace ospray {
         if (!m.diffuse_texname.empty()) {
           // sRGB gamma encoded, texture format may override this preference
           auto tex = createSGTex("map_kd", m.diffuse_texname, containingPath);
-          if (tex)
+          if (tex) {
+            addTextureWrapModes(tex, "map_kd", m.unknown_parameter);
             mat.add(tex);
+          }
         }
 
         if (!m.specular_texname.empty()) {
           // sRGB gamma encoded, texture format may override this preference
           auto tex = createSGTex("map_ks", m.specular_texname, containingPath);
-          if (tex)
+          if (tex) {
+            addTextureWrapModes(tex, "map_ks", m.unknown_parameter);
             mat.add(tex);
+          }
         }
 
         if (!m.specular_highlight_texname.empty()) {
           auto tex = createSGTex(
               "map_ns", m.specular_highlight_texname, containingPath, true);
-          if (tex)
+          if (tex) {
+            addTextureWrapModes(tex, "map_nd", m.unknown_parameter);
             mat.add(tex);
+          }
         }
 
         if (!m.bump_texname.empty()) {
           auto tex =
               createSGTex("map_bump", m.bump_texname, containingPath, true);
-          if (tex)
+          if (tex) {
+            addTextureWrapModes(tex, "map_bump", m.unknown_parameter);
             mat.add(tex);
+          }
         }
 
         if (!m.alpha_texname.empty()) {
           auto tex =
               createSGTex("map_d", m.alpha_texname, containingPath, true);
-          if (tex)
+          if (tex) {
+            addTextureWrapModes(tex, "map_d", m.unknown_parameter);
             mat.add(tex);
+          }
         }
         for (auto &param : paramNodes)
           mat.add(param);
