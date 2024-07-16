@@ -45,11 +45,11 @@ FrameBuffer::FrameBuffer()
   tm.createChild("contrast",
       "float",
       "contrast (toe of the curve); typically is in [1-2]",
-      1.1759f);
+      1.6773f);
   tm.createChild("shoulder",
       "float",
       "highlight compression (shoulder of the curve); typically is in [0.9-1]",
-      0.9746f);
+      0.9714f);
   tm.createChild(
       "midIn", "float", "mid-level anchor input; default is 18%% gray", 0.18f);
   tm.createChild("midOut",
@@ -57,7 +57,7 @@ FrameBuffer::FrameBuffer()
       "mid-level anchor output; default is 18%% gray",
       0.18f);
   tm.createChild(
-      "hdrMax", "float", "maximum HDR input that is not clipped", 6.3704f);
+      "hdrMax", "float", "maximum HDR input that is not clipped", 11.0785f);
   tm.createChild("acesColor", "bool", "apply the ACES color transforms", true);
 
   tm.child("exposure").setMinMax(0.f, 5.f);
