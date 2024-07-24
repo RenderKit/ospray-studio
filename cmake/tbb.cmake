@@ -6,7 +6,7 @@ if(TBB_FOUND)
 endif()
 
 if(NOT DEFINED TBB_VERSION)
-  set(TBB_VERSION 2021.11.0)
+  set(TBB_VERSION 2021.13.0)
 endif()
 
 option(FORCE_TBB_VERSION "Force CMake to find ${TBB_VERSION} (typically for compatibility with pre-built OSPRay)" OFF)
