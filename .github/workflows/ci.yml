@@ -1,5 +1,5 @@
 
-name: OSPRay Studio Main CI
+name: (Internal) OSPRay Studio Main CI
 
 # XXX This uses FetchContent on the other components' release packages
 # XXX not their devel branches.

@@ -1,5 +1,5 @@
 
-name: OSPRay Studio Release
+name: (Internal) OSPRay Studio Release
 
 # XXX This uses FetchContent on the other components' release packages
 # XXX not their devel branches.
