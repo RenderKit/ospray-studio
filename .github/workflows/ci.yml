@@ -109,7 +109,7 @@ jobs:
     needs: build-rocky8-7
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      image: rockylinux:8.7-tgt-rebuild
+      image: rockylinux:8.7
       pre-cmd: yum -y install tigervnc-server mesa-libGLU
       cmd: |
         module load intel/2023.0
@@ -125,8 +125,7 @@ jobs:
   ### Devel Coverity Job ###
   static-analysis:
     secrets: inherit
-    #uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/coverity_env
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
       project: OSPRay Studio
       prebuild: >

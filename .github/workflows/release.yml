@@ -28,8 +28,7 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
       force-delete: true    # guarantees .gitattributes are respected in working dir
-#      image: rockylinux:8.7
-      image: ubuntu:22.04 # temp, to use OSPRay v3.0.0 SYCL build
+      image: ubuntu:22.04
       cmd: |
         module load cmake/3.25.3
         module load intel/2023.0
@@ -70,10 +69,7 @@ jobs:
     needs: release-linux
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      # Run the rockylinux 8.7 build on the ubuntu 18.04 image as a test, and because it has vncserver installed
-      #image: ubuntu:18.04
-      #image: rockylinux:8.7-tgt-rebuild
-      image: ubuntu:22.04 # temp, to use OSPRay v3.0.0 SYCL build
+      image: ubuntu:22.04
       #pre-cmd: yum -y install tigervnc-server mesa-libGLU
       cmd: |
         module load intel/2023.0
@@ -139,8 +135,7 @@ jobs:
 
   static-analysis:
     secrets: inherit
-    #uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/coverity_env
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
       coverity: true
       image: rockylinux:8.7
