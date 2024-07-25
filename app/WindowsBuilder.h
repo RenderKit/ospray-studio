@@ -344,6 +344,9 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
     ImGui::Checkbox("Denoise nav", &ctx->frame->denoiseNavFB);
   }
   if (ctx->frame->denoiseFB || ctx->frame->denoiseNavFB) {
+    if (fb.getDenoiser())
+      fb.getDenoiser()->traverse<sg::GenerateImGuiWidgets>(
+          sg::TreeState::ALLOPEN);
     ImGui::Checkbox("Denoise only PathTracer", &ctx->frame->denoiseOnlyPathTracer);
     ImGui::Checkbox("Denoise on final frame", &ctx->frame->denoiseFBFinalFrame);
     ImGui::SameLine();

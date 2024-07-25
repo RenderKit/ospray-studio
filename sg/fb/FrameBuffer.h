@@ -20,7 +20,7 @@ namespace ospray {
     float variance();
 
     void resetAccumulation();
-    void updateDenoiser(bool enabled);
+    void updateDenoiser(bool enabled, bool finalFrame);
     void updateToneMapper(bool enabled);
     void updateImageOperations();
     void saveFrame(std::string filename, int flags);
@@ -72,6 +72,10 @@ namespace ospray {
     {
       return toneMapper;
     }
+    inline NodePtr getDenoiser()
+    {
+      return denoiser;
+    }
 
    private:
     void postCommit() override;
@@ -84,6 +88,8 @@ namespace ospray {
     bool updateImageOps{false};
 
     NodePtr toneMapper{nullptr};
+    NodePtr denoiser{nullptr};
+    OSPDenoiserQuality denoiserQuality{OSP_DENOISER_QUALITY_MEDIUM};
 
     std::map<std::string, OSPFrameBufferFormat> colorFormats{
         {"sRGB", OSP_FB_SRGBA},

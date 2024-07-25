@@ -359,6 +359,7 @@ namespace sg {
   using OSPCurveBasisNode = Node_T<OSPCurveBasis>;
   using OSPCurveTypeNode = Node_T<OSPCurveType>;
   using OSPDataTypeNode = Node_T<OSPDataType>;
+  using OSPDenoiserQualityNode = Node_T<OSPDenoiserQuality>;
   using OSPDevicePropertyNode = Node_T<OSPDeviceProperty>;
   using OSPErrorNode = Node_T<OSPError>;
   using OSPFrameBufferChannelNode = Node_T<OSPFrameBufferChannel>;

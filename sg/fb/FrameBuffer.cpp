@@ -40,6 +40,9 @@ FrameBuffer::FrameBuffer()
   // Do not expose targetFrames to the UI, app accumLimit sets this value.
   child("targetFrames").setSGNoUI();
 
+  // Tone mapper and denoiser are not created as children of frame buffer to allow for
+  // changing parameters without modifying the node hierarchy, which causes a
+  // new frame render
   toneMapper = createNode("Tonemapper Parameters");
   auto &tm = *toneMapper;
   tm.createChild("exposure", "float", "amount of light per unit area", 1.0f);
@@ -72,6 +75,35 @@ FrameBuffer::FrameBuffer()
   tm.child("midIn").setMinMax(0.f, 1.f);
   tm.child("midOut").setMinMax(0.f, 1.f);
   tm.child("hdrMax").setMinMax(0.f, 100.f);
+
+  denoiser = createNode("Denoiser Quality Parameters");
+  auto &dn = *denoiser;
+  dn.createChild("interactive",
+      "OSPDenoiserQuality",
+      "OSP_DENOISER_QUALITY_LOW (4): high performance\n"
+      "OSP_DENOISER_QUALITY_MEDIUM (5, default): balanced quality/performance\n"
+      "OSP_DENOISER_QUALITY_HIGH (6): high quality\n",
+      OSP_DENOISER_QUALITY_LOW);
+  dn.createChild("final",
+      "OSPDenoiserQuality",
+      "OSP_DENOISER_QUALITY_LOW (4): high performance\n"
+      "OSP_DENOISER_QUALITY_MEDIUM (5, default): balanced quality/performance\n"
+      "OSP_DENOISER_QUALITY_HIGH (6): high quality\n",
+      OSP_DENOISER_QUALITY_HIGH);
+  dn.createChild("denoiseAlpha",
+      "bool",
+      "whether to denoise the alpha channel,\n"
+      "default false",
+      false);
+  dn.child("interactive").setSGOnly();
+  dn.child("final").setSGOnly();
+  dn.child("denoiseAlpha").setSGOnly();
+
+  dn.child("interactive").setMinMax(
+      OSP_DENOISER_QUALITY_LOW, OSP_DENOISER_QUALITY_HIGH);
+  dn.child("final").setMinMax(
+      OSP_DENOISER_QUALITY_LOW, OSP_DENOISER_QUALITY_HIGH);
+
 
   updateHandle();
 }
@@ -146,9 +178,18 @@ void FrameBuffer::updateHandle()
   }
 }
 
-void FrameBuffer::updateDenoiser(bool enabled)
+void FrameBuffer::updateDenoiser(bool enabled, bool finalFrame)
 {
-  if (enabled == hasDenoiser)
+  // Set Final frame denoiser quality
+  auto &dn = *denoiser;
+  auto setting = finalFrame ? "final" : "interactive";
+  bool changed = denoiserQuality != dn[setting].valueAs<OSPDenoiserQuality>();
+  if (enabled && changed) {
+    denoiserQuality = dn[setting].valueAs<OSPDenoiserQuality>();
+    denoiser->commit();
+  }
+
+  if (enabled == hasDenoiser && !changed)
     return;
 
   hasDenoiser = enabled;
@@ -159,7 +200,7 @@ void FrameBuffer::updateToneMapper(bool enabled)
 {
   // Reset tone mapper values to defaults, if requested
   auto &tm = *toneMapper;
-  if (tm["reset defaults"].valueAs<bool>()) {
+  if (enabled && tm["reset defaults"].valueAs<bool>()) {
     bool acesColor = tm["acesColor"].valueAs<bool>();
     tm["exposure"] = 1.0f;
     tm["contrast"] = acesColor ? 1.6773f : 1.1759f;
@@ -213,10 +254,17 @@ void FrameBuffer::updateImageOperations()
     iop.commit();
     ops.push_back(iop);
   }
-  if (hasDenoiser)
-    ops.push_back(cpp::ImageOperation("denoiser"));
+  if (hasDenoiser) {
+    auto iop = cpp::ImageOperation("denoiser");
+    auto &dn = *denoiser;
+    bool denoiseAlpha = dn["denoiseAlpha"].valueAs<bool>();
+    iop.setParam("quality", denoiserQuality);
+    iop.setParam("denoiseAlpha", denoiseAlpha);
+    iop.commit();
+    ops.push_back(iop);
+  }
 
-  if (hasDenoiser || hasToneMapper)
+  if (!ops.empty())
     handle().setParam("imageOperation", cpp::CopiedData(ops));
   else
     handle().removeParam("imageOperation");

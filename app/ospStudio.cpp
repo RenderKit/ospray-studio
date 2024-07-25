@@ -246,6 +246,26 @@ void StudioContext::addToCommandLine(std::shared_ptr<CLI::App> app)
     "Denoise only when accum limit is reached"
   )->check(CLI::IsMember({true, false}));
   app->add_option(
+    "--denoiseQuality",
+    [&](const std::vector<std::string> val) {
+      std::map<std::string, OSPDenoiserQuality> quality =
+      {{"low", OSP_DENOISER_QUALITY_LOW},
+       {"medium", OSP_DENOISER_QUALITY_MEDIUM},
+       {"high", OSP_DENOISER_QUALITY_HIGH}};
+      if (quality.count(val[0]) == 0)
+        return false;
+      else
+        optDenoiseQuality = quality[val[0]];
+      return true;
+    },
+    "Denoiser final frame quality"
+  )->check(CLI::IsMember({"low", "medium", "high"}));
+  app->add_flag(
+    "--denoiseAlpha",
+    optDenoiseAlpha,
+    "Denoise the alpha channel as well"
+  )->check(CLI::IsMember({true, false}));
+  app->add_option(
     "--camera",
     optCameraRange,
     "Set the camera index to use"

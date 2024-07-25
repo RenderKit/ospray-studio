@@ -86,6 +86,12 @@ void GUIContext::start()
       frame->denoiseFB = true;
       frame->denoiseFBFinalFrame = optDenoiseFinalFrame;
       framebuffer->child("floatFormat") = true;
+      // Set denoiser final frame quality and denoiseAlpha command line options
+      auto denoiser = framebuffer->getDenoiser();
+      if (denoiser) {
+        denoiser->child("final") = optDenoiseQuality;
+        denoiser->child("denoiseAlpha") = optDenoiseAlpha;
+      }
       framebuffer->commit();
     }
     refreshRenderer();
