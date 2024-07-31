@@ -1,6 +1,37 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v1.1.0
+
+- Compatible with OSPRay release v3.2.0
+
+- Features and Improvements
+  - Add support for new OSPRay functionality:<br>
+    - Blue noise sampling enabled through setting `accumLimit`
+    - Tonemapper post-process adjustments without re-rendering
+    - OpenImageDenoise quality settings and denoise alpha channel through UI and
+      new command line parameters:
+      - "--denoiseQuality" {low, medium, high} sets the final frame quality
+      - "--denoiseAlpha" enables denoising the alpha channel
+    - Half-float texture format supported for EXR textures
+    - Support for new OSPRay param `limitIndirectLightSamples` optimization
+      which limits the number of light samples after the first non-specular
+     (i.e., diffuse and glossy) bounce to at most one.
+  - Added glTF importer support for EXT_mesh_gpu_instancing to allow loading of
+    highly instanced scenes.
+<br><br>
+
+- Cleanup and bug fixes:
+  - Fixes for glTF PBR materials:<br>
+    - normal channel, previously used default normal
+      that affects all layers, including coat.  Now baseNormal and coatNormal
+      are considered separately.
+    - `sheenColorTexture` parameter was not applied correctly
+    - Removed `thicknessTexture` from KHR_materials_volume to allow ray-depth
+      to determine thickness.
+  - Fix verify install condition to report ospInit errors correctly
+  - Update 3rd party dependencies
+
 ### Changes in OSPRay Studio v1.0.0
 
 - Compatible with OSPRay release v3.1.0

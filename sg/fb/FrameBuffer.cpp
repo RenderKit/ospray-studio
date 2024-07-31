@@ -17,7 +17,7 @@ FrameBuffer::FrameBuffer()
 {
   createChild("floatFormat",
       "bool",
-      "framebuffer needs float format and channels compatible with denoising",
+      "float format, also adds depth and normal channels",
       false);
   createChild("ID_Buffers",
       "bool",
@@ -30,31 +30,80 @@ FrameBuffer::FrameBuffer()
       "framebuffer format: RBGA8, sRGBA, or float",
       std::string("RGBA8"));
 
-  createChild("exposure", "float", "amount of light per unit area", 1.0f);
-  createChild("contrast",
+  createChild("targetFrames",
+      "int",
+      "anticipated number of frames that will be accumulated for progressive refinement,\n"
+      "used renderers to generate a blue noise sampling pattern;\n"
+      "should be a power of 2, is always 1 without `OSP_FB_ACCUM`; default disabled",
+      0);
+  child("targetFrames").setMinMax(0, 64);
+  // Do not expose targetFrames to the UI, app accumLimit sets this value.
+  child("targetFrames").setSGNoUI();
+
+  // Tone mapper and denoiser are not created as children of frame buffer to allow for
+  // changing parameters without modifying the node hierarchy, which causes a
+  // new frame render
+  toneMapper = createNode("Tonemapper Parameters");
+  auto &tm = *toneMapper;
+  tm.createChild("exposure", "float", "amount of light per unit area", 1.0f);
+  tm.createChild("contrast",
       "float",
       "contrast (toe of the curve); typically is in [1-2]",
-      1.1759f);
-  createChild("shoulder",
+      1.6773f);
+  tm.createChild("shoulder",
       "float",
       "highlight compression (shoulder of the curve); typically is in [0.9-1]",
-      0.9746f);
-  createChild(
+      0.9714f);
+  tm.createChild(
       "midIn", "float", "mid-level anchor input; default is 18%% gray", 0.18f);
-  createChild("midOut",
+  tm.createChild("midOut",
       "float",
       "mid-level anchor output; default is 18%% gray",
       0.18f);
-  createChild(
-      "hdrMax", "float", "maximum HDR input that is not clipped", 6.3704f);
-  createChild("acesColor", "bool", "apply the ACES color transforms", true);
+  tm.createChild(
+      "hdrMax", "float", "maximum HDR input that is not clipped", 11.0785f);
+  tm.createChild("acesColor", "bool", "apply the ACES color transforms", true);
+  tm.createChild("reset defaults",
+      "bool",
+      "Reset values to default (aces or filmic based on 'acesColor' setting)",
+      false);
+  tm.child("reset defaults").setSGOnly();
 
-  child("exposure").setMinMax(0.f, 5.f);
-  child("contrast").setMinMax(0.f, 3.f);
-  child("shoulder").setMinMax(0.f, 2.f);
-  child("midIn").setMinMax(0.f, 1.f);
-  child("midOut").setMinMax(0.f, 1.f);
-  child("hdrMax").setMinMax(0.f, 100.f);
+  tm.child("exposure").setMinMax(0.f, 5.f);
+  tm.child("contrast").setMinMax(0.f, 3.f);
+  tm.child("shoulder").setMinMax(0.f, 2.f);
+  tm.child("midIn").setMinMax(0.f, 1.f);
+  tm.child("midOut").setMinMax(0.f, 1.f);
+  tm.child("hdrMax").setMinMax(0.f, 100.f);
+
+  denoiser = createNode("Denoiser Quality Parameters");
+  auto &dn = *denoiser;
+  dn.createChild("interactive",
+      "OSPDenoiserQuality",
+      "OSP_DENOISER_QUALITY_LOW (4): high performance\n"
+      "OSP_DENOISER_QUALITY_MEDIUM (5, default): balanced quality/performance\n"
+      "OSP_DENOISER_QUALITY_HIGH (6): high quality\n",
+      OSP_DENOISER_QUALITY_LOW);
+  dn.createChild("final",
+      "OSPDenoiserQuality",
+      "OSP_DENOISER_QUALITY_LOW (4): high performance\n"
+      "OSP_DENOISER_QUALITY_MEDIUM (5, default): balanced quality/performance\n"
+      "OSP_DENOISER_QUALITY_HIGH (6): high quality\n",
+      OSP_DENOISER_QUALITY_HIGH);
+  dn.createChild("denoiseAlpha",
+      "bool",
+      "whether to denoise the alpha channel,\n"
+      "default false",
+      false);
+  dn.child("interactive").setSGOnly();
+  dn.child("final").setSGOnly();
+  dn.child("denoiseAlpha").setSGOnly();
+
+  dn.child("interactive").setMinMax(
+      OSP_DENOISER_QUALITY_LOW, OSP_DENOISER_QUALITY_HIGH);
+  dn.child("final").setMinMax(
+      OSP_DENOISER_QUALITY_LOW, OSP_DENOISER_QUALITY_HIGH);
+
 
   updateHandle();
 }
@@ -94,7 +143,6 @@ void FrameBuffer::updateHandle()
   // Default minimal format
   channels = OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE;
 
-  // Denoising requires float format and additional channels
   auto floatFormat = child("floatFormat").valueAs<bool>();
   if (floatFormat) {
     child("colorFormat") = std::string("float");
@@ -123,16 +171,25 @@ void FrameBuffer::updateHandle()
   setHandle(fb);
 
   // Recreating the framebuffer will change the imageOps.  Refresh them.
-  if (hasDenoiser || hasToneMapper) {
+  int targetFrames = child("targetFrames").valueAs<int>();
+  if (hasDenoiser || hasToneMapper || targetFrames) {
     updateImageOps = true;
     updateImageOperations();
   }
 }
 
-void FrameBuffer::updateDenoiser(bool enabled)
+void FrameBuffer::updateDenoiser(bool enabled, bool finalFrame)
 {
-  // Denoiser requires float color buffer.
-  if (enabled == hasDenoiser)
+  // Set Final frame denoiser quality
+  auto &dn = *denoiser;
+  auto setting = finalFrame ? "final" : "interactive";
+  bool changed = denoiserQuality != dn[setting].valueAs<OSPDenoiserQuality>();
+  if (enabled && changed) {
+    denoiserQuality = dn[setting].valueAs<OSPDenoiserQuality>();
+    denoiser->commit();
+  }
+
+  if (enabled == hasDenoiser && !changed)
     return;
 
   hasDenoiser = enabled;
@@ -141,10 +198,23 @@ void FrameBuffer::updateDenoiser(bool enabled)
 
 void FrameBuffer::updateToneMapper(bool enabled)
 {
-  // ToneMapper requires float color buffer.
-  if (enabled == hasToneMapper)
+  // Reset tone mapper values to defaults, if requested
+  auto &tm = *toneMapper;
+  if (enabled && tm["reset defaults"].valueAs<bool>()) {
+    bool acesColor = tm["acesColor"].valueAs<bool>();
+    tm["exposure"] = 1.0f;
+    tm["contrast"] = acesColor ? 1.6773f : 1.1759f;
+    tm["shoulder"] = acesColor ? 0.9714f : 0.9746f;
+    tm["midIn"] = 0.18f;
+    tm["midOut"] = 0.18f;
+    tm["hdrMax"] = acesColor ? 11.0785f : 6.3704f;
+    tm["reset defaults"] = false;
+  }
+
+  if (enabled == hasToneMapper && !toneMapper->isModified())
     return;
 
+  toneMapper->commit();
   hasToneMapper = enabled;
   updateImageOps = true;
 }
@@ -160,30 +230,41 @@ void FrameBuffer::updateImageOperations()
 
   updateImageOps = false;
 
+  int targetFrames = child("targetFrames").valueAs<int>();
+  handle().setParam("targetFrames", targetFrames);
+
   std::vector<cpp::ImageOperation> ops = {};
   if (hasToneMapper) {
     auto iop = cpp::ImageOperation("tonemapper");
-    float exposure = child("exposure").valueAs<float>();
+    auto &tm = *toneMapper;
+    float exposure = tm["exposure"].valueAs<float>();
     iop.setParam("exposure", OSP_FLOAT, &exposure);
-    float contrast = child("contrast").valueAs<float>();
+    float contrast = tm["contrast"].valueAs<float>();
     iop.setParam("contrast", OSP_FLOAT, &contrast);
-    float shoulder = child("shoulder").valueAs<float>();
+    float shoulder = tm["shoulder"].valueAs<float>();
     iop.setParam("shoulder", OSP_FLOAT, &shoulder);
-    float midIn = child("midIn").valueAs<float>();
+    float midIn = tm["midIn"].valueAs<float>();
     iop.setParam("midIn", OSP_FLOAT, &midIn);
-    float midOut = child("midOut").valueAs<float>();
+    float midOut = tm["midOut"].valueAs<float>();
     iop.setParam("midOut", OSP_FLOAT, &midOut);
-    float hdrMax = child("hdrMax").valueAs<float>();
+    float hdrMax = tm["hdrMax"].valueAs<float>();
     iop.setParam("hdrMax", OSP_FLOAT, &hdrMax);
-    bool acesColor = child("acesColor").valueAs<bool>();
+    bool acesColor = tm["acesColor"].valueAs<bool>();
     iop.setParam("acesColor", OSP_BOOL, &acesColor);
     iop.commit();
     ops.push_back(iop);
   }
-  if (hasDenoiser)
-    ops.push_back(cpp::ImageOperation("denoiser"));
+  if (hasDenoiser) {
+    auto iop = cpp::ImageOperation("denoiser");
+    auto &dn = *denoiser;
+    bool denoiseAlpha = dn["denoiseAlpha"].valueAs<bool>();
+    iop.setParam("quality", denoiserQuality);
+    iop.setParam("denoiseAlpha", denoiseAlpha);
+    iop.commit();
+    ops.push_back(iop);
+  }
 
-  if (hasDenoiser || hasToneMapper)
+  if (!ops.empty())
     handle().setParam("imageOperation", cpp::CopiedData(ops));
   else
     handle().removeParam("imageOperation");

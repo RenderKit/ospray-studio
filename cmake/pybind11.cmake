@@ -6,7 +6,7 @@
 ##
 
 if(NOT DEFINED PYBIND11_VERSION)
-  set(PYBIND11_VERSION 2.11.1)
+  set(PYBIND11_VERSION 2.13.1)
 endif()
 
 ##

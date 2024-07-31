@@ -55,6 +55,11 @@ struct OSPSG_INTERFACE Importer : public Node
     materialRegistry = _registry;
   }
 
+  inline std::shared_ptr<sg::MaterialRegistry> getMaterialRegistry()
+  {
+    return materialRegistry;
+  }
+
   inline void setCameraList(std::shared_ptr<CameraMap> _cameras)
   {
     cameras = _cameras;

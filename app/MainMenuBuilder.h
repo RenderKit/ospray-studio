@@ -308,6 +308,10 @@ void MainMenuBuilder::buildMainMenuView()
     GenerateWidget(renderer["varianceThreshold"]);
     GenerateWidget(renderer["backgroundColor"]);
 
+    // Backplate can also be changed directly by changing the renderer
+    // parameter. Keep them in sync.
+    ctx->backPlateTexture = renderer["backplate_filename"].valueAs<string>();
+
     if (ImGui::MenuItem("Set background texture..."))
       showFileBrowser = true;
     if (!ctx->backPlateTexture.str().empty()) {
@@ -443,6 +447,8 @@ void MainMenuBuilder::buildMainMenuView()
 
       if (!fileList.empty()) {
         ctx->backPlateTexture = fileList[0];
+        auto &renderer = ctx->frame->childAs<sg::Renderer>("renderer");
+        renderer["backplate_filename"] = ctx->backPlateTexture;
         ctx->refreshRenderer();
       }
     }

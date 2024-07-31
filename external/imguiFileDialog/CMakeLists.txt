@@ -1,8 +1,8 @@
-﻿## Copyright 2020 Intel Corporation
+## Copyright 2020 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
 add_library(imguiFileDialog STATIC
-  ImGuiFileDialog.cpp
+    ImGuiFileDialog.cpp
 )
 
 target_link_libraries(imguiFileDialog PUBLIC imgui)

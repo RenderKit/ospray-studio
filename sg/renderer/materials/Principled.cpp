@@ -62,6 +62,11 @@ Principled::Principled() : Material("principled")
       .setMinMax(0.f, 1.f);
   createChild("normal", "float", "normal map/scale for all layers [0-1]", 1.f)
       .setMinMax(0.f, 1.f);
+  createChild("baseNormal",
+      "float",
+      "base normal map/scale (overrides default normal) [0-1]",
+      1.f)
+      .setMinMax(0.f, 1.f);
   createChild("thin", "bool", "whether material is thin or solid", true);
   createChild("thickness", "float", "with thin, amount of attenuation", 1.f);
   createChild("backlight",

@@ -503,6 +503,7 @@ namespace ospray {
   OSP_REGISTER_SG_NODE_NAME(OSPCurveBasisNode, OSPCurveBasis);
   OSP_REGISTER_SG_NODE_NAME(OSPCurveTypeNode, OSPCurveType);
   OSP_REGISTER_SG_NODE_NAME(OSPDataTypeNode, OSPDataType);
+  OSP_REGISTER_SG_NODE_NAME(OSPDenoiserQualityNode, OSPDenoiserQuality);
   OSP_REGISTER_SG_NODE_NAME(OSPDevicePropertyNode, OSPDeviceProperty);
   OSP_REGISTER_SG_NODE_NAME(OSPErrorNode, OSPError);
   OSP_REGISTER_SG_NODE_NAME(OSPFrameBufferChannelNode, OSPFrameBufferChannel);

@@ -322,35 +322,43 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
           ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for more buffers");
   }
 
-	// Only float buffers will be inverted
-	ImGui::SameLine();
-	ImGui::NewLine();
-	if (fb.isFloatFormat())
-		ImGui::Checkbox("Invert values##displayInverted", &invertBuffer);
+  // Only float buffers will be inverted
+  ImGui::SameLine();
+  ImGui::NewLine();
+  if (fb.isFloatFormat())
+    ImGui::Checkbox("Invert values##displayInverted", &invertBuffer);
 
-	ctx->selectBuffer(whichBuffer, invertBuffer);
+  ctx->selectBuffer(whichBuffer, invertBuffer);
 
   ImGui::Separator();
 
   ImGui::Text("Post-processing");
-	ImGui::Checkbox("Tonemap", &ctx->frame->toneMapFB);
-	ImGui::SameLine();
-	ImGui::Checkbox("Tonemap nav", &ctx->frame->toneMapNavFB);
+  ImGui::Checkbox("Tonemap", &ctx->frame->toneMapFB);
+  if (ctx->frame->toneMapFB && fb.getToneMapper())
+    fb.getToneMapper()->traverse<sg::GenerateImGuiWidgets>(
+        sg::TreeState::ALLOPEN);
 
-	if (ctx->studioCommon.denoiserAvailable) {
-		ImGui::Checkbox("Denoise", &ctx->frame->denoiseFB);
-		ImGui::SameLine();
-		ImGui::Checkbox("Denoise nav", &ctx->frame->denoiseNavFB);
-	}
-	if (ctx->frame->denoiseFB || ctx->frame->denoiseNavFB) {
-		ImGui::Checkbox("Denoise only PathTracer", &ctx->frame->denoiseOnlyPathTracer);
-		ImGui::Checkbox("Denoise on final frame", &ctx->frame->denoiseFBFinalFrame);
-		ImGui::SameLine();
-		// Add accum here for convenience with final-frame denoising
-		ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
-		ImGui::DragInt(
-				"Limit accumulation", &ctx->frame->accumLimit, 1, 0, INT_MAX, "%d frames");
-	}
+  if (ctx->studioCommon.denoiserAvailable) {
+    ImGui::Checkbox("Denoise", &ctx->frame->denoiseFB);
+    ImGui::SameLine();
+    ImGui::Checkbox("Denoise nav", &ctx->frame->denoiseNavFB);
+  }
+  if (ctx->frame->denoiseFB || ctx->frame->denoiseNavFB) {
+    if (fb.getDenoiser())
+      fb.getDenoiser()->traverse<sg::GenerateImGuiWidgets>(
+          sg::TreeState::ALLOPEN);
+    ImGui::Checkbox("Denoise only PathTracer", &ctx->frame->denoiseOnlyPathTracer);
+    ImGui::Checkbox("Denoise on final frame", &ctx->frame->denoiseFBFinalFrame);
+    ImGui::SameLine();
+    // Add accum here for convenience with final-frame denoising
+    ImGui::SetNextItemWidth(5 * ImGui::GetFontSize());
+    ImGui::DragInt("Limit accumulation",
+        &ctx->frame->accumLimit,
+        1,
+        0,
+        INT_MAX,
+        "%d frames");
+  }
 
   ImGui::Separator();
 

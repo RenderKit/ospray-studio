@@ -26,7 +26,8 @@ then
         -D ENABLE_OPENIMAGEIO=OFF \
         -D ENABLE_OPENVDB=OFF \
         -D ENABLE_EXR=OFF \
-        -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_MAC \
+        -D CMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+        -D CPACK_PRE_BUILD_SCRIPTS=$CPACK_PRE_BUILD_SIGNING_SCRIPT \
         ..
     cmake --build . --parallel $THREADS --config Release
     cpack -G ZIP -B "${PWD}/package"
@@ -38,13 +39,11 @@ then
         -D ENABLE_OPENIMAGEIO=OFF \
         -D ENABLE_OPENVDB=OFF \
         -D ENABLE_EXR=OFF \
-        -D OSPSTUDIO_SIGN_FILE=$SIGN_FILE_MAC \
+        -D CMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+        -D CPACK_PRE_BUILD_SCRIPTS=$CPACK_PRE_BUILD_SIGNING_SCRIPT \
         ..
     cmake --build . --parallel $THREADS --config Release
     cpack -B "${PWD}/package"
-
-    $SIGN_FILE_MAC -o runtime package/ospray_studio-*pkg
-    ../gitlab/macosx_notarization.sh package/ospray_studio-*.pkg
 else
     cmake -L \
         -D CMAKE_INSTALL_PREFIX=install \

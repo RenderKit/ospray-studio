@@ -51,16 +51,20 @@ void LightsManager::addLights(std::vector<NodePtr> &lights)
     addLight(l);
 }
 
-// Add a vector of group lights nodes at once (helper)
+// Add a single group-light
+void LightsManager::addGroupLight(NodePtr light)
+{
+  // Group lights created by an importer are part of the scene hierarchy,
+  // added to a group lights list and not the world.
+  light->nodeAs<Light>()->inGroup = true;
+  addLight(light);
+}
+
+// Add a vector of group-lights nodes at once (helper)
 void LightsManager::addGroupLights(std::vector<NodePtr> &lights)
 {
-  for (auto &l : lights) {
-    // Group lights created by an importer are part of the scene hierarchy,
-    // added to a group lights list and not the world.
-    l->nodeAs<Light>()->inGroup = true;
-
-    addLight(l);
-  }
+  for (auto &l : lights)
+    addGroupLight(l);
 }
 
 // Add light by name and type (helper)

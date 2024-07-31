@@ -18,6 +18,8 @@
   #endif
 #endif
 
+using json = nlohmann::json;
+
 namespace ospray {
 
 struct Plugin
@@ -29,9 +31,11 @@ struct Plugin
   PanelList panels;
 
   std::string name() const;
+  virtual void sendToPlugin(json &data);
+  bool supportsSendToPlugin{false};
 
  protected:
-  Plugin(const std::string &pluginName);
+  Plugin(const std::string &pluginName, const bool &supportsSendToPlugin);
 
  private:
   std::string pluginName;
@@ -44,6 +48,11 @@ inline std::string Plugin::name() const
   return pluginName;
 }
 
-inline Plugin::Plugin(const std::string &_name) : pluginName(_name) {}
+inline Plugin::Plugin(
+    const std::string &_name, const bool &sendToPlugin = false)
+    : pluginName(_name), supportsSendToPlugin(sendToPlugin)
+{}
+
+inline void Plugin::sendToPlugin(json &data) {}
 
 } // namespace ospray

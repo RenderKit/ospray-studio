@@ -370,16 +370,22 @@ void BatchContext::render()
 
 void BatchContext::renderFrame()
 {
-  if (studioCommon.denoiserAvailable && optDenoiser) {
-    frame->denoiseFB = true;
-    frame->denoiseFBFinalFrame = true;
-  }
-  frame->immediatelyWait = true;
-
   auto &fb = frame->childAs<sg::FrameBuffer>("framebuffer");
   auto &v = frame->childAs<sg::Renderer>("renderer")["varianceThreshold"];
   auto varianceThreshold = v.valueAs<float>();
   float fbVariance{inf};
+
+  if (studioCommon.denoiserAvailable && optDenoiser) {
+    frame->denoiseFB = true;
+    frame->denoiseFBFinalFrame = true;
+    // Set denoiser final frame quality and denoiseAlpha command line options
+    auto denoiser = fb.getDenoiser();
+    if (denoiser) {
+      denoiser->child("final") = optDenoiseQuality;
+      denoiser->child("denoiseAlpha") = optDenoiseAlpha;
+    }
+  }
+  frame->immediatelyWait = true;
 
   // continue accumulation till variance threshold or accumulation limit is
   // reached

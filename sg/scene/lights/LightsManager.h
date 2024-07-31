@@ -27,6 +27,7 @@ struct OSPSG_INTERFACE LightsManager
   bool addLight(std::string name, std::string lightType);
   bool addLight(NodePtr light);
   void addLights(std::vector<NodePtr> &lights);
+  void addGroupLight(NodePtr light);
   void addGroupLights(std::vector<NodePtr> &lights);
   bool removeLight(std::string name);
   void clear();

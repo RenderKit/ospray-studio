@@ -43,6 +43,9 @@ void Frame::startNewFrame()
   auto &renderer = childAs<Renderer>("renderer");
   auto &world = childAs<World>("world");
 
+  if (fb["targetFrames"].valueAs<int>() != accumLimit)
+    fb["targetFrames"] = accumLimit;
+
   // App navMode set via setNavMode() vs current frame-state navMode
   if (navMode != child("navMode").valueAs<bool>())
     child("navMode") = navMode && (!navMode || isModified());
@@ -166,8 +169,11 @@ void Frame::refreshFrameOperations()
 {
   auto &fb = childAs<FrameBuffer>("framebuffer");
   auto &vt = childAs<Renderer>("renderer")["varianceThreshold"];
-  uint8_t denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
-  uint8_t toneMapperEnabled = navMode ? toneMapNavFB : toneMapFB;
+  auto denoiserEnabled = navMode ? denoiseNavFB : denoiseFB;
+  auto toneMapperChanged =
+      fb.getToneMapper() ? fb.getToneMapper()->isModified() : false;
+  auto denoiserChanged =
+      fb.getDenoiser() ? fb.getDenoiser()->isModified() : false;
 
   denoiserEnabled &=
       (!denoiseFBFinalFrame || (denoiseFBFinalFrame && (accumAtFinal()
@@ -176,16 +182,18 @@ void Frame::refreshFrameOperations()
   denoiserEnabled &= !(denoiseOnlyPathTracer
       && (child("renderer")["type"].valueAs<std::string>() != "pathtracer"));
 
-  fb.updateDenoiser(denoiserEnabled);
-  fb.updateToneMapper(toneMapperEnabled);
+  fb.updateDenoiser(denoiserEnabled, accumAtFinal());
+  fb.updateToneMapper(toneMapFB);
   fb.updateImageOperations();
 
-  uint8_t newFrameOpsState = denoiserEnabled << 1 | toneMapperEnabled;
+  uint8_t newFrameOpsState = denoiserEnabled << 1 | toneMapFB;
   static uint8_t lastFrameOpsState{0};
 
-  // If there's a change and accumLimit is already reach, force another frame so
-  // operations will occur
-  if ((newFrameOpsState != lastFrameOpsState) && accumLimitReached())
+  // If there's a change and accumLimit is already reached, force another frame
+  // so operations will occur
+  if ((newFrameOpsState != lastFrameOpsState || denoiserChanged
+          || toneMapperChanged)
+      && accumLimitReached())
     currentAccum--;
 
   lastFrameOpsState = newFrameOpsState;

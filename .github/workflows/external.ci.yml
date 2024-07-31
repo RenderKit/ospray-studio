@@ -1,0 +1,133 @@
+## Copyright 2024 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
+
+name: OSPRay Studio CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  build-rocky-8:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:8
+
+    steps:
+    - name: Install packages
+      run: |
+        echo "Installing build dependencies..."
+        dnf update -y
+        dnf install -y git cmake mesa-libGL-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel python3.11-devel
+        dnf group install -y "Development Tools"
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make -j$(nproc) install
+    - name: Upload build
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-rocky-8
+        path: build/install
+
+  test-rocky-8:
+    needs: build-rocky-8
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:8
+
+    steps:
+    - name: Install packages
+      run: |
+        dnf update -y
+        dnf install -y mesa-libGL mesa-dri-drivers xorg-x11-server-Xvfb 
+    - name: Download build
+      uses: actions/download-artifact@v4
+      with:
+        name: build-rocky-8
+
+    - name: Run tests
+      run: |
+        chmod +x ./bin/*
+        set +e
+        timeout --preserve-status 10s xvfb-run ./bin/ospStudio
+        exitCode=$?
+        set -e
+        if [ "${exitCode}" -eq 143 ]; then
+            echo "code 143 is SIGTERM, which we expect from terminating the studio GUI"
+            exitCode=0
+        fi
+        echo "Exit code: ${exitCode}"
+        exit $exitCode
+  build-ubuntu-2204:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+
+    steps:
+    - name: Install packages
+      run: |
+        echo "Installing build dependencies..."
+        apt update
+        apt upgrade -y
+        apt install -y build-essential cmake ninja-build libglfw3-dev libgl1-mesa-dev libxinerama-dev libxcursor-dev libxi-dev git python3-dev
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make -j$(nproc) install
+    - name: Upload build
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-ubuntu-2204
+        path: build/install
+
+  test-ubuntu-2204:
+    needs: build-ubuntu-2204
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+
+    steps:
+    - name: Install packages
+      run: |
+        echo "Installing build dependencies..."
+        apt update
+        apt upgrade -y
+        apt install -y libglfw3 xvfb 
+    - name: Download build
+      uses: actions/download-artifact@v4
+      with:
+        name: build-ubuntu-2204
+
+    - name: Run tests
+      run: |
+        chmod +x ./bin/*
+        set +e
+        timeout --preserve-status 10s xvfb-run ./bin/ospStudio
+        exitCode=$?
+        set -e
+        if [ "${exitCode}" -eq 143 ]; then
+            echo "code 143 is SIGTERM, which we expect from terminating the studio GUI"
+            exitCode=0
+        fi
+        echo "Exit code: ${exitCode}"
+        exit $exitCode

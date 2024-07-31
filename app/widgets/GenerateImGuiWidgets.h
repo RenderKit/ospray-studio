@@ -588,6 +588,7 @@ static std::map<std::string, WidgetGenerator> widgetGenerators = {
     {"OSPCurveBasis", generateWidget_int<OSPCurveBasis>},
     {"OSPCurveType", generateWidget_int<OSPCurveType>},
     {"OSPDataType", generateWidget_int<OSPDataType>},
+    {"OSPDenoiserQuality", generateWidget_int<OSPDenoiserQuality>},
     {"OSPDeviceProperty", generateWidget_int<OSPDeviceProperty>},
     {"OSPError", generateWidget_int<OSPError>},
     {"OSPFrameBufferChannel", generateWidget_int<OSPFrameBufferChannel>},

@@ -172,6 +172,8 @@ class StudioContext : public std::enable_shared_from_this<StudioContext>
   OSPPixelFilterType optPF{OSP_PIXELFILTER_GAUSS};
   bool optDenoiser{false};
   bool optDenoiseFinalFrame{false};
+  OSPDenoiserQuality optDenoiseQuality{OSP_DENOISER_QUALITY_MEDIUM};
+  bool optDenoiseAlpha{false};
   bool optGridEnable{false};
   vec3i optGridSize{1, 1, 1};
   OSPStereoMode optStereoMode{OSP_STEREO_NONE};

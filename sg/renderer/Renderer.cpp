@@ -12,6 +12,7 @@ Renderer::Renderer(std::string type)
 {
   createChild("type", "string", "renderer type", type);
   createChild("pixelSamples", "int", "samples-per-pixel", 1);
+  createChild("mipMapBias", "float", "texture MIP map bias", 0.f);
   createChild("maxPathLength", "int", "maximum ray recursion depth", 20);
   createChild("minContribution",
       "float",
@@ -38,6 +39,7 @@ Renderer::Renderer(std::string type)
   child("type").setSGOnly();
 
   child("pixelSamples").setMinMax(1, 1000);
+  child("mipMapBias").setMinMax(-2.f, 2.f);
   child("maxPathLength").setMinMax(0, 1000);
   child("minContribution").setMinMax(0.f, 10.f);
   child("varianceThreshold").setMinMax(0.f, 100.f);

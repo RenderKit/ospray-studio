@@ -1,5 +1,5 @@
 
-name: OSPRay Studio Main CI
+name: (Internal) OSPRay Studio Main CI
 
 # XXX This uses FetchContent on the other components' release packages
 # XXX not their devel branches.
@@ -31,15 +31,6 @@ jobs:
       image: centos:8
       cmd: gitlab/build.sh
       artifact-out: build-centos8
-      artifact-path: build
-
-  build-ubuntu18-04:
-    secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-    with:
-      image: ubuntu:18.04
-      cmd: gitlab/build.sh
-      artifact-out: build-ubuntu18-04
       artifact-path: build
 
   build-ubuntu20-04:
@@ -118,12 +109,12 @@ jobs:
     needs: build-rocky8-7
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      # Run the rocky8-7 build on the ubuntu 18.04 image as a test, and because it has vncserver installed
-      image: rockylinux:8.7-tgt-rebuild
+      image: rockylinux:8.7
       pre-cmd: yum -y install tigervnc-server mesa-libGLU
       cmd: |
         module load intel/2023.0
         build/ospStudio --verify_install
+        mkdir build/model-results # in case run-dev tests fail artifacts will still upload
         gitlab/run-dev.sh
         gitlab/run-dev-img-cmp.sh
       artifact-in: build-rocky8-7
@@ -134,8 +125,7 @@ jobs:
   ### Devel Coverity Job ###
   static-analysis:
     secrets: inherit
-    #uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@tgt/coverity_env
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
       project: OSPRay Studio
       prebuild: >

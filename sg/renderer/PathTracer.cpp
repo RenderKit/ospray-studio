@@ -22,6 +22,11 @@ PathTracer::PathTracer() : Renderer("pathtracer")
       "int",
       "number of random light samples per path vertex",
       -1);
+  createChild("limitIndirectLightSamples",
+      "bool",
+      "after the first non-specular (i.e., diffuse and glossy) path vertex\n"
+      "take (at most) a single light sample (instead of \"lightSamples\" many)",
+      true);
   createChild("maxScatteringEvents",
       "int",
       "maximum number of non-specular (glossy and diffuse) bounces",

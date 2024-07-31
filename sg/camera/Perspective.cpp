@@ -44,8 +44,7 @@ Perspective::Perspective() : Camera("perspective")
   child("fovy").setMinMax(0.f, 180.f);
   child("apertureRadius").setMinMax(0.f, 5.f);  // XXX set these based on
   child("focusDistance").setMinMax(1.f, 1e6f);  // world size
-  child("stereoMode")
-      .setMinMax(OSP_STEREO_NONE, OSP_STEREO_TOP_BOTTOM);
+  child("stereoMode").setMinMax(OSP_STEREO_NONE, OSP_STEREO_TOP_BOTTOM);
   child("interpupillaryDistance").setMinMax(0.f, 0.1f);
 
   child("aspect").setReadOnly();
