@@ -288,20 +288,26 @@
   <div class="row justify-content-center py-5 release-notes"
     >
   <div class="col-sm-5">
-    <h2 id="release-version">Current Release: v1.0.0</h2>
+    <h2 id="release-version">Current Release: v1.1.0</h2>
 
-    <p> 🎉🎉 OSPRay Studio has achieved version 1.0 and is out of beta status.
-    🎉🎉</p>
+    <p>
+    This release includes several functional improvements and bug fixes, and
+    adds support for new OSPRay features.
 
-    <p> This release incorporates many functional improvments and bug fixes.
-    and includes support for newly added OSPRay features (emissive textures for
-    Principled and Luminous materials, additional texture sampler wrap modes,
-    and desnoise of non-float buffer formats).  A number of UI/UX improvements
-    and bug fixes round out the list of changes; see the release notes for more
-    details.</p>
+    Chief among these are OSPRay's new blue noise sampling, selection of
+    OpenImageDenoise quality settings, and tone-mapper post-process operations
+    that do not cause a frame re-render.  Support for OSPRay's new
+    half-precision 16-bit float texture format is supported via EXR textures.
+
+    The glTF importer now includes EXT_mesh_gpu_instancing to allow loading of
+    highly instanced scenes, and several fixes have been made to glTF PBR
+    materials.
+
+    See the release notes for more details.
+    </p>
     <p>This release requires the latest <a
-    href="https://github.com/ospray/ospray/releases/tag/v3.1.0">Intel&reg;
-    OSPRay v3.1.0</a>, which includes beta GPU support for Intel Xe GPUs.  For
+    href="https://github.com/ospray/ospray/releases/tag/v3.2.0">Intel&reg;
+    OSPRay v3.2.0</a>, which includes beta GPU support for Intel Xe GPUs.  For
     more information on how to launch OSPRay Studio on GPU, please see the <a
     href="https://www.ospray.org/documentation.html#gpu-beta">OSPRay
     Documentation</a> </p>
