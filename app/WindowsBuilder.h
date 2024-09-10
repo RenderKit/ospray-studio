@@ -267,10 +267,7 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
 
   // If there are no other channels or debug renderer, make sure color is
   // selected
-  if (!fb.hasDepthChannel() && !fb.hasNormalChannel() && !fb.hasAlbedoChannel()
-          && !fb.hasPrimitiveIDChannel() && !fb.hasObjectIDChannel()
-          && !fb.hasInstanceIDChannel()
-      || ctx->optRendererTypeStr == "debug")
+  if (fb.allChannels() == OSP_FB_COLOR || ctx->optRendererTypeStr == "debug")
     whichBuffer = OSP_FB_COLOR;
 
   if (ImGui::RadioButton("color##displayColor", whichBuffer == OSP_FB_COLOR))
@@ -296,8 +293,19 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
           whichBuffer == OSP_FB_DEPTH))
       whichBuffer = OSP_FB_DEPTH;
 
-    ImGui::SameLine();
+    // Additional AOV buffers
     ImGui::NewLine();
+    if (fb.hasPositionChannel()
+        && ImGui::RadioButton(
+          "position##displayPosition", whichBuffer == OSP_FB_POSITION))
+      whichBuffer = OSP_FB_POSITION;
+
+    ImGui::SameLine();
+    if (fb.hasFirstNormalChannel()
+        && ImGui::RadioButton("firstNormal##displayFirstNormal",
+          whichBuffer == OSP_FB_FIRST_NORMAL))
+      whichBuffer = OSP_FB_FIRST_NORMAL;
+
     if (fb.hasPrimitiveIDChannel()
         && ImGui::RadioButton(
           "PrimID##displayPrimID", whichBuffer == OSP_FB_ID_PRIMITIVE))
@@ -314,12 +322,6 @@ void WindowsBuilder::buildWindowFrameBufferEditor()
         && ImGui::RadioButton(
           "InstanceID##displayInstID", whichBuffer == OSP_FB_ID_INSTANCE))
       whichBuffer = OSP_FB_ID_INSTANCE;
-
-    ImGui::SameLine();
-    ImGui::NewLine();
-    if (!fb.isFloatFormat())
-      ImGui::TextColored(
-          ImVec4(.5f, .5f, .5f, 1.f), "Enable float format for more buffers");
   }
 
   // Only float buffers will be inverted

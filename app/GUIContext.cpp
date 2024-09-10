@@ -614,13 +614,16 @@ void GUIContext::selectBuffer(OSPFrameBufferChannel whichBuffer, bool invert)
   optDisplayBuffer = whichBuffer;
   optDisplayBufferInvert = invert && framebuffer.isFloatFormat();
 
+  // cannot be shown
+  optDisplayBuffer &= ~OSP_FB_ACCUM;
+  optDisplayBuffer &= ~OSP_FB_VARIANCE;
   // Only enabled if they exist
   if (!framebuffer.hasDepthChannel())
     optDisplayBuffer &= ~OSP_FB_DEPTH;
-  if (!framebuffer.hasAccumChannel())
-    optDisplayBuffer &= ~OSP_FB_ACCUM;
-  if (!framebuffer.hasVarianceChannel())
-    optDisplayBuffer &= ~OSP_FB_VARIANCE;
+  if (!framebuffer.hasPositionChannel())
+    optDisplayBuffer &= ~OSP_FB_POSITION;
+  if (!framebuffer.hasFirstNormalChannel())
+    optDisplayBuffer &= ~OSP_FB_FIRST_NORMAL;
   if (!framebuffer.hasNormalChannel())
     optDisplayBuffer &= ~OSP_FB_NORMAL;
   if (!framebuffer.hasAlbedoChannel())

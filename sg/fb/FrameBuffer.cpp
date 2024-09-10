@@ -19,9 +19,15 @@ FrameBuffer::FrameBuffer()
       "bool",
       "float format, also adds depth and normal channels",
       false);
-  createChild("ID_Buffers",
+  createChild("Additional AOVs",
       "bool",
-      "add primitive, object and instance ID framebuffer channels",
+      "add additional frame buffer channels:\n"
+      "albedo, depth, normal, first-hit normal, position;\n"
+      "primitive, object and instance ID framebuffer channels",
+      false);
+  createChild("projectedDepth",
+      "bool",
+      "whether the depth channel holds the projected distance onto the main camera direction (i.e., distance to the image plane)",
       false);
   createChild("size", "vec2i", vec2i(1024, 768));
   child("size").setReadOnly();
@@ -147,6 +153,7 @@ void FrameBuffer::updateHandle()
   if (floatFormat) {
     child("colorFormat") = std::string("float");
     remove("sRGB");
+    // Float format frame buffer adds albedo, depth and normal channels
     channels |= OSP_FB_ALBEDO | OSP_FB_DEPTH | OSP_FB_NORMAL;
   } else {
     if (!hasChild("sRGB"))
@@ -156,9 +163,11 @@ void FrameBuffer::updateHandle()
     child("colorFormat") = std::string(sRGB ? "sRGB" : "RGBA8");
   }
 
-  auto idBuffers = child("ID_Buffers").valueAs<bool>();
-  if (idBuffers)
-    channels |= OSP_FB_ID_PRIMITIVE | OSP_FB_ID_OBJECT | OSP_FB_ID_INSTANCE;
+  auto moreBuffers = child("Additional AOVs").valueAs<bool>();
+  if (moreBuffers)
+    channels |= OSP_FB_ID_PRIMITIVE | OSP_FB_ID_OBJECT | OSP_FB_ID_INSTANCE
+        | OSP_FB_POSITION | OSP_FB_FIRST_NORMAL | OSP_FB_ALBEDO | OSP_FB_DEPTH
+        | OSP_FB_NORMAL;
 
   auto size = child("size").valueAs<vec2i>();
   // Assure that neither dimension is 0.
@@ -171,11 +180,8 @@ void FrameBuffer::updateHandle()
   setHandle(fb);
 
   // Recreating the framebuffer will change the imageOps.  Refresh them.
-  int targetFrames = child("targetFrames").valueAs<int>();
-  if (hasDenoiser || hasToneMapper || targetFrames) {
-    updateImageOps = true;
-    updateImageOperations();
-  }
+  updateImageOps = hasDenoiser || hasToneMapper;
+  updateImageOperations();
 }
 
 void FrameBuffer::updateDenoiser(bool enabled, bool finalFrame)
@@ -184,13 +190,11 @@ void FrameBuffer::updateDenoiser(bool enabled, bool finalFrame)
   auto &dn = *denoiser;
   auto setting = finalFrame ? "final" : "interactive";
   bool changed = denoiserQuality != dn[setting].valueAs<OSPDenoiserQuality>();
-  if (enabled && changed) {
-    denoiserQuality = dn[setting].valueAs<OSPDenoiserQuality>();
-    denoiser->commit();
-  }
-
   if (enabled == hasDenoiser && !changed)
     return;
+
+  denoiserQuality = dn[setting].valueAs<OSPDenoiserQuality>();
+  denoiser->commit();
 
   hasDenoiser = enabled;
   updateImageOps = true;
@@ -224,14 +228,21 @@ void FrameBuffer::updateImageOperations()
   if (sgUsingMpi() && sgMpiRank() != 0)
       return;
 
+  int targetFrames = child("targetFrames").valueAs<int>();
+  handle().setParam("targetFrames", targetFrames);
+
+  bool projectedDepth = child("projectedDepth").valueAs<bool>();
+  handle().setParam("projectedDepth", projectedDepth);
+
+  if (child("targetFrames").isModified()
+      || child("projectedDepth").isModified())
+    updateImageOps = true;
+
   // Only update imageOperation if necessary
   if (!updateImageOps)
     return;
 
   updateImageOps = false;
-
-  int targetFrames = child("targetFrames").valueAs<int>();
-  handle().setParam("targetFrames", targetFrames);
 
   std::vector<cpp::ImageOperation> ops = {};
   if (hasToneMapper) {

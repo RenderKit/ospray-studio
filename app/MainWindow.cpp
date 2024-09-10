@@ -647,9 +647,9 @@ void MainWindow::display()
 
       bool displayBufferColor = ctx->optDisplayBuffer & OSP_FB_COLOR;
       bool displayBufferDepth = ctx->optDisplayBuffer & OSP_FB_DEPTH;
-      bool displayBufferAccum = ctx->optDisplayBuffer & OSP_FB_ACCUM;
-      bool displayBufferVariance = ctx->optDisplayBuffer & OSP_FB_VARIANCE;
-      bool displayBufferNormal = ctx->optDisplayBuffer & OSP_FB_NORMAL;
+      bool displayBufferPosition = ctx->optDisplayBuffer & OSP_FB_POSITION;
+      bool displayBufferNormal =
+          ctx->optDisplayBuffer & (OSP_FB_NORMAL | OSP_FB_FIRST_NORMAL);
       bool displayBufferAlbedo = ctx->optDisplayBuffer & OSP_FB_ALBEDO;
       bool displayBufferPrimitive = ctx->optDisplayBuffer & OSP_FB_ID_PRIMITIVE;
       bool displayBufferObject = ctx->optDisplayBuffer & OSP_FB_ID_OBJECT;
@@ -685,11 +685,11 @@ void MainWindow::display()
 
         bufferCopy = std::move(colorsID);
 
-      } else if (displayBufferDepth) {
+      } else if (displayBufferDepth || displayBufferPosition) {
         // Create a local copy and don't modify OSPRay buffer
         const auto *mappedDepth = static_cast<const float *>(mappedFB);
-        std::vector<float> depthCopy(
-            mappedDepth, mappedDepth + fbSize.x * fbSize.y);
+        std::vector<float> depthCopy(mappedDepth,
+            mappedDepth + fbSize.x * fbSize.y * (displayBufferDepth ? 1 : 3));
 
         // Scale OSPRay's 0 -> inf depth range to OpenGL 0 -> 1, ignoring all
         // inf values

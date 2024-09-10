@@ -35,6 +35,10 @@ namespace ospray {
       return (hasChild("sRGB") && child("sRGB").valueAs<bool>());
     }
 
+    inline uint32_t allChannels()
+    {
+      return channels;
+    }
     inline bool hasDepthChannel()
     {
       return (channels & OSP_FB_DEPTH);
@@ -46,6 +50,14 @@ namespace ospray {
     inline bool hasVarianceChannel()
     {
       return (channels & OSP_FB_VARIANCE);
+    }
+    inline bool hasPositionChannel()
+    {
+      return (channels & OSP_FB_POSITION);
+    }
+    inline bool hasFirstNormalChannel()
+    {
+      return (channels & OSP_FB_FIRST_NORMAL);
     }
     inline bool hasNormalChannel()
     {
