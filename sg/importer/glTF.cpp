@@ -484,7 +484,7 @@ void GLTFData::createCameraTemplates()
       sgCamera = createNode("camera", "camera_panoramic");
     } else {
       sgCamera = createNode("camera", "camera_orthographic");
-      sgCamera->child("height") = (float)m.orthographic.ymag;
+      sgCamera->child("height") = 2.0f * (float)m.orthographic.ymag;
 
       // calculate orthographic aspect with horizontal and vertical
       // maginifications
@@ -554,19 +554,19 @@ void GLTFData::createCameraTemplates()
         float measureTime = copyFloatParam("measureTime");
         if (measureTime > 0.0f) {
           sgCamera->child("motion blur").setValue(1.0f);
-          uint8_t shutterType = 0; // default global
+          OSPShutterType shutterType = OSP_SHUTTER_GLOBAL;
           if (temp.Get("type").Get<std::string>() == "rollingShutter") {
-            shutterType = 1; // default rolling right
+            shutterType = OSP_SHUTTER_ROLLING_RIGHT;
             if (temp.Has("rollingShutter")) {
               auto rol = temp.Get("rollingShutter");
               if (rol.Has("direction")) {
                 auto str = rol.Get("direction").Get<std::string>();
                 if (str == "left")
-                  shutterType = 2;
+                  shutterType = OSP_SHUTTER_ROLLING_LEFT;
                 if (str == "down")
-                  shutterType = 3;
+                  shutterType = OSP_SHUTTER_ROLLING_DOWN;
                 if (str == "up")
-                  shutterType = 4;
+                  shutterType = OSP_SHUTTER_ROLLING_UP;
               }
               float duration = 0.0f;
               if (rol.Has("measureTime"))
