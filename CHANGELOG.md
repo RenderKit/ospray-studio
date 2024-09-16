@@ -1,6 +1,11 @@
 Version History
 ---------------
 
+### Changes in OSPRay Studio v1.2.0
+
+- Compatible with OSPRay release v3.3.0
+
+
 ### Changes in OSPRay Studio v1.1.0
 
 - Compatible with OSPRay release v3.2.0
