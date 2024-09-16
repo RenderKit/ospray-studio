@@ -302,7 +302,7 @@ void GLTFData::loadNodeInfo(const int nid, NodePtr sgNode)
       auto &nodeId = node.Get("id").Get<std::string>();
       if (!isValidUUIDv4(nodeId))
         std::cerr << nodeId << " is not a valid version 4 UUID\n";
-      sgNode->createChild("instanceId", "string", nodeId);
+      sgNode->createChild("instanceUUID", "string", nodeId);
     }
   }
 

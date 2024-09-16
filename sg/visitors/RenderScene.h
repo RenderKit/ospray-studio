@@ -275,7 +275,7 @@ namespace ospray {
   inline void RenderScene::createGeometry(Node &node)
   {
     auto geomNode = node.nodeAs<Geometry>();
-    void* geomHandle = reinterpret_cast<void *>(node.valueAs<cpp::Geometry>().handle());
+    void *geomHandle = geomNode.get();
 
     if (groups.find(geomHandle) != groups.end())
       return;
@@ -365,7 +365,7 @@ namespace ospray {
       }
     }
     // update handle
-    geomHandle = reinterpret_cast<void *>(node.valueAs<cpp::Geometry>().handle());
+    geomHandle = geomNode.get();
     if (geomNode->group)
       groups.emplace(std::make_pair(geomHandle, *geomNode->group));
 
@@ -461,7 +461,7 @@ namespace ospray {
 #endif
 
       for (auto &geom : geomChildren) {
-        auto geomHandle = geom->valueAs<cpp::Geometry>().handle();
+        auto geomHandle = geom.get();
         if (groups.find(geomHandle) != groups.end()) {
           auto &group = groups[geomHandle];
           setInstance(group);
