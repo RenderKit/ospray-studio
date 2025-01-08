@@ -166,7 +166,7 @@ void UnstructuredVol::generateData()
   std::vector<uint32_t> cells = {0, 8, 14, 18};
 
   // define cell types
-  std::vector<OSPUnstructuredCellType> cellTypes = {
+  std::vector<uint8_t> cellTypes = {
       OSP_HEXAHEDRON, OSP_WEDGE, OSP_TETRAHEDRON, OSP_PYRAMID};
 
   auto &volume = tf.createChild("unstructured_volume", "volume_unstructured");

@@ -5,6 +5,11 @@ cmake_minimum_required(VERSION 3.15)
 
 project(ospray_studio VERSION 1.2.0 LANGUAGES CXX C)
 
+# https://gitlab.kitware.com/cmake/cmake/-/issues/18837
+if (MSVC AND (MSVC_VERSION GREATER_EQUAL 1914))
+  add_compile_options(/Zc:__cplusplus)
+endif()
+
 include(GNUInstallDirs)
 include(ProcessorCount)
 
